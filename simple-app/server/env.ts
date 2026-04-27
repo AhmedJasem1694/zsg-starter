@@ -3,7 +3,7 @@ import { config } from "dotenv";
 config();
 
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL is required");
+  console.warn("Warning: DATABASE_URL is not set — database features will fail");
 }
 
 if (!process.env.OPENROUTER_API_KEY) {
