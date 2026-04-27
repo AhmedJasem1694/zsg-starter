@@ -1,6 +1,7 @@
 import "./env";
 
 import express from "express";
+import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
@@ -9,6 +10,7 @@ const PORT = 3000;
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
 
 (async () => {
   const server = await registerRoutes(app);

@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+}
+
+// RiskAppetite: CONSERVATIVE | MODERATE | COMMERCIAL
+// CompanyRole: BUYER | SUPPLIER | BOTH
+model Company {
+  id           String   @id @default(cuid())
+  name         String
+  sector       String
+  jurisdiction String
+  role         String
+  riskAppetite String
+  createdAt    DateTime @default(now())
+
+  playbookRules    PlaybookRule[]
+  approvalContacts ApprovalContact[]
+  documents        UploadedDocument[]
+  regulations      CompanyRegulation[]
+}
+
+// jurisdiction: GB | EU | US | SG | AE
+model CompanyRegulation {
+  id            String   @id @default(cuid())
+  companyId     String
+  jurisdiction  String
+  regulator     String
+  frameworkName String
+  description   String
+  appliesTo     String
+  createdAt     DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+// ClauseCategory: LIABILITY_CAP | INDEMNITY | IP_OWNERSHIP | CONFIDENTIALITY |
+//   DATA_PRIVACY | TERMINATION | PAYMENT_TERMS | AUTO_RENEWAL | GOVERNING_LAW | AUDIT_RIGHTS
+// ApprovalRole: LEGAL | GC | CFO | BOARD
+model PlaybookRule {
+  id                 String   @id @default(cuid())
+  companyId          String
+  clauseCategory     String
+  preferredPosition  String
+  acceptableFallback String
+  hardRedLine        String
+  approvalRequired   String?
+  fallbackTemplate   String?
+  riskWeight         Int      @default(3)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  company       Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  reviewResults ReviewResult[]
+}
+
+// ApprovalRole: LEGAL | GC | CFO | BOARD
+model ApprovalContact {
+  id        String @id @default(cuid())
+  companyId String
+  role      String
+  name      String
+  email     String
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+// DocumentStatus: UPLOADED | PROCESSING | COMPLETE | FAILED
+model UploadedDocument {
+  id           String   @id @default(cuid())
+  companyId    String
+  filename     String
+  originalName String
+  contractType String
+  status       String   @default("UPLOADED")
+  uploadedAt   DateTime @default(now())
+
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  extractedClauses ExtractedClause[]
+  reviewResults    ReviewResult[]
+}
+
+// ClauseCategory: see PlaybookRule
+model ExtractedClause {
+  id                String  @id @default(cuid())
+  documentId        String
+  clauseCategory    String
+  rawText           String
+  normalisedSummary String?
+  confidence        Float   @default(0)
+
+  document      UploadedDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  reviewResults ReviewResult[]
+}
+
+// RagStatus: RED | AMBER | GREEN | GREY
+model ReviewResult {
+  id                 String   @id @default(cuid())
+  documentId         String
+  clauseId           String?
+  ruleId             String?
+  clauseCategory     String
+  ragStatus          String
+  clauseSummary      String
+  whyItMatters       String
+  recommendedAction  String
+  suggestedFallback  String
+  escalationRequired Boolean  @default(false)
+  escalationTrigger  String?
+  businessSummary    String
+  confidence         Float    @default(0)
+  isAbsent           Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  document  UploadedDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  clause    ExtractedClause? @relation(fields: [clauseId], references: [id])
+  rule      PlaybookRule?    @relation(fields: [ruleId], references: [id])
+  feedback  UserFeedback?
+}
+
+// FeedbackAction: ACCEPTED | EDITED | ESCALATED | DISMISSED
+model UserFeedback {
+  id              String   @id @default(cuid())
+  resultId        String   @unique
+  userAction      String
+  editedOutput    String?
+  finalClauseText String?
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  result ReviewResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+}
