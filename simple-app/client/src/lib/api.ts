@@ -66,6 +66,18 @@ export const startReview = (documentId: string) =>
 export const getReview = (documentId: string) =>
   req<UploadedDocument>("GET", `/api/review/${documentId}`);
 
+// Stats
+export const getStats = () => req<{
+  totalReviews: number;
+  totalDocuments: number;
+  redFlagsOpen: number;
+  escalationsPending: number;
+  clausesAccepted: number;
+  estimatedHoursSaved: number;
+  ragBreakdown: { RED: number; AMBER: number; GREEN: number; GREY: number };
+  topIssues: { category: string; count: number }[];
+}>("GET", "/api/stats");
+
 // Auth
 export const register = (data: { name: string; email: string; password: string }) =>
   req<{ userId: string; email: string; name: string }>("POST", "/api/auth/register", data);

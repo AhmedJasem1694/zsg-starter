@@ -321,6 +321,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(feedback);
   });
 
+  // ── Stats ────────────────────────────────────────────────────────────────────
+
+  app.get("/api/stats", requireAuth, async (_req: Request, res: Response) => {
+    const company = await prisma.company.findFirst();
+    if (!company) { res.json(null); return; }
+
+    const [docs, results] = await Promise.all([
+      prisma.uploadedDocument.findMany({ where: { companyId: company.id } }),
+      prisma.reviewResult.findMany({
+        where: { document: { companyId: company.id } },
+        include: { feedback: true },
+      }),
+    ]);
+
+    const complete = docs.filter((d) => d.status === "COMPLETE").length;
+    const redOpen = results.filter(
+      (r) => r.ragStatus === "RED" && r.feedback?.userAction !== "ACCEPTED" && r.feedback?.userAction !== "DISMISSED"
+    ).length;
+    const escalations = results.filter(
+      (r) => r.escalationRequired && r.feedback?.userAction !== "ESCALATED" && r.feedback?.userAction !== "DISMISSED"
+    ).length;
+    const accepted = results.filter((r) => r.feedback?.userAction === "ACCEPTED").length;
+
+    const categoryRed: Record<string, number> = {};
+    for (const r of results) {
+      if (r.ragStatus === "RED") {
+        categoryRed[r.clauseCategory] = (categoryRed[r.clauseCategory] ?? 0) + 1;
+      }
+    }
+    const topIssues = Object.entries(categoryRed)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([category, count]) => ({ category, count }));
+
+    res.json({
+      totalReviews: complete,
+      totalDocuments: docs.length,
+      redFlagsOpen: redOpen,
+      escalationsPending: escalations,
+      clausesAccepted: accepted,
+      estimatedHoursSaved: complete * 1.5,
+      ragBreakdown: {
+        RED:   results.filter((r) => r.ragStatus === "RED").length,
+        AMBER: results.filter((r) => r.ragStatus === "AMBER").length,
+        GREEN: results.filter((r) => r.ragStatus === "GREEN").length,
+        GREY:  results.filter((r) => r.ragStatus === "GREY").length,
+      },
+      topIssues,
+    });
+  });
+
   // ── Health ───────────────────────────────────────────────────────────────────
 
   app.get("/api/health", (_req: Request, res: Response) => {
