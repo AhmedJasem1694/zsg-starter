@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Settings, LogOut, Menu, X, Shield } from "lucide-react";
+import { LayoutDashboard, BookOpen, Settings, LogOut, Menu, Shield, Lock, HelpCircle, PieChart, CalendarClock } from "lucide-react";
 import { useAuth, useLogout } from "../../hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { getCompany } from "../../lib/api";
@@ -9,6 +9,13 @@ const NAV = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/playbook", icon: BookOpen, label: "Playbook" },
   { to: "/regulations", icon: Shield, label: "Regulations" },
+  { to: "/portfolio", icon: PieChart, label: "Portfolio Risk" },
+  { to: "/timings", icon: CalendarClock, label: "Contract Timings" },
+];
+
+const NAV_SECONDARY = [
+  { to: "/security", icon: Lock, label: "Security" },
+  { to: "/resources", icon: HelpCircle, label: "Resources" },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -72,6 +79,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+
+        {/* Secondary nav */}
+        <div className="px-3 pb-2 space-y-0.5 border-t border-sidebar-border pt-3">
+          <div className="px-3 pb-1 text-[10px] uppercase tracking-widest text-sidebar-foreground/30 font-medium">More</div>
+          {NAV_SECONDARY.map(({ to, icon: Icon, label }) => {
+            const active = location.pathname === to;
+            return (
+              <Link
+                key={to}
+                to={to}
+                onClick={() => setOpen(false)}
+                className={`nav-item ${active ? "nav-item-active" : ""}`}
+              >
+                <Icon size={16} className="shrink-0" />
+                {label}
+              </Link>
+            );
+          })}
+        </div>
 
         {/* Footer */}
         <div className="px-3 py-4 border-t border-sidebar-border space-y-0.5">

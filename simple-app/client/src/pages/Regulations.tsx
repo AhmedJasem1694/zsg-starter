@@ -98,7 +98,7 @@ export default function Regulations() {
         <div className="card bg-accent border-accent-border p-4 flex gap-3">
           <Shield size={16} className="text-primary mt-0.5 shrink-0" />
           <p className="text-sm text-foreground/80">
-            MIKE injects these regulatory requirements into every contract review — flagging clauses that conflict with your
+            MIKE injects these regulatory requirements into every contract review - flagging clauses that conflict with your
             obligations even if your playbook doesn't explicitly mention them.
           </p>
         </div>
@@ -111,7 +111,7 @@ export default function Regulations() {
             <div>
               <div className="text-sm font-medium">No regulatory frameworks detected yet</div>
               <div className="text-xs text-muted-foreground mt-1">
-                Click "Re-detect" above — MIKE will analyse your company sector and jurisdiction.
+                Click "Re-detect" above - MIKE will analyse your company sector and jurisdiction.
               </div>
             </div>
             <button

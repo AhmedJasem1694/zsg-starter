@@ -152,7 +152,7 @@ export default function ReviewDetail() {
           <div className="card border-red-200 bg-red-50 p-4 flex gap-3">
             <AlertTriangle size={16} className="text-red-600 shrink-0 mt-0.5" />
             <div className="text-sm text-red-800">
-              <span className="font-semibold">Escalation required</span> —{" "}
+              <span className="font-semibold">Escalation required</span> -{" "}
               {results.filter((r) => r.escalationRequired).length} clause
               {results.filter((r) => r.escalationRequired).length !== 1 ? "s need" : " needs"} sign-off
               before proceeding.
@@ -293,7 +293,7 @@ function ClauseCard({
             </Detail>
           )}
 
-          <Detail title="Plain English summary — for stakeholders">
+          <Detail title="Plain English summary - for stakeholders">
             <div className="bg-card border border-card-border rounded-lg px-4 py-3 text-sm leading-relaxed">
               {result.businessSummary}
             </div>

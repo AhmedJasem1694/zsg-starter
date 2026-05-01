@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Upload, FileText, AlertTriangle, CheckCircle, Clock,
-  RotateCcw, TrendingUp, Shield, Zap, ArrowRight,
+  RotateCcw, TrendingUp, Shield, Zap,
   ChevronRight, BarChart2, AlertCircle,
 } from "lucide-react";
 import { getDocuments, uploadDocument, startReview, getStats } from "../lib/api";
@@ -26,11 +26,19 @@ interface DocWithRag {
 type SignReadiness = "ready" | "negotiate" | "review" | "not-ready" | "pending";
 
 const CONTRACT_TYPES = [
-  { value: "SUPPLIER_AGREEMENT", label: "Supplier Agreement" },
-  { value: "CUSTOMER_AGREEMENT", label: "Customer Agreement" },
-  { value: "MSA",                label: "Master Services Agreement" },
-  { value: "NDA",                label: "NDA" },
-  { value: "DPA",                label: "Data Processing Agreement" },
+  { value: "SUPPLIER_AGREEMENT",    label: "Supplier Agreement" },
+  { value: "CUSTOMER_AGREEMENT",    label: "Customer Agreement" },
+  { value: "MSA",                   label: "Master Services Agreement" },
+  { value: "NDA",                   label: "NDA" },
+  { value: "DPA",                   label: "Data Processing Agreement" },
+  { value: "SaaS_AGREEMENT",        label: "SaaS / Software Licence" },
+  { value: "PROFESSIONAL_SERVICES", label: "Professional Services" },
+  { value: "EMPLOYMENT",            label: "Employment Agreement" },
+  { value: "CONTRACTOR_AGREEMENT",  label: "Contractor Agreement" },
+  { value: "COMMERCIAL_LEASE",      label: "Commercial Lease" },
+  { value: "LICENSE_AGREEMENT",     label: "Licence to Occupy" },
+  { value: "JV_AGREEMENT",          label: "Joint Venture Agreement" },
+  { value: "SHARE_PURCHASE",        label: "Share Purchase Agreement" },
 ];
 
 // ─── Sign readiness helpers ───────────────────────────────────────────────────
@@ -263,20 +271,19 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Stats row */}
+        {/* Stats row - always visible */}
         {stats && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={FileText}    label="Contracts reviewed"  value={stats.totalReviews}       sub={`${stats.totalDocuments} uploaded total`} accent="primary" />
-            <StatCard icon={AlertTriangle} label="Open RED flags"    value={stats.redFlagsOpen}       sub="Awaiting your decision" accent={stats.redFlagsOpen > 0 ? "red" : "green"} />
-            <StatCard icon={Shield}      label="Escalations pending" value={stats.escalationsPending} sub="Need stakeholder sign-off" accent={stats.escalationsPending > 0 ? "amber" : "green"} />
-            <StatCard icon={TrendingUp}  label="Hours saved"         value={`~${stats.estimatedHoursSaved}h`} sub={`${stats.clausesAccepted} clauses accepted`} accent="green" />
+            <StatCard icon={FileText}      label="Contracts reviewed"  value={stats.totalReviews}       sub={`${stats.totalDocuments} uploaded total`} accent="primary" />
+            <StatCard icon={AlertTriangle} label="Open RED flags"      value={stats.redFlagsOpen}       sub="Awaiting your decision" accent={stats.redFlagsOpen > 0 ? "red" : "green"} />
+            <StatCard icon={Shield}        label="Escalations pending" value={stats.escalationsPending} sub="Need stakeholder sign-off" accent={stats.escalationsPending > 0 ? "amber" : "green"} />
+            <StatCard icon={TrendingUp}    label="Hours saved"         value={`~${stats.estimatedHoursSaved}h`} sub={`${stats.clausesAccepted} clauses accepted`} accent="green" />
           </div>
         )}
 
-        {/* Main grid */}
         <div className="grid lg:grid-cols-3 gap-6">
 
-          {/* Left col — 2/3 */}
+          {/* Left col - 2/3 */}
           <div className="lg:col-span-2 space-y-6">
 
             {/* Upload */}
@@ -337,7 +344,7 @@ export default function Dashboard() {
                 <div className="card-body text-center py-12">
                   <FileText size={32} className="text-muted-foreground/30 mx-auto mb-3" />
                   <div className="text-sm font-medium text-muted-foreground">No contracts reviewed yet</div>
-                  <div className="text-xs text-muted-foreground mt-1">Upload one above — MIKE reviews it in ~2 minutes</div>
+                  <div className="text-xs text-muted-foreground mt-1">Upload one above - MIKE reviews it in ~2 minutes</div>
                 </div>
               ) : (
                 <div className="divide-y divide-card-border">
@@ -418,7 +425,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Right col — 1/3 */}
+          {/* Right col - 1/3 */}
           <div className="space-y-6">
 
             {/* Action required */}
@@ -506,10 +513,10 @@ export default function Dashboard() {
                 </div>
                 <div className="space-y-2 text-xs text-foreground/70">
                   {[
-                    { badge: "rag-red",   label: "Red",   desc: "Do not sign — issue to fix first" },
+                    { badge: "rag-red",   label: "Red",   desc: "Do not sign - issue to fix first" },
                     { badge: "rag-amber", label: "Amber", desc: "Negotiate before signing" },
                     { badge: "rag-green", label: "Green", desc: "Meets your position" },
-                    { badge: "rag-grey",  label: "Absent",desc: "Clause missing — request insertion" },
+                    { badge: "rag-grey",  label: "Absent",desc: "Clause missing - request insertion" },
                   ].map(({ badge, label, desc }) => (
                     <div key={label} className="flex items-center gap-2">
                       <span className={badge}>{label}</span>

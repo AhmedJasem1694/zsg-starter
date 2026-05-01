@@ -15,7 +15,7 @@
   --card-foreground: 222 47% 11%;
   --card-border: 214 32% 91%;       /* slate-200 */
 
-  /* Sidebar — dark navy */
+  /* Sidebar - dark navy */
   --sidebar: 222 47% 8%;            /* near-black navy */
   --sidebar-foreground: 213 31% 91%;
   --sidebar-border: 222 47% 14%;
@@ -26,7 +26,7 @@
   --sidebar-ring: 172 84% 30%;
   --sidebar-primary-border: hsl(172 84% 30%);
 
-  /* Primary action — teal */
+  /* Primary action - teal */
   --primary: 172 84% 25%;           /* teal-700 */
   --primary-foreground: 0 0% 100%;
   --primary-border: hsl(172 84% 25%);
@@ -149,6 +149,32 @@
   .nav-item-active {
     @apply bg-sidebar-accent text-sidebar-foreground;
   }
+}
+
+/* ─── Dark theme scope ──────────────────────────────────────────────────────── */
+/* Apply class="theme-dark" to any container to flip all CSS-variable-based     */
+/* components (inputs, cards, borders, text) to the dark navy palette.          */
+
+.theme-dark {
+  --background: 222 47% 6%;
+  --foreground: 213 31% 91%;
+  --card: 222 47% 10%;
+  --card-foreground: 213 31% 91%;
+  --card-border: 222 47% 17%;
+  --border: 222 47% 18%;
+  --input: 222 47% 13%;
+  --muted: 222 47% 13%;
+  --muted-foreground: 215 16% 55%;
+  --muted-border: hsl(222 47% 20%);
+  --accent: 172 55% 10%;
+  --accent-foreground: 172 84% 55%;
+  --accent-border: hsl(172 55% 20%);
+  --popover: 222 47% 10%;
+  --popover-foreground: 213 31% 91%;
+  --popover-border: 222 47% 18%;
+  --secondary: 222 47% 15%;
+  --secondary-foreground: 213 31% 85%;
+  --secondary-border: hsl(222 47% 22%);
 }
 
 @layer utilities {

@@ -7,6 +7,7 @@ import {
   buildAbsentClauseResult,
 } from "./playbookComparison.js";
 import { getRegulationSummaryForLLM } from "./regulatoryDetection.js";
+import { getRegulatoryContext, formatRegulatoryContextForPrompt } from "./regulatoryEngine.js";
 
 export async function runReview(documentId: string): Promise<void> {
   const doc = await prisma.uploadedDocument.findUniqueOrThrow({
@@ -27,7 +28,7 @@ export async function runReview(documentId: string): Promise<void> {
     // Classify all chunks into clause categories
     const classified = await classifyClauses(chunks);
 
-    // Deduplicate — keep highest-confidence chunk per category
+    // Deduplicate - keep highest-confidence chunk per category
     const bestByCategory = new Map<string, (typeof classified)[0]>();
     for (const item of classified) {
       const existing = bestByCategory.get(item.category);
@@ -38,7 +39,7 @@ export async function runReview(documentId: string): Promise<void> {
 
     const company = doc.company;
 
-    // Fetch regulatory context once — injected into every clause comparison
+    // Fetch regulatory context once - injected into every clause comparison
     const regulatoryContext = await getRegulationSummaryForLLM(company.id);
     const results: Array<{
       clauseCategory: string;
@@ -60,13 +61,13 @@ export async function runReview(documentId: string): Promise<void> {
       const rule = company.playbookRules.find(
         (r) => r.clauseCategory === category
       );
-      if (!rule) continue; // No playbook rule for this category — skip
+      if (!rule) continue; // No playbook rule for this category - skip
 
       const match = bestByCategory.get(category);
 
       if (!match) {
         // Clause absent from contract
-        const absent = buildAbsentClauseResult(category, rule);
+        const absent = buildAbsentClauseResult(category, rule, (company.persona ?? "CORPORATE") as "CORPORATE" | "FOUNDER" | "PE_FUND");
         results.push({
           clauseCategory: category,
           ...absent,
@@ -88,13 +89,25 @@ export async function runReview(documentId: string): Promise<void> {
         },
       });
 
+      // Fetch per-clause regulatory context from the regulatory engine
+      const clauseRegDocs = await getRegulatoryContext({
+        clauseCategory: category,
+        jurisdiction: company.jurisdiction,
+        sector: company.sector,
+      });
+      const clauseRegContext = formatRegulatoryContextForPrompt(clauseRegDocs);
+
+      // Merge company-level regulatory context with per-clause regulatory engine output
+      const combinedRegContext = regulatoryContext + clauseRegContext;
+
       // Compare against playbook with regulatory context
       const comparison = await compareClauseToPlaybook(
         match.rawText,
         rule,
         company.name,
         company.sector,
-        regulatoryContext
+        combinedRegContext,
+        (company.persona ?? "CORPORATE") as "CORPORATE" | "FOUNDER" | "PE_FUND"
       );
 
       results.push({

@@ -17,6 +17,9 @@ model User {
 
 // RiskAppetite: CONSERVATIVE | MODERATE | COMMERCIAL
 // CompanyRole: BUYER | SUPPLIER | BOTH
+// Industry: TECHNOLOGY_SAAS | FINANCIAL_SERVICES | HEALTHCARE_LIFESCIENCES | GAMING_INTERACTIVE |
+//   PROPERTY_REAL_ESTATE | PROFESSIONAL_SERVICES | MANUFACTURING_SUPPLY | RETAIL_ECOMMERCE |
+//   MEDIA_ENTERTAINMENT | ENERGY_CLEANTECH | EDUCATION_EDTECH | LEGAL_SERVICES | OTHER
 model Company {
   id           String   @id @default(cuid())
   name         String
@@ -24,6 +27,8 @@ model Company {
   jurisdiction String
   role         String
   riskAppetite String
+  industry     String   @default("")
+  persona      String   @default("CORPORATE")
   createdAt    DateTime @default(now())
 
   playbookRules    PlaybookRule[]

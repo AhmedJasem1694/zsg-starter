@@ -31,6 +31,8 @@ export const createCompany = (data: {
   jurisdiction: string;
   role: string;
   riskAppetite: string;
+  industry?: string;
+  persona?: string;
 }) => req<Company>("POST", "/api/company", data);
 
 // Playbook

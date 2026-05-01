@@ -23,6 +23,8 @@ const companySchema = z.object({
   jurisdiction: z.string().min(1),
   role: z.enum(["BUYER", "SUPPLIER", "BOTH"]),
   riskAppetite: z.enum(["CONSERVATIVE", "MODERATE", "COMMERCIAL"]),
+  industry: z.string().optional(),
+  persona: z.enum(["CORPORATE", "FOUNDER", "PE_FUND"]).optional(),
 });
 
 const playbookRuleSchema = z.object({

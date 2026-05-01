@@ -10,6 +10,10 @@ import Dashboard from "./pages/Dashboard";
 import ReviewDetail from "./pages/ReviewDetail";
 import Playbook from "./pages/Playbook";
 import Regulations from "./pages/Regulations";
+import Security from "./pages/Security";
+import Resources from "./pages/Resources";
+import Portfolio from "./pages/Portfolio";
+import ContractTimings from "./pages/ContractTimings";
 
 function AppRoutes() {
   const { user, isLoading: authLoading } = useAuth();
@@ -36,10 +40,7 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public routes */}
-      <Route
-        path="/"
-        element={user ? <Navigate to="/dashboard" replace /> : <Landing />}
-      />
+      <Route path="/" element={<Landing />} />
       <Route
         path="/login"
         element={user ? <Navigate to="/dashboard" replace /> : <Login />}
@@ -102,6 +103,20 @@ function AppRoutes() {
           )
         }
       />
+
+      {/* Auth-required analytics pages */}
+      <Route
+        path="/portfolio"
+        element={!user ? <Navigate to="/login" replace /> : company ? <Portfolio /> : <Navigate to="/onboarding" replace />}
+      />
+      <Route
+        path="/timings"
+        element={!user ? <Navigate to="/login" replace /> : company ? <ContractTimings /> : <Navigate to="/onboarding" replace />}
+      />
+
+      {/* Public info pages - accessible logged in or out */}
+      <Route path="/security" element={<Security />} />
+      <Route path="/resources" element={<Resources />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
