@@ -8,6 +8,11 @@ import {
 } from "./playbookComparison.js";
 import { getRegulationSummaryForLLM } from "./regulatoryDetection.js";
 import { getRegulatoryContext, formatRegulatoryContextForPrompt } from "./regulatoryEngine.js";
+import { sendEscalationEmail } from "./emailService.js";
+
+function toTitleCase(s: string) {
+  return s.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 export async function runReview(documentId: string): Promise<void> {
   const doc = await prisma.uploadedDocument.findUniqueOrThrow({
@@ -144,6 +149,36 @@ export async function runReview(documentId: string): Promise<void> {
       where: { id: documentId },
       data: { status: "COMPLETE" },
     });
+
+    // Send escalation emails - fire-and-forget, never block or fail the review
+    const escalations = results.filter((r) => r.escalationRequired && r.ruleId);
+    if (escalations.length > 0) {
+      const contacts = await prisma.approvalContact.findMany({
+        where: { companyId: company.id },
+      });
+
+      for (const esc of escalations) {
+        const rule = company.playbookRules.find((r) => r.id === esc.ruleId);
+        if (!rule?.approvalRequired) continue;
+
+        const contact = contacts.find((c) => c.role === rule.approvalRequired);
+        if (!contact?.email || !contact?.name) continue;
+
+        sendEscalationEmail({
+          to:                { name: contact.name, email: contact.email },
+          contractName:      doc.originalName,
+          documentId,
+          clauseLabel:       toTitleCase(esc.clauseCategory),
+          ragStatus:         esc.ragStatus,
+          escalationTrigger: esc.escalationTrigger ?? "Approval required per playbook rule.",
+          recommendedAction: esc.recommendedAction,
+          businessSummary:   esc.businessSummary,
+          companyName:       company.name,
+        }).catch((err: unknown) => {
+          console.error(`[MIKE] Escalation email failed for ${esc.clauseCategory}:`, err);
+        });
+      }
+    }
   } catch (err) {
     await prisma.uploadedDocument.update({
       where: { id: documentId },
