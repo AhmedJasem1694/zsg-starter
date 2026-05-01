@@ -88,6 +88,23 @@ export const login = (data: { email: string; password: string }) =>
 export const logout = () => req<{ ok: boolean }>("POST", "/api/auth/logout");
 export const getMe = () => req<{ userId: string; email: string }>("GET", "/api/auth/me");
 
+// Portfolio
+export const getPortfolio = () => req<{
+  groups: { label: string; icon: string; red: number; amber: number; green: number }[];
+  topRedCategories: { category: string; count: number; pct: number }[];
+  byContractType: { type: string; red: number; amber: number; total: number }[];
+  insight: string;
+  totalDocuments: number;
+  totalClauses: number;
+} | null>("GET", "/api/portfolio");
+
+// Timings
+export const getTimings = () => req<{
+  flagged: { id: string; contractName: string; contractType: string; clauseCategory: string; ragStatus: string; summary: string; uploadedAt: string }[];
+  overview: { label: string; count: number; pct: number }[];
+  totalDocuments: number;
+} | null>("GET", "/api/timings");
+
 // Regulatory
 export const getRegulations = () => req<CompanyRegulation[]>("GET", "/api/regulatory");
 export const detectRegulations = () => req<CompanyRegulation[]>("POST", "/api/regulatory/detect");

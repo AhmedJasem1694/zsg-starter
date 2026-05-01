@@ -374,6 +374,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // ── Portfolio ─────────────────────────────────────────────────────────────────
+
+  app.get("/api/portfolio", requireAuth, async (_req: Request, res: Response) => {
+    const company = await prisma.company.findFirst();
+    if (!company) { res.json(null); return; }
+
+    const results = await prisma.reviewResult.findMany({
+      where: { document: { companyId: company.id, status: "COMPLETE" } },
+      include: { document: { select: { contractType: true, id: true } } },
+    });
+
+    if (results.length === 0) { res.json(null); return; }
+
+    const GROUPS = [
+      { label: "Liability & Risk",      icon: "⚖️",  cats: ["LIABILITY_CAP","INDEMNITY","WARRANTIES","LIQUIDATED_DAMAGES","INSURANCE"] },
+      { label: "Data & Privacy",        icon: "🔐",  cats: ["DATA_PRIVACY","CONFIDENTIALITY","SANCTIONS_COMPLIANCE","MODERN_SLAVERY","ANTI_BRIBERY"] },
+      { label: "IP & Technology",       icon: "💡",  cats: ["IP_OWNERSHIP","SOURCE_CODE_ESCROW","ACCEPTANCE_TESTING","MARKETING_RIGHTS","SERVICE_LEVELS"] },
+      { label: "Termination & Renewal", icon: "📅",  cats: ["TERMINATION","AUTO_RENEWAL","BREAK_CLAUSE","CHANGE_OF_CONTROL","REGULATORY_CHANGE"] },
+    ];
+
+    const groups = GROUPS.map((g) => {
+      const gr = results.filter((r) => g.cats.includes(r.clauseCategory));
+      return {
+        label: g.label,
+        icon:  g.icon,
+        red:   gr.filter((r) => r.ragStatus === "RED").length,
+        amber: gr.filter((r) => r.ragStatus === "AMBER").length,
+        green: gr.filter((r) => r.ragStatus === "GREEN").length,
+      };
+    });
+
+    const totalDocs = new Set(results.map((r) => r.documentId)).size;
+
+    const categoryRed: Record<string, number> = {};
+    const categoryTotal: Record<string, number> = {};
+    for (const r of results) {
+      categoryTotal[r.clauseCategory] = (categoryTotal[r.clauseCategory] ?? 0) + 1;
+      if (r.ragStatus === "RED") categoryRed[r.clauseCategory] = (categoryRed[r.clauseCategory] ?? 0) + 1;
+    }
+    const topRedCategories = Object.entries(categoryRed)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 6)
+      .map(([category, count]) => ({ category, count, pct: Math.round((count / totalDocs) * 100) }));
+
+    const typeMap: Record<string, { red: number; amber: number; docIds: Set<string> }> = {};
+    for (const r of results) {
+      const t = r.document.contractType;
+      if (!typeMap[t]) typeMap[t] = { red: 0, amber: 0, docIds: new Set() };
+      typeMap[t].docIds.add(r.documentId);
+      if (r.ragStatus === "RED")   typeMap[t].red++;
+      if (r.ragStatus === "AMBER") typeMap[t].amber++;
+    }
+    const byContractType = Object.entries(typeMap)
+      .map(([type, v]) => ({ type: type.replace(/_/g, " "), red: v.red, amber: v.amber, total: v.docIds.size }))
+      .sort((a, b) => b.red - a.red);
+
+    const topCat = topRedCategories[0];
+    const insight = topCat
+      ? `${topCat.category.replace(/_/g, " ")} is your most common risk issue across ${totalDocs} reviewed contract${totalDocs !== 1 ? "s" : ""}. Check your playbook position and consider whether your red line is calibrated correctly.`
+      : `${totalDocs} contract${totalDocs !== 1 ? "s" : ""} reviewed with no RED flags. Your playbook positions are holding well.`;
+
+    res.json({ groups, topRedCategories, byContractType, insight, totalDocuments: totalDocs, totalClauses: results.length });
+  });
+
+  // ── Timings ───────────────────────────────────────────────────────────────────
+
+  app.get("/api/timings", requireAuth, async (_req: Request, res: Response) => {
+    const company = await prisma.company.findFirst();
+    if (!company) { res.json(null); return; }
+
+    const docs = await prisma.uploadedDocument.findMany({
+      where: { companyId: company.id },
+      include: {
+        reviewResults: {
+          where: { clauseCategory: { in: ["AUTO_RENEWAL", "TERMINATION", "BREAK_CLAUSE", "PAYMENT_TERMS", "CHANGE_OF_CONTROL"] } },
+        },
+      },
+      orderBy: { uploadedAt: "desc" },
+    });
+
+    const flagged = docs
+      .filter((d) => d.status === "COMPLETE")
+      .flatMap((d) =>
+        d.reviewResults
+          .filter((r) => r.ragStatus === "RED" || r.ragStatus === "AMBER")
+          .map((r) => ({
+            id:            r.id,
+            contractName:  d.originalName,
+            contractType:  d.contractType.replace(/_/g, " "),
+            clauseCategory: r.clauseCategory,
+            ragStatus:     r.ragStatus,
+            summary:       r.clauseSummary,
+            uploadedAt:    d.uploadedAt.toISOString(),
+          }))
+      )
+      .sort((a, b) => (a.ragStatus === "RED" && b.ragStatus !== "RED" ? -1 : 1));
+
+    const total = docs.length || 1;
+    const statusCounts = {
+      complete:   docs.filter((d) => d.status === "COMPLETE").length,
+      processing: docs.filter((d) => d.status === "PROCESSING").length,
+      uploaded:   docs.filter((d) => d.status === "UPLOADED").length,
+      failed:     docs.filter((d) => d.status === "FAILED").length,
+    };
+    const overview = [
+      { label: "Reviewed",       count: statusCounts.complete,   pct: Math.round(statusCounts.complete   / total * 100) },
+      { label: "Processing",     count: statusCounts.processing, pct: Math.round(statusCounts.processing / total * 100) },
+      { label: "Awaiting review",count: statusCounts.uploaded,   pct: Math.round(statusCounts.uploaded   / total * 100) },
+      { label: "Failed",         count: statusCounts.failed,     pct: Math.round(statusCounts.failed     / total * 100) },
+    ].filter((o) => o.count > 0);
+
+    res.json({ flagged, overview, totalDocuments: docs.length });
+  });
+
   // ── Health ───────────────────────────────────────────────────────────────────
 
   app.get("/api/health", (_req: Request, res: Response) => {
