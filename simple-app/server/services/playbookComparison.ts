@@ -1,5 +1,15 @@
 import OpenAI from "openai";
-import type { PlaybookRule } from "@prisma/client";
+
+// Minimal shape of a playbook rule record needed by this module
+interface PlaybookRule {
+  clauseCategory: string;
+  preferredPosition: string;
+  acceptableFallback: string;
+  hardRedLine: string;
+  approvalRequired?: string | null;
+  fallbackTemplate?: string | null;
+  [key: string]: unknown;
+}
 
 const client = new OpenAI({
   baseURL: "https://openrouter.ai/api/v1",

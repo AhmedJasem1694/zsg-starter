@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { prisma } from "../db.js";
+import { pb } from "../pb.js";
 import {
   detectFrameworks,
   REGULATORY_FRAMEWORKS,
@@ -56,16 +56,14 @@ function mapJurisdiction(jurisdiction: string): Jurisdiction[] {
 }
 
 export async function detectAndSaveRegulations(companyId: string): Promise<void> {
-  const company = await prisma.company.findUniqueOrThrow({
-    where: { id: companyId },
-  });
+  const company = await pb.collection("companies").getOne(companyId);
 
-  const jurisdictions = mapJurisdiction(company.jurisdiction);
+  const jurisdictions = mapJurisdiction(company["jurisdiction"] as string);
 
   // Step 1: keyword-based detection
-  const keywordMatches = detectFrameworks(company.sector, jurisdictions);
+  const keywordMatches = detectFrameworks(company["sector"] as string, jurisdictions);
 
-  // Step 2: AI enhancement - find any the keyword match missed
+  // Step 2: AI enhancement — find any the keyword match missed
   let aiCodes: string[] = [];
   if (process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_API_KEY !== "your-api-key-here") {
     try {
@@ -76,7 +74,7 @@ export async function detectAndSaveRegulations(companyId: string): Promise<void>
         messages: [
           {
             role: "user",
-            content: `A company called "${company.name}" operates in the "${company.sector}" sector, based in "${company.jurisdiction}".
+            content: `A company called "${company["name"]}" operates in the "${company["sector"]}" sector, based in "${company["jurisdiction"]}".
 
 Given these regulatory framework codes: ${allCodes}
 
@@ -100,35 +98,42 @@ Example: ["GB_FCA_CONSUMER_DUTY", "EU_AI_ACT"]`,
   );
   const allFrameworks = [...keywordMatches, ...aiFrameworks];
 
-  // Clear existing and save new
-  await prisma.companyRegulation.deleteMany({ where: { companyId } });
+  // Clear existing regulations for this company
+  const existing = await pb.collection("company_regulations").getFullList({
+    filter: `company = "${companyId}"`,
+    fields: "id",
+  });
+  await Promise.all(existing.map((r) => pb.collection("company_regulations").delete(r.id)));
 
+  // Save new regulations
   if (allFrameworks.length > 0) {
-    await prisma.companyRegulation.createMany({
-      data: allFrameworks.map((f) => ({
-        companyId,
-        jurisdiction: f.jurisdiction,
-        regulator: f.regulator,
-        frameworkName: f.frameworkName,
-        description: f.description,
-        appliesTo: f.sectorTags.join(", "),
-      })),
-    });
+    await Promise.all(
+      allFrameworks.map((f) =>
+        pb.collection("company_regulations").create({
+          company: companyId,
+          jurisdiction: f.jurisdiction,
+          regulator: f.regulator,
+          frameworkName: f.frameworkName,
+          description: f.description,
+          appliesTo: f.sectorTags.join(", "),
+        })
+      )
+    );
   }
 }
 
 export async function getRegulationSummaryForLLM(companyId: string): Promise<string> {
-  const regs = await prisma.companyRegulation.findMany({
-    where: { companyId },
-    orderBy: { jurisdiction: "asc" },
+  const regs = await pb.collection("company_regulations").getFullList({
+    filter: `company = "${companyId}"`,
+    sort: "+jurisdiction",
   });
 
   if (regs.length === 0) return "";
 
   const lines = regs.map((r) => {
-    const framework = REGULATORY_FRAMEWORKS.find((f) => f.frameworkName === r.frameworkName);
+    const framework = REGULATORY_FRAMEWORKS.find((f) => f.frameworkName === r["frameworkName"]);
     const obligations = framework?.keyObligations.slice(0, 3).join("; ") ?? "";
-    return `- ${r.frameworkName} (${r.regulator}, ${r.jurisdiction}): ${r.description} Key obligations: ${obligations}`;
+    return `- ${r["frameworkName"]} (${r["regulator"]}, ${r["jurisdiction"]}): ${r["description"]} Key obligations: ${obligations}`;
   });
 
   return `\n\nApplicable regulatory frameworks for this company:\n${lines.join("\n")}`;

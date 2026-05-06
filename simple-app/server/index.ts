@@ -4,6 +4,7 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { initPocketBase } from "./pb";
 
 const PORT = 3000;
 
@@ -13,6 +14,8 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 (async () => {
+  await initPocketBase();
+
   const server = await registerRoutes(app);
 
   if (app.get("env") === "development") {

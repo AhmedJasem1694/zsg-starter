@@ -3,12 +3,10 @@ import { createServer, type Server } from "http";
 import path from "path";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { prisma } from "./db.js";
+import { pb } from "./pb.js";
 import { upload, uploadAncillary, classifyFileType } from "./upload.js";
 import { runReview } from "./services/reviewOrchestrator.js";
-import {
-  detectAndSaveRegulations,
-} from "./services/regulatoryDetection.js";
+import { detectAndSaveRegulations } from "./services/regulatoryDetection.js";
 import { requireAuth, signToken } from "./middleware/auth.js";
 import { transcribeAudioFile } from "./services/transcription.js";
 
@@ -18,6 +16,8 @@ const COOKIE_OPTS = {
   sameSite: "lax" as const,
   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
 };
+
+// ── Zod schemas ──────────────────────────────────────────────────────────────
 
 const companySchema = z.object({
   name: z.string().min(1),
@@ -54,8 +54,65 @@ const feedbackSchema = z.object({
   notes: z.string().optional(),
 });
 
+// ── Field-name mappers (PocketBase → frontend) ───────────────────────────────
+// PocketBase uses `created`/`updated` and stores relation IDs under the field
+// name (e.g. `company`). The frontend was built expecting Prisma-style field
+// names, so we alias here at the API boundary.
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PBRecord = Record<string, any>;
+
+function mapCompany(c: PBRecord) {
+  return { ...c, createdAt: c.created };
+}
+
+function mapDoc(d: PBRecord) {
+  return { ...d, companyId: d.company, uploadedAt: d.created };
+}
+
+function mapResult(r: PBRecord) {
+  return {
+    ...r,
+    documentId: r.document,
+    clauseId: r.clause ?? null,
+    ruleId: r.rule ?? null,
+    createdAt: r.created,
+  };
+}
+
+function mapFeedback(f: PBRecord) {
+  return { ...f, resultId: f.result, createdAt: f.created };
+}
+
+function mapRule(r: PBRecord) {
+  return { ...r, companyId: r.company, createdAt: r.created, updatedAt: r.updated };
+}
+
+function mapContact(c: PBRecord) {
+  return { ...c, companyId: c.company };
+}
+
+function mapRegulation(r: PBRecord) {
+  return { ...r, companyId: r.company, createdAt: r.created };
+}
+
+function mapIntake(i: PBRecord) {
+  return { ...i, documentId: i.document, createdAt: i.created, updatedAt: i.updated };
+}
+
+function mapAncillary(a: PBRecord) {
+  return { ...a, documentId: a.document, uploadedAt: a.created };
+}
+
 function sendError(res: Response, status: number, message: string) {
   return res.status(status).json({ error: message });
+}
+
+// ── Helper: get the single company (single-company mode) ─────────────────────
+
+async function getCompany(): Promise<PBRecord | null> {
+  const list = await pb.collection("companies").getFullList({ batch: 1 });
+  return list[0] ?? null;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -70,17 +127,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }).safeParse(req.body);
     if (!parsed.success) { sendError(res, 400, parsed.error.message); return; }
 
-    const exists = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-    if (exists) { sendError(res, 409, "An account with this email already exists"); return; }
+    const { name, email, password } = parsed.data;
 
-    const passwordHash = await bcrypt.hash(parsed.data.password, 12);
-    const user = await prisma.user.create({
-      data: { name: parsed.data.name, email: parsed.data.email, passwordHash },
+    const existing = await pb.collection("users").getFullList({
+      filter: `email = "${email}"`,
     });
+    if (existing.length > 0) { sendError(res, 409, "An account with this email already exists"); return; }
 
-    const token = signToken({ userId: user.id, email: user.email });
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await pb.collection("users").create({ name, email, passwordHash });
+
+    const token = signToken({ userId: user.id, email: user["email"] as string });
     res.cookie("token", token, COOKIE_OPTS);
-    res.json({ id: user.id, name: user.name, email: user.email });
+    res.json({ id: user.id, name: user["name"], email: user["email"] });
   });
 
   app.post("/api/auth/login", async (req: Request, res: Response) => {
@@ -90,15 +149,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }).safeParse(req.body);
     if (!parsed.success) { sendError(res, 400, "Invalid email or password"); return; }
 
-    const user = await prisma.user.findUnique({ where: { email: parsed.data.email } });
+    const { email, password } = parsed.data;
+
+    const users = await pb.collection("users").getFullList({
+      filter: `email = "${email}"`,
+    });
+    const user = users[0];
     if (!user) { sendError(res, 401, "Invalid email or password"); return; }
 
-    const valid = await bcrypt.compare(parsed.data.password, user.passwordHash);
+    const valid = await bcrypt.compare(password, user["passwordHash"] as string);
     if (!valid) { sendError(res, 401, "Invalid email or password"); return; }
 
-    const token = signToken({ userId: user.id, email: user.email });
+    const token = signToken({ userId: user.id, email: user["email"] as string });
     res.cookie("token", token, COOKIE_OPTS);
-    res.json({ id: user.id, name: user.name, email: user.email });
+    res.json({ id: user.id, name: user["name"], email: user["email"] });
   });
 
   app.post("/api/auth/logout", (_req: Request, res: Response) => {
@@ -116,56 +180,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const parsed = companySchema.safeParse(req.body);
     if (!parsed.success) { sendError(res, 400, parsed.error.message); return; }
 
-    await prisma.company.deleteMany();
-    const company = await prisma.company.create({ data: parsed.data });
+    // Single-company mode: wipe existing before creating
+    const existing = await pb.collection("companies").getFullList();
+    await Promise.all(existing.map((c) => pb.collection("companies").delete(c.id)));
+
+    const company = await pb.collection("companies").create(parsed.data);
 
     // Kick off regulatory detection async
     detectAndSaveRegulations(company.id).catch(console.error);
 
-    res.json(company);
+    res.json(mapCompany(company));
   });
 
   app.get("/api/company", requireAuth, async (_req: Request, res: Response) => {
-    const company = await prisma.company.findFirst({
-      include: {
-        playbookRules: { orderBy: { clauseCategory: "asc" } },
-        approvalContacts: true,
-        regulations: { orderBy: { jurisdiction: "asc" } },
-      },
-    });
+    const company = await getCompany();
     if (!company) { sendError(res, 404, "No company configured"); return; }
-    res.json(company);
+
+    const [playbookRules, approvalContacts, regulations] = await Promise.all([
+      pb.collection("playbook_rules").getFullList({
+        filter: `company = "${company.id}"`,
+        sort: "+clauseCategory",
+      }),
+      pb.collection("approval_contacts").getFullList({
+        filter: `company = "${company.id}"`,
+      }),
+      pb.collection("company_regulations").getFullList({
+        filter: `company = "${company.id}"`,
+        sort: "+jurisdiction",
+      }),
+    ]);
+
+    res.json({
+      ...mapCompany(company),
+      playbookRules: playbookRules.map(mapRule),
+      approvalContacts: approvalContacts.map(mapContact),
+      regulations: regulations.map(mapRegulation),
+    });
   });
 
   // ── Regulatory ───────────────────────────────────────────────────────────────
 
   app.post("/api/regulatory/detect", requireAuth, async (_req: Request, res: Response) => {
-    const company = await prisma.company.findFirst();
+    const company = await getCompany();
     if (!company) { sendError(res, 404, "No company configured"); return; }
 
     await detectAndSaveRegulations(company.id);
-    const regs = await prisma.companyRegulation.findMany({
-      where: { companyId: company.id },
-      orderBy: { jurisdiction: "asc" },
+    const regs = await pb.collection("company_regulations").getFullList({
+      filter: `company = "${company.id}"`,
+      sort: "+jurisdiction",
     });
-    res.json(regs);
+    res.json(regs.map(mapRegulation));
   });
 
   app.get("/api/regulatory", requireAuth, async (_req: Request, res: Response) => {
-    const company = await prisma.company.findFirst();
+    const company = await getCompany();
     if (!company) { res.json([]); return; }
 
-    const regs = await prisma.companyRegulation.findMany({
-      where: { companyId: company.id },
-      orderBy: { jurisdiction: "asc" },
+    const regs = await pb.collection("company_regulations").getFullList({
+      filter: `company = "${company.id}"`,
+      sort: "+jurisdiction",
     });
-    res.json(regs);
+    res.json(regs.map(mapRegulation));
   });
 
   // ── Playbook Rules ───────────────────────────────────────────────────────────
 
   app.post("/api/playbook/rules", requireAuth, async (req: Request, res: Response) => {
-    const company = await prisma.company.findFirst();
+    const company = await getCompany();
     if (!company) { sendError(res, 404, "No company configured"); return; }
 
     const body = req.body as { rules?: unknown[] };
@@ -174,53 +255,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const parsed = z.array(playbookRuleSchema).safeParse(body.rules);
     if (!parsed.success) { sendError(res, 400, parsed.error.message); return; }
 
-    await prisma.playbookRule.deleteMany({ where: { companyId: company.id } });
-    await prisma.playbookRule.createMany({
-      data: parsed.data.map((r) => ({
-        ...r,
-        companyId: company.id,
-        workflowType: r.workflowType ?? "COMMERCIAL_CONTRACT",
-      })),
+    // Delete existing rules for this company
+    const existing = await pb.collection("playbook_rules").getFullList({
+      filter: `company = "${company.id}"`,
+      fields: "id",
     });
+    await Promise.all(existing.map((r) => pb.collection("playbook_rules").delete(r.id)));
 
-    const rules = await prisma.playbookRule.findMany({ where: { companyId: company.id } });
-    res.json(rules);
+    // Create all new rules
+    const created = await Promise.all(
+      parsed.data.map((r) =>
+        pb.collection("playbook_rules").create({
+          ...r,
+          company: company.id,
+          workflowType: r.workflowType ?? "COMMERCIAL_CONTRACT",
+        })
+      )
+    );
+
+    res.json(created.map(mapRule));
   });
 
   app.get("/api/playbook/rules", requireAuth, async (req: Request, res: Response) => {
-    const company = await prisma.company.findFirst();
+    const company = await getCompany();
     if (!company) { res.json([]); return; }
+
     const { workflowType } = req.query as { workflowType?: string };
-    const rules = await prisma.playbookRule.findMany({
-      where: {
-        companyId: company.id,
-        ...(workflowType ? { workflowType } : {}),
-      },
-      orderBy: { createdAt: "asc" },
+    const filter = workflowType
+      ? `company = "${company.id}" && workflowType = "${workflowType}"`
+      : `company = "${company.id}"`;
+
+    const rules = await pb.collection("playbook_rules").getFullList({
+      filter,
+      sort: "+created",
     });
-    res.json(rules);
+    res.json(rules.map(mapRule));
   });
 
   app.put("/api/playbook/rule/:id", requireAuth, async (req: Request, res: Response) => {
     const parsed = playbookRuleSchema.partial().safeParse(req.body);
     if (!parsed.success) { sendError(res, 400, parsed.error.message); return; }
 
-    const rule = await prisma.playbookRule.update({
-      where: { id: req.params.id },
-      data: parsed.data,
-    });
-    res.json(rule);
+    const rule = await pb.collection("playbook_rules").update(req.params.id, parsed.data);
+    res.json(mapRule(rule));
   });
 
   app.delete("/api/playbook/rule/:id", requireAuth, async (req: Request, res: Response) => {
-    await prisma.playbookRule.delete({ where: { id: req.params.id } });
+    await pb.collection("playbook_rules").delete(req.params.id);
     res.json({ ok: true });
   });
 
   // ── Approval Contacts ────────────────────────────────────────────────────────
 
   app.post("/api/company/contacts", requireAuth, async (req: Request, res: Response) => {
-    const company = await prisma.company.findFirst();
+    const company = await getCompany();
     if (!company) { sendError(res, 404, "No company configured"); return; }
 
     const body = req.body as { contacts?: unknown[] };
@@ -229,13 +317,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const parsed = z.array(approvalContactSchema).safeParse(body.contacts);
     if (!parsed.success) { sendError(res, 400, parsed.error.message); return; }
 
-    await prisma.approvalContact.deleteMany({ where: { companyId: company.id } });
-    await prisma.approvalContact.createMany({
-      data: parsed.data.map((c) => ({ ...c, companyId: company.id })),
+    const existing = await pb.collection("approval_contacts").getFullList({
+      filter: `company = "${company.id}"`,
+      fields: "id",
     });
+    await Promise.all(existing.map((c) => pb.collection("approval_contacts").delete(c.id)));
 
-    const contacts = await prisma.approvalContact.findMany({ where: { companyId: company.id } });
-    res.json(contacts);
+    const created = await Promise.all(
+      parsed.data.map((c) => pb.collection("approval_contacts").create({ ...c, company: company.id }))
+    );
+    res.json(created.map(mapContact));
   });
 
   // ── Documents ────────────────────────────────────────────────────────────────
@@ -245,115 +336,182 @@ export async function registerRoutes(app: Express): Promise<Server> {
     requireAuth,
     upload.single("contract"),
     async (req: Request, res: Response) => {
-      const company = await prisma.company.findFirst();
+      const company = await getCompany();
       if (!company) { sendError(res, 400, "Complete onboarding before uploading"); return; }
 
       const file = req.file;
       if (!file) { sendError(res, 400, "No file uploaded"); return; }
 
-      const contractType = (req.body as Record<string,string>).contractType ?? "SUPPLIER_AGREEMENT";
-      const counterpartyName = (req.body as Record<string,string>).counterpartyName ?? "";
-      const counterpartyType = (req.body as Record<string,string>).counterpartyType ?? "";
-      const reviewType = (req.body as Record<string,string>).reviewType ?? "INBOUND";
-      const contractValueRaw = (req.body as Record<string,string>).contractValue;
-      const contractValue = contractValueRaw ? parseFloat(contractValueRaw) : undefined;
-      const currency = (req.body as Record<string,string>).currency ?? "GBP";
-      const contractTermMonthsRaw = (req.body as Record<string,string>).contractTermMonths;
-      const contractTermMonths = contractTermMonthsRaw ? parseInt(contractTermMonthsRaw) : undefined;
-      const autoRenewal = (req.body as Record<string,string>).autoRenewal === "true";
-      const noticePeriodDaysRaw = (req.body as Record<string,string>).noticePeriodDays;
-      const noticePeriodDays = noticePeriodDaysRaw ? parseInt(noticePeriodDaysRaw) : undefined;
-      const renewalDateRaw = (req.body as Record<string,string>).renewalDate;
-      const renewalDate = renewalDateRaw ? new Date(renewalDateRaw) : undefined;
-      const contractTags = (req.body as Record<string,string>).contractTags ?? "";
+      const body = req.body as Record<string, string>;
+      const contractValue = body.contractValue ? parseFloat(body.contractValue) : null;
+      const contractTermMonths = body.contractTermMonths ? parseInt(body.contractTermMonths) : null;
+      const autoRenewal = body.autoRenewal === "true";
+      const noticePeriodDays = body.noticePeriodDays ? parseInt(body.noticePeriodDays) : null;
+      const renewalDate = body.renewalDate || null; // ISO date string or null
 
-      const doc = await prisma.uploadedDocument.create({
-        data: {
-          companyId: company.id,
-          filename: file.filename,
-          originalName: file.originalname,
-          contractType,
-          status: "UPLOADED",
-          counterpartyName,
-          counterpartyType,
-          reviewType,
-          contractValue,
-          currency,
-          contractTermMonths,
-          autoRenewal,
-          noticePeriodDays,
-          renewalDate,
-          contractTags,
-        },
+      const doc = await pb.collection("uploaded_documents").create({
+        company: company.id,
+        filename: file.filename,
+        originalName: file.originalname,
+        contractType: body.contractType ?? "SUPPLIER_AGREEMENT",
+        status: "UPLOADED",
+        counterpartyName: body.counterpartyName ?? "",
+        counterpartyType: body.counterpartyType ?? "",
+        reviewType: body.reviewType ?? "INBOUND",
+        contractValue,
+        currency: body.currency ?? "GBP",
+        contractTermMonths,
+        autoRenewal,
+        noticePeriodDays,
+        renewalDate,
+        contractTags: body.contractTags ?? "",
       });
 
-      res.json(doc);
+      res.json(mapDoc(doc));
     }
   );
 
   app.get("/api/documents", requireAuth, async (req: Request, res: Response) => {
-    const company = await prisma.company.findFirst();
+    const company = await getCompany();
     if (!company) { res.json([]); return; }
 
     const { search, ragStatus, contractType: typeFilter } = req.query as Record<string, string>;
 
-    const docs = await prisma.uploadedDocument.findMany({
-      where: {
-        companyId: company.id,
-        ...(typeFilter ? { contractType: typeFilter } : {}),
-        ...(search ? { counterpartyName: { contains: search } } : {}),
-        ...(ragStatus ? { reviewResults: { some: { ragStatus } } } : {}),
-      },
-      include: {
-        reviewResults: { select: { ragStatus: true } },
-      },
-      orderBy: { uploadedAt: "desc" },
-    });
-    res.json(docs);
+    const [docs, allResults] = await Promise.all([
+      pb.collection("uploaded_documents").getFullList({
+        filter: `company = "${company.id}"`,
+        sort: "-created",
+      }),
+      pb.collection("review_results").getFullList({
+        filter: `document.company = "${company.id}"`,
+        fields: "id,document,ragStatus",
+      }),
+    ]);
+
+    // Group results by documentId
+    const resultsByDoc = new Map<string, { ragStatus: string }[]>();
+    for (const r of allResults) {
+      const arr = resultsByDoc.get(r["document"] as string) ?? [];
+      arr.push({ ragStatus: r["ragStatus"] as string });
+      resultsByDoc.set(r["document"] as string, arr);
+    }
+
+    let mapped: PBRecord[] = docs.map((doc) => ({
+      ...mapDoc(doc),
+      reviewResults: resultsByDoc.get(doc.id) ?? [],
+    }));
+
+    // Apply remaining filters in JS
+    if (typeFilter) mapped = mapped.filter((d) => d["contractType"] === typeFilter);
+    if (search) {
+      const q = search.toLowerCase();
+      mapped = mapped.filter((d) => (d["counterpartyName"] as string)?.toLowerCase().includes(q));
+    }
+    if (ragStatus) {
+      mapped = mapped.filter((d) =>
+        (d["reviewResults"] as { ragStatus: string }[]).some((r) => r.ragStatus === ragStatus)
+      );
+    }
+
+    res.json(mapped);
   });
 
   app.get("/api/documents/stats", requireAuth, async (_req: Request, res: Response) => {
-    const company = await prisma.company.findFirst();
-    if (!company) { res.json({ totalContracts: 0, totalValue: 0, redContracts: 0, renewalsDue: 0 }); return; }
+    const company = await getCompany();
+    if (!company) {
+      res.json({ totalContracts: 0, totalValue: 0, redContracts: 0, renewalsDue: 0 });
+      return;
+    }
 
-    const docs = await prisma.uploadedDocument.findMany({
-      where: { companyId: company.id },
-      include: { reviewResults: { select: { ragStatus: true } } },
-    });
+    const [docs, allResults] = await Promise.all([
+      pb.collection("uploaded_documents").getFullList({
+        filter: `company = "${company.id}"`,
+      }),
+      pb.collection("review_results").getFullList({
+        filter: `document.company = "${company.id}"`,
+        fields: "document,ragStatus",
+      }),
+    ]);
+
+    const resultsByDoc = new Map<string, { ragStatus: string }[]>();
+    for (const r of allResults) {
+      const arr = resultsByDoc.get(r["document"] as string) ?? [];
+      arr.push({ ragStatus: r["ragStatus"] as string });
+      resultsByDoc.set(r["document"] as string, arr);
+    }
 
     const totalContracts = docs.length;
-    const totalValue = docs.reduce((sum, d) => sum + (d.contractValue ?? 0), 0);
-
-    const redContracts = docs.filter(d => d.reviewResults.some(r => r.ragStatus === "RED")).length;
+    const totalValue = docs.reduce((sum, d) => sum + ((d["contractValue"] as number) ?? 0), 0);
+    const redContracts = docs.filter((d) =>
+      (resultsByDoc.get(d.id) ?? []).some((r) => r.ragStatus === "RED")
+    ).length;
 
     const now = new Date();
     const in90 = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
-    const renewalsDue = docs.filter(d => d.renewalDate && d.renewalDate >= now && d.renewalDate <= in90).length;
+    const renewalsDue = docs.filter((d) => {
+      if (!d["renewalDate"]) return false;
+      const rd = new Date(d["renewalDate"] as string);
+      return rd >= now && rd <= in90;
+    }).length;
 
     res.json({ totalContracts, totalValue, redContracts, renewalsDue });
   });
 
   app.get("/api/documents/:id", requireAuth, async (req: Request, res: Response) => {
-    const doc = await prisma.uploadedDocument.findUnique({
-      where: { id: req.params.id },
-      include: { reviewResults: { include: { feedback: true } } },
+    let doc: PBRecord;
+    try {
+      doc = await pb.collection("uploaded_documents").getOne(req.params.id);
+    } catch {
+      sendError(res, 404, "Document not found"); return;
+    }
+
+    const results = await pb.collection("review_results").getFullList({
+      filter: `document = "${req.params.id}"`,
     });
-    if (!doc) { sendError(res, 404, "Document not found"); return; }
-    res.json(doc);
+
+    const feedbackMap = new Map<string, PBRecord>();
+    if (results.length > 0) {
+      const feedbacks = await pb.collection("user_feedback").getFullList({
+        filter: `result.document = "${req.params.id}"`,
+      });
+      for (const f of feedbacks) feedbackMap.set(f["result"] as string, mapFeedback(f));
+    }
+
+    const reviewResults = results.map((r) => ({
+      ...mapResult(r),
+      feedback: feedbackMap.get(r.id) ?? null,
+    }));
+
+    res.json({ ...mapDoc(doc), reviewResults });
   });
 
   // ── Review ───────────────────────────────────────────────────────────────────
 
   app.post("/api/review/:documentId", requireAuth, async (req: Request, res: Response) => {
-    const doc = await prisma.uploadedDocument.findUnique({
-      where: { id: req.params.documentId },
-    });
-    if (!doc) { sendError(res, 404, "Document not found"); return; }
-    if (doc.status === "PROCESSING") { sendError(res, 409, "Review already in progress"); return; }
+    let doc: PBRecord;
+    try {
+      doc = await pb.collection("uploaded_documents").getOne(req.params.documentId);
+    } catch {
+      sendError(res, 404, "Document not found"); return;
+    }
 
-    if (doc.status === "COMPLETE") {
-      await prisma.reviewResult.deleteMany({ where: { documentId: doc.id } });
-      await prisma.extractedClause.deleteMany({ where: { documentId: doc.id } });
+    if (doc["status"] === "PROCESSING") { sendError(res, 409, "Review already in progress"); return; }
+
+    if (doc["status"] === "COMPLETE") {
+      const [existingResults, existingClauses] = await Promise.all([
+        pb.collection("review_results").getFullList({
+          filter: `document = "${doc.id}"`,
+          fields: "id",
+        }),
+        pb.collection("extracted_clauses").getFullList({
+          filter: `document = "${doc.id}"`,
+          fields: "id",
+        }),
+      ]);
+      await Promise.all([
+        ...existingResults.map((r) => pb.collection("review_results").delete(r.id)),
+        ...existingClauses.map((c) => pb.collection("extracted_clauses").delete(c.id)),
+      ]);
     }
 
     runReview(doc.id).catch(console.error);
@@ -361,17 +519,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/review/:documentId", requireAuth, async (req: Request, res: Response) => {
-    const doc = await prisma.uploadedDocument.findUnique({
-      where: { id: req.params.documentId },
-      include: {
-        reviewResults: {
-          include: { feedback: true },
-          orderBy: { clauseCategory: "asc" },
-        },
-      },
+    let doc: PBRecord;
+    try {
+      doc = await pb.collection("uploaded_documents").getOne(req.params.documentId);
+    } catch {
+      sendError(res, 404, "Document not found"); return;
+    }
+
+    const results = await pb.collection("review_results").getFullList({
+      filter: `document = "${req.params.documentId}"`,
+      sort: "+clauseCategory",
     });
-    if (!doc) { sendError(res, 404, "Document not found"); return; }
-    res.json(doc);
+
+    const feedbackMap = new Map<string, PBRecord>();
+    if (results.length > 0) {
+      const feedbacks = await pb.collection("user_feedback").getFullList({
+        filter: `result.document = "${req.params.documentId}"`,
+      });
+      for (const f of feedbacks) feedbackMap.set(f["result"] as string, mapFeedback(f));
+    }
+
+    const reviewResults = results.map((r) => ({
+      ...mapResult(r),
+      feedback: feedbackMap.get(r.id) ?? null,
+    }));
+
+    res.json({ ...mapDoc(doc), reviewResults });
   });
 
   // ── Feedback ─────────────────────────────────────────────────────────────────
@@ -380,41 +553,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const parsed = feedbackSchema.safeParse(req.body);
     if (!parsed.success) { sendError(res, 400, parsed.error.message); return; }
 
-    const feedback = await prisma.userFeedback.upsert({
-      where: { resultId: req.params.resultId },
-      create: { resultId: req.params.resultId, ...parsed.data },
-      update: parsed.data,
+    const existing = await pb.collection("user_feedback").getFullList({
+      filter: `result = "${req.params.resultId}"`,
     });
-    res.json(feedback);
+
+    let feedback: PBRecord;
+    if (existing.length > 0) {
+      feedback = await pb.collection("user_feedback").update(existing[0].id, parsed.data);
+    } else {
+      feedback = await pb.collection("user_feedback").create({
+        result: req.params.resultId,
+        ...parsed.data,
+      });
+    }
+
+    res.json(mapFeedback(feedback));
   });
 
   // ── Stats ────────────────────────────────────────────────────────────────────
 
   app.get("/api/stats", requireAuth, async (_req: Request, res: Response) => {
-    const company = await prisma.company.findFirst();
+    const company = await getCompany();
     if (!company) { res.json(null); return; }
 
     const [docs, results] = await Promise.all([
-      prisma.uploadedDocument.findMany({ where: { companyId: company.id } }),
-      prisma.reviewResult.findMany({
-        where: { document: { companyId: company.id } },
-        include: { feedback: true },
+      pb.collection("uploaded_documents").getFullList({
+        filter: `company = "${company.id}"`,
+      }),
+      pb.collection("review_results").getFullList({
+        filter: `document.company = "${company.id}"`,
       }),
     ]);
 
-    const complete = docs.filter((d) => d.status === "COMPLETE").length;
-    const redOpen = results.filter(
-      (r) => r.ragStatus === "RED" && r.feedback?.userAction !== "ACCEPTED" && r.feedback?.userAction !== "DISMISSED"
+    const feedbackMap = new Map<string, PBRecord>();
+    if (results.length > 0) {
+      const feedbacks = await pb.collection("user_feedback").getFullList({
+        filter: `result.document.company = "${company.id}"`,
+      });
+      for (const f of feedbacks) feedbackMap.set(f["result"] as string, f);
+    }
+
+    const resultsWithFeedback: PBRecord[] = results.map((r) => ({
+      ...r,
+      feedback: feedbackMap.get(r.id) ?? null,
+    }));
+
+    const complete = docs.filter((d) => d["status"] === "COMPLETE").length;
+    const redOpen = resultsWithFeedback.filter(
+      (r) =>
+        r["ragStatus"] === "RED" &&
+        r.feedback?.["userAction"] !== "ACCEPTED" &&
+        r.feedback?.["userAction"] !== "DISMISSED"
     ).length;
-    const escalations = results.filter(
-      (r) => r.escalationRequired && r.feedback?.userAction !== "ESCALATED" && r.feedback?.userAction !== "DISMISSED"
+    const escalations = resultsWithFeedback.filter(
+      (r) =>
+        r["escalationRequired"] &&
+        r.feedback?.["userAction"] !== "ESCALATED" &&
+        r.feedback?.["userAction"] !== "DISMISSED"
     ).length;
-    const accepted = results.filter((r) => r.feedback?.userAction === "ACCEPTED").length;
+    const accepted = resultsWithFeedback.filter((r) => r.feedback?.["userAction"] === "ACCEPTED").length;
 
     const categoryRed: Record<string, number> = {};
     for (const r of results) {
-      if (r.ragStatus === "RED") {
-        categoryRed[r.clauseCategory] = (categoryRed[r.clauseCategory] ?? 0) + 1;
+      if (r["ragStatus"] === "RED") {
+        const cat = r["clauseCategory"] as string;
+        categoryRed[cat] = (categoryRed[cat] ?? 0) + 1;
       }
     }
     const topIssues = Object.entries(categoryRed)
@@ -430,10 +633,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       clausesAccepted: accepted,
       estimatedHoursSaved: complete * 1.5,
       ragBreakdown: {
-        RED:   results.filter((r) => r.ragStatus === "RED").length,
-        AMBER: results.filter((r) => r.ragStatus === "AMBER").length,
-        GREEN: results.filter((r) => r.ragStatus === "GREEN").length,
-        GREY:  results.filter((r) => r.ragStatus === "GREY").length,
+        RED:   results.filter((r) => r["ragStatus"] === "RED").length,
+        AMBER: results.filter((r) => r["ragStatus"] === "AMBER").length,
+        GREEN: results.filter((r) => r["ragStatus"] === "GREEN").length,
+        GREY:  results.filter((r) => r["ragStatus"] === "GREY").length,
       },
       topIssues,
     });
@@ -442,15 +645,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ── Portfolio ─────────────────────────────────────────────────────────────────
 
   app.get("/api/portfolio", requireAuth, async (_req: Request, res: Response) => {
-    const company = await prisma.company.findFirst();
+    const company = await getCompany();
     if (!company) { res.json(null); return; }
 
-    const results = await prisma.reviewResult.findMany({
-      where: { document: { companyId: company.id, status: "COMPLETE" } },
-      include: { document: { select: { contractType: true, id: true } } },
-    });
+    const [results, completeDocs] = await Promise.all([
+      pb.collection("review_results").getFullList({
+        filter: `document.company = "${company.id}" && document.status = "COMPLETE"`,
+      }),
+      pb.collection("uploaded_documents").getFullList({
+        filter: `company = "${company.id}" && status = "COMPLETE"`,
+        fields: "id,contractType",
+      }),
+    ]);
 
     if (results.length === 0) { res.json(null); return; }
+
+    const docMap = new Map(completeDocs.map((d) => [d.id, d["contractType"] as string]));
 
     const GROUPS = [
       { label: "Liability & Risk",      icon: "⚖️",  cats: ["LIABILITY_CAP","INDEMNITY","WARRANTIES","LIQUIDATED_DAMAGES","INSURANCE"] },
@@ -460,23 +670,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ];
 
     const groups = GROUPS.map((g) => {
-      const gr = results.filter((r) => g.cats.includes(r.clauseCategory));
+      const gr = results.filter((r) => g.cats.includes(r["clauseCategory"] as string));
       return {
         label: g.label,
         icon:  g.icon,
-        red:   gr.filter((r) => r.ragStatus === "RED").length,
-        amber: gr.filter((r) => r.ragStatus === "AMBER").length,
-        green: gr.filter((r) => r.ragStatus === "GREEN").length,
+        red:   gr.filter((r) => r["ragStatus"] === "RED").length,
+        amber: gr.filter((r) => r["ragStatus"] === "AMBER").length,
+        green: gr.filter((r) => r["ragStatus"] === "GREEN").length,
       };
     });
 
-    const totalDocs = new Set(results.map((r) => r.documentId)).size;
+    const totalDocs = new Set(results.map((r) => r["document"] as string)).size;
 
     const categoryRed: Record<string, number> = {};
     const categoryTotal: Record<string, number> = {};
     for (const r of results) {
-      categoryTotal[r.clauseCategory] = (categoryTotal[r.clauseCategory] ?? 0) + 1;
-      if (r.ragStatus === "RED") categoryRed[r.clauseCategory] = (categoryRed[r.clauseCategory] ?? 0) + 1;
+      const cat = r["clauseCategory"] as string;
+      categoryTotal[cat] = (categoryTotal[cat] ?? 0) + 1;
+      if (r["ragStatus"] === "RED") categoryRed[cat] = (categoryRed[cat] ?? 0) + 1;
     }
     const topRedCategories = Object.entries(categoryRed)
       .sort(([, a], [, b]) => b - a)
@@ -485,11 +696,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const typeMap: Record<string, { red: number; amber: number; docIds: Set<string> }> = {};
     for (const r of results) {
-      const t = r.document.contractType;
+      const docId = r["document"] as string;
+      const t = docMap.get(docId) ?? "UNKNOWN";
       if (!typeMap[t]) typeMap[t] = { red: 0, amber: 0, docIds: new Set() };
-      typeMap[t].docIds.add(r.documentId);
-      if (r.ragStatus === "RED")   typeMap[t].red++;
-      if (r.ragStatus === "AMBER") typeMap[t].amber++;
+      typeMap[t].docIds.add(docId);
+      if (r["ragStatus"] === "RED")   typeMap[t].red++;
+      if (r["ragStatus"] === "AMBER") typeMap[t].amber++;
     }
     const byContractType = Object.entries(typeMap)
       .map(([type, v]) => ({ type: type.replace(/_/g, " "), red: v.red, amber: v.amber, total: v.docIds.size }))
@@ -506,48 +718,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ── Timings ───────────────────────────────────────────────────────────────────
 
   app.get("/api/timings", requireAuth, async (_req: Request, res: Response) => {
-    const company = await prisma.company.findFirst();
+    const company = await getCompany();
     if (!company) { res.json(null); return; }
 
-    const docs = await prisma.uploadedDocument.findMany({
-      where: { companyId: company.id },
-      include: {
-        reviewResults: {
-          where: { clauseCategory: { in: ["AUTO_RENEWAL", "TERMINATION", "BREAK_CLAUSE", "PAYMENT_TERMS", "CHANGE_OF_CONTROL"] } },
-        },
-      },
-      orderBy: { uploadedAt: "desc" },
-    });
+    const [docs, allResults] = await Promise.all([
+      pb.collection("uploaded_documents").getFullList({
+        filter: `company = "${company.id}"`,
+        sort: "-created",
+      }),
+      pb.collection("review_results").getFullList({
+        filter: `document.company = "${company.id}"`,
+        fields: "id,document,clauseCategory,ragStatus,clauseSummary",
+      }),
+    ]);
+
+    const relevantCats = new Set(["AUTO_RENEWAL", "TERMINATION", "BREAK_CLAUSE", "PAYMENT_TERMS", "CHANGE_OF_CONTROL"]);
 
     const flagged = docs
-      .filter((d) => d.status === "COMPLETE")
+      .filter((d) => d["status"] === "COMPLETE")
       .flatMap((d) =>
-        d.reviewResults
-          .filter((r) => r.ragStatus === "RED" || r.ragStatus === "AMBER")
+        allResults
+          .filter((r) =>
+            r["document"] === d.id &&
+            relevantCats.has(r["clauseCategory"] as string) &&
+            (r["ragStatus"] === "RED" || r["ragStatus"] === "AMBER")
+          )
           .map((r) => ({
             id:            r.id,
-            contractName:  d.originalName,
-            contractType:  d.contractType.replace(/_/g, " "),
-            clauseCategory: r.clauseCategory,
-            ragStatus:     r.ragStatus,
-            summary:       r.clauseSummary,
-            uploadedAt:    d.uploadedAt.toISOString(),
+            contractName:  d["originalName"] as string,
+            contractType:  (d["contractType"] as string).replace(/_/g, " "),
+            clauseCategory: r["clauseCategory"] as string,
+            ragStatus:     r["ragStatus"] as string,
+            summary:       r["clauseSummary"] as string,
+            uploadedAt:    d["created"] as string,
           }))
       )
       .sort((a, b) => (a.ragStatus === "RED" && b.ragStatus !== "RED" ? -1 : 1));
 
     const total = docs.length || 1;
     const statusCounts = {
-      complete:   docs.filter((d) => d.status === "COMPLETE").length,
-      processing: docs.filter((d) => d.status === "PROCESSING").length,
-      uploaded:   docs.filter((d) => d.status === "UPLOADED").length,
-      failed:     docs.filter((d) => d.status === "FAILED").length,
+      complete:   docs.filter((d) => d["status"] === "COMPLETE").length,
+      processing: docs.filter((d) => d["status"] === "PROCESSING").length,
+      uploaded:   docs.filter((d) => d["status"] === "UPLOADED").length,
+      failed:     docs.filter((d) => d["status"] === "FAILED").length,
     };
     const overview = [
-      { label: "Reviewed",       count: statusCounts.complete,   pct: Math.round(statusCounts.complete   / total * 100) },
-      { label: "Processing",     count: statusCounts.processing, pct: Math.round(statusCounts.processing / total * 100) },
-      { label: "Awaiting review",count: statusCounts.uploaded,   pct: Math.round(statusCounts.uploaded   / total * 100) },
-      { label: "Failed",         count: statusCounts.failed,     pct: Math.round(statusCounts.failed     / total * 100) },
+      { label: "Reviewed",        count: statusCounts.complete,   pct: Math.round(statusCounts.complete   / total * 100) },
+      { label: "Processing",      count: statusCounts.processing, pct: Math.round(statusCounts.processing / total * 100) },
+      { label: "Awaiting review", count: statusCounts.uploaded,   pct: Math.round(statusCounts.uploaded   / total * 100) },
+      { label: "Failed",          count: statusCounts.failed,     pct: Math.round(statusCounts.failed     / total * 100) },
     ].filter((o) => o.count > 0);
 
     res.json({ flagged, overview, totalDocuments: docs.length });
@@ -556,10 +775,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ── Litigation Intake ─────────────────────────────────────────────────────────
 
   app.get("/api/litigation/intake/:documentId", requireAuth, async (req: Request, res: Response) => {
-    const intake = await prisma.litigationIntake.findUnique({
-      where: { documentId: req.params.documentId },
+    const intakes = await pb.collection("litigation_intakes").getFullList({
+      filter: `document = "${req.params.documentId}"`,
     });
-    res.json(intake ?? null);
+    res.json(intakes.length > 0 ? mapIntake(intakes[0]) : null);
   });
 
   app.post("/api/litigation/intake/:documentId", requireAuth, async (req: Request, res: Response) => {
@@ -575,22 +794,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     };
 
     const data = {
-      stage:             body.stage ?? 1,
-      hardStopData:      body.hardStopData ?? "",
-      defenceData:       body.defenceData ?? "",
-      fraudFlag:         body.fraudFlag ?? false,
-      fcaBreach:         body.fcaBreach ?? false,
+      stage:              body.stage ?? 1,
+      hardStopData:       body.hardStopData ?? "",
+      defenceData:        body.defenceData ?? "",
+      fraudFlag:          body.fraudFlag ?? false,
+      fcaBreach:          body.fcaBreach ?? false,
       vulnerableCustomer: body.vulnerableCustomer ?? false,
-      hardStopPassed:    body.hardStopPassed ?? false,
-      completedAt:       body.complete ? new Date() : undefined,
+      hardStopPassed:     body.hardStopPassed ?? false,
+      completedAt:        body.complete ? new Date().toISOString() : null,
     };
 
-    const intake = await prisma.litigationIntake.upsert({
-      where: { documentId: req.params.documentId },
-      update: data,
-      create: { documentId: req.params.documentId, ...data },
+    const existing = await pb.collection("litigation_intakes").getFullList({
+      filter: `document = "${req.params.documentId}"`,
     });
-    res.json(intake);
+
+    let intake: PBRecord;
+    if (existing.length > 0) {
+      intake = await pb.collection("litigation_intakes").update(existing[0].id, data);
+    } else {
+      intake = await pb.collection("litigation_intakes").create({
+        document: req.params.documentId,
+        ...data,
+      });
+    }
+
+    res.json(mapIntake(intake));
   });
 
   // ── Ancillary Documents ───────────────────────────────────────────────────────
@@ -606,27 +834,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const privilegeFlag = (req.body as { privilegeFlag?: string }).privilegeFlag === "true";
       const fileType = classifyFileType(file.originalname);
 
-      const ancillary = await prisma.ancillaryDocument.create({
-        data: {
-          documentId: req.params.documentId,
-          originalName: file.originalname,
-          filename: file.filename,
-          fileType,
-          privilegeFlag,
-        },
+      const ancillary = await pb.collection("ancillary_documents").create({
+        document: req.params.documentId,
+        originalName: file.originalname,
+        filename: file.filename,
+        fileType,
+        privilegeFlag,
       });
 
-      res.json(ancillary);
+      res.json(mapAncillary(ancillary));
 
       // Fire-and-forget transcription for audio/video
       if (fileType === "AUDIO" || fileType === "VIDEO") {
         const fullPath = path.join(process.cwd(), "uploads", file.filename);
         transcribeAudioFile(fullPath).then(async (transcription) => {
           if (transcription) {
-            await prisma.ancillaryDocument.update({
-              where: { id: ancillary.id },
-              data: { transcription },
-            });
+            await pb.collection("ancillary_documents").update(ancillary.id, { transcription });
           }
         }).catch(console.error);
       }
@@ -634,15 +857,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   );
 
   app.get("/api/ancillary/:documentId", requireAuth, async (req: Request, res: Response) => {
-    const docs = await prisma.ancillaryDocument.findMany({
-      where: { documentId: req.params.documentId },
-      orderBy: { uploadedAt: "desc" },
+    const docs = await pb.collection("ancillary_documents").getFullList({
+      filter: `document = "${req.params.documentId}"`,
+      sort: "-created",
     });
-    res.json(docs);
+    res.json(docs.map(mapAncillary));
   });
 
   app.delete("/api/ancillary/:ancillaryId", requireAuth, async (req: Request, res: Response) => {
-    await prisma.ancillaryDocument.delete({ where: { id: req.params.ancillaryId } });
+    await pb.collection("ancillary_documents").delete(req.params.ancillaryId);
     res.json({ ok: true });
   });
 
