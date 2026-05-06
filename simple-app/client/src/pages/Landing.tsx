@@ -98,7 +98,7 @@ export default function Landing() {
           <div className="flex items-center gap-2">
             {user ? (
               <Link to="/dashboard" className="flex items-center gap-1.5 px-4 py-1.5 bg-primary text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity shadow-lg shadow-primary/25">
-                Go to app <ArrowRight size={13} />
+                Go to dashboard <ArrowRight size={13} />
               </Link>
             ) : (
               <>
@@ -142,16 +142,23 @@ export default function Landing() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
-                <Link to="/register" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-xl shadow-primary/30 text-sm">
-                  Set up your playbook
-                  <ArrowRight size={15} />
-                </Link>
-                <Link to="/login" className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-white/10 text-white/70 hover:text-white hover:border-white/20 rounded-xl transition-colors text-sm">
-                  Sign in
-                </Link>
+                {user ? (
+                  <Link to="/dashboard" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-xl shadow-primary/30 text-sm">
+                    Go to dashboard
+                    <ArrowRight size={15} />
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/register" className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-xl shadow-primary/30 text-sm">
+                      Get started
+                      <ArrowRight size={15} />
+                    </Link>
+                    <Link to="/login" className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-white/10 text-white/70 hover:text-white hover:border-white/20 rounded-xl transition-colors text-sm">
+                      Sign in
+                    </Link>
+                  </>
+                )}
               </div>
-
-              <p className="text-xs text-white/25">5-minute setup · Works on your first contract today</p>
             </div>
 
             <ProductPreview />
@@ -449,9 +456,9 @@ export default function Landing() {
                 <p className="text-sm text-white/45 leading-relaxed">
                   Every contract review is cross-referenced against the regulatory frameworks that apply to your sector and jurisdiction. GDPR, FCA Consumer Duty, KSA GCAM, South Korea's mandatory loot box disclosure laws, and more - automatically.
                 </p>
-                <Link to="/register" className="inline-flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity font-medium">
+                <a href="#how-it-works" className="inline-flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity font-medium">
                   See how it works <ArrowRight size={13} />
-                </Link>
+                </a>
               </div>
               <div className="border-l border-white/8 p-10 flex flex-col justify-center gap-3">
                 {[
@@ -584,19 +591,19 @@ export default function Landing() {
                     </li>
                   ))}
                 </ul>
-                <Link to="/register"
+                <Link to={user ? "/dashboard" : "/register"}
                   className={`block text-center px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     highlight
                       ? "bg-primary text-white hover:opacity-90 shadow-lg shadow-primary/25"
                       : "border border-white/10 text-white/40 hover:text-white/60 hover:border-white/20"
                   }`}>
-                  {cta} →
+                  {user && highlight ? "Go to dashboard" : cta} →
                 </Link>
               </div>
             ))}
           </div>
           <p className="text-center text-xs text-white/25 max-w-lg mx-auto">
-            Enterprise pricing for law firms and large in-house teams - <Link to="/register" className="text-primary hover:opacity-80">get in touch</Link>. Under £500/month is typically a credit card decision for a senior lawyer - no procurement process required.
+            Enterprise pricing for law firms and large in-house teams - <Link to={user ? "/dashboard" : "/register"} className="text-primary hover:opacity-80">get in touch</Link>. Under £500/month is typically a credit card decision for a senior lawyer - no procurement process required.
           </p>
         </div>
       </section>
@@ -616,10 +623,17 @@ export default function Landing() {
             <p className="text-white/60 text-sm max-w-md mx-auto">
               Upload a contract. Get a structured risk report with regulatory citations, fallback language, and escalation triggers.
             </p>
-            <Link to="/register" className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-primary font-bold rounded-xl hover:opacity-95 transition-opacity shadow-2xl text-sm">
-              Get started - it's free
-              <ArrowRight size={15} />
-            </Link>
+            {user ? (
+              <Link to="/dashboard" className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-primary font-bold rounded-xl hover:opacity-95 transition-opacity shadow-2xl text-sm">
+                Go to dashboard
+                <ArrowRight size={15} />
+              </Link>
+            ) : (
+              <Link to="/register" className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-primary font-bold rounded-xl hover:opacity-95 transition-opacity shadow-2xl text-sm">
+                Get started
+                <ArrowRight size={15} />
+              </Link>
+            )}
           </div>
         </div>
       </section>
