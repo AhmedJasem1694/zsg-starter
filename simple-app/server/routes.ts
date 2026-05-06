@@ -2,8 +2,7 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import path from "path";
 import { z } from "zod";
-import bcrypt from "bcryptjs";
-import { pb } from "./pb.js";
+import { pb, newPBClient } from "./pb.js";
 import { upload, uploadAncillary, classifyFileType } from "./upload.js";
 import { runReview } from "./services/reviewOrchestrator.js";
 import { detectAndSaveRegulations } from "./services/regulatoryDetection.js";
@@ -129,17 +128,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const { name, email, password } = parsed.data;
 
-    const existing = await pb.collection("users").getFullList({
-      filter: `email = "${email}"`,
-    });
-    if (existing.length > 0) { sendError(res, 409, "An account with this email already exists"); return; }
-
-    const passwordHash = await bcrypt.hash(password, 12);
-    const user = await pb.collection("users").create({ name, email, passwordHash });
-
-    const token = signToken({ userId: user.id, email: user["email"] as string });
-    res.cookie("token", token, COOKIE_OPTS);
-    res.json({ id: user.id, name: user["name"], email: user["email"] });
+    try {
+      // Use PocketBase native auth — it handles hashing internally
+      const user = await pb.collection("users").create({
+        name,
+        email,
+        emailVisibility: true,
+        password,
+        passwordConfirm: password,
+      });
+      const token = signToken({ userId: user.id, email: user["email"] as string });
+      res.cookie("token", token, COOKIE_OPTS);
+      res.json({ id: user.id, name: user["name"], email: user["email"] });
+    } catch (err: unknown) {
+      const pbErr = err as { status?: number; response?: { data?: Record<string, unknown> } };
+      if (pbErr.status === 400) {
+        const data = pbErr.response?.data ?? {};
+        if ("email" in data) {
+          sendError(res, 409, "An account with this email already exists"); return;
+        }
+        sendError(res, 400, "Invalid registration data"); return;
+      }
+      throw err;
+    }
   });
 
   app.post("/api/auth/login", async (req: Request, res: Response) => {
@@ -151,18 +162,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const { email, password } = parsed.data;
 
-    const users = await pb.collection("users").getFullList({
-      filter: `email = "${email}"`,
-    });
-    const user = users[0];
-    if (!user) { sendError(res, 401, "Invalid email or password"); return; }
-
-    const valid = await bcrypt.compare(password, user["passwordHash"] as string);
-    if (!valid) { sendError(res, 401, "Invalid email or password"); return; }
-
-    const token = signToken({ userId: user.id, email: user["email"] as string });
-    res.cookie("token", token, COOKIE_OPTS);
-    res.json({ id: user.id, name: user["name"], email: user["email"] });
+    try {
+      // Use a fresh client so authWithPassword doesn't overwrite the admin token
+      // stored on the shared `pb` singleton.
+      const userClient = newPBClient();
+      const authData = await userClient.collection("users").authWithPassword(email, password);
+      const user = authData.record;
+      const token = signToken({ userId: user.id, email: user["email"] as string });
+      res.cookie("token", token, COOKIE_OPTS);
+      res.json({ id: user.id, name: user["name"], email: user["email"] });
+    } catch {
+      sendError(res, 401, "Invalid email or password");
+    }
   });
 
   app.post("/api/auth/logout", (_req: Request, res: Response) => {
@@ -873,6 +884,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/health", (_req: Request, res: Response) => {
     res.json({ status: "ok" });
+  });
+
+  // ── Global async error handler ───────────────────────────────────────────────
+  // Catches unhandled errors from async route handlers so the process doesn't crash.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  app.use((err: any, _req: Request, res: Response, _next: unknown) => {
+    console.error("[route error]", err?.message ?? err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
 
   return createServer(app);

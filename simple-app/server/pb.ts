@@ -2,7 +2,21 @@ import PocketBase from "pocketbase";
 
 const POCKETBASE_URL = process.env.POCKETBASE_URL ?? "http://localhost:8090";
 
+/**
+ * Creates a fresh, unauthenticated PocketBase client.
+ * Use this for user-facing auth operations (login, register) so they don't
+ * overwrite the admin token stored on the shared `pb` singleton.
+ */
+export function newPBClient(): PocketBase {
+  return new PocketBase(POCKETBASE_URL);
+}
+
 export const pb = new PocketBase(POCKETBASE_URL);
+
+// Disable auto-cancellation — it's designed for browser UIs (cancel stale search
+// requests on keystroke) but causes AbortErrors when server code makes concurrent
+// requests to the same collection endpoint.
+pb.autoCancellation(false);
 
 let _adminEmail = "";
 let _adminPassword = "";
