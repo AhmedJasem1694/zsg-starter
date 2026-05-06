@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import { chatComplete } from "./openrouter.js";
 
 // Minimal shape of a playbook rule record needed by this module
 interface PlaybookRule {
@@ -10,13 +10,6 @@ interface PlaybookRule {
   fallbackTemplate?: string | null;
   [key: string]: unknown;
 }
-
-const client = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
-
-const MODEL = process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4-5";
 
 export type RagStatus = "RED" | "AMBER" | "GREEN" | "GREY";
 
@@ -124,16 +117,14 @@ RAG rules:
 - AMBER: clause is below preferred but above red line; negotiation needed
 - RED: clause breaches red line or is missing a required protection`;
 
-  const response = await client.chat.completions.create({
-    model: MODEL,
-    max_tokens: 1024,
-    messages: [
+  const text = await chatComplete(
+    [
       { role: "system", content: systemPrompt },
       { role: "user",   content: userPrompt },
     ],
-  });
+    1024
+  );
 
-  const text = response.choices[0]?.message?.content ?? "";
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (!jsonMatch) throw new Error("No JSON in response");
 

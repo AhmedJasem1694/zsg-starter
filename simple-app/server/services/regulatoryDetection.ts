@@ -1,17 +1,10 @@
-import OpenAI from "openai";
+import { chatComplete } from "./openrouter.js";
 import { pb } from "../pb.js";
 import {
   detectFrameworks,
   REGULATORY_FRAMEWORKS,
   type Jurisdiction,
 } from "../data/regulatoryFrameworks.js";
-
-const client = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
-
-const MODEL = process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4-5";
 
 // Map jurisdiction strings from onboarding to our codes
 function mapJurisdiction(jurisdiction: string): Jurisdiction[] {
@@ -68,10 +61,8 @@ export async function detectAndSaveRegulations(companyId: string): Promise<void>
   if (process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_API_KEY !== "your-api-key-here") {
     try {
       const allCodes = REGULATORY_FRAMEWORKS.map((f) => f.code).join(", ");
-      const response = await client.chat.completions.create({
-        model: MODEL,
-        max_tokens: 512,
-        messages: [
+      const text = await chatComplete(
+        [
           {
             role: "user",
             content: `A company called "${company["name"]}" operates in the "${company["sector"]}" sector, based in "${company["jurisdiction"]}".
@@ -83,8 +74,8 @@ Return ONLY a JSON array of framework codes (strings) that are likely to apply t
 Example: ["GB_FCA_CONSUMER_DUTY", "EU_AI_ACT"]`,
           },
         ],
-      });
-      const text = response.choices[0]?.message?.content ?? "";
+        512
+      );
       const match = text.match(/\[[\s\S]*?\]/);
       if (match) aiCodes = JSON.parse(match[0]) as string[];
     } catch {

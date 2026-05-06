@@ -1,11 +1,4 @@
-import OpenAI from "openai";
-
-const client = new OpenAI({
-  baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
-
-const MODEL = process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4-5";
+import { chatComplete } from "./openrouter.js";
 
 export const CLAUSE_CATEGORIES = [
   "LIABILITY_CAP",
@@ -175,10 +168,8 @@ export async function classifyClauses(
 
   const categoriesDesc = activeCategories.join(" | ");
 
-  const response = await client.chat.completions.create({
-    model: MODEL,
-    max_tokens: 2048,
-    messages: [
+  const text = await chatComplete(
+    [
       {
         role: "system",
         content: `You are a legal clause classifier. Classify contract text chunks into these categories: ${categoriesDesc}.
@@ -193,9 +184,8 @@ If a chunk does not match any category, omit it from results.`,
           .join("\n\n---\n\n")}`,
       },
     ],
-  });
-
-  const text = response.choices[0]?.message?.content ?? "";
+    2048
+  );
 
   try {
     const jsonMatch = text.match(/\[[\s\S]*\]/);
