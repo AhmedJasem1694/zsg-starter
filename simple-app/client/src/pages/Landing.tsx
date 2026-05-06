@@ -162,7 +162,7 @@ export default function Landing() {
                       Get started
                       <ArrowRight size={15} />
                     </Link>
-                    <Link to="/login" className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-white/15 text-white hover:border-white/30 rounded-xl transition-colors text-sm">
+                    <Link to="/login" className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-white/10 text-white/70 hover:text-white hover:border-white/20 rounded-xl transition-colors text-sm">
                       Sign in
                     </Link>
                   </>
@@ -367,43 +367,44 @@ export default function Landing() {
       </section>
 
       {/* Regulatory intelligence */}
-      <section className="max-w-6xl mx-auto px-6 py-20">
-        <div className="rounded-2xl border border-white/8 overflow-hidden" style={{ background: CARD }}>
-          <div className="grid lg:grid-cols-2 gap-0">
-            <div className="p-10 space-y-5 border-b lg:border-b-0 lg:border-r border-white/8 flex flex-col justify-center">
-              <div className="inline-block text-xs font-bold text-primary tracking-widest uppercase">Regulatory intelligence</div>
-              <h2 className="text-2xl font-bold text-white tracking-tight leading-snug">
-                A knowledge lawyer reads<br />new guidance the day it drops
-              </h2>
-              <p className="text-sm text-white/70 leading-relaxed">
-                Every contract review is cross-referenced against the regulatory frameworks that apply to your sector and jurisdiction - GDPR, FCA Consumer Duty, KSA GCAM, and more - automatically.
-              </p>
-            </div>
-            <div className="p-10 flex flex-col justify-center gap-3">
-              {[
-                { label: "United Kingdom",  regs: "FCA Consumer Duty · UK GDPR · ICO · Bribery Act" },
-                { label: "European Union",  regs: "GDPR · EU AI Act · DORA · NIS2" },
-                { label: "Ireland",         regs: "DPC (GDPR lead authority) · Central Bank · Companies Act 2014" },
-                { label: "Netherlands",     regs: "AP · AFM · DNB · Kansspelwet (loot box ban)" },
-                { label: "Switzerland",     regs: "nDSG · FINMA · FinSA · Swiss Code of Obligations" },
-                { label: "United States",   regs: "CCPA · HIPAA · SOX · NY SHIELD · NYDFS" },
-                { label: "Canada",          regs: "PIPEDA · Bill C-27 · CASL · Competition Act" },
-                { label: "Singapore",       regs: "PDPA · MAS · TRM Guidelines · Competition Act" },
-                { label: "Hong Kong",       regs: "PDPO · SFO (SFC) · HKMA · Competition Ordinance" },
-                { label: "Japan",           regs: "APPI · FIEA (FSA) · Consumer Contract Act · JOGA" },
-                { label: "Saudi Arabia",    regs: "GCAM · PDPL · GEA · Vision 2030 compliance" },
-                { label: "South Korea",     regs: "Game Industry Act · PIPA · Loot box disclosure" },
-                { label: "India",           regs: "DPDP Act 2023 · IT Act · RBI · SEBI · CCI" },
-                { label: "Brazil",          regs: "LGPD · BACEN · CVM · CADE · Marco Civil" },
-              ].map(({ label, regs }) => (
-                <div key={label} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
-                  <div className="min-w-0">
-                    <div className="text-xs font-medium text-white">{label}</div>
-                    <div className="text-[10px] text-white/45 mt-0.5 truncate">{regs}</div>
+      <section className="border-y border-white/8 py-20" style={{ background: "hsl(222 47% 8%)" }}>
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="rounded-2xl border border-white/8 overflow-hidden" style={{ background: "hsl(222 47% 9%)" }}>
+            <div className="grid lg:grid-cols-2 gap-0">
+              <div className="p-10 space-y-5">
+                <div className="inline-block text-xs font-bold text-primary tracking-widest uppercase">Regulatory intelligence</div>
+                <h2 className="text-2xl font-bold text-white tracking-tight leading-snug">
+                  A knowledge lawyer reads<br />new guidance the day it drops
+                </h2>
+                <p className="text-sm text-white/45 leading-relaxed">
+                  Hardcoded regulatory context is a liability the moment something changes and MIKE doesn't know. For a regulated business, that's not a minor gap - it's a trust-destroying one.
+                </p>
+                <p className="text-sm text-white/45 leading-relaxed">
+                  Every contract review is cross-referenced against the regulatory frameworks that apply to your sector and jurisdiction. GDPR, FCA Consumer Duty, KSA GCAM, South Korea's mandatory loot box disclosure laws, and more - automatically.
+                </p>
+                <a href="#how-it-works" className="inline-flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity font-medium">
+                  See how it works <ArrowRight size={13} />
+                </a>
+              </div>
+              <div className="border-l border-white/8 p-10 flex flex-col justify-center gap-3">
+                {[
+                  { flag: "🇬🇧", label: "United Kingdom",  regs: "FCA Consumer Duty · UK GDPR · ICO · Bribery Act" },
+                  { flag: "🇪🇺", label: "European Union",  regs: "GDPR · EU AI Act · DORA · NIS2" },
+                  { flag: "🇺🇸", label: "United States",   regs: "CCPA · HIPAA · SOX · NY SHIELD · NYDFS" },
+                  { flag: "🇸🇦", label: "Saudi Arabia",    regs: "GCAM · PDPL · GEA · Vision 2030 compliance" },
+                  { flag: "🇰🇷", label: "South Korea",     regs: "Game Industry Act · PIPA · Loot box disclosure" },
+                  { flag: "🇨🇦", label: "Canada",          regs: "PIPEDA · Bill C-27 · CASL · Competition Act" },
+                ].map(({ flag, label, regs }) => (
+                  <div key={label} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0">
+                    <span className="text-lg">{flag}</span>
+                    <div className="min-w-0">
+                      <div className="text-xs font-medium text-white/70">{label}</div>
+                      <div className="text-[10px] text-white/30 mt-0.5 truncate">{regs}</div>
+                    </div>
+                    <CheckCircle size={12} className="text-primary ml-auto shrink-0" />
                   </div>
-                  <CheckCircle size={12} className="text-primary ml-auto shrink-0" />
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -589,11 +590,13 @@ export default function Landing() {
             </p>
             {user ? (
               <Link to="/dashboard" className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-primary font-bold rounded-xl hover:opacity-95 transition-opacity shadow-2xl text-sm">
-                Go to dashboard <ArrowRight size={15} />
+                Go to dashboard
+                <ArrowRight size={15} />
               </Link>
             ) : (
               <Link to="/register" className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-primary font-bold rounded-xl hover:opacity-95 transition-opacity shadow-2xl text-sm">
-                Get started <ArrowRight size={15} />
+                Get started
+                <ArrowRight size={15} />
               </Link>
             )}
           </div>
