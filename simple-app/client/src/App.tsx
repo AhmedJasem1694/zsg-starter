@@ -20,13 +20,18 @@ import LitigationIntake from "./pages/LitigationIntake";
 import BulkReview from "./pages/BulkReview";
 
 function AppRoutes() {
-  const { user } = useAuth();
-  const { data: company } = useQuery({
+  const { user, isLoading: authLoading } = useAuth();
+  const { data: company, isPending: companyLoading } = useQuery({
     queryKey: ["company"],
     queryFn: getCompany,
     retry: false,
     enabled: !!user,
   });
+
+  // Don't redirect until we know both auth status and company status
+  if (authLoading || (user && companyLoading)) {
+    return null;
+  }
 
   return (
     <Routes>

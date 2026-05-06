@@ -1,8 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw, Shield, Globe, AlertCircle } from "lucide-react";
-import { getRegulations, detectRegulations, getCompany } from "../lib/api";
+import { getRegulations, detectRegulations } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
-import UpgradeBanner from "../components/UpgradeBanner";
 import type { CompanyRegulation } from "../lib/types";
 
 const JURISDICTION_LABELS: Record<string, string> = {
@@ -63,12 +62,6 @@ function groupByJurisdiction(regs: CompanyRegulation[]) {
 export default function Regulations() {
   const queryClient = useQueryClient();
 
-  const { data: company } = useQuery({
-    queryKey: ["company"],
-    queryFn: getCompany,
-    retry: false,
-  });
-
   const { data: regulations = [], isLoading } = useQuery({
     queryKey: ["regulations"],
     queryFn: getRegulations,
@@ -80,10 +73,6 @@ export default function Regulations() {
   });
 
   const grouped = groupByJurisdiction(regulations);
-
-  // Free plan: show upgrade banner instead of full feature
-  const plan = (company as { plan?: string } | undefined)?.plan ?? "FREE";
-  const isLocked = plan === "FREE";
 
   return (
     <AppLayout>
@@ -106,32 +95,16 @@ export default function Regulations() {
           </button>
         </div>
 
-        {/* Upgrade banner for free plan */}
-        {isLocked && (
-          <UpgradeBanner
-            feature="Regulatory intelligence"
-            description="MIKE injects live regulatory requirements into every contract review — flagging clauses that conflict with your sector and jurisdiction obligations even if your playbook doesn't mention them."
-            bullets={[
-              "Automatic detection for your sector and jurisdiction",
-              "Cross-referenced on every clause review",
-              "Updated as regulations change",
-            ]}
-            tier="starter"
-          />
-        )}
+        {/* Info banner */}
+        <div className="card bg-accent border-accent-border p-4 flex gap-3">
+          <Shield size={16} className="text-primary mt-0.5 shrink-0" />
+          <p className="text-sm text-foreground/80">
+            MIKE injects these regulatory requirements into every contract review - flagging clauses that conflict with your
+            obligations even if your playbook doesn't explicitly mention them.
+          </p>
+        </div>
 
-        {/* Info banner — shown to paying users */}
-        {!isLocked && (
-          <div className="card bg-accent border-accent-border p-4 flex gap-3">
-            <Shield size={16} className="text-primary mt-0.5 shrink-0" />
-            <p className="text-sm text-foreground/80">
-              MIKE injects these regulatory requirements into every contract review - flagging clauses that conflict with your
-              obligations even if your playbook doesn't explicitly mention them.
-            </p>
-          </div>
-        )}
-
-        {isLocked ? null : isLoading ? (
+        {isLoading ? (
           <div className="text-sm text-muted-foreground py-8 text-center">Loading regulatory frameworks…</div>
         ) : regulations.length === 0 ? (
           <div className="card p-10 text-center space-y-4">
