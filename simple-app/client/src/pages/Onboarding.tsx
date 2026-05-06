@@ -9,16 +9,20 @@ import {
   PLAYBOOK_DEFAULTS,
   GAMING_CLAUSE_CATEGORIES,
   INVESTMENT_CLAUSE_CATEGORIES,
+  INSURANCE_CLAUSE_CATEGORIES,
+  LOGISTICS_CLAUSE_CATEGORIES,
   INDUSTRY_LABELS,
+  getIndustryClauseCategories,
   type ClauseCategory,
   type RiskAppetite,
   type CompanyRole,
   type ApprovalRole,
   type Industry,
   type Persona,
+  type WorkflowType,
 } from "../lib/types";
 
-type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
+type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 interface CompanyForm {
   name: string;
@@ -45,7 +49,7 @@ interface Contact {
   email: string;
 }
 
-const STEPS = ["Persona", "Company", "Contracts", "Playbook", "Approvers", "Regulations", "Done"];
+const STEPS = ["Workflow", "Persona", "Company", "Contracts", "Playbook", "Approvers", "Regulations", "Done"];
 
 // ─── Industry config ──────────────────────────────────────────────────────────
 
@@ -57,6 +61,7 @@ const INDUSTRY_ICONS: Record<Industry, string> = {
   PROPERTY_REAL_ESTATE:     "🏢",
   PROFESSIONAL_SERVICES:    "💼",
   MANUFACTURING_SUPPLY:     "🏭",
+  LOGISTICS_SUPPLY:         "🚛",
   RETAIL_ECOMMERCE:         "🛒",
   MEDIA_ENTERTAINMENT:      "🎬",
   ENERGY_CLEANTECH:         "⚡",
@@ -82,6 +87,13 @@ const CONTRACT_TYPES: { value: string; label: string; group: string; industries:
   { value: "REVENUE_SHARE",          label: "Revenue Share / Profit Share",          group: "Gaming & Media", industries: ["GAMING_INTERACTIVE","MEDIA_ENTERTAINMENT","RETAIL_ECOMMERCE"] },
   { value: "CONTENT_LICENSE",        label: "Content Licence Agreement",              group: "Gaming & Media", industries: ["GAMING_INTERACTIVE","MEDIA_ENTERTAINMENT","EDUCATION_EDTECH"] },
   { value: "ESPORTS_SPONSORSHIP",    label: "Esports Sponsorship & Partnership",     group: "Gaming & Media", industries: ["GAMING_INTERACTIVE","MEDIA_ENTERTAINMENT"] },
+  { value: "CARRIER_HAULIER",        label: "Carrier / Haulier Agreement",           group: "Logistics",      industries: ["LOGISTICS_SUPPLY", "MANUFACTURING_SUPPLY"] as Industry[] },
+  { value: "WAREHOUSE_3PL",          label: "Warehouse / 3PL Agreement",             group: "Logistics",      industries: ["LOGISTICS_SUPPLY"] as Industry[] },
+  { value: "FREIGHT_FORWARDING",     label: "Freight Forwarding Terms",               group: "Logistics",      industries: ["LOGISTICS_SUPPLY"] as Industry[] },
+  { value: "LAST_MILE",              label: "Last Mile Delivery Agreement",           group: "Logistics",      industries: ["LOGISTICS_SUPPLY"] as Industry[] },
+  { value: "CROSS_BORDER",           label: "Cross-border / International Carriage",  group: "Logistics",      industries: ["LOGISTICS_SUPPLY"] as Industry[] },
+  { value: "CUSTOMS_AGENCY",         label: "Customs Agency Agreement",               group: "Logistics",      industries: ["LOGISTICS_SUPPLY"] as Industry[] },
+  { value: "SUBCONTRACTOR_LOG",      label: "Subcontractor Agreement",               group: "Logistics",      industries: ["LOGISTICS_SUPPLY"] as Industry[] },
   { value: "EMPLOYMENT",             label: "Employment Agreement",                  group: "People",         industries: [] },
   { value: "CONTRACTOR_AGREEMENT",   label: "Contractor / Consultancy Agreement",    group: "People",         industries: [] },
   { value: "COMMERCIAL_LEASE",       label: "Commercial Lease",                      group: "Property",       industries: ["PROPERTY_REAL_ESTATE"] },
@@ -105,6 +117,32 @@ const CONTRACT_TYPES: { value: string; label: string; group: string; industries:
 const PROPERTY_CONTRACT_TYPES = ["COMMERCIAL_LEASE", "LICENSE_AGREEMENT", "AGREEMENT_FOR_LEASE"];
 const INVESTMENT_CONTRACT_TYPES = ["TERM_SHEET","SUBSCRIPTION_AGREEMENT","SHA","CONVERTIBLE_NOTE","SAFE","INVESTMENT_AGREEMENT","SHARE_PURCHASE"];
 
+const LITIGATION_CLAIM_TYPES: { value: string; label: string; sub: string; group: string }[] = [
+  // Motor
+  { value: "MOTOR_PI",          label: "Motor — Personal Injury",      sub: "RTA injuries, whiplash, serious injury",                      group: "Motor" },
+  { value: "MOTOR_PROPERTY",    label: "Motor — Property Damage",      sub: "Vehicle damage, third party property",                        group: "Motor" },
+  // Liability
+  { value: "EMPLOYERS_LI",      label: "Employers Liability",          sub: "Workplace accidents, occupational disease",                   group: "Liability" },
+  { value: "PUBLIC_LI",         label: "Public Liability",             sub: "Slips, trips, third party injury or damage",                  group: "Liability" },
+  { value: "PRODUCT_LI",        label: "Product Liability",            sub: "Defective products causing injury or damage",                 group: "Liability" },
+  // Professional
+  { value: "PROF_INDEMNITY",    label: "Professional Indemnity",       sub: "Solicitors, accountants, surveyors, architects",              group: "Professional" },
+  { value: "CLINICAL_NEG",      label: "Clinical Negligence",          sub: "Medical malpractice, surgical errors, NHS claims",            group: "Professional" },
+  { value: "DO",                label: "Directors & Officers",         sub: "Wrongful acts, breach of duty, corporate governance",         group: "Professional" },
+  // Property & Specialist
+  { value: "PROPERTY_DAMAGE",   label: "Property / Material Damage",   sub: "Commercial and residential property loss",                    group: "Property & Specialist" },
+  { value: "CYBER",             label: "Cyber & Data Breach",          sub: "Ransomware, data theft, business interruption",               group: "Property & Specialist" },
+  { value: "MARINE_CARGO",      label: "Marine Cargo",                 sub: "Cargo loss, hull damage, international transit",              group: "Property & Specialist" },
+  { value: "CONSTRUCTION",      label: "Construction / Engineering",   sub: "JCT, NEC, contractor negligence, latent defects",             group: "Property & Specialist" },
+  { value: "ENVIRONMENTAL",     label: "Environmental",                sub: "Pollution, contamination, regulatory breach",                 group: "Property & Specialist" },
+  // Civil & Other
+  { value: "COMMERCIAL_CIVIL",  label: "Commercial Civil",             sub: "Contract disputes, debt recovery, fraud",                     group: "Civil & Other" },
+  { value: "PROPERTY_LIT",      label: "Property Litigation",          sub: "Landlord & tenant, boundary, adverse possession",             group: "Civil & Other" },
+  { value: "EMPLOYMENT_LIT",    label: "Employment",                   sub: "Unfair dismissal, discrimination, TUPE",                      group: "Civil & Other" },
+  { value: "INSOLVENCY",        label: "Insolvency",                   sub: "Administration, liquidation, creditor claims",                group: "Civil & Other" },
+  { value: "REGULATORY",        label: "Regulatory / FCA",             sub: "FCA enforcement, SRA proceedings, public law",               group: "Civil & Other" },
+];
+
 function getContractTypesForPersonaAndIndustry(persona: Persona, industries: Industry[]) {
   return CONTRACT_TYPES.filter((ct) => {
     // Persona-restricted types
@@ -122,18 +160,25 @@ function getContractTypesForPersonaAndIndustry(persona: Persona, industries: Ind
 // ─── Jurisdictions ────────────────────────────────────────────────────────────
 
 const JURISDICTION_OPTIONS = [
-  { value: "England & Wales", label: "🇬🇧 England & Wales" },
-  { value: "Scotland",        label: "🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scotland" },
-  { value: "European Union",  label: "🇪🇺 European Union" },
-  { value: "United States",   label: "🇺🇸 United States (Federal)" },
-  { value: "New York",        label: "🇺🇸 New York (US)" },
-  { value: "California",      label: "🇺🇸 California (US)" },
-  { value: "Canada",          label: "🇨🇦 Canada" },
-  { value: "Singapore",       label: "🇸🇬 Singapore" },
-  { value: "UAE / DIFC",      label: "🇦🇪 UAE / DIFC" },
-  { value: "UAE / ADGM",      label: "🇦🇪 UAE / ADGM" },
-  { value: "KSA",             label: "🇸🇦 Saudi Arabia (KSA)" },
-  { value: "South Korea",     label: "🇰🇷 South Korea" },
+  { value: "England & Wales", label: "England & Wales" },
+  { value: "Scotland",        label: "Scotland" },
+  { value: "Ireland",         label: "Ireland" },
+  { value: "Netherlands",     label: "Netherlands" },
+  { value: "Switzerland",     label: "Switzerland" },
+  { value: "European Union",  label: "European Union" },
+  { value: "United States",   label: "United States (Federal)" },
+  { value: "New York",        label: "New York (US)" },
+  { value: "California",      label: "California (US)" },
+  { value: "Canada",          label: "Canada" },
+  { value: "Singapore",       label: "Singapore" },
+  { value: "Hong Kong",       label: "Hong Kong" },
+  { value: "Japan",           label: "Japan" },
+  { value: "UAE / DIFC",      label: "UAE / DIFC" },
+  { value: "UAE / ADGM",      label: "UAE / ADGM" },
+  { value: "KSA",             label: "Saudi Arabia (KSA)" },
+  { value: "South Korea",     label: "South Korea" },
+  { value: "India",           label: "India" },
+  { value: "Brazil",          label: "Brazil" },
 ];
 
 // ─── Dark palette helpers ─────────────────────────────────────────────────────
@@ -148,6 +193,7 @@ export default function Onboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [step, setStep] = useState<Step>(0);
+  const [workflowType, setWorkflowType] = useState<WorkflowType>("COMMERCIAL_CONTRACT");
   const [persona, setPersona] = useState<Persona>("CORPORATE");
   const [selectedJurisdictions, setSelectedJurisdictions] = useState<string[]>(["England & Wales"]);
   const [selectedIndustries, setSelectedIndustries] = useState<Industry[]>(["TECHNOLOGY_SAAS"]);
@@ -172,17 +218,40 @@ export default function Onboarding() {
 
   const companyMutation = useMutation({ mutationFn: createCompany });
 
-  function initPlaybook(appetite: RiskAppetite, isProperty: boolean, isGaming: boolean, isInvestment: boolean) {
+  function initPlaybook(appetite: RiskAppetite, isProperty: boolean, isGaming: boolean, isInvestment: boolean, wfType: WorkflowType = "COMMERCIAL_CONTRACT", industries: Industry[] = []) {
     const defaults = PLAYBOOK_DEFAULTS[appetite];
+    if (wfType === "INSURANCE_LITIGATION") {
+      return INSURANCE_CLAUSE_CATEGORIES.map((cat) => ({ clauseCategory: cat, ...defaults[cat], riskWeight: 3 }));
+    }
+    if (wfType === "LOGISTICS_CONTRACT") {
+      return LOGISTICS_CLAUSE_CATEGORIES.map((cat) => ({ clauseCategory: cat, ...defaults[cat], riskWeight: 3 }));
+    }
     const PROPERTY_ONLY: ClauseCategory[] = ["RENT_REVIEW", "BREAK_CLAUSE", "REPAIR_OBLIGATIONS", "SERVICE_CHARGE"];
-    return CLAUSE_CATEGORIES
+    const coreCategories = CLAUSE_CATEGORIES
       .filter((cat) => {
         if (PROPERTY_ONLY.includes(cat))                  return isProperty;
         if (GAMING_CLAUSE_CATEGORIES.includes(cat))       return isGaming;
         if (INVESTMENT_CLAUSE_CATEGORIES.includes(cat))   return isInvestment;
         return true;
-      })
+      });
+    // Append industry-specific categories (deduped) for COMMERCIAL_CONTRACT
+    const industrySpecific: ClauseCategory[] = [];
+    const seen = new Set<ClauseCategory>(coreCategories);
+    for (const industry of industries) {
+      for (const cat of getIndustryClauseCategories(industry)) {
+        if (!seen.has(cat)) {
+          seen.add(cat);
+          industrySpecific.push(cat);
+        }
+      }
+    }
+    return [...coreCategories, ...industrySpecific]
       .map((cat) => ({ clauseCategory: cat, ...defaults[cat], riskWeight: 3 }));
+  }
+
+  function handleWorkflowNext(chosen: WorkflowType) {
+    setWorkflowType(chosen);
+    setStep(1);
   }
 
   function handlePersonaNext(chosen: Persona) {
@@ -195,7 +264,7 @@ export default function Onboarding() {
     } else {
       setSelectedContractTypes(["SUPPLIER_AGREEMENT"]);
     }
-    setStep(1);
+    setStep(2);
   }
 
   function handleCompanyNext() {
@@ -204,7 +273,7 @@ export default function Onboarding() {
     const industryStr     = selectedIndustries.join(", ") || "OTHER";
     const sectorStr       = companyForm.sector.trim() || selectedIndustries.map((i) => INDUSTRY_LABELS[i]).join(", ");
     setCompanyForm((prev) => ({ ...prev, jurisdiction: jurisdictionStr, industry: industryStr, sector: sectorStr }));
-    setStep(2);
+    setStep(3);
   }
 
   function handleContractTypeNext() {
@@ -212,8 +281,8 @@ export default function Onboarding() {
     const isGaming     = selectedIndustries.includes("GAMING_INTERACTIVE");
     const isInvestment = persona === "FOUNDER" || persona === "PE_FUND" ||
                          selectedContractTypes.some((ct) => INVESTMENT_CONTRACT_TYPES.includes(ct));
-    setPlaybook(initPlaybook(companyForm.riskAppetite, isProperty, isGaming, isInvestment));
-    setStep(3);
+    setPlaybook(initPlaybook(companyForm.riskAppetite, isProperty, isGaming, isInvestment, workflowType, selectedIndustries));
+    setStep(4);
   }
 
   function updateRule(cat: ClauseCategory, field: keyof PlaybookEntry, value: string) {
@@ -224,7 +293,7 @@ export default function Onboarding() {
     setSaving(true);
     setFinishError("");
     try {
-      await companyMutation.mutateAsync({ ...companyForm, persona });
+      await companyMutation.mutateAsync({ ...companyForm, persona, workflowType });
       await savePlaybookRules(
         playbook.map(({ clauseCategory, preferredPosition, acceptableFallback, hardRedLine, approvalRequired, fallbackTemplate, riskWeight }) => ({
           clauseCategory, preferredPosition, acceptableFallback, hardRedLine, approvalRequired, fallbackTemplate, riskWeight,
@@ -307,34 +376,109 @@ export default function Onboarding() {
       {/* Content */}
       <main className="flex-1 px-4 sm:px-6 py-10 max-w-2xl mx-auto w-full">
         {step === 0 && (
-          <Step0Persona onNext={handlePersonaNext} />
+          <Step0Workflow onNext={handleWorkflowNext} />
         )}
         {step === 1 && (
-          <Step1Company
-            form={companyForm} onChange={setCompanyForm}
-            persona={persona}
-            selectedJurisdictions={selectedJurisdictions} onJurisdictionsChange={setSelectedJurisdictions}
-            selectedIndustries={selectedIndustries} onIndustriesChange={setSelectedIndustries}
-            onBack={() => setStep(0)} onNext={handleCompanyNext}
-          />
+          <Step1Persona workflowType={workflowType} onNext={handlePersonaNext} onBack={() => setStep(0)} />
         )}
         {step === 2 && (
-          <Step2ContractType
-            values={selectedContractTypes} industries={selectedIndustries} persona={persona}
-            onChange={setSelectedContractTypes}
-            onBack={() => setStep(1)} onNext={handleContractTypeNext}
+          <Step2Company
+            form={companyForm} onChange={setCompanyForm}
+            persona={persona}
+            workflowType={workflowType}
+            selectedJurisdictions={selectedJurisdictions} onJurisdictionsChange={setSelectedJurisdictions}
+            selectedIndustries={selectedIndustries} onIndustriesChange={setSelectedIndustries}
+            onBack={() => setStep(1)} onNext={handleCompanyNext}
           />
         )}
-        {step === 3 && <Step3Playbook playbook={playbook} onUpdate={updateRule} onBack={() => setStep(2)} onNext={() => setStep(4)} />}
-        {step === 4 && <Step4Approvers contacts={contacts} persona={persona} onChange={setContacts} onBack={() => setStep(3)} onNext={() => setStep(5)} />}
-        {step === 5 && <Step5Regulations companyForm={companyForm} detected={regulationsDetected} onDetected={() => setRegulationsDetected(true)} onBack={() => setStep(4)} onNext={() => setStep(6)} />}
-        {step === 6 && <Step6Done persona={persona} saving={saving} error={finishError} onBack={() => setStep(5)} onFinish={handleFinish} />}
+        {step === 3 && (
+          <Step3ContractType
+            values={selectedContractTypes} industries={selectedIndustries} persona={persona}
+            workflowType={workflowType}
+            onChange={setSelectedContractTypes}
+            onBack={() => setStep(2)} onNext={handleContractTypeNext}
+          />
+        )}
+        {step === 4 && <Step4Playbook playbook={playbook} onUpdate={updateRule} onBack={() => setStep(3)} onNext={() => setStep(5)} />}
+        {step === 5 && <Step5Approvers contacts={contacts} persona={persona} onChange={setContacts} onBack={() => setStep(4)} onNext={() => setStep(6)} />}
+        {step === 6 && <Step6Regulations companyForm={companyForm} detected={regulationsDetected} onDetected={() => setRegulationsDetected(true)} onBack={() => setStep(5)} onNext={() => setStep(7)} />}
+        {step === 7 && <Step7Done persona={persona} saving={saving} error={finishError} onBack={() => setStep(6)} onFinish={handleFinish} />}
       </main>
     </div>
   );
 }
 
-// ─── Step 0: Persona ──────────────────────────────────────────────────────────
+// ─── Step 0: Workflow selection ───────────────────────────────────────────────
+
+const WORKFLOW_OPTIONS: { value: WorkflowType; label: string; description: string }[] = [
+  {
+    value: "COMMERCIAL_CONTRACT",
+    label: "Commercial contract review",
+    description: "Review counterparty paper against your playbook positions. Flags deviations with fallback language and escalation routing.",
+  },
+  {
+    value: "INSURANCE_LITIGATION",
+    label: "Litigation",
+    description: "Triage and manage claims across insurance, commercial civil, property, employment, and professional indemnity — from coverage analysis through to settlement authority and FCA compliance.",
+  },
+];
+
+function Step0Workflow({ onNext }: { onNext: (w: WorkflowType) => void }) {
+  const [selected, setSelected] = useState<WorkflowType>("COMMERCIAL_CONTRACT");
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold text-white tracking-tight">Select your workflow</h2>
+        <p className="text-white/45 text-sm mt-2 leading-relaxed">
+          MIKE adapts its clause library and output framing to your workflow type. You can change this later.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {WORKFLOW_OPTIONS.map((opt) => {
+          const sel = selected === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setSelected(opt.value)}
+              className={`w-full text-left rounded-2xl border p-5 transition-all ${
+                sel
+                  ? "border-primary bg-primary/10 shadow-lg shadow-primary/15"
+                  : "border-white/10 hover:border-white/20"
+              }`}
+              style={{ background: sel ? undefined : CARD }}
+            >
+              <div className="flex items-start gap-4">
+                <div className={`mt-0.5 w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
+                  sel ? "border-primary" : "border-white/25"
+                }`}>
+                  {sel && <div className="w-2 h-2 rounded-full bg-primary" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-semibold text-white">{opt.label}</span>
+                  <p className="text-xs text-white/50 mt-1 leading-relaxed">{opt.description}</p>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex justify-end pt-2">
+        <button
+          onClick={() => onNext(selected)}
+          className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/25"
+        >
+          Continue →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 1: Persona ──────────────────────────────────────────────────────────
 
 const PERSONA_CONFIG: {
   id: Persona;
@@ -384,13 +528,40 @@ const PERSONA_CONFIG: {
   },
 ];
 
-function Step0Persona({ onNext }: { onNext: (p: Persona) => void }) {
+const LITIGATION_PERSONA_CONFIG: {
+  id: Persona;
+  icon: string;
+  label: string;
+  tagline: string;
+  bullets: string[];
+  badge?: string;
+}[] = [
+  {
+    id: "CORPORATE",
+    icon: "🏛️",
+    label: "In-house litigation team",
+    tagline: "Insurance company or large corporate with in-house claims and litigation function.",
+    bullets: [
+      "FCA-compliant coverage triage and settlement authority",
+      "Panel firm instruction and budget management",
+      "Reserve adequacy and board reporting",
+      "TCF and vulnerable customer obligations",
+    ],
+  },
+];
+
+function Step1Persona({ workflowType, onNext, onBack }: { workflowType: WorkflowType; onNext: (p: Persona) => void; onBack: () => void }) {
   const [selected, setSelected] = useState<Persona>("CORPORATE");
+
+  const isLitigation = workflowType === "INSURANCE_LITIGATION";
+  const personaOptions = isLitigation ? LITIGATION_PERSONA_CONFIG : PERSONA_CONFIG;
 
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">How will you use MIKE?</h2>
+        <h2 className="text-2xl font-bold text-white tracking-tight">
+          {isLitigation ? "How does your team operate?" : "How will you use MIKE?"}
+        </h2>
         <p className="text-white/45 text-sm mt-2 leading-relaxed">
           MIKE adapts its clause library, playbook defaults and output framing to your context.
           You can change this later.
@@ -398,7 +569,7 @@ function Step0Persona({ onNext }: { onNext: (p: Persona) => void }) {
       </div>
 
       <div className="space-y-3">
-        {PERSONA_CONFIG.map((p) => {
+        {personaOptions.map((p) => {
           const sel = selected === p.id;
           return (
             <button
@@ -446,7 +617,14 @@ function Step0Persona({ onNext }: { onNext: (p: Persona) => void }) {
         })}
       </div>
 
-      <div className="flex justify-end pt-2">
+      {isLitigation && (
+        <p className="text-xs text-white/35 leading-relaxed">
+          You can configure panel firm access and multi-user roles later.
+        </p>
+      )}
+
+      <div className="flex justify-between pt-2">
+        <button onClick={onBack} className="px-4 py-2.5 text-sm text-white/40 hover:text-white/70 transition-colors">← Back</button>
         <button
           onClick={() => onNext(selected)}
           className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/25"
@@ -458,12 +636,26 @@ function Step0Persona({ onNext }: { onNext: (p: Persona) => void }) {
   );
 }
 
-// ─── Step 1: Company ──────────────────────────────────────────────────────────
+// ─── Step 2: Company ──────────────────────────────────────────────────────────
 
-function Step1Company({ form, onChange, persona, selectedJurisdictions, onJurisdictionsChange, selectedIndustries, onIndustriesChange, onBack, onNext }: {
+const LITIGATION_PRACTICE_TYPES: { value: string; label: string; sub: string }[] = [
+  { value: "Insurance Litigation — All classes", label: "Insurance — All Classes",    sub: "Motor, EL/PL, PI, Property, Cyber, D&O, Marine" },
+  { value: "Personal Injury Litigation",          label: "Personal Injury",            sub: "RTA, Employers Liability, Public Liability, Clinical Negligence" },
+  { value: "Commercial Civil Litigation",         label: "Commercial Civil",           sub: "Contract disputes, debt recovery, fraud, injunctions" },
+  { value: "Property Litigation",                 label: "Property Litigation",        sub: "Landlord & tenant, boundary disputes, adverse possession" },
+  { value: "Employment Litigation",               label: "Employment",                 sub: "Unfair dismissal, discrimination, TUPE, whistleblowing" },
+  { value: "Clinical Negligence",                 label: "Clinical Negligence",        sub: "Medical malpractice, surgical errors, delayed diagnosis" },
+  { value: "Professional Indemnity",              label: "Professional Indemnity",     sub: "Solicitors, accountants, surveyors, architects, financial advisers" },
+  { value: "Construction & Engineering",          label: "Construction & Engineering", sub: "JCT, NEC, adjudication, professional negligence" },
+  { value: "Insolvency & Restructuring",          label: "Insolvency",                 sub: "Administration, liquidation, creditor claims, antecedent transactions" },
+  { value: "Regulatory & Public Law",             label: "Regulatory & Public Law",    sub: "FCA enforcement, judicial review, public inquiries" },
+];
+
+function Step2Company({ form, onChange, persona, workflowType, selectedJurisdictions, onJurisdictionsChange, selectedIndustries, onIndustriesChange, onBack, onNext }: {
   form: CompanyForm;
   onChange: (f: CompanyForm) => void;
   persona: Persona;
+  workflowType: WorkflowType;
   selectedJurisdictions: string[];
   onJurisdictionsChange: (j: string[]) => void;
   selectedIndustries: Industry[];
@@ -471,7 +663,10 @@ function Step1Company({ form, onChange, persona, selectedJurisdictions, onJurisd
   onBack: () => void;
   onNext: () => void;
 }) {
-  const canProceed = Boolean(form.name.trim()) && selectedJurisdictions.length > 0 && selectedIndustries.length > 0;
+  const isLitigation = workflowType === "INSURANCE_LITIGATION";
+  const canProceed = isLitigation
+    ? Boolean(form.name.trim()) && Boolean(form.sector.trim()) && selectedJurisdictions.length > 0
+    : Boolean(form.name.trim()) && selectedJurisdictions.length > 0 && selectedIndustries.length > 0;
 
   function toggleJurisdiction(value: string) {
     onJurisdictionsChange(
@@ -502,6 +697,118 @@ function Step1Company({ form, onChange, persona, selectedJurisdictions, onJurisd
   };
   const { title, sub } = headings[persona];
 
+  // ── Litigation branch ────────────────────────────────────────────────────────
+  if (isLitigation) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h2 className="text-2xl font-bold text-white tracking-tight">Tell MIKE about your practice</h2>
+          <p className="text-white/45 text-sm mt-2 leading-relaxed">
+            This calibrates MIKE's coverage analysis, FCA obligations, and settlement authority thresholds.{" "}
+            Required fields marked <span className="text-red-400">*</span>
+          </p>
+        </div>
+
+        <div className="space-y-5">
+
+          {/* Organisation name */}
+          <DarkField label="Organisation name" required>
+            <DarkInput
+              placeholder="e.g. Aviva Claims Legal, Clyde & Co LLP"
+              value={form.name}
+              onChange={(e) => onChange({ ...form, name: e.target.value })}
+            />
+          </DarkField>
+
+          {/* Litigation practice type — single-select card grid */}
+          <DarkField label="Litigation practice type" required>
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              {LITIGATION_PRACTICE_TYPES.map((opt) => {
+                const sel = form.sector === opt.value;
+                return (
+                  <button key={opt.value} type="button" onClick={() => onChange({ ...form, sector: opt.value })}
+                    className={`flex flex-col gap-0.5 px-3 py-3 rounded-xl border text-left transition-all ${
+                      sel ? "border-primary bg-primary/15 text-white" : "border-white/10 text-white/45 hover:border-white/25 hover:text-white/75"
+                    }`}
+                    style={{ background: sel ? undefined : CARD }}
+                  >
+                    <span className="text-xs font-semibold leading-tight">{opt.label}</span>
+                    <span className="text-[10px] text-white/35 leading-tight">{opt.sub}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {!form.sector.trim() && <p className="text-xs text-red-400 mt-1">Select your practice type</p>}
+          </DarkField>
+
+          {/* Handler type / role in litigation */}
+          <DarkField label="Your role in litigation" required>
+            <DarkSelect value={form.role} onChange={(v) => onChange({ ...form, role: v as CompanyRole })} options={[
+              { value: "INSURER_INHOUSE", label: "Insurer — in-house litigation team" },
+              { value: "PANEL_FIRM",      label: "Panel solicitors / External counsel" },
+              { value: "TPA",             label: "Third Party Administrator (TPA)" },
+              { value: "CLAIMANT_FIRM",   label: "Claimant solicitors" },
+              { value: "DEFENDANT_FIRM",  label: "Defendant solicitors (non-panel)" },
+              { value: "BOTH",            label: "Multiple roles" },
+            ]} />
+          </DarkField>
+
+          {/* Jurisdictions */}
+          <DarkField label="Jurisdictions" required hint="Select all that apply.">
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              {JURISDICTION_OPTIONS.map(({ value, label }) => {
+                const checked = selectedJurisdictions.includes(value);
+                return (
+                  <label key={value} className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl border text-sm cursor-pointer transition-all ${
+                    checked ? "border-primary bg-primary/10 text-white" : "border-white/10 text-white/45 hover:border-white/25 hover:text-white/75"
+                  }`} style={{ background: checked ? undefined : CARD }}>
+                    <input type="checkbox" className="sr-only" checked={checked} onChange={() => toggleJurisdiction(value)} />
+                    <div className={`w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center ${checked ? "bg-primary" : "border border-white/20"}`}>
+                      {checked && <span className="text-white text-[9px] font-bold">✓</span>}
+                    </div>
+                    {label}
+                  </label>
+                );
+              })}
+            </div>
+            {selectedJurisdictions.length === 0 && <p className="text-xs text-red-400 mt-1">Select at least one jurisdiction</p>}
+          </DarkField>
+
+          {/* Risk appetite — litigation-labelled */}
+          <DarkField label="Settlement posture" required hint="Sets default clause positions - adjust each one in the playbook step.">
+            <div className="grid grid-cols-3 gap-2 mt-1">
+              {([
+                { value: "CONSERVATIVE", label: "Conservative", sub: "Defend aggressively — every case on merits" },
+                { value: "MODERATE",     label: "Moderate",     sub: "Balanced — merits-driven with pragmatic settlement" },
+                { value: "COMMERCIAL",   label: "Commercial",   sub: "Settlement-focused — resolve cost-effectively" },
+              ] as const).map((opt) => {
+                const sel = form.riskAppetite === opt.value;
+                return (
+                  <button key={opt.value} type="button" onClick={() => onChange({ ...form, riskAppetite: opt.value })}
+                    className={`flex flex-col gap-0.5 px-3 py-3 rounded-xl border text-left transition-all ${
+                      sel ? "border-primary bg-primary/15 text-white" : "border-white/10 text-white/45 hover:border-white/25"
+                    }`} style={{ background: sel ? undefined : CARD }}>
+                    <span className="text-xs font-semibold">{opt.label}</span>
+                    <span className="text-[10px] text-white/35 leading-tight">{opt.sub}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </DarkField>
+        </div>
+
+        <div className="flex justify-between pt-2">
+          <button onClick={onBack} className="px-4 py-2.5 text-sm text-white/40 hover:text-white/70 transition-colors">← Back</button>
+          <button onClick={onNext} disabled={!canProceed}
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/25 disabled:opacity-30 disabled:pointer-events-none">
+            Next: Claim types →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Commercial branch (original) ─────────────────────────────────────────────
   return (
     <div className="space-y-8">
       <div>
@@ -621,25 +928,87 @@ function Step1Company({ form, onChange, persona, selectedJurisdictions, onJurisd
   );
 }
 
-// ─── Step 2: Contract types ───────────────────────────────────────────────────
+// ─── Step 3: Contract types ───────────────────────────────────────────────────
 
-function Step2ContractType({ values, industries, persona, onChange, onBack, onNext }: {
+function Step3ContractType({ values, industries, persona, workflowType, onChange, onBack, onNext }: {
   values: string[];
   industries: Industry[];
   persona: Persona;
+  workflowType: WorkflowType;
   onChange: (v: string[]) => void;
   onBack: () => void;
   onNext: () => void;
 }) {
+  function toggle(ctValue: string) {
+    onChange(values.includes(ctValue) ? values.filter((v) => v !== ctValue) : [...values, ctValue]);
+  }
+
+  // ── Litigation branch: show claim types ──────────────────────────────────────
+  if (workflowType === "INSURANCE_LITIGATION") {
+    const claimGroups: string[] = [];
+    const claimGroupsSeen = new Set<string>();
+    for (const ct of LITIGATION_CLAIM_TYPES) {
+      if (!claimGroupsSeen.has(ct.group)) { claimGroupsSeen.add(ct.group); claimGroups.push(ct.group); }
+    }
+
+    return (
+      <div className="space-y-8">
+        <div>
+          <h2 className="text-2xl font-bold text-white tracking-tight">Claim types handled</h2>
+          <p className="text-white/45 text-sm mt-2">
+            Select all the claim types your team regularly handles. MIKE calibrates its coverage analysis and assessment categories accordingly.
+          </p>
+        </div>
+
+        <div className="space-y-5">
+          {claimGroups.map((group) => (
+            <div key={group}>
+              <div className="text-[10px] uppercase tracking-widest text-white/25 font-semibold mb-2 px-1">{group}</div>
+              <div className="space-y-2">
+                {LITIGATION_CLAIM_TYPES.filter((ct) => ct.group === group).map((ct) => {
+                  const sel = values.includes(ct.value);
+                  return (
+                    <button key={ct.value} onClick={() => toggle(ct.value)}
+                      className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all flex items-center gap-3 ${
+                        sel ? "border-primary bg-primary/10 text-white" : "border-white/10 text-white/55 hover:border-white/25 hover:text-white/80"
+                      }`} style={{ background: sel ? undefined : CARD }}>
+                      <div className={`w-4 h-4 rounded shrink-0 flex items-center justify-center ${sel ? "bg-primary" : "border border-white/20"}`}>
+                        {sel && <span className="text-white text-[10px] font-bold">✓</span>}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium">{ct.label}</div>
+                        <div className="text-[11px] text-white/35 mt-0.5">{ct.sub}</div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-xs text-white/40">
+          {values.length} claim type{values.length !== 1 ? "s" : ""} selected
+        </p>
+        {values.length === 0 && <p className="text-xs text-red-400">Select at least one claim type</p>}
+
+        <div className="flex justify-between pt-2">
+          <button onClick={onBack} className="px-4 py-2.5 text-sm text-white/40 hover:text-white/70 transition-colors">← Back</button>
+          <button onClick={onNext} disabled={values.length === 0}
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/25 disabled:opacity-30 disabled:pointer-events-none">
+            Next: Playbook →
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Commercial branch (original) ─────────────────────────────────────────────
   const filtered = getContractTypesForPersonaAndIndustry(persona, industries);
   const groupsSeen = new Set<string>();
   const groups: string[] = [];
   for (const ct of filtered) {
     if (!groupsSeen.has(ct.group)) { groupsSeen.add(ct.group); groups.push(ct.group); }
-  }
-
-  function toggle(ctValue: string) {
-    onChange(values.includes(ctValue) ? values.filter((v) => v !== ctValue) : [...values, ctValue]);
   }
 
   const isGaming = industries.includes("GAMING_INTERACTIVE");
@@ -710,9 +1079,9 @@ function Step2ContractType({ values, industries, persona, onChange, onBack, onNe
   );
 }
 
-// ─── Step 3: Playbook ─────────────────────────────────────────────────────────
+// ─── Step 4: Playbook ─────────────────────────────────────────────────────────
 
-function Step3Playbook({ playbook, onUpdate, onBack, onNext }: {
+function Step4Playbook({ playbook, onUpdate, onBack, onNext }: {
   playbook: PlaybookEntry[];
   onUpdate: (cat: ClauseCategory, field: keyof PlaybookEntry, value: string) => void;
   onBack: () => void;
@@ -777,9 +1146,9 @@ function Step3Playbook({ playbook, onUpdate, onBack, onNext }: {
   );
 }
 
-// ─── Step 4: Approvers ────────────────────────────────────────────────────────
+// ─── Step 5: Approvers ────────────────────────────────────────────────────────
 
-function Step4Approvers({ contacts, persona, onChange, onBack, onNext }: {
+function Step5Approvers({ contacts, persona, onChange, onBack, onNext }: {
   contacts: Contact[];
   persona: Persona;
   onChange: (c: Contact[]) => void;
@@ -840,9 +1209,9 @@ function Step4Approvers({ contacts, persona, onChange, onBack, onNext }: {
   );
 }
 
-// ─── Step 5: Regulations ──────────────────────────────────────────────────────
+// ─── Step 6: Regulations ──────────────────────────────────────────────────────
 
-function Step5Regulations({ companyForm, detected, onDetected, onBack, onNext }: {
+function Step6Regulations({ companyForm, detected, onDetected, onBack, onNext }: {
   companyForm: CompanyForm;
   detected: boolean;
   onDetected: () => void;
@@ -932,9 +1301,9 @@ function Step5Regulations({ companyForm, detected, onDetected, onBack, onNext }:
   );
 }
 
-// ─── Step 6: Done ─────────────────────────────────────────────────────────────
+// ─── Step 7: Done ─────────────────────────────────────────────────────────────
 
-function Step6Done({ persona, saving, error, onBack, onFinish }: {
+function Step7Done({ persona, saving, error, onBack, onFinish }: {
   persona: Persona;
   saving: boolean;
   error?: string;

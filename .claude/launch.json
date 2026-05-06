@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "simple-app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "/Users/user/Documents/GitHub/zsg-starter/simple-app",
+      "port": 3000
+    }
+  ]
+}

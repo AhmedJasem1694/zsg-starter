@@ -1,14 +1,16 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
+import path from "path";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "./db.js";
-import { upload } from "./upload.js";
+import { upload, uploadAncillary, classifyFileType } from "./upload.js";
 import { runReview } from "./services/reviewOrchestrator.js";
 import {
   detectAndSaveRegulations,
 } from "./services/regulatoryDetection.js";
 import { requireAuth, signToken } from "./middleware/auth.js";
+import { transcribeAudioFile } from "./services/transcription.js";
 
 const COOKIE_OPTS = {
   httpOnly: true,
@@ -21,10 +23,11 @@ const companySchema = z.object({
   name: z.string().min(1),
   sector: z.string().min(1),
   jurisdiction: z.string().min(1),
-  role: z.enum(["BUYER", "SUPPLIER", "BOTH"]),
+  role: z.enum(["BUYER", "SUPPLIER", "BOTH", "INSURER_INHOUSE", "PANEL_FIRM", "TPA", "CLAIMANT_FIRM", "DEFENDANT_FIRM"]),
   riskAppetite: z.enum(["CONSERVATIVE", "MODERATE", "COMMERCIAL"]),
   industry: z.string().optional(),
   persona: z.enum(["CORPORATE", "FOUNDER", "PE_FUND"]).optional(),
+  workflowType: z.enum(["COMMERCIAL_CONTRACT", "INSURANCE_LITIGATION", "LOGISTICS_CONTRACT"]).optional(),
 });
 
 const playbookRuleSchema = z.object({
@@ -35,6 +38,7 @@ const playbookRuleSchema = z.object({
   approvalRequired: z.enum(["LEGAL", "GC", "CFO", "BOARD"]).optional(),
   fallbackTemplate: z.string().optional(),
   riskWeight: z.number().int().min(1).max(5).optional(),
+  workflowType: z.string().optional(),
 });
 
 const approvalContactSchema = z.object({
@@ -172,20 +176,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     await prisma.playbookRule.deleteMany({ where: { companyId: company.id } });
     await prisma.playbookRule.createMany({
-      data: parsed.data.map((r) => ({ ...r, companyId: company.id })),
+      data: parsed.data.map((r) => ({
+        ...r,
+        companyId: company.id,
+        workflowType: r.workflowType ?? "COMMERCIAL_CONTRACT",
+      })),
     });
 
     const rules = await prisma.playbookRule.findMany({ where: { companyId: company.id } });
     res.json(rules);
   });
 
-  app.get("/api/playbook/rules", requireAuth, async (_req: Request, res: Response) => {
+  app.get("/api/playbook/rules", requireAuth, async (req: Request, res: Response) => {
     const company = await prisma.company.findFirst();
-    if (!company) { sendError(res, 404, "No company configured"); return; }
-
+    if (!company) { res.json([]); return; }
+    const { workflowType } = req.query as { workflowType?: string };
     const rules = await prisma.playbookRule.findMany({
-      where: { companyId: company.id },
-      orderBy: { clauseCategory: "asc" },
+      where: {
+        companyId: company.id,
+        ...(workflowType ? { workflowType } : {}),
+      },
+      orderBy: { createdAt: "asc" },
     });
     res.json(rules);
   });
@@ -240,8 +251,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const file = req.file;
       if (!file) { sendError(res, 400, "No file uploaded"); return; }
 
-      const contractType =
-        (req.body as { contractType?: string }).contractType ?? "SUPPLIER_AGREEMENT";
+      const contractType = (req.body as Record<string,string>).contractType ?? "SUPPLIER_AGREEMENT";
+      const counterpartyName = (req.body as Record<string,string>).counterpartyName ?? "";
+      const counterpartyType = (req.body as Record<string,string>).counterpartyType ?? "";
+      const reviewType = (req.body as Record<string,string>).reviewType ?? "INBOUND";
+      const contractValueRaw = (req.body as Record<string,string>).contractValue;
+      const contractValue = contractValueRaw ? parseFloat(contractValueRaw) : undefined;
+      const currency = (req.body as Record<string,string>).currency ?? "GBP";
+      const contractTermMonthsRaw = (req.body as Record<string,string>).contractTermMonths;
+      const contractTermMonths = contractTermMonthsRaw ? parseInt(contractTermMonthsRaw) : undefined;
+      const autoRenewal = (req.body as Record<string,string>).autoRenewal === "true";
+      const noticePeriodDaysRaw = (req.body as Record<string,string>).noticePeriodDays;
+      const noticePeriodDays = noticePeriodDaysRaw ? parseInt(noticePeriodDaysRaw) : undefined;
+      const renewalDateRaw = (req.body as Record<string,string>).renewalDate;
+      const renewalDate = renewalDateRaw ? new Date(renewalDateRaw) : undefined;
+      const contractTags = (req.body as Record<string,string>).contractTags ?? "";
 
       const doc = await prisma.uploadedDocument.create({
         data: {
@@ -250,6 +274,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           originalName: file.originalname,
           contractType,
           status: "UPLOADED",
+          counterpartyName,
+          counterpartyType,
+          reviewType,
+          contractValue,
+          currency,
+          contractTermMonths,
+          autoRenewal,
+          noticePeriodDays,
+          renewalDate,
+          contractTags,
         },
       });
 
@@ -257,15 +291,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
-  app.get("/api/documents", requireAuth, async (_req: Request, res: Response) => {
+  app.get("/api/documents", requireAuth, async (req: Request, res: Response) => {
     const company = await prisma.company.findFirst();
     if (!company) { res.json([]); return; }
 
+    const { search, ragStatus, contractType: typeFilter } = req.query as Record<string, string>;
+
     const docs = await prisma.uploadedDocument.findMany({
-      where: { companyId: company.id },
+      where: {
+        companyId: company.id,
+        ...(typeFilter ? { contractType: typeFilter } : {}),
+        ...(search ? { counterpartyName: { contains: search } } : {}),
+        ...(ragStatus ? { reviewResults: { some: { ragStatus } } } : {}),
+      },
+      include: {
+        reviewResults: { select: { ragStatus: true } },
+      },
       orderBy: { uploadedAt: "desc" },
     });
     res.json(docs);
+  });
+
+  app.get("/api/documents/stats", requireAuth, async (_req: Request, res: Response) => {
+    const company = await prisma.company.findFirst();
+    if (!company) { res.json({ totalContracts: 0, totalValue: 0, redContracts: 0, renewalsDue: 0 }); return; }
+
+    const docs = await prisma.uploadedDocument.findMany({
+      where: { companyId: company.id },
+      include: { reviewResults: { select: { ragStatus: true } } },
+    });
+
+    const totalContracts = docs.length;
+    const totalValue = docs.reduce((sum, d) => sum + (d.contractValue ?? 0), 0);
+
+    const redContracts = docs.filter(d => d.reviewResults.some(r => r.ragStatus === "RED")).length;
+
+    const now = new Date();
+    const in90 = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+    const renewalsDue = docs.filter(d => d.renewalDate && d.renewalDate >= now && d.renewalDate <= in90).length;
+
+    res.json({ totalContracts, totalValue, redContracts, renewalsDue });
   });
 
   app.get("/api/documents/:id", requireAuth, async (req: Request, res: Response) => {
@@ -486,6 +551,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ].filter((o) => o.count > 0);
 
     res.json({ flagged, overview, totalDocuments: docs.length });
+  });
+
+  // ── Litigation Intake ─────────────────────────────────────────────────────────
+
+  app.get("/api/litigation/intake/:documentId", requireAuth, async (req: Request, res: Response) => {
+    const intake = await prisma.litigationIntake.findUnique({
+      where: { documentId: req.params.documentId },
+    });
+    res.json(intake ?? null);
+  });
+
+  app.post("/api/litigation/intake/:documentId", requireAuth, async (req: Request, res: Response) => {
+    const body = req.body as {
+      stage?: number;
+      hardStopData?: string;
+      defenceData?: string;
+      fraudFlag?: boolean;
+      fcaBreach?: boolean;
+      vulnerableCustomer?: boolean;
+      hardStopPassed?: boolean;
+      complete?: boolean;
+    };
+
+    const data = {
+      stage:             body.stage ?? 1,
+      hardStopData:      body.hardStopData ?? "",
+      defenceData:       body.defenceData ?? "",
+      fraudFlag:         body.fraudFlag ?? false,
+      fcaBreach:         body.fcaBreach ?? false,
+      vulnerableCustomer: body.vulnerableCustomer ?? false,
+      hardStopPassed:    body.hardStopPassed ?? false,
+      completedAt:       body.complete ? new Date() : undefined,
+    };
+
+    const intake = await prisma.litigationIntake.upsert({
+      where: { documentId: req.params.documentId },
+      update: data,
+      create: { documentId: req.params.documentId, ...data },
+    });
+    res.json(intake);
+  });
+
+  // ── Ancillary Documents ───────────────────────────────────────────────────────
+
+  app.post(
+    "/api/ancillary/:documentId",
+    requireAuth,
+    uploadAncillary.single("file"),
+    async (req: Request, res: Response) => {
+      const file = req.file;
+      if (!file) { sendError(res, 400, "No file uploaded"); return; }
+
+      const privilegeFlag = (req.body as { privilegeFlag?: string }).privilegeFlag === "true";
+      const fileType = classifyFileType(file.originalname);
+
+      const ancillary = await prisma.ancillaryDocument.create({
+        data: {
+          documentId: req.params.documentId,
+          originalName: file.originalname,
+          filename: file.filename,
+          fileType,
+          privilegeFlag,
+        },
+      });
+
+      res.json(ancillary);
+
+      // Fire-and-forget transcription for audio/video
+      if (fileType === "AUDIO" || fileType === "VIDEO") {
+        const fullPath = path.join(process.cwd(), "uploads", file.filename);
+        transcribeAudioFile(fullPath).then(async (transcription) => {
+          if (transcription) {
+            await prisma.ancillaryDocument.update({
+              where: { id: ancillary.id },
+              data: { transcription },
+            });
+          }
+        }).catch(console.error);
+      }
+    }
+  );
+
+  app.get("/api/ancillary/:documentId", requireAuth, async (req: Request, res: Response) => {
+    const docs = await prisma.ancillaryDocument.findMany({
+      where: { documentId: req.params.documentId },
+      orderBy: { uploadedAt: "desc" },
+    });
+    res.json(docs);
+  });
+
+  app.delete("/api/ancillary/:ancillaryId", requireAuth, async (req: Request, res: Response) => {
+    await prisma.ancillaryDocument.delete({ where: { id: req.params.ancillaryId } });
+    res.json({ ok: true });
   });
 
   // ── Health ───────────────────────────────────────────────────────────────────

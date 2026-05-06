@@ -12,6 +12,34 @@ const storage = multer.diskStorage({
   },
 });
 
+export const uploadAncillary = multer({
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+  fileFilter: (_req, file, cb) => {
+    const allowed = [
+      ".pdf", ".docx", ".doc", ".xlsx", ".xls", ".csv",
+      ".jpg", ".jpeg", ".png", ".heic", ".tiff", ".gif",
+      ".mp3", ".m4a", ".wav", ".aac", ".ogg",
+      ".mp4", ".mov", ".avi", ".mkv", ".webm",
+    ];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowed.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error("File type not supported"));
+    }
+  },
+});
+
+export function classifyFileType(filename: string): string {
+  const ext = path.extname(filename).toLowerCase();
+  if ([".pdf", ".docx", ".doc", ".xlsx", ".xls", ".csv"].includes(ext)) return "DOCUMENT";
+  if ([".jpg", ".jpeg", ".png", ".heic", ".tiff", ".gif"].includes(ext)) return "IMAGE";
+  if ([".mp3", ".m4a", ".wav", ".aac", ".ogg", ".mp4a"].includes(ext)) return "AUDIO";
+  if ([".mp4", ".mov", ".avi", ".mkv", ".webm"].includes(ext)) return "VIDEO";
+  return "OTHER";
+}
+
 export const upload = multer({
   storage,
   limits: { fileSize: 20 * 1024 * 1024 }, // 20MB

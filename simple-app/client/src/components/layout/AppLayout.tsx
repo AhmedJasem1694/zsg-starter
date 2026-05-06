@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Settings, LogOut, Menu, Shield, Lock, HelpCircle, PieChart, CalendarClock } from "lucide-react";
+import { LayoutDashboard, BookOpen, Settings, LogOut, Menu, Shield, Lock, HelpCircle, PieChart, CalendarClock, LayoutGrid } from "lucide-react";
 import { useAuth, useLogout } from "../../hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { getCompany } from "../../lib/api";
@@ -11,6 +11,7 @@ const NAV = [
   { to: "/regulations", icon: Shield, label: "Regulations" },
   { to: "/portfolio", icon: PieChart, label: "Portfolio Risk" },
   { to: "/timings", icon: CalendarClock, label: "Contract Timings" },
+  { to: "/bulk-review", icon: LayoutGrid, label: "Bulk review" },
 ];
 
 const NAV_SECONDARY = [

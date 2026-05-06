@@ -4,6 +4,8 @@ import type {
   ApprovalContact,
   UploadedDocument,
   CompanyRegulation,
+  LitigationIntakeData,
+  AncillaryDocumentData,
 } from "./types";
 
 async function req<T>(
@@ -33,6 +35,7 @@ export const createCompany = (data: {
   riskAppetite: string;
   industry?: string;
   persona?: string;
+  workflowType?: string;
 }) => req<Company>("POST", "/api/company", data);
 
 // Playbook
@@ -48,19 +51,61 @@ export const saveContacts = (
 ) => req<ApprovalContact[]>("POST", "/api/company/contacts", { contacts });
 
 // Documents
-export const getDocuments = () => req<UploadedDocument[]>("GET", "/api/documents");
+export const getDocuments = (params?: { search?: string; ragStatus?: string; contractType?: string }) => {
+  const qs = new URLSearchParams();
+  if (params?.search) qs.set("search", params.search);
+  if (params?.ragStatus) qs.set("ragStatus", params.ragStatus);
+  if (params?.contractType) qs.set("contractType", params.contractType);
+  const url = `/api/documents${qs.toString() ? `?${qs.toString()}` : ""}`;
+  return req<UploadedDocument[]>("GET", url);
+};
 export const getDocument = (id: string) =>
   req<UploadedDocument>("GET", `/api/documents/${id}`);
 
 export const uploadDocument = async (
   file: File,
-  contractType: string
+  contractType: string,
+  meta?: {
+    counterpartyName?: string;
+    counterpartyType?: string;
+    reviewType?: string;
+    contractValue?: number;
+    currency?: string;
+    contractTermMonths?: number;
+    autoRenewal?: boolean;
+    noticePeriodDays?: number;
+    renewalDate?: string;
+    contractTags?: string;
+  }
 ): Promise<UploadedDocument> => {
   const form = new FormData();
   form.append("contract", file);
   form.append("contractType", contractType);
+  if (meta) {
+    if (meta.counterpartyName !== undefined) form.append("counterpartyName", meta.counterpartyName);
+    if (meta.counterpartyType !== undefined) form.append("counterpartyType", meta.counterpartyType);
+    if (meta.reviewType !== undefined) form.append("reviewType", meta.reviewType);
+    if (meta.contractValue !== undefined) form.append("contractValue", String(meta.contractValue));
+    if (meta.currency !== undefined) form.append("currency", meta.currency);
+    if (meta.contractTermMonths !== undefined) form.append("contractTermMonths", String(meta.contractTermMonths));
+    if (meta.autoRenewal !== undefined) form.append("autoRenewal", String(meta.autoRenewal));
+    if (meta.noticePeriodDays !== undefined) form.append("noticePeriodDays", String(meta.noticePeriodDays));
+    if (meta.renewalDate !== undefined) form.append("renewalDate", meta.renewalDate);
+    if (meta.contractTags !== undefined) form.append("contractTags", meta.contractTags);
+  }
   return req<UploadedDocument>("POST", "/api/documents/upload", form);
 };
+
+export async function getDocumentStats(): Promise<{
+  totalContracts: number;
+  totalValue: number;
+  redContracts: number;
+  renewalsDue: number;
+}> {
+  const res = await fetch("/api/documents/stats", { credentials: "include" });
+  if (!res.ok) return { totalContracts: 0, totalValue: 0, redContracts: 0, renewalsDue: 0 };
+  return res.json() as Promise<{ totalContracts: number; totalValue: number; redContracts: number; renewalsDue: number }>;
+}
 
 // Review
 export const startReview = (documentId: string) =>
@@ -108,6 +153,52 @@ export const getTimings = () => req<{
 // Regulatory
 export const getRegulations = () => req<CompanyRegulation[]>("GET", "/api/regulatory");
 export const detectRegulations = () => req<CompanyRegulation[]>("POST", "/api/regulatory/detect");
+
+// Litigation intake
+export async function getLitigationIntake(documentId: string) {
+  const res = await fetch(`/api/litigation/intake/${documentId}`, { credentials: "include" });
+  if (!res.ok) return null;
+  return res.json() as Promise<LitigationIntakeData | null>;
+}
+
+export async function saveLitigationIntake(documentId: string, data: Partial<LitigationIntakeData>) {
+  const res = await fetch(`/api/litigation/intake/${documentId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Failed to save intake");
+  return res.json() as Promise<LitigationIntakeData>;
+}
+
+// Ancillary documents
+export async function getAncillaryDocuments(documentId: string) {
+  const res = await fetch(`/api/ancillary/${documentId}`, { credentials: "include" });
+  if (!res.ok) return [];
+  return res.json() as Promise<AncillaryDocumentData[]>;
+}
+
+export async function uploadAncillaryDocument(
+  documentId: string,
+  file: File,
+  privilegeFlag: boolean
+) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("privilegeFlag", String(privilegeFlag));
+  const res = await fetch(`/api/ancillary/${documentId}`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  if (!res.ok) throw new Error("Failed to upload ancillary document");
+  return res.json() as Promise<AncillaryDocumentData>;
+}
+
+export async function deleteAncillaryDocument(ancillaryId: string) {
+  await fetch(`/api/ancillary/${ancillaryId}`, { method: "DELETE", credentials: "include" });
+}
 
 // Feedback
 export const saveFeedback = (

@@ -13,14 +13,14 @@ async function fetchMe(): Promise<AuthUser> {
 }
 
 export function useAuth() {
-  const { data: user, isLoading } = useQuery({
+  const { data: user, isLoading, status } = useQuery({
     queryKey: ["auth-me"],
     queryFn: fetchMe,
     retry: false,
     staleTime: 5 * 60_000,
   });
 
-  return { user, isLoading, isAuthed: !!user };
+  return { user, isLoading, status, isAuthed: !!user };
 }
 
 export function useLogout() {
@@ -30,8 +30,8 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => fetch("/api/auth/logout", { method: "POST" }).then((r) => r.json()),
     onSuccess: () => {
+      navigate("/", { replace: true });
       queryClient.clear();
-      navigate("/");
     },
   });
 }

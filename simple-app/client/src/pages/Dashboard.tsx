@@ -3,13 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Upload, FileText, AlertTriangle, CheckCircle, Clock,
-  RotateCcw, TrendingUp, Shield, Zap,
-  ChevronRight, BarChart2, AlertCircle,
+  RotateCcw, Shield, ChevronRight, AlertCircle,
 } from "lucide-react";
-import { getDocuments, uploadDocument, startReview, getStats } from "../lib/api";
+import { getDocuments, uploadDocument, startReview, getCompany, getDocumentStats } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
-import { CLAUSE_LABELS, type DocumentStatus, type ClauseCategory } from "../lib/types";
-import { MOCK_MODE, MOCK_STATS, MOCK_DOCUMENTS, MOCK_ACTIONS } from "../lib/mockData";
+import type { DocumentStatus } from "../lib/types";
+import { MOCK_MODE, MOCK_DOCUMENTS } from "../lib/mockData";
 import type { UploadedDocument } from "../lib/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -41,6 +40,117 @@ const CONTRACT_TYPES = [
   { value: "SHARE_PURCHASE",        label: "Share Purchase Agreement" },
 ];
 
+// ── Workflow-specific options ──────────────────────────────────────────────────
+
+const COMMERCIAL_CONTRACT_TYPES = [
+  { value: "SUPPLIER_AGREEMENT",    label: "Supplier Agreement" },
+  { value: "CUSTOMER_AGREEMENT",    label: "Customer Agreement" },
+  { value: "MSA",                   label: "Master Services Agreement" },
+  { value: "NDA",                   label: "NDA / Confidentiality Agreement" },
+  { value: "DPA",                   label: "Data Processing Agreement" },
+  { value: "SAAS_AGREEMENT",        label: "SaaS / Technology Agreement" },
+  { value: "PROFESSIONAL_SERVICES", label: "Professional Services Agreement" },
+  { value: "EMPLOYMENT",            label: "Employment Agreement" },
+  { value: "CONTRACTOR_AGREEMENT",  label: "Contractor Agreement" },
+  { value: "COMMERCIAL_LEASE",      label: "Property / Lease Agreement" },
+  { value: "JV_AGREEMENT",          label: "Joint Venture Agreement" },
+  { value: "AGENCY_AGREEMENT",      label: "Agency Agreement" },
+  { value: "DISTRIBUTION",          label: "Distribution Agreement" },
+  { value: "LICENCE_AGREEMENT",     label: "Licence Agreement" },
+  { value: "OTHER",                 label: "Other" },
+];
+
+const COMMERCIAL_COUNTERPARTY_TYPES = [
+  { value: "SUPPLIER",       label: "Supplier" },
+  { value: "CUSTOMER",       label: "Customer" },
+  { value: "TECH_VENDOR",    label: "Technology vendor" },
+  { value: "PROF_SERVICES",  label: "Professional services provider" },
+  { value: "PARTNER",        label: "Partner" },
+  { value: "LANDLORD",       label: "Landlord / property owner" },
+  { value: "INVESTOR",       label: "Investor" },
+  { value: "EMPLOYEE",       label: "Employee / Contractor" },
+  { value: "GOVERNMENT",     label: "Government / public sector" },
+  { value: "REGULATOR",      label: "Regulator" },
+  { value: "RELATED_PARTY",  label: "Related party" },
+  { value: "COMPETITOR",     label: "Competitor" },
+  { value: "OTHER",          label: "Other" },
+];
+
+const COMMERCIAL_REVIEW_TYPES = [
+  { value: "INBOUND",     label: "Their paper (inbound review)" },
+  { value: "OUTBOUND",    label: "Our paper (outbound check)" },
+  { value: "NEGOTIATED",  label: "Negotiated draft (mid-negotiation)" },
+  { value: "EXECUTION",   label: "Final execution version" },
+];
+
+const INSURANCE_CLAIM_TYPES = [
+  { value: "MOTOR_PI",       label: "Motor — personal injury" },
+  { value: "MOTOR_PROPERTY", label: "Motor — property damage" },
+  { value: "EMPLOYERS_LI",   label: "Employers Liability" },
+  { value: "PUBLIC_LI",      label: "Public Liability" },
+  { value: "PI",             label: "Professional Indemnity" },
+  { value: "PROPERTY",       label: "Property / Material Damage" },
+  { value: "CYBER",          label: "Cyber and Data Breach" },
+  { value: "DO",             label: "Directors and Officers" },
+  { value: "MARINE_CARGO",   label: "Marine Cargo" },
+  { value: "CONSTRUCTION",   label: "Construction / Engineering" },
+  { value: "PRODUCT_LI",     label: "Product Liability" },
+  { value: "ENVIRONMENTAL",  label: "Environmental" },
+  { value: "OTHER",          label: "Other" },
+];
+
+const INSURANCE_CLAIMANT_TYPES = [
+  { value: "INDIVIDUAL",       label: "Individual / consumer" },
+  { value: "SME",              label: "SME business" },
+  { value: "LARGE_CORPORATE",  label: "Large corporate" },
+  { value: "PUBLIC_SECTOR",    label: "Public sector body" },
+  { value: "THIRD_PARTY",      label: "Third party (subrogation target)" },
+  { value: "VULNERABLE",       label: "Vulnerable customer" },
+];
+
+const INSURANCE_CLAIM_STAGES = [
+  { value: "PRE_ACTION_LOC",    label: "Pre-action (letter of claim received)" },
+  { value: "PRE_ACTION_PAP",    label: "Pre-action (pre-action protocol)" },
+  { value: "PROCEEDINGS",       label: "Proceedings issued" },
+  { value: "DIRECTIONS",        label: "Directions / case management" },
+  { value: "TRIAL_LISTED",      label: "Trial listed" },
+  { value: "APPEAL",            label: "Appeal" },
+  { value: "SETTLEMENT_ONLY",   label: "Settlement negotiation only" },
+  { value: "FOS_REFERRAL",      label: "FOS referral" },
+  { value: "COMPLAINT_ONLY",    label: "Complaint only (not yet claim)" },
+];
+
+const LOGISTICS_CONTRACT_TYPES = [
+  { value: "CARRIER_HAULIER",    label: "Carrier / Haulier Agreement" },
+  { value: "CUSTOMER_MSA",       label: "Customer MSA" },
+  { value: "WAREHOUSE_3PL",      label: "Warehouse / 3PL Agreement" },
+  { value: "FREIGHT_FORWARDING", label: "Freight Forwarding Terms" },
+  { value: "LAST_MILE",          label: "Last Mile Delivery Agreement" },
+  { value: "CROSS_BORDER",       label: "Cross-border / International Carriage" },
+  { value: "TECHNOLOGY",         label: "Technology / Platform Agreement" },
+  { value: "AGENCY",             label: "Agency Agreement" },
+  { value: "SUBCONTRACTOR",      label: "Subcontractor Agreement" },
+  { value: "CUSTOMS_AGENCY",     label: "Customs Agency Agreement" },
+  { value: "AIR_FREIGHT",        label: "Air Freight Agreement" },
+  { value: "SEA_FREIGHT",        label: "Sea Freight Agreement" },
+  { value: "RAIL_FREIGHT",       label: "Rail Freight Agreement" },
+  { value: "OTHER",              label: "Other" },
+];
+
+const LOGISTICS_COUNTERPARTY_TYPES = [
+  { value: "CARRIER_ROAD",     label: "Carrier (road)" },
+  { value: "CARRIER_AIR",      label: "Carrier (air)" },
+  { value: "CARRIER_SEA",      label: "Carrier (sea)" },
+  { value: "CARRIER_RAIL",     label: "Carrier (rail)" },
+  { value: "WAREHOUSE_3PL",    label: "Warehouse / 3PL operator" },
+  { value: "CUSTOMER_SHIPPER", label: "Customer (shipper)" },
+  { value: "TECH_PLATFORM",    label: "Technology / platform provider" },
+  { value: "CUSTOMS_AGENT",    label: "Customs agent / broker" },
+  { value: "SUBCONTRACTOR",    label: "Subcontractor" },
+  { value: "PORT_TERMINAL",    label: "Port / terminal operator" },
+  { value: "OTHER",            label: "Other" },
+];
+
 // ─── Sign readiness helpers ───────────────────────────────────────────────────
 
 function getSignReadiness(results: { ragStatus: string }[]): SignReadiness {
@@ -54,11 +164,11 @@ function getSignReadiness(results: { ragStatus: string }[]): SignReadiness {
 }
 
 const READINESS_CONFIG: Record<SignReadiness, { label: string; color: string; bg: string; icon: React.ElementType }> = {
-  "ready":     { label: "Ready to sign",     color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200",  icon: CheckCircle },
-  "negotiate": { label: "Negotiate first",   color: "text-amber-700",   bg: "bg-amber-50 border-amber-200",    icon: AlertTriangle },
-  "review":    { label: "Review needed",     color: "text-amber-600",   bg: "bg-amber-50 border-amber-100",    icon: AlertCircle },
-  "not-ready": { label: "Do not sign yet",   color: "text-red-700",     bg: "bg-red-50 border-red-200",        icon: AlertTriangle },
-  "pending":   { label: "Reviewing…",        color: "text-muted-foreground", bg: "bg-muted border-border",    icon: Clock },
+  "ready":     { label: "Ready to sign",   color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", icon: CheckCircle },
+  "negotiate": { label: "Negotiate first", color: "text-amber-700",   bg: "bg-amber-50 border-amber-200",    icon: AlertTriangle },
+  "review":    { label: "Review needed",   color: "text-amber-600",   bg: "bg-amber-50 border-amber-100",    icon: AlertCircle },
+  "not-ready": { label: "Do not sign yet", color: "text-red-700",     bg: "bg-red-50 border-red-200",        icon: AlertTriangle },
+  "pending":   { label: "Reviewing…",      color: "text-muted-foreground", bg: "bg-muted border-border",    icon: Clock },
 };
 
 // ─── Mini RAG bar component ───────────────────────────────────────────────────
@@ -74,111 +184,13 @@ function MiniRagBar({ results }: { results: { ragStatus: string }[] }) {
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex h-1.5 w-20 rounded-full overflow-hidden gap-px">
-        {red   > 0 && <div className="bg-red-500"   style={{ width: `${(red / total) * 100}%` }} />}
-        {amber > 0 && <div className="bg-amber-400" style={{ width: `${(amber / total) * 100}%` }} />}
+        {red   > 0 && <div className="bg-red-500"     style={{ width: `${(red / total) * 100}%` }} />}
+        {amber > 0 && <div className="bg-amber-400"   style={{ width: `${(amber / total) * 100}%` }} />}
         {green > 0 && <div className="bg-emerald-500" style={{ width: `${(green / total) * 100}%` }} />}
-        {grey  > 0 && <div className="bg-slate-300" style={{ width: `${(grey / total) * 100}%` }} />}
+        {grey  > 0 && <div className="bg-slate-300"   style={{ width: `${(grey / total) * 100}%` }} />}
       </div>
       <span className="text-[10px] text-muted-foreground">{total} clauses</span>
     </div>
-  );
-}
-
-// ─── Stat card ────────────────────────────────────────────────────────────────
-
-function StatCard({
-  icon: Icon, label, value, sub, accent,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: string | number;
-  sub?: string;
-  accent?: "red" | "amber" | "green" | "primary";
-}) {
-  const iconColors = {
-    red: "text-red-600 bg-red-50",
-    amber: "text-amber-600 bg-amber-50",
-    green: "text-emerald-600 bg-emerald-50",
-    primary: "text-primary bg-accent",
-  };
-  const iconClass = accent ? iconColors[accent] : "text-primary bg-accent";
-
-  return (
-    <div className="card p-5 flex items-start gap-4">
-      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconClass}`}>
-        <Icon size={17} />
-      </div>
-      <div className="min-w-0">
-        <div className="text-2xl font-bold tracking-tight">{value}</div>
-        <div className="text-sm font-medium text-foreground mt-0.5">{label}</div>
-        {sub && <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>}
-      </div>
-    </div>
-  );
-}
-
-// ─── Portfolio risk bar ───────────────────────────────────────────────────────
-
-function PortfolioRisk({ breakdown }: { breakdown: { RED: number; AMBER: number; GREEN: number; GREY: number } }) {
-  const total = breakdown.RED + breakdown.AMBER + breakdown.GREEN + breakdown.GREY;
-  if (!total) return null;
-  const pct = (n: number) => `${Math.round((n / total) * 100)}%`;
-
-  return (
-    <div className="space-y-3">
-      <div className="flex h-3 rounded-full overflow-hidden gap-0.5">
-        {breakdown.RED   > 0 && <div className="bg-red-500 rounded-l-full transition-all" style={{ width: pct(breakdown.RED) }} title={`${breakdown.RED} RED`} />}
-        {breakdown.AMBER > 0 && <div className="bg-amber-400 transition-all" style={{ width: pct(breakdown.AMBER) }} title={`${breakdown.AMBER} AMBER`} />}
-        {breakdown.GREEN > 0 && <div className="bg-emerald-500 transition-all" style={{ width: pct(breakdown.GREEN) }} title={`${breakdown.GREEN} GREEN`} />}
-        {breakdown.GREY  > 0 && <div className="bg-slate-300 rounded-r-full transition-all" style={{ width: pct(breakdown.GREY) }} title={`${breakdown.GREY} ABSENT`} />}
-      </div>
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        {[
-          { label: "Red", val: breakdown.RED,   dot: "bg-red-500" },
-          { label: "Amber", val: breakdown.AMBER, dot: "bg-amber-400" },
-          { label: "Green", val: breakdown.GREEN, dot: "bg-emerald-500" },
-          { label: "Absent", val: breakdown.GREY, dot: "bg-slate-300" },
-        ].map(({ label, val, dot }) => val > 0 ? (
-          <span key={label} className="flex items-center gap-1">
-            <span className={`w-2 h-2 rounded-full ${dot}`} />
-            {val} {label}
-          </span>
-        ) : null)}
-        <span className="ml-auto">{total} total clauses</span>
-      </div>
-    </div>
-  );
-}
-
-// ─── Action item ──────────────────────────────────────────────────────────────
-
-function ActionItem({
-  action,
-  onClick,
-}: {
-  action: { id: string; docName: string; type: "escalation" | "review"; message: string; ragStatus: string };
-  onClick: () => void;
-}) {
-  const isEscalation = action.type === "escalation";
-  return (
-    <button
-      onClick={onClick}
-      className="w-full text-left flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors group"
-    >
-      <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-0.5 ${
-        isEscalation ? "bg-red-100" : "bg-amber-100"
-      }`}>
-        {isEscalation
-          ? <AlertTriangle size={12} className="text-red-600" />
-          : <AlertCircle size={12} className="text-amber-600" />
-        }
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-xs font-semibold text-foreground truncate">{action.docName}</div>
-        <div className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{action.message}</div>
-      </div>
-      <ChevronRight size={14} className="text-muted-foreground shrink-0 mt-1 group-hover:text-foreground transition-colors" />
-    </button>
   );
 }
 
@@ -192,15 +204,40 @@ export default function Dashboard() {
   const [selectedType, setSelectedType] = useState("SUPPLIER_AGREEMENT");
   const [dragOver, setDragOver] = useState(false);
 
-  const { data: realStats } = useQuery({
-    queryKey: ["stats"],
-    queryFn: getStats,
+  // New metadata state
+  const [counterpartyName, setCounterpartyName] = useState("");
+  const [counterpartyType, setCounterpartyType] = useState("");
+  const [reviewType, setReviewType] = useState("INBOUND");
+  const [contractValue, setContractValue] = useState("");
+  const [contractTermMonths, setContractTermMonths] = useState("");
+  const [autoRenewal, setAutoRenewal] = useState(false);
+  const [noticePeriodDays, setNoticePeriodDays] = useState("");
+  const [renewalDate, setRenewalDate] = useState("");
+  const [contractTags, setContractTags] = useState("");
+
+  // Search / filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterRag, setFilterRag] = useState("");
+  const [filterType, setFilterType] = useState("");
+
+  // Company query (for workflowType)
+  const { data: company } = useQuery({
+    queryKey: ["company"],
+    queryFn: getCompany,
     retry: false,
+  });
+  const workflowType = (company as { workflowType?: string } | undefined)?.workflowType ?? "COMMERCIAL_CONTRACT";
+
+  // Stats query
+  const { data: stats } = useQuery({
+    queryKey: ["document-stats"],
+    queryFn: getDocumentStats,
+    refetchInterval: 30000,
   });
 
   const { data: realDocuments = [] } = useQuery({
     queryKey: ["documents"],
-    queryFn: getDocuments,
+    queryFn: () => getDocuments(),
     refetchInterval: (query) => {
       const docs = query.state.data as UploadedDocument[] | undefined;
       return docs?.some((d) => d.status === "PROCESSING") ? 3000 : false;
@@ -212,12 +249,57 @@ export default function Dashboard() {
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["documents"] }); },
   });
 
-  async function handleFile(file: File) {
+  // Computed dropdown options based on workflowType
+  const contractTypeOptions = workflowType === "INSURANCE_LITIGATION"
+    ? INSURANCE_CLAIM_TYPES
+    : workflowType === "LOGISTICS_CONTRACT"
+    ? LOGISTICS_CONTRACT_TYPES
+    : COMMERCIAL_CONTRACT_TYPES;
+
+  const counterpartyTypeOptions = workflowType === "INSURANCE_LITIGATION"
+    ? INSURANCE_CLAIMANT_TYPES
+    : workflowType === "LOGISTICS_CONTRACT"
+    ? LOGISTICS_COUNTERPARTY_TYPES
+    : COMMERCIAL_COUNTERPARTY_TYPES;
+
+  const reviewTypeOptions = workflowType === "INSURANCE_LITIGATION"
+    ? INSURANCE_CLAIM_STAGES
+    : workflowType === "LOGISTICS_CONTRACT"
+    ? [
+        { value: "INBOUND",    label: "Inbound (reviewing their terms)" },
+        { value: "OUTBOUND",   label: "Outbound (checking our terms)" },
+        { value: "NEGOTIATED", label: "Negotiated draft" },
+      ]
+    : COMMERCIAL_REVIEW_TYPES;
+
+  async function handleUpload(file: File) {
     setUploading(true);
     try {
-      const doc = await uploadDocument(file, selectedType);
+      const meta = {
+        counterpartyName,
+        counterpartyType,
+        reviewType,
+        contractValue: contractValue ? parseFloat(contractValue) : undefined,
+        currency: "GBP",
+        contractTermMonths: contractTermMonths ? parseInt(contractTermMonths) : undefined,
+        autoRenewal,
+        noticePeriodDays: noticePeriodDays ? parseInt(noticePeriodDays) : undefined,
+        renewalDate: renewalDate || undefined,
+        contractTags,
+      };
+      const doc = await uploadDocument(file, selectedType, meta);
       await queryClient.invalidateQueries({ queryKey: ["documents"] });
+      await queryClient.invalidateQueries({ queryKey: ["document-stats"] });
       await reviewMutation.mutateAsync(doc.id);
+      // For insurance litigation workflow, redirect to intake flow
+      if (workflowType === "INSURANCE_LITIGATION") {
+        navigate(`/litigation-intake/${doc.id}`);
+        return;
+      }
+      // Reset form
+      setCounterpartyName(""); setCounterpartyType(""); setReviewType("INBOUND");
+      setContractValue(""); setContractTermMonths(""); setAutoRenewal(false);
+      setNoticePeriodDays(""); setRenewalDate(""); setContractTags("");
     } catch (e) {
       console.error(e);
     } finally {
@@ -227,7 +309,7 @@ export default function Dashboard() {
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (file) void handleFile(file);
+    if (file) void handleUpload(file);
     e.target.value = "";
   }
 
@@ -235,27 +317,35 @@ export default function Dashboard() {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) void handleFile(file);
+    if (file) void handleUpload(file);
   }
 
-  // Use mock data when real data is empty/unavailable
   const useMock = MOCK_MODE && realDocuments.length === 0;
-  const stats = (realStats && realStats.totalDocuments > 0) ? realStats : (useMock ? MOCK_STATS : realStats);
   const documents = useMock ? MOCK_DOCUMENTS : realDocuments;
-  const actions = useMock ? MOCK_ACTIONS : [];
-
   const processing = (realDocuments as UploadedDocument[]).some((d) => d.status === "PROCESSING");
+
+  // Client-side filtering
+  const filteredDocuments = documents.filter((doc) => {
+    const d = doc as DocWithRag & { counterpartyName?: string };
+    if (searchQuery && !d.counterpartyName?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (filterRag && !d.reviewResults?.some((r) => r.ragStatus === filterRag)) return false;
+    if (filterType && d.contractType !== filterType) return false;
+    return true;
+  });
+
+  // Keep CONTRACT_TYPES for any fallback usage
+  void CONTRACT_TYPES;
 
   return (
     <AppLayout>
-      <div className="px-6 py-8 max-w-7xl mx-auto space-y-7">
+      <div className="px-6 py-8 max-w-5xl mx-auto space-y-6">
 
         {/* Page header */}
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold">Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Your contract risk command centre
+              Upload a contract and MIKE reviews it in ~2 minutes
               {useMock && (
                 <span className="ml-2 text-xs bg-amber-100 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5">
                   Demo data
@@ -271,37 +361,109 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Stats row - always visible */}
-        {stats && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={FileText}      label="Contracts reviewed"  value={stats.totalReviews}       sub={`${stats.totalDocuments} uploaded total`} accent="primary" />
-            <StatCard icon={AlertTriangle} label="Open RED flags"      value={stats.redFlagsOpen}       sub="Awaiting your decision" accent={stats.redFlagsOpen > 0 ? "red" : "green"} />
-            <StatCard icon={Shield}        label="Escalations pending" value={stats.escalationsPending} sub="Need stakeholder sign-off" accent={stats.escalationsPending > 0 ? "amber" : "green"} />
-            <StatCard icon={TrendingUp}    label="Hours saved"         value={`~${stats.estimatedHoursSaved}h`} sub={`${stats.clausesAccepted} clauses accepted`} accent="green" />
+        {/* Stats bar */}
+        {stats && realDocuments.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: "Contracts", value: stats.totalContracts.toString() },
+              {
+                label: "Portfolio value",
+                value: stats.totalValue > 0
+                  ? `£${stats.totalValue >= 1_000_000 ? `${(stats.totalValue / 1_000_000).toFixed(1)}M` : stats.totalValue >= 1000 ? `${Math.round(stats.totalValue / 1000)}k` : stats.totalValue.toFixed(0)}`
+                  : "—",
+              },
+              { label: "Red clauses", value: stats.redContracts > 0 ? `${stats.redContracts} contracts` : "None", highlight: stats.redContracts > 0 },
+              { label: "Renewals in 90 days", value: stats.renewalsDue > 0 ? `${stats.renewalsDue} due` : "None" },
+            ].map((s) => (
+              <div key={s.label} className="card px-4 py-3">
+                <div className={`text-lg font-semibold ${s.highlight ? "text-red-600" : ""}`}>{s.value}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{s.label}</div>
+              </div>
+            ))}
           </div>
         )}
 
         <div className="grid lg:grid-cols-3 gap-6">
 
-          {/* Left col - 2/3 */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Left col — upload + list */}
+          <div className="lg:col-span-2 space-y-5">
 
             {/* Upload */}
             <div className="card">
-              <div className="card-header flex items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-base font-semibold">Upload a contract</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">PDF or DOCX · Max 20MB · MIKE reviews in ~2 minutes</p>
+              <div className="card-header space-y-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h2 className="text-base font-semibold">Upload a contract</h2>
+                    <p className="text-xs text-muted-foreground mt-0.5">PDF or DOCX · Max 20 MB</p>
+                  </div>
                 </div>
-                <select
-                  className="input text-sm py-1.5 w-auto min-w-[190px]"
-                  value={selectedType}
-                  onChange={(e) => setSelectedType(e.target.value)}
-                >
-                  {CONTRACT_TYPES.map((ct) => (
-                    <option key={ct.value} value={ct.value}>{ct.label}</option>
-                  ))}
-                </select>
+                {/* Quick metadata fields */}
+                <div className="grid sm:grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    className="input text-sm py-1.5"
+                    placeholder="Counterparty name (optional)"
+                    value={counterpartyName}
+                    onChange={(e) => setCounterpartyName(e.target.value)}
+                  />
+                  <select
+                    className="input text-sm py-1.5"
+                    value={selectedType}
+                    onChange={(e) => setSelectedType(e.target.value)}
+                  >
+                    {contractTypeOptions.map((ct) => (
+                      <option key={ct.value} value={ct.value}>{ct.label}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="input text-sm py-1.5"
+                    value={counterpartyType}
+                    onChange={(e) => setCounterpartyType(e.target.value)}
+                  >
+                    <option value="">
+                      {workflowType === "INSURANCE_LITIGATION" ? "Claimant type…" : "Counterparty type…"}
+                    </option>
+                    {counterpartyTypeOptions.map((ct) => (
+                      <option key={ct.value} value={ct.value}>{ct.label}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="input text-sm py-1.5"
+                    value={reviewType}
+                    onChange={(e) => setReviewType(e.target.value)}
+                  >
+                    {reviewTypeOptions.map((rt) => (
+                      <option key={rt.value} value={rt.value}>{rt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                {/* Value + term row */}
+                <div className="grid sm:grid-cols-3 gap-2">
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">£</span>
+                    <input
+                      type="number"
+                      className="input text-sm py-1.5 pl-6"
+                      placeholder="Contract value"
+                      value={contractValue}
+                      onChange={(e) => setContractValue(e.target.value)}
+                    />
+                  </div>
+                  <input
+                    type="number"
+                    className="input text-sm py-1.5"
+                    placeholder="Term (months)"
+                    value={contractTermMonths}
+                    onChange={(e) => setContractTermMonths(e.target.value)}
+                  />
+                  <input
+                    type="date"
+                    className="input text-sm py-1.5"
+                    placeholder="Renewal date"
+                    value={renewalDate}
+                    onChange={(e) => setRenewalDate(e.target.value)}
+                  />
+                </div>
               </div>
               <div className="card-body">
                 <div
@@ -318,7 +480,7 @@ export default function Dashboard() {
                     <div className="space-y-3">
                       <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto" />
                       <div className="text-sm font-medium">Uploading and starting review…</div>
-                      <div className="text-xs text-muted-foreground">Classifying clauses, checking your playbook and regulations</div>
+                      <div className="text-xs text-muted-foreground">Classifying clauses and checking your playbook</div>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -335,7 +497,48 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Contract list */}
+            {/* Search and filter */}
+            {realDocuments.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  className="input text-sm py-1.5 flex-1 min-w-[160px]"
+                  placeholder="Search by counterparty name…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <select
+                  className="input text-sm py-1.5 w-auto"
+                  value={filterRag}
+                  onChange={(e) => setFilterRag(e.target.value)}
+                >
+                  <option value="">All statuses</option>
+                  <option value="RED">Red flagged</option>
+                  <option value="AMBER">Amber flagged</option>
+                  <option value="GREEN">Green only</option>
+                </select>
+                <select
+                  className="input text-sm py-1.5 w-auto"
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                >
+                  <option value="">All types</option>
+                  {contractTypeOptions.map((ct) => (
+                    <option key={ct.value} value={ct.value}>{ct.label}</option>
+                  ))}
+                </select>
+                {(searchQuery || filterRag || filterType) && (
+                  <button
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => { setSearchQuery(""); setFilterRag(""); setFilterType(""); }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Recent reviews */}
             <div className="card">
               <div className="card-header">
                 <h2 className="text-base font-semibold">Recent reviews</h2>
@@ -344,17 +547,18 @@ export default function Dashboard() {
                 <div className="card-body text-center py-12">
                   <FileText size={32} className="text-muted-foreground/30 mx-auto mb-3" />
                   <div className="text-sm font-medium text-muted-foreground">No contracts reviewed yet</div>
-                  <div className="text-xs text-muted-foreground mt-1">Upload one above - MIKE reviews it in ~2 minutes</div>
+                  <div className="text-xs text-muted-foreground mt-1">Upload one above — MIKE reviews it in about 2 minutes</div>
                 </div>
               ) : (
                 <div className="divide-y divide-card-border">
-                  {documents.map((doc) => {
+                  {filteredDocuments.map((doc) => {
                     const results = (doc as DocWithRag).reviewResults ?? [];
                     const readiness = doc.status === "COMPLETE" ? getSignReadiness(results) : "pending";
                     const { label: readinessLabel, color: readinessColor, bg: readinessBg, icon: ReadinessIcon } = READINESS_CONFIG[readiness];
                     const isClickable = doc.status === "COMPLETE" && !useMock;
                     const red   = results.filter((r) => r.ragStatus === "RED").length;
                     const amber = results.filter((r) => r.ragStatus === "AMBER").length;
+                    const docWithMeta = doc as DocWithRag & { counterpartyName?: string; contractValue?: number };
 
                     return (
                       <div
@@ -363,14 +567,19 @@ export default function Dashboard() {
                           ${isClickable ? "hover:bg-muted/20 cursor-pointer" : ""}`}
                         onClick={isClickable ? () => navigate(`/review/${doc.id}`) : undefined}
                       >
-                        {/* File icon */}
                         <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
                           <FileText size={15} className="text-muted-foreground" />
                         </div>
 
-                        {/* Name + meta */}
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold truncate">{doc.originalName}</div>
+                          <div className="text-sm font-semibold truncate">
+                            {doc.originalName}
+                            {docWithMeta.counterpartyName && (
+                              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                                · {docWithMeta.counterpartyName}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-3 mt-1">
                             <span className="text-xs text-muted-foreground">
                               {doc.contractType.replace(/_/g, " ")}
@@ -378,13 +587,18 @@ export default function Dashboard() {
                             <span className="text-xs text-muted-foreground">
                               {new Date(doc.uploadedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                             </span>
+                            {docWithMeta.contractValue && (
+                              <span className="text-xs text-muted-foreground">
+                                £{docWithMeta.contractValue.toLocaleString("en-GB")}
+                              </span>
+                            )}
                             {doc.status === "COMPLETE" && results.length > 0 && (
                               <MiniRagBar results={results} />
                             )}
                           </div>
                         </div>
 
-                        {/* Risk summary pills */}
+                        {/* Risk pills */}
                         {doc.status === "COMPLETE" && results.length > 0 && (
                           <div className="hidden sm:flex items-center gap-1.5 shrink-0">
                             {red   > 0 && <span className="rag-red">{red} RED</span>}
@@ -399,7 +613,6 @@ export default function Dashboard() {
                           {readinessLabel}
                         </div>
 
-                        {/* Status / caret */}
                         {doc.status === "PROCESSING" && (
                           <span className="flex items-center gap-1 text-xs text-amber-600 shrink-0">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Reviewing
@@ -425,102 +638,50 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Right col - 1/3 */}
-          <div className="space-y-6">
+          {/* Right col — guide only */}
+          <div className="space-y-5">
 
-            {/* Action required */}
-            {actions.length > 0 && (
-              <div className="card border-red-200">
-                <div className="card-header border-red-100 bg-red-50/50">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle size={15} className="text-red-600" />
-                    <h2 className="text-sm font-semibold text-red-900">Needs your attention</h2>
-                    <span className="ml-auto bg-red-600 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                      {actions.length}
-                    </span>
-                  </div>
+            {/* How to read results */}
+            <div className="card bg-accent border-accent-border">
+              <div className="card-body space-y-4">
+                <div className="flex items-center gap-2">
+                  <Shield size={14} className="text-primary" />
+                  <span className="text-sm font-semibold text-accent-foreground">How to read your results</span>
                 </div>
-                <div className="px-3 py-2 space-y-1">
-                  {actions.map((action) => (
-                    <ActionItem
-                      key={action.id}
-                      action={action}
-                      onClick={() => { if (!useMock) navigate(`/review/${action.docId}`); }}
-                    />
+                <div className="space-y-3 text-xs text-foreground/80">
+                  {[
+                    { badge: "rag-red",   label: "Red",    desc: "Do not sign — fix this first" },
+                    { badge: "rag-amber", label: "Amber",  desc: "Worth negotiating before signing" },
+                    { badge: "rag-green", label: "Green",  desc: "Looks good against your playbook" },
+                    { badge: "rag-grey",  label: "Absent", desc: "Clause missing — ask for it" },
+                  ].map(({ badge, label, desc }) => (
+                    <div key={label} className="flex items-start gap-2.5">
+                      <span className={`${badge} mt-0.5 shrink-0`}>{label}</span>
+                      <span className="leading-relaxed">{desc}</span>
+                    </div>
                   ))}
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* Portfolio risk */}
-            {stats && (
-              <div className="card">
-                <div className="card-header">
-                  <div className="flex items-center gap-2">
-                    <BarChart2 size={15} className="text-primary" />
-                    <h2 className="text-sm font-semibold">Portfolio risk</h2>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Clause-level breakdown across all reviewed contracts</p>
-                </div>
-                <div className="card-body">
-                  <PortfolioRisk breakdown={stats.ragBreakdown} />
-                </div>
-              </div>
-            )}
-
-            {/* Top issues */}
-            {stats && stats.topIssues.length > 0 && (
-              <div className="card">
-                <div className="card-header">
-                  <div className="flex items-center gap-2">
-                    <Zap size={15} className="text-primary" />
-                    <h2 className="text-sm font-semibold">MIKE insights</h2>
-                  </div>
-                </div>
-                <div className="card-body space-y-4">
-                  <div className="space-y-3">
-                    <p className="text-xs text-muted-foreground">Most disputed clauses across your contracts:</p>
-                    {stats.topIssues.map(({ category, count }) => (
-                      <div key={category} className="space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-medium">{CLAUSE_LABELS[category as ClauseCategory] ?? category.replace(/_/g, " ")}</span>
-                          <span className="rag-red">{count}✕ RED</span>
-                        </div>
-                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-red-400 rounded-full"
-                            style={{ width: `${Math.min((count / (stats.topIssues[0]?.count ?? 1)) * 100, 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="border-t border-card-border pt-3 text-xs text-muted-foreground leading-relaxed">
-                    Counterparties push back hardest on <span className="font-medium text-foreground">
-                      {CLAUSE_LABELS[stats.topIssues[0]?.category as ClauseCategory] ?? "Liability Cap"}
-                    </span>. Consider whether your preferred position is realistic for your sector.
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Quick guide for non-lawyers */}
-            <div className="card bg-accent border-accent-border">
+            {/* What MIKE checks */}
+            <div className="card">
               <div className="card-body space-y-3">
-                <div className="flex items-center gap-2">
-                  <Shield size={14} className="text-primary" />
-                  <span className="text-xs font-semibold text-accent-foreground">Reading your results</span>
-                </div>
-                <div className="space-y-2 text-xs text-foreground/70">
+                <div className="text-sm font-semibold">What MIKE checks</div>
+                <div className="space-y-2 text-xs text-muted-foreground">
                   {[
-                    { badge: "rag-red",   label: "Red",   desc: "Do not sign - issue to fix first" },
-                    { badge: "rag-amber", label: "Amber", desc: "Negotiate before signing" },
-                    { badge: "rag-green", label: "Green", desc: "Meets your position" },
-                    { badge: "rag-grey",  label: "Absent",desc: "Clause missing - request insertion" },
-                  ].map(({ badge, label, desc }) => (
-                    <div key={label} className="flex items-center gap-2">
-                      <span className={badge}>{label}</span>
-                      <span>{desc}</span>
+                    "Liability caps and exclusions",
+                    "Indemnity and risk allocation",
+                    "IP ownership and licensing",
+                    "Data privacy obligations",
+                    "Termination rights",
+                    "Payment and auto-renewal terms",
+                    "Governing law",
+                    "Audit rights",
+                  ].map((item) => (
+                    <div key={item} className="flex items-center gap-2">
+                      <div className="w-1 h-1 rounded-full bg-primary/60 shrink-0" />
+                      {item}
                     </div>
                   ))}
                 </div>

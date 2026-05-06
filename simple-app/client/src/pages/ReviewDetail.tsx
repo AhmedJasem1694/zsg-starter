@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, AlertTriangle, Clock, CheckCircle, Download } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, AlertTriangle, Clock, CheckCircle, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { getReview, saveFeedback } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument } from "../lib/types";
@@ -157,18 +157,8 @@ export default function ReviewDetail() {
           </div>
         </div>
 
-        {/* Escalations callout */}
-        {results.some((r) => r.escalationRequired) && (
-          <div className="card border-red-200 bg-red-50 p-4 flex gap-3">
-            <AlertTriangle size={16} className="text-red-600 shrink-0 mt-0.5" />
-            <div className="text-sm text-red-800">
-              <span className="font-semibold">Escalation required</span> -{" "}
-              {results.filter((r) => r.escalationRequired).length} clause
-              {results.filter((r) => r.escalationRequired).length !== 1 ? "s need" : " needs"} sign-off
-              before proceeding.
-            </div>
-          </div>
-        )}
+        {/* Three-tier escalation summary */}
+        <EscalationSummary doc={doc} results={results} />
 
         {/* Filter pills */}
         <div className="flex flex-wrap gap-2">
@@ -414,6 +404,195 @@ function exportReviewAsText(doc: UploadedDocument) {
   a.download = `MIKE-Review-${doc.originalName.replace(/\.[^.]+$/, "")}.txt`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ─── Three-tier Escalation Summary ───────────────────────────────────────────
+
+const APPROVER_ORDER = ["Handler", "Legal", "GC", "CFO", "CEO", "Board"] as const;
+
+function getValueTier(value: number): { label: string; approvers: string[] } | null {
+  if (value < 10_000)   return null;
+  if (value < 50_000)   return { label: "Legal sign-off required",  approvers: ["Legal"] };
+  if (value < 250_000)  return { label: "GC sign-off required",     approvers: ["GC"] };
+  if (value < 1_000_000) return { label: "CFO sign-off required",   approvers: ["CFO"] };
+  return                        { label: "Board approval required",  approvers: ["Board"] };
+}
+
+function getGovernanceTriggers(
+  counterpartyType?: string,
+  contractType?: string,
+): Array<{ label: string; approvers: string[] }> {
+  const triggers: Array<{ label: string; approvers: string[] }> = [];
+
+  switch (counterpartyType) {
+    case "RELATED_PARTY":
+      triggers.push({ label: "Related party / connected party — Board sign-off always required", approvers: ["Board"] });
+      break;
+    case "REGULATOR":
+      triggers.push({ label: "Regulator / government body — GC sign-off always required", approvers: ["GC"] });
+      break;
+    case "INVESTOR":
+      triggers.push({ label: "Investor / shareholder — GC and CFO always required", approvers: ["GC", "CFO"] });
+      break;
+    case "COMPETITOR":
+      triggers.push({ label: "Competitor — GC and CEO always required", approvers: ["GC", "CEO"] });
+      break;
+  }
+
+  if (contractType === "JV_AGREEMENT") {
+    triggers.push({ label: "Joint venture — Board sign-off always required", approvers: ["Board"] });
+  }
+  if (contractType && (contractType.includes("EXCLUSIV") || contractType === "EXCLUSIVITY")) {
+    triggers.push({ label: "Exclusivity agreement — CEO minimum always required", approvers: ["CEO"] });
+  }
+
+  return triggers;
+}
+
+function EscalationSummary({
+  doc,
+  results,
+}: {
+  doc: UploadedDocument;
+  results: ReviewResult[];
+}) {
+  const [showExplainer, setShowExplainer] = useState(false);
+
+  // Tier 1 — clause risk
+  const tier1Clauses = results.filter((r) => r.escalationRequired);
+
+  // Tier 2 — contract value
+  const valueTier = doc.contractValue != null ? getValueTier(doc.contractValue) : null;
+
+  // Tier 3 — governance
+  const govTriggers = getGovernanceTriggers(doc.counterpartyType, doc.contractType);
+
+  const tiersActive = [
+    tier1Clauses.length > 0,
+    valueTier !== null,
+    govTriggers.length > 0,
+  ].filter(Boolean).length;
+
+  if (tiersActive === 0) return null;
+
+  // Build recommended sign-off sequence
+  const requiredApprovers = new Set<string>();
+  if (tier1Clauses.length > 0) requiredApprovers.add("Legal");
+  if (valueTier) valueTier.approvers.forEach((a) => requiredApprovers.add(a));
+  govTriggers.forEach((t) => t.approvers.forEach((a) => requiredApprovers.add(a)));
+
+  const signOffSequence = APPROVER_ORDER.filter((a) => requiredApprovers.has(a));
+
+  return (
+    <div className="card overflow-hidden border border-red-200">
+      {/* Header */}
+      <div className="bg-red-600 px-5 py-3 flex items-center gap-3">
+        <AlertTriangle size={16} className="text-white shrink-0" />
+        <span className="text-sm font-semibold text-white flex-1">
+          Escalation required — {tiersActive} tier{tiersActive !== 1 ? "s" : ""} triggered
+        </span>
+      </div>
+
+      <div className="p-4 space-y-3">
+        {/* Tier 1 — Clause Risk */}
+        {tier1Clauses.length > 0 && (
+          <div className="rounded-lg bg-red-50 border border-red-200 p-4 space-y-2">
+            <div className="text-xs font-semibold uppercase tracking-wider text-red-700">
+              Tier 1 — Clause Risk
+            </div>
+            <ul className="space-y-1.5">
+              {tier1Clauses.map((r) => (
+                <li key={r.id} className="flex gap-2 text-sm text-red-800">
+                  <span className="shrink-0 mt-0.5">•</span>
+                  <span>
+                    <span className="font-semibold">{CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory}</span>
+                    {r.escalationTrigger && (
+                      <span className="text-red-700"> — {r.escalationTrigger}</span>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Tier 2 — Contract Value */}
+        {valueTier && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 space-y-2">
+            <div className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+              Tier 2 — Contract Value
+            </div>
+            <div className="text-sm text-amber-800">
+              <span className="font-semibold">
+                {doc.currency ?? "£"}{doc.contractValue!.toLocaleString("en-GB")}
+              </span>{" "}
+              — {valueTier.label}
+            </div>
+          </div>
+        )}
+
+        {/* Tier 3 — Governance */}
+        {govTriggers.length > 0 && (
+          <div className="rounded-lg bg-violet-50 border border-violet-200 p-4 space-y-2">
+            <div className="text-xs font-semibold uppercase tracking-wider text-violet-700">
+              Tier 3 — Governance
+            </div>
+            <ul className="space-y-1.5">
+              {govTriggers.map((t, i) => (
+                <li key={i} className="flex gap-2 text-sm text-violet-800">
+                  <span className="shrink-0 mt-0.5">•</span>
+                  <span>{t.label}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Recommended sign-off sequence */}
+        {signOffSequence.length > 0 && (
+          <div className="pt-1">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              Recommended sign-off sequence
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {signOffSequence.map((approver, i) => (
+                <span key={approver} className="flex items-center gap-1.5">
+                  <span className="inline-flex items-center bg-foreground text-background text-xs font-semibold px-2.5 py-1 rounded-full">
+                    {approver}
+                  </span>
+                  {i < signOffSequence.length - 1 && (
+                    <span className="text-muted-foreground text-xs">→</span>
+                  )}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* What is this? explainer */}
+        <div className="pt-1 border-t border-border">
+          <button
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setShowExplainer((v) => !v)}
+          >
+            {showExplainer ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            What is this?
+          </button>
+          {showExplainer && (
+            <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+              MIKE uses three escalation tiers. <strong>Tier 1</strong> fires when individual clauses
+              contain terms that exceed your playbook thresholds and require sign-off.{" "}
+              <strong>Tier 2</strong> fires when the total contract value crosses an authority threshold
+              set by your organisation. <strong>Tier 3</strong> fires based on the nature of the
+              counterparty or contract type — certain relationships (regulators, investors, related
+              parties) and structures (JVs, exclusivity) always require elevated sign-off regardless
+              of clause content or value.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function Detail({ title, children }: { title: string; children: React.ReactNode }) {

@@ -12,30 +12,21 @@ import Playbook from "./pages/Playbook";
 import Regulations from "./pages/Regulations";
 import Security from "./pages/Security";
 import Resources from "./pages/Resources";
+import CaseStudy from "./pages/CaseStudy";
+import ForFunds from "./pages/ForFunds";
 import Portfolio from "./pages/Portfolio";
 import ContractTimings from "./pages/ContractTimings";
+import LitigationIntake from "./pages/LitigationIntake";
+import BulkReview from "./pages/BulkReview";
 
 function AppRoutes() {
-  const { user, isLoading: authLoading } = useAuth();
-  const { data: company, isLoading: companyLoading } = useQuery({
+  const { user } = useAuth();
+  const { data: company } = useQuery({
     queryKey: ["company"],
     queryFn: getCompany,
     retry: false,
     enabled: !!user,
   });
-
-  if (authLoading || (user && companyLoading)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center animate-pulse">
-            <span className="text-white text-xs font-bold">M</span>
-          </div>
-          <div className="text-sm text-muted-foreground">Loading…</div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <Routes>
@@ -114,9 +105,28 @@ function AppRoutes() {
         element={!user ? <Navigate to="/login" replace /> : company ? <ContractTimings /> : <Navigate to="/onboarding" replace />}
       />
 
+      <Route
+        path="/litigation-intake/:id"
+        element={
+          !user ? (
+            <Navigate to="/login" replace />
+          ) : company ? (
+            <LitigationIntake />
+          ) : (
+            <Navigate to="/onboarding" replace />
+          )
+        }
+      />
+      <Route
+        path="/bulk-review"
+        element={!user ? <Navigate to="/login" replace /> : company ? <BulkReview /> : <Navigate to="/onboarding" replace />}
+      />
+
       {/* Public info pages - accessible logged in or out */}
       <Route path="/security" element={<Security />} />
       <Route path="/resources" element={<Resources />} />
+      <Route path="/case-study" element={<CaseStudy />} />
+      <Route path="/for-funds" element={<ForFunds />} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

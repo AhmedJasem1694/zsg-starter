@@ -1,5 +1,6 @@
 export type RiskAppetite = "CONSERVATIVE" | "MODERATE" | "COMMERCIAL";
-export type CompanyRole = "BUYER" | "SUPPLIER" | "BOTH";
+export type WorkflowType = "COMMERCIAL_CONTRACT" | "INSURANCE_LITIGATION" | "LOGISTICS_CONTRACT";
+export type CompanyRole = "BUYER" | "SUPPLIER" | "BOTH" | "INSURER_INHOUSE" | "PANEL_FIRM" | "TPA" | "CLAIMANT_FIRM" | "DEFENDANT_FIRM";
 export type ApprovalRole = "LEGAL" | "GC" | "CFO" | "BOARD";
 export type RagStatus = "RED" | "AMBER" | "GREEN" | "GREY";
 export type DocumentStatus = "UPLOADED" | "PROCESSING" | "COMPLETE" | "FAILED";
@@ -66,7 +67,106 @@ export type ClauseCategory =
   | "VESTING_LEAVER"
   | "OPTION_POOL_SHUFFLE"
   | "PAY_TO_PLAY"
-  | "REDEMPTION_RIGHTS";
+  | "REDEMPTION_RIGHTS"
+  // Insurance litigation categories
+  | "INS_COVERAGE_RESPONSE"
+  | "INS_EXCLUSIONS_ANALYSIS"
+  | "INS_NOTIFICATION_COMPLIANCE"
+  | "INS_QUANTUM_ASSESSMENT"
+  | "INS_DEFENCE_PROSPECTS"
+  | "INS_SETTLEMENT_AUTHORITY"
+  | "INS_REGULATORY_OBLIGATIONS"
+  | "INS_SUBROGATION_POTENTIAL"
+  | "INS_PANEL_FIRM_INSTRUCTIONS"
+  | "INS_RESERVE_ADEQUACY"
+  // Insurance litigation — extended
+  | "INS_FRAUD_INDICATORS"
+  | "INS_REHABILITATION"
+  | "INS_EXPERT_EVIDENCE"
+  | "INS_PART36_CPR"
+  | "INS_COSTS_BUDGETING"
+  | "INS_THIRD_PARTY_CAPTURE"
+  | "INS_CLAIMS_TIMEFRAMES"
+  | "INS_CONDITIONS_PRECEDENT"
+  | "INS_CONTRIBUTION"
+  | "INS_REINSTATEMENT"
+  // Logistics contract categories
+  | "LOG_LIABILITY_CAP_CMR"
+  | "LOG_CARGO_LIABILITY"
+  | "LOG_INDEMNITY"
+  | "LOG_SERVICE_LEVELS"
+  | "LOG_SUBCONTRACTING"
+  | "LOG_DATA_GDPR"
+  | "LOG_GOVERNING_LAW"
+  | "LOG_TERMINATION"
+  | "LOG_TRADE_COMPLIANCE"
+  | "LOG_AUDIT_REPORTING"
+  // Logistics contract — extended
+  | "LOG_CARRIER_PAYMENT"
+  | "LOG_DANGEROUS_GOODS"
+  | "LOG_CUSTOMS_CLEARANCE"
+  | "LOG_PACKAGING_LABELING"
+  | "LOG_COLD_CHAIN"
+  | "LOG_TRACK_TRACE"
+  | "LOG_FORCE_MAJEURE"
+  | "LOG_INSURANCE_CERT"
+  | "LOG_INTERNATIONAL_CONVENTIONS"
+  | "LOG_DRIVER_COMPLIANCE"
+  // Technology & SaaS
+  | "TECH_API_TERMS"
+  | "TECH_UPTIME_SLA"
+  | "TECH_DATA_PORTABILITY"
+  | "TECH_OPEN_SOURCE"
+  | "TECH_SECURITY_STANDARDS"
+  | "TECH_CHANGE_MANAGEMENT"
+  // Financial Services
+  | "FIN_REGULATORY_PERMISSIONS"
+  | "FIN_CLIENT_MONEY"
+  | "FIN_BEST_EXECUTION"
+  | "FIN_FINANCIAL_PROMOTION"
+  | "FIN_MARGIN_COLLATERAL"
+  | "FIN_BENCHMARK_RATES"
+  // Healthcare & Life Sciences
+  | "HEALTH_PATIENT_DATA"
+  | "HEALTH_REGULATORY_APPROVAL"
+  | "HEALTH_PHARMACOVIGILANCE"
+  | "HEALTH_CLINICAL_PROTOCOL"
+  | "HEALTH_NHS_TERMS"
+  | "HEALTH_PRODUCT_LIABILITY"
+  // Manufacturing & Supply Chain
+  | "MFG_INCOTERMS"
+  | "MFG_QUALITY_STANDARDS"
+  | "MFG_PRODUCT_LIABILITY"
+  | "MFG_TOOLING_OWNERSHIP"
+  | "MFG_SUPPLY_CHAIN_RESILIENCE"
+  // Retail & eCommerce
+  | "RET_DISTANCE_SELLING"
+  | "RET_CONSUMER_RETURNS"
+  | "RET_MARKETPLACE_TERMS"
+  | "RET_AGE_VERIFICATION"
+  | "RET_CONSUMER_CREDIT"
+  // Media & Entertainment
+  | "MEDIA_RIGHTS_CLEARANCE"
+  | "MEDIA_RESIDUALS_ROYALTIES"
+  | "MEDIA_TALENT_OBLIGATIONS"
+  | "MEDIA_FORMAT_RIGHTS"
+  | "MEDIA_SYNC_LICENSE"
+  // Energy & CleanTech
+  | "ENERGY_OFFTAKE"
+  | "ENERGY_GRID_CONNECTION"
+  | "ENERGY_SUBSIDY_REGIME"
+  | "ENERGY_ENVIRONMENTAL_PERMITS"
+  | "ENERGY_BALANCING_IMBALANCE"
+  // Education & EdTech
+  | "EDU_SAFEGUARDING"
+  | "EDU_STUDENT_DATA"
+  | "EDU_CURRICULUM_RIGHTS"
+  | "EDU_ACCREDITATION"
+  // Professional Services
+  | "PS_ENGAGEMENT_SCOPE"
+  | "PS_FEE_BILLING"
+  | "PS_CONFLICTS_INTEREST"
+  | "PS_PROFESSIONAL_LIABILITY";
 
 export const CLAUSE_CATEGORIES: ClauseCategory[] = [
   "LIABILITY_CAP",
@@ -183,6 +283,50 @@ export const CLAUSE_LABELS: Record<ClauseCategory, string> = {
   VIRTUAL_ITEMS: "Virtual Items, In-Game Currency & Digital Goods",
   PLATFORM_REVENUE_SHARE: "Platform Revenue Share & Store Fees",
   LOOT_BOX_MECHANICS: "Loot Box & Randomised Reward Mechanics",
+  // Insurance litigation categories
+  INS_COVERAGE_RESPONSE: "Coverage Response",
+  INS_EXCLUSIONS_ANALYSIS: "Exclusions Analysis",
+  INS_NOTIFICATION_COMPLIANCE: "Notification Compliance",
+  INS_QUANTUM_ASSESSMENT: "Quantum Assessment",
+  INS_DEFENCE_PROSPECTS: "Defence Prospects",
+  INS_SETTLEMENT_AUTHORITY: "Settlement Authority",
+  INS_REGULATORY_OBLIGATIONS: "Regulatory Obligations",
+  INS_SUBROGATION_POTENTIAL: "Subrogation Potential",
+  INS_PANEL_FIRM_INSTRUCTIONS: "Panel Firm Instructions",
+  INS_RESERVE_ADEQUACY: "Reserve Adequacy",
+  // Insurance litigation — extended
+  INS_FRAUD_INDICATORS: "Fraud Indicators & Anti-Fraud Obligations",
+  INS_REHABILITATION: "Rehabilitation & Care Management",
+  INS_EXPERT_EVIDENCE: "Expert Evidence & Medical Reports",
+  INS_PART36_CPR: "Part 36 Offers & CPR Compliance",
+  INS_COSTS_BUDGETING: "Costs Management & Budgeting",
+  INS_THIRD_PARTY_CAPTURE: "Third Party Capture Risk",
+  INS_CLAIMS_TIMEFRAMES: "Claims Handling Timeframes & SLAs",
+  INS_CONDITIONS_PRECEDENT: "Conditions Precedent to Coverage",
+  INS_CONTRIBUTION: "Contribution Between Insurers",
+  INS_REINSTATEMENT: "Reinstatement vs Indemnity Basis",
+  // Logistics contract categories
+  LOG_LIABILITY_CAP_CMR: "Liability Cap & CMR Limits",
+  LOG_CARGO_LIABILITY: "Cargo Liability & Insurance",
+  LOG_INDEMNITY: "Indemnity & Cross-Indemnity",
+  LOG_SERVICE_LEVELS: "Service Levels & Performance",
+  LOG_SUBCONTRACTING: "Subcontracting Rights",
+  LOG_DATA_GDPR: "Data & GDPR",
+  LOG_GOVERNING_LAW: "Governing Law & Jurisdiction",
+  LOG_TERMINATION: "Termination & Transition",
+  LOG_TRADE_COMPLIANCE: "Trade Compliance & Sanctions",
+  LOG_AUDIT_REPORTING: "Audit & Reporting",
+  // Logistics contract — extended
+  LOG_CARRIER_PAYMENT: "Carrier Payment Terms & Fuel Surcharges",
+  LOG_DANGEROUS_GOODS: "Dangerous Goods & ADR Compliance",
+  LOG_CUSTOMS_CLEARANCE: "Customs Clearance & Broker Responsibilities",
+  LOG_PACKAGING_LABELING: "Packaging, Labelling & Marking Obligations",
+  LOG_COLD_CHAIN: "Temperature-Controlled & Cold Chain Requirements",
+  LOG_TRACK_TRACE: "Track, Trace & Data Rights",
+  LOG_FORCE_MAJEURE: "Logistics Force Majeure & Disruption",
+  LOG_INSURANCE_CERT: "Insurance Certificate Requirements",
+  LOG_INTERNATIONAL_CONVENTIONS: "International Transport Conventions (CMR/Hague-Visby/Montreal)",
+  LOG_DRIVER_COMPLIANCE: "Driver Compliance & DVSA Requirements",
   // Investment document clauses
   LIQUIDATION_PREFERENCE: "Liquidation Preference",
   ANTI_DILUTION: "Anti-Dilution Provisions",
@@ -194,6 +338,61 @@ export const CLAUSE_LABELS: Record<ClauseCategory, string> = {
   OPTION_POOL_SHUFFLE: "Option Pool Shuffle",
   PAY_TO_PLAY: "Pay-to-Play Provisions",
   REDEMPTION_RIGHTS: "Redemption Rights",
+  // Technology & SaaS
+  TECH_API_TERMS: "API Access & Rate Limits",
+  TECH_UPTIME_SLA: "Uptime Commitments & SLA Credits",
+  TECH_DATA_PORTABILITY: "Data Portability & Export Rights",
+  TECH_OPEN_SOURCE: "Open Source Components & Licensing",
+  TECH_SECURITY_STANDARDS: "Security Standards & Certifications",
+  TECH_CHANGE_MANAGEMENT: "Change Management & Backward Compatibility",
+  // Financial Services
+  FIN_REGULATORY_PERMISSIONS: "Regulatory Permissions & Authorisations",
+  FIN_CLIENT_MONEY: "Client Money & CASS Compliance",
+  FIN_BEST_EXECUTION: "Best Execution & Order Handling",
+  FIN_FINANCIAL_PROMOTION: "Financial Promotion Compliance",
+  FIN_MARGIN_COLLATERAL: "Margin, Collateral & Credit Support",
+  FIN_BENCHMARK_RATES: "Reference Rates & Benchmark Provisions",
+  // Healthcare & Life Sciences
+  HEALTH_PATIENT_DATA: "Patient Data & Clinical Information Governance",
+  HEALTH_REGULATORY_APPROVAL: "Regulatory Approval Conditions",
+  HEALTH_PHARMACOVIGILANCE: "Pharmacovigilance & Adverse Event Reporting",
+  HEALTH_CLINICAL_PROTOCOL: "Clinical Trial Protocol & Amendments",
+  HEALTH_NHS_TERMS: "NHS Standard Contract Terms",
+  HEALTH_PRODUCT_LIABILITY: "Medical Device & Pharmaceutical Liability",
+  // Manufacturing & Supply Chain
+  MFG_INCOTERMS: "Delivery Terms & Risk Transfer (Incoterms)",
+  MFG_QUALITY_STANDARDS: "Quality Management & Standards Compliance",
+  MFG_PRODUCT_LIABILITY: "Product Liability & Recall Obligations",
+  MFG_TOOLING_OWNERSHIP: "Tooling, Moulds & Equipment Ownership",
+  MFG_SUPPLY_CHAIN_RESILIENCE: "Supply Chain Resilience & Dual Sourcing",
+  // Retail & eCommerce
+  RET_DISTANCE_SELLING: "Distance Selling & Cooling-Off Rights",
+  RET_CONSUMER_RETURNS: "Returns, Refunds & Exchange Obligations",
+  RET_MARKETPLACE_TERMS: "Marketplace Platform Terms & Fees",
+  RET_AGE_VERIFICATION: "Age Verification Requirements",
+  RET_CONSUMER_CREDIT: "Consumer Credit & BNPL Compliance",
+  // Media & Entertainment
+  MEDIA_RIGHTS_CLEARANCE: "Rights Clearance & Chain of Title",
+  MEDIA_RESIDUALS_ROYALTIES: "Residuals, Royalties & Profit Participation",
+  MEDIA_TALENT_OBLIGATIONS: "Talent, Performer & Writer Obligations",
+  MEDIA_FORMAT_RIGHTS: "Format Rights, Adaptations & Sequel Rights",
+  MEDIA_SYNC_LICENSE: "Synchronisation & Music Licensing",
+  // Energy & CleanTech
+  ENERGY_OFFTAKE: "Offtake Agreement & Power Purchase Terms",
+  ENERGY_GRID_CONNECTION: "Grid Connection & DNO Obligations",
+  ENERGY_SUBSIDY_REGIME: "Subsidy & Incentive Scheme Conditions",
+  ENERGY_ENVIRONMENTAL_PERMITS: "Environmental Permits & Planning Conditions",
+  ENERGY_BALANCING_IMBALANCE: "Balancing & Imbalance Settlement",
+  // Education & EdTech
+  EDU_SAFEGUARDING: "Safeguarding & Child Protection",
+  EDU_STUDENT_DATA: "Student Data & Parental Consent",
+  EDU_CURRICULUM_RIGHTS: "Curriculum Content Rights & IP",
+  EDU_ACCREDITATION: "Awarding Body & Accreditation Requirements",
+  // Professional Services
+  PS_ENGAGEMENT_SCOPE: "Scope of Engagement & Change Control",
+  PS_FEE_BILLING: "Fee Arrangements & Billing Practices",
+  PS_CONFLICTS_INTEREST: "Conflicts of Interest & Independence",
+  PS_PROFESSIONAL_LIABILITY: "Professional Liability & PI Insurance",
 };
 
 // Property-specific clause types (shown only for real estate / property contracts)
@@ -226,6 +425,113 @@ export const INVESTMENT_CLAUSE_CATEGORIES: ClauseCategory[] = [
   "REDEMPTION_RIGHTS",
 ];
 
+export const INSURANCE_CLAUSE_CATEGORIES: ClauseCategory[] = [
+  "INS_COVERAGE_RESPONSE",
+  "INS_EXCLUSIONS_ANALYSIS",
+  "INS_NOTIFICATION_COMPLIANCE",
+  "INS_QUANTUM_ASSESSMENT",
+  "INS_DEFENCE_PROSPECTS",
+  "INS_SETTLEMENT_AUTHORITY",
+  "INS_REGULATORY_OBLIGATIONS",
+  "INS_SUBROGATION_POTENTIAL",
+  "INS_PANEL_FIRM_INSTRUCTIONS",
+  "INS_RESERVE_ADEQUACY",
+  "INS_FRAUD_INDICATORS",
+  "INS_REHABILITATION",
+  "INS_EXPERT_EVIDENCE",
+  "INS_PART36_CPR",
+  "INS_COSTS_BUDGETING",
+  "INS_THIRD_PARTY_CAPTURE",
+  "INS_CLAIMS_TIMEFRAMES",
+  "INS_CONDITIONS_PRECEDENT",
+  "INS_CONTRIBUTION",
+  "INS_REINSTATEMENT",
+];
+
+export const LOGISTICS_CLAUSE_CATEGORIES: ClauseCategory[] = [
+  "LOG_LIABILITY_CAP_CMR",
+  "LOG_CARGO_LIABILITY",
+  "LOG_INDEMNITY",
+  "LOG_SERVICE_LEVELS",
+  "LOG_SUBCONTRACTING",
+  "LOG_DATA_GDPR",
+  "LOG_GOVERNING_LAW",
+  "LOG_TERMINATION",
+  "LOG_TRADE_COMPLIANCE",
+  "LOG_AUDIT_REPORTING",
+  "LOG_CARRIER_PAYMENT",
+  "LOG_DANGEROUS_GOODS",
+  "LOG_CUSTOMS_CLEARANCE",
+  "LOG_PACKAGING_LABELING",
+  "LOG_COLD_CHAIN",
+  "LOG_TRACK_TRACE",
+  "LOG_FORCE_MAJEURE",
+  "LOG_INSURANCE_CERT",
+  "LOG_INTERNATIONAL_CONVENTIONS",
+  "LOG_DRIVER_COMPLIANCE",
+];
+
+export const TECHNOLOGY_SAAS_CLAUSE_CATEGORIES: ClauseCategory[] = [
+  "TECH_API_TERMS", "TECH_UPTIME_SLA", "TECH_DATA_PORTABILITY",
+  "TECH_OPEN_SOURCE", "TECH_SECURITY_STANDARDS", "TECH_CHANGE_MANAGEMENT",
+];
+
+export const FINANCIAL_SERVICES_CLAUSE_CATEGORIES: ClauseCategory[] = [
+  "FIN_REGULATORY_PERMISSIONS", "FIN_CLIENT_MONEY", "FIN_BEST_EXECUTION",
+  "FIN_FINANCIAL_PROMOTION", "FIN_MARGIN_COLLATERAL", "FIN_BENCHMARK_RATES",
+];
+
+export const HEALTHCARE_CLAUSE_CATEGORIES: ClauseCategory[] = [
+  "HEALTH_PATIENT_DATA", "HEALTH_REGULATORY_APPROVAL", "HEALTH_PHARMACOVIGILANCE",
+  "HEALTH_CLINICAL_PROTOCOL", "HEALTH_NHS_TERMS", "HEALTH_PRODUCT_LIABILITY",
+];
+
+export const MANUFACTURING_CLAUSE_CATEGORIES: ClauseCategory[] = [
+  "MFG_INCOTERMS", "MFG_QUALITY_STANDARDS", "MFG_PRODUCT_LIABILITY",
+  "MFG_TOOLING_OWNERSHIP", "MFG_SUPPLY_CHAIN_RESILIENCE",
+];
+
+export const RETAIL_ECOMMERCE_CLAUSE_CATEGORIES: ClauseCategory[] = [
+  "RET_DISTANCE_SELLING", "RET_CONSUMER_RETURNS", "RET_MARKETPLACE_TERMS",
+  "RET_AGE_VERIFICATION", "RET_CONSUMER_CREDIT",
+];
+
+export const MEDIA_ENTERTAINMENT_CLAUSE_CATEGORIES: ClauseCategory[] = [
+  "MEDIA_RIGHTS_CLEARANCE", "MEDIA_RESIDUALS_ROYALTIES", "MEDIA_TALENT_OBLIGATIONS",
+  "MEDIA_FORMAT_RIGHTS", "MEDIA_SYNC_LICENSE",
+];
+
+export const ENERGY_CLEANTECH_CLAUSE_CATEGORIES: ClauseCategory[] = [
+  "ENERGY_OFFTAKE", "ENERGY_GRID_CONNECTION", "ENERGY_SUBSIDY_REGIME",
+  "ENERGY_ENVIRONMENTAL_PERMITS", "ENERGY_BALANCING_IMBALANCE",
+];
+
+export const EDUCATION_EDTECH_CLAUSE_CATEGORIES: ClauseCategory[] = [
+  "EDU_SAFEGUARDING", "EDU_STUDENT_DATA", "EDU_CURRICULUM_RIGHTS", "EDU_ACCREDITATION",
+];
+
+export const PROFESSIONAL_SERVICES_CLAUSE_CATEGORIES: ClauseCategory[] = [
+  "PS_ENGAGEMENT_SCOPE", "PS_FEE_BILLING", "PS_CONFLICTS_INTEREST", "PS_PROFESSIONAL_LIABILITY",
+];
+
+export function getIndustryClauseCategories(industry: Industry): ClauseCategory[] {
+  const map: Partial<Record<Industry, ClauseCategory[]>> = {
+    TECHNOLOGY_SAAS:         TECHNOLOGY_SAAS_CLAUSE_CATEGORIES,
+    FINANCIAL_SERVICES:      FINANCIAL_SERVICES_CLAUSE_CATEGORIES,
+    HEALTHCARE_LIFESCIENCES: HEALTHCARE_CLAUSE_CATEGORIES,
+    GAMING_INTERACTIVE:      GAMING_CLAUSE_CATEGORIES,
+    PROPERTY_REAL_ESTATE:    PROPERTY_CLAUSE_CATEGORIES,
+    MANUFACTURING_SUPPLY:    MANUFACTURING_CLAUSE_CATEGORIES,
+    LOGISTICS_SUPPLY:        LOGISTICS_CLAUSE_CATEGORIES,
+    RETAIL_ECOMMERCE:        RETAIL_ECOMMERCE_CLAUSE_CATEGORIES,
+    MEDIA_ENTERTAINMENT:     MEDIA_ENTERTAINMENT_CLAUSE_CATEGORIES,
+    ENERGY_CLEANTECH:        ENERGY_CLEANTECH_CLAUSE_CATEGORIES,
+    EDUCATION_EDTECH:        EDUCATION_EDTECH_CLAUSE_CATEGORIES,
+    PROFESSIONAL_SERVICES:   PROFESSIONAL_SERVICES_CLAUSE_CATEGORIES,
+  };
+  return map[industry] ?? [];
+}
+
 // Persona - determines onboarding flow and MIKE output framing
 export type Persona = "CORPORATE" | "FOUNDER" | "PE_FUND";
 
@@ -249,6 +555,7 @@ export type Industry =
   | "PROPERTY_REAL_ESTATE"
   | "PROFESSIONAL_SERVICES"
   | "MANUFACTURING_SUPPLY"
+  | "LOGISTICS_SUPPLY"
   | "RETAIL_ECOMMERCE"
   | "MEDIA_ENTERTAINMENT"
   | "ENERGY_CLEANTECH"
@@ -264,6 +571,7 @@ export const INDUSTRY_LABELS: Record<Industry, string> = {
   PROPERTY_REAL_ESTATE: "Property & Real Estate",
   PROFESSIONAL_SERVICES: "Professional Services",
   MANUFACTURING_SUPPLY: "Manufacturing & Supply Chain",
+  LOGISTICS_SUPPLY: "Logistics, Freight & Supply Chain",
   RETAIL_ECOMMERCE: "Retail & eCommerce",
   MEDIA_ENTERTAINMENT: "Media & Entertainment",
   ENERGY_CLEANTECH: "Energy & CleanTech",
@@ -281,6 +589,7 @@ export interface Company {
   riskAppetite: RiskAppetite;
   industry: string;
   persona: Persona;
+  workflowType?: WorkflowType;
   createdAt: string;
   playbookRules?: PlaybookRule[];
   approvalContacts?: ApprovalContact[];
@@ -296,6 +605,7 @@ export interface PlaybookRule {
   approvalRequired?: ApprovalRole;
   fallbackTemplate?: string;
   riskWeight: number;
+  workflowType?: string;
 }
 
 export interface ApprovalContact {
@@ -313,6 +623,16 @@ export interface UploadedDocument {
   originalName: string;
   contractType: string;
   status: DocumentStatus;
+  counterpartyName?: string;
+  counterpartyType?: string;
+  reviewType?: string;
+  contractValue?: number;
+  currency?: string;
+  contractTermMonths?: number;
+  autoRenewal?: boolean;
+  noticePeriodDays?: number;
+  renewalDate?: string;
+  contractTags?: string;
   uploadedAt: string;
   reviewResults?: ReviewResult[];
 }
@@ -671,6 +991,449 @@ export const PLAYBOOK_DEFAULTS: Record<
       acceptableFallback: "Redemption as a long-stop only after 7+ years if no liquidity event has occurred, subject to 12-month written notice and board approval.",
       hardRedLine: "Redemption rights exercisable within 5 years, at investor discretion, or without requiring a formal liquidity event trigger.",
     },
+    // ── Insurance litigation clauses ─────────────────────────────────────────
+    INS_COVERAGE_RESPONSE: {
+      preferredPosition: "Policy clearly responds: all coverage triggers met, no exclusions apply, insured has complied with all conditions.",
+      acceptableFallback: "Coverage arguable: primary position responds but one or more conditions or exclusions require analysis before confirming.",
+      hardRedLine: "Coverage does not respond, a clear exclusion applies, or a material condition precedent has been breached.",
+    },
+    INS_EXCLUSIONS_ANALYSIS: {
+      preferredPosition: "No applicable exclusion identified. Policy wording unambiguous and insured's conduct does not trigger any exclusion.",
+      acceptableFallback: "One exclusion potentially applicable but arguments available on both sides. Requires senior review before position is taken.",
+      hardRedLine: "A clear and unambiguous exclusion applies. Coverage denial is legally defensible.",
+    },
+    INS_NOTIFICATION_COMPLIANCE: {
+      preferredPosition: "Notification received within the required timeframe, in the correct form, and to the correct party. No condition precedent issues.",
+      acceptableFallback: "Notification technically late but arguments available that condition was not a condition precedent, or that the insurer has not been prejudiced.",
+      hardRedLine: "Notification clearly non-compliant: materially out of time, wrong form, or missing information that cannot be excused.",
+    },
+    INS_QUANTUM_ASSESSMENT: {
+      preferredPosition: "Current reserve is adequate and reflects a realistic assessment of exposure. No reserve movement required.",
+      acceptableFallback: "Reserve requires review. Realistic range is above current reserve but within acceptable parameters for claims committee reporting.",
+      hardRedLine: "Current reserve is materially inadequate. Exposure significantly exceeds reserve. Immediate reserve uplift and committee reporting required.",
+    },
+    INS_DEFENCE_PROSPECTS: {
+      preferredPosition: "Strong defence prospects. Claim is defensible on liability and/or quantum. Recommend defend.",
+      acceptableFallback: "Reasonable defence prospects but outcome uncertain. Consider commercial settlement to manage costs and litigation risk.",
+      hardRedLine: "Weak or indefensible. Liability likely established. Settlement is the commercially rational outcome.",
+    },
+    INS_SETTLEMENT_AUTHORITY: {
+      preferredPosition: "Recommended settlement within litigation handler authority. No escalation required.",
+      acceptableFallback: "Recommended settlement within senior litigation counsel authority. Single-level escalation required.",
+      hardRedLine: "Recommended settlement exceeds claims committee or board authority. Full escalation required before any settlement discussions.",
+    },
+    INS_REGULATORY_OBLIGATIONS: {
+      preferredPosition: "All FCA claims handling obligations met. TCF requirements satisfied. All timeframes and reporting duties complied with.",
+      acceptableFallback: "One or more regulatory obligations at risk of breach. Remediation steps underway. FCA notification not yet required.",
+      hardRedLine: "Regulatory breach identified. FCA notification obligation triggered or imminent. Immediate compliance action required.",
+    },
+    INS_SUBROGATION_POTENTIAL: {
+      preferredPosition: "Strong subrogation prospects against an identifiable and solvent third party. Recovery action should be pursued.",
+      acceptableFallback: "Subrogation possible but uncertain. Third party identified; prospects require further investigation before committing to recovery action.",
+      hardRedLine: "Subrogation unlikely. Third party unidentified, insolvent, or defence of primary claim takes priority.",
+    },
+    INS_PANEL_FIRM_INSTRUCTIONS: {
+      preferredPosition: "Panel firm spend and strategy within approved guidelines. Budget forecast within approved parameters.",
+      acceptableFallback: "Panel spend approaching approved threshold. Budget review and approval required before further instruction.",
+      hardRedLine: "Panel spend exceeds approved threshold or strategy materially deviates from instructions. Immediate review and re-approval required.",
+    },
+    INS_RESERVE_ADEQUACY: {
+      preferredPosition: "Reserve is adequate and reflects current best estimate of ultimate exposure. No movement required at this stage.",
+      acceptableFallback: "Reserve requires upward review. Exposure development warrants adjustment before next reporting period.",
+      hardRedLine: "Reserve is materially inadequate. Immediate uplift required. Board or claims committee reporting obligation triggered.",
+    },
+    // ── Insurance litigation — extended ─────────────────────────────────────
+    INS_FRAUD_INDICATORS: {
+      preferredPosition: "Mandatory fraud indicator checks on all new instructions. Insurer to conduct independent investigation before any interim payment. All suspected fraud referred to SIU within 5 business days.",
+      acceptableFallback: "Fraud indicators reviewed at case inception. SIU referral protocol in place.",
+      hardRedLine: "No anti-fraud protocol or SIU referral procedure.",
+    },
+    INS_REHABILITATION: {
+      preferredPosition: "Early intervention rehabilitation programme mandated for all injury claims. Case manager appointed within 10 days of notification. Regular progress reporting to reserve team.",
+      acceptableFallback: "Rehabilitation offered at claimant's election within 20 days of notification.",
+      hardRedLine: "No rehabilitation obligation or protocol.",
+    },
+    INS_EXPERT_EVIDENCE: {
+      preferredPosition: "Single joint expert appointed by agreement except where liability is contested. Expert instructions reviewed by legal panel before issue. Expert reports disclosed within 28 days of receipt.",
+      acceptableFallback: "Party-appointed experts permitted for contested liability. Costs subject to court direction.",
+      hardRedLine: "Unrestricted use of multiple experts without cost control.",
+    },
+    INS_PART36_CPR: {
+      preferredPosition: "All Part 36 offers reviewed within 5 business days of receipt. Counter-offers formulated within 10 business days. Compliance with CPR Part 36 evidenced in writing for each offer made.",
+      acceptableFallback: "Part 36 review within 10 business days. Counter-offer within 15 business days.",
+      hardRedLine: "No CPR Part 36 compliance protocol or response timeframes.",
+    },
+    INS_COSTS_BUDGETING: {
+      preferredPosition: "Costs budget filed at CCMC. Proportionality applied to all phases. Budget challenged where phases exceed 120% of comparable cases. Regular costs monitoring throughout litigation.",
+      acceptableFallback: "Costs budget reviewed at CCMC. Challenge disproportionate phases.",
+      hardRedLine: "No costs budget oversight or challenge procedure.",
+    },
+    INS_THIRD_PARTY_CAPTURE: {
+      preferredPosition: "Proactive third-party capture programme for all fault claims. Initial contact within 5 days of FNOL. Independent medical assessment before admission of liability. Capture confirmed in writing.",
+      acceptableFallback: "Third-party capture offered on all fault claims. Contact within 10 days.",
+      hardRedLine: "No third-party capture programme.",
+    },
+    INS_CLAIMS_TIMEFRAMES: {
+      preferredPosition: "Acknowledgement within 24 hours of FNOL. Coverage decision within 10 business days. All interim payments processed within 5 business days of authority. SLA reporting monthly to insured.",
+      acceptableFallback: "Acknowledgement within 48 hours. Coverage decision within 15 business days.",
+      hardRedLine: "No defined claims handling SLAs or reporting obligations.",
+    },
+    INS_CONDITIONS_PRECEDENT: {
+      preferredPosition: "All conditions precedent strictly monitored. Breach of any condition precedent documented in writing within 5 business days. Waiver of condition only by written endorsement.",
+      acceptableFallback: "Conditions precedent monitored. Non-compliance notified within 10 business days.",
+      hardRedLine: "Conditions precedent treated as conditions subsequent or waived without endorsement.",
+    },
+    INS_CONTRIBUTION: {
+      preferredPosition: "Contribution sought from all co-insurers and other policy layers as a matter of course. Reservation of contribution rights in all coverage communications. Recovery within 90 days of settlement.",
+      acceptableFallback: "Contribution rights reserved. Recovery pursued on claims above agreed threshold.",
+      hardRedLine: "No contribution rights or contribution waived without commercial justification.",
+    },
+    INS_REINSTATEMENT: {
+      preferredPosition: "Reinstatement basis applies to all property claims unless manifestly uneconomical. Reinstatement cost assessed by independent loss adjuster. Election of basis by insured within 28 days of loss.",
+      acceptableFallback: "Reinstatement offered unless cost exceeds 115% of market value. Insured election within 42 days.",
+      hardRedLine: "Indemnity basis applied without offering reinstatement election.",
+    },
+    // ── Logistics contract clauses ───────────────────────────────────────────
+    LOG_LIABILITY_CAP_CMR: {
+      preferredPosition: "Liability limited to CMR Convention limits for international road freight (8.33 SDR per kg). All attempts to exclude CMR limits rejected.",
+      acceptableFallback: "Enhanced liability cap agreed at a defined per-consignment limit with corresponding insurance in place. CMR limits as backstop.",
+      hardRedLine: "Customer paper excludes CMR limits entirely and imposes uncapped liability for cargo loss or damage beyond insurance cover.",
+    },
+    LOG_CARGO_LIABILITY: {
+      preferredPosition: "Cargo liability limited to insured values. Customer has arranged own cargo insurance. Our liability capped at CMR or agreed per-consignment limit.",
+      acceptableFallback: "Liability for cargo loss or damage capped at a defined limit commensurate with our insurance cover. Enhanced limit with additional premium.",
+      hardRedLine: "Liability for cargo loss or damage exceeds our insurance cover. Uncapped exposure creates uninsurable risk.",
+    },
+    LOG_INDEMNITY: {
+      preferredPosition: "Indemnities are proportionate and fault-based. We indemnify for our own negligence only. Customer indemnifies for their acts, omissions, and misdescription of cargo.",
+      acceptableFallback: "Mutual indemnities limited to gross negligence and wilful misconduct. Each party responsible for losses caused by their own breach.",
+      hardRedLine: "We are required to indemnify the customer for their own negligence, misdescription of cargo, or inadequate packaging.",
+    },
+    LOG_SERVICE_LEVELS: {
+      preferredPosition: "SLAs are achievable and reflect operational reality. Force majeure covers customs delays, port congestion, industrial action, and weather events. Service credits proportionate and capped.",
+      acceptableFallback: "Reasonable SLAs with force majeure for material disruption events. Service credits as sole remedy for SLA breach capped at 10% of monthly fees.",
+      hardRedLine: "Punitive SLAs without force majeure for logistics-specific disruption. Service credits uncapped or structured as penalties.",
+    },
+    LOG_SUBCONTRACTING: {
+      preferredPosition: "Unrestricted right to subcontract to approved hauliers and logistics partners. Pass-through liability. No prior approval required for routine subcontracting.",
+      acceptableFallback: "Subcontracting permitted on notification. We remain liable for subcontractor performance. Named approved subcontractors list maintained.",
+      hardRedLine: "Prior written approval required for every subcontract engagement. Approval cannot be unreasonably withheld but creates operational bottleneck.",
+    },
+    LOG_DATA_GDPR: {
+      preferredPosition: "Controller/processor split clearly defined. DPA in place. Shipment data, customer data, and driver data obligations clearly allocated. Cross-border transfer mechanisms in place.",
+      acceptableFallback: "DPA in place with standard processing obligations. Data sharing with customs authorities covered by legitimate interest or legal obligation basis.",
+      hardRedLine: "No DPA where personal data is being processed. Ambiguous data ownership for tracking data or driver data.",
+    },
+    LOG_GOVERNING_LAW: {
+      preferredPosition: "English law governing the contract. English courts have exclusive jurisdiction. Consistent with our standard trading conditions.",
+      acceptableFallback: "English law with non-exclusive jurisdiction or agreed arbitration. Jurisdiction reflects major operational territory.",
+      hardRedLine: "Foreign jurisdiction with no local legal resource. Governing law clause that would determine outcome of a major cargo claim in an unfamiliar court.",
+    },
+    LOG_TERMINATION: {
+      preferredPosition: "Either party may terminate on 90 days written notice. No transition obligations beyond standard handover. Exit at any time on convenience without penalty.",
+      acceptableFallback: "120-day convenience termination. Standard data return and handover obligations. No punitive exit costs.",
+      hardRedLine: "Lock-in beyond 12 months with punitive exit costs. Transition obligations that create open-ended liability on exit.",
+    },
+    LOG_TRADE_COMPLIANCE: {
+      preferredPosition: "Each party responsible for their own trade compliance and sanctions screening. Customer warrants cargo does not breach sanctions. Immediate suspension right if sanctions risk identified.",
+      acceptableFallback: "Shared trade compliance obligations. Mutual notification of any sanctions exposure. Suspension right on reasonable grounds.",
+      hardRedLine: "We are required to take on the customer's sanctions screening and export control compliance obligations without corresponding indemnity.",
+    },
+    LOG_AUDIT_REPORTING: {
+      preferredPosition: "Annual audit right on 30 days written notice. Reporting obligations limited to agreed KPI metrics. Audit costs borne by auditing party unless material breach found.",
+      acceptableFallback: "Audit on 15 days notice, once per year. Standard operational reporting. Reasonable audit costs.",
+      hardRedLine: "Continuous access right or real-time reporting obligations without a data security framework. Audit costs borne by us regardless of outcome.",
+    },
+    // ── Logistics contract — extended ────────────────────────────────────────
+    LOG_CARRIER_PAYMENT: {
+      preferredPosition: "Payment terms: 30 days from correct invoice. Fuel surcharges indexed to published HMRC/BIFA fuel index. Any surcharge above 10% requires 30 days' prior written notice.",
+      acceptableFallback: "45-day payment terms. Fuel surcharges capped at BIFA index + 5%. 14-day notice for increases.",
+      hardRedLine: "Payment below 14 days or uncapped fuel surcharges with no index linkage.",
+    },
+    LOG_DANGEROUS_GOODS: {
+      preferredPosition: "Full ADR compliance for all dangerous goods. Carrier must hold valid ADR certificate. Training records available on request. UN-approved packaging certificates provided per shipment. Incident reporting within 2 hours.",
+      acceptableFallback: "ADR compliance required. Certificate on request. Incident reporting within 4 hours.",
+      hardRedLine: "No ADR compliance obligation or incident reporting requirement.",
+    },
+    LOG_CUSTOMS_CLEARANCE: {
+      preferredPosition: "Carrier responsible for customs broker appointment unless otherwise agreed in writing. Full commodity codes and tariff classifications provided by shipper 5 business days before shipment. Customs duties and VAT liability agreed in writing per Incoterm.",
+      acceptableFallback: "Customs responsibilities agreed per Incoterms. Broker identity confirmed pre-shipment.",
+      hardRedLine: "Customs liability unallocated or carrier assumes full import duty without cap.",
+    },
+    LOG_PACKAGING_LABELING: {
+      preferredPosition: "All packaging to IATA/IMDG/ADR standards as applicable. Shipper provides compliant labels, marks, and documentation. Carrier entitled to refuse non-compliant consignments without liability. Labelling audit rights retained.",
+      acceptableFallback: "Packaging compliance with applicable regulations. Carrier may refuse manifestly non-compliant goods.",
+      hardRedLine: "No packaging or labelling compliance obligation on shipper.",
+    },
+    LOG_COLD_CHAIN: {
+      preferredPosition: "Temperature-controlled transport to specified range throughout journey. Pre-trip inspection records retained. Real-time temperature monitoring with automatic alert at 0.5 degrees Celsius deviation. Data logger records provided within 2 hours of delivery.",
+      acceptableFallback: "Temperature monitoring throughout transit. Records provided within 4 hours of delivery. Immediate alert on deviation.",
+      hardRedLine: "No temperature monitoring obligation or data records.",
+    },
+    LOG_TRACK_TRACE: {
+      preferredPosition: "Real-time GPS tracking throughout transit. Customer portal access to live shipment status. Estimated time of arrival updated every 30 minutes. Full audit trail retained for 7 years.",
+      acceptableFallback: "Tracking with customer access. ETA updates on material change. Records retained 3 years.",
+      hardRedLine: "No tracking or shipment visibility obligation.",
+    },
+    LOG_FORCE_MAJEURE: {
+      preferredPosition: "Logistics force majeure limited to: natural disasters, port closures by competent authority, government-imposed border closures. Excludes: labour disputes, fuel shortages, customs delays, capacity constraints. 24-hour notice required. 5-day long-stop triggers customer routing right.",
+      acceptableFallback: "Force majeure covering unforeseeable transport disruptions. 48-hour notice. 7-day long-stop triggers alternative carrier right.",
+      hardRedLine: "Force majeure covering routine operational issues such as capacity constraints, fuel price increases, or driver shortages.",
+    },
+    LOG_INSURANCE_CERT: {
+      preferredPosition: "Carrier must hold and evidence: CMR liability insurance minimum SDR 8.33/kg, cargo all-risks, public liability £10M+, goods-in-transit cover. Certificates provided before first shipment and annually. 30-day notice of material change or cancellation.",
+      acceptableFallback: "CMR insurance and goods-in-transit cover required. Certificates on request. 14-day notice of change.",
+      hardRedLine: "No insurance certificate obligation or coverage minimums.",
+    },
+    LOG_INTERNATIONAL_CONVENTIONS: {
+      preferredPosition: "CMR Convention applies to all international road freight. Carrier liability at CMR rates unless special declaration made and accepted. Hague-Visby Rules apply to sea legs. Montreal Convention applies to air legs. No convention exclusion or limitation of liability below convention minima.",
+      acceptableFallback: "Applicable transport convention governs each leg. Convention liability minimum preserved in all circumstances.",
+      hardRedLine: "Convention liability excluded or reduced below statutory minimums.",
+    },
+    LOG_DRIVER_COMPLIANCE: {
+      preferredPosition: "All drivers to hold valid vocational licence, CPC qualification, and digital tachograph card. Carrier to maintain records of driver hours in compliance with EU/UK drivers' hours rules. DVSA compliance checks evidenced annually. No driver with 3+ endorsements in 36 months.",
+      acceptableFallback: "Driver qualification records maintained. Tachograph compliance evidenced on request. DVSA check evidence on annual basis.",
+      hardRedLine: "No driver compliance obligations or records.",
+    },
+    // ── Technology & SaaS clauses ────────────────────────────────────────────
+    TECH_API_TERMS: {
+      preferredPosition: "API access governed by documented SLA. Rate limits disclosed upfront and not unilaterally reduced during term. Versioning policy guarantees minimum 12-month deprecation notice. Breaking changes require 6-month advance notice. We retain right to access our data via API for full term plus 90-day extraction period post-termination.",
+      acceptableFallback: "API access on published terms. 6-month deprecation notice. Data extraction rights on termination for 60 days.",
+      hardRedLine: "No guaranteed API availability, no deprecation notice, or no data extraction right on termination.",
+    },
+    TECH_UPTIME_SLA: {
+      preferredPosition: "99.9% monthly uptime (excluding scheduled maintenance). Scheduled maintenance windows in non-peak hours with 48-hour notice. Service credits of 10% monthly fee per 0.1% below SLA, capped at 30% monthly fee. Persistent breach (3 consecutive months below SLA) triggers termination right without penalty.",
+      acceptableFallback: "99.5% uptime. Service credits as sole remedy for SLA breach. Termination right after 6 months of persistent underperformance.",
+      hardRedLine: "No uptime SLA, no service credits, or credits that cap all liability for downtime causing material business disruption.",
+    },
+    TECH_DATA_PORTABILITY: {
+      preferredPosition: "Full data export in machine-readable format (CSV, JSON, or API) at any time during the term and for 90 days post-termination at no additional charge. Supplier must not degrade data quality or completeness on export. Deletion certification provided on request after extraction period.",
+      acceptableFallback: "Data export in standard format available on request with 10 business days' notice. 60-day post-termination extraction period.",
+      hardRedLine: "No data export right, export in proprietary non-portable format only, or export charged at rates that make it economically prohibitive.",
+    },
+    TECH_OPEN_SOURCE: {
+      preferredPosition: "Supplier discloses all open source components used in the service. No copyleft (GPL/AGPL) components that could affect our IP in deliverables. SBOM (Software Bill of Materials) provided on request. CVE notifications within 24 hours for critical vulnerabilities in disclosed components.",
+      acceptableFallback: "Open source disclosure on request. No GPL-licensed components in deliverables. CVE notification for critical vulnerabilities within 5 business days.",
+      hardRedLine: "No open source disclosure obligation where deliverables may incorporate copyleft-licensed components affecting our IP.",
+    },
+    TECH_SECURITY_STANDARDS: {
+      preferredPosition: "Supplier holds current ISO 27001 certification or SOC 2 Type II attestation. Annual penetration testing by approved third party. Security patches applied within 72 hours of critical CVE disclosure. Security incident notification within 4 hours of confirmed breach.",
+      acceptableFallback: "ISO 27001 or SOC 2 Type II. Annual pen testing. Critical patches within 5 business days. Security incident notification within 24 hours.",
+      hardRedLine: "No security certification, no pen testing obligation, or incident notification period exceeding 72 hours for critical breaches.",
+    },
+    TECH_CHANGE_MANAGEMENT: {
+      preferredPosition: "All material changes to the service (new features affecting existing workflows, UI changes, deprecations) communicated 30 days in advance. Release notes provided. Backward compatibility maintained for minimum 12 months on APIs and data schemas. Emergency hotfixes documented and notified within 24 hours.",
+      acceptableFallback: "Material changes notified with 14 days' advance notice. API backward compatibility for 6 months minimum.",
+      hardRedLine: "No advance change notice; or supplier may make breaking changes to APIs or data schemas without notice.",
+    },
+    // ── Financial Services clauses ───────────────────────────────────────────
+    FIN_REGULATORY_PERMISSIONS: {
+      preferredPosition: "Counterparty warrants it holds all required FCA/PRA authorisations for the regulated activities performed under this agreement. Obligation to notify us within 24 hours of any restriction, variation, or withdrawal of permissions. Immediate suspension right if permissions lapse. Contract voids automatically if counterparty loses required permissions.",
+      acceptableFallback: "Permissions warranty. Notification of material regulatory action within 5 business days. Termination right on permissions lapse.",
+      hardRedLine: "No regulatory permissions warranty where counterparty performs regulated activities; or no notification obligation on permissions change.",
+    },
+    FIN_CLIENT_MONEY: {
+      preferredPosition: "Client money held in segregated accounts in accordance with FCA CASS rules. Statutory trust acknowledged in contract. Daily reconciliation. Immediate notification of any CASS breach. We are named as beneficiary on segregated accounts.",
+      acceptableFallback: "CASS-compliant segregation. Reconciliation within 2 business days. Notification of breaches within 24 hours.",
+      hardRedLine: "No CASS segregation commitment for contracts involving client money; or commingling of client and firm money.",
+    },
+    FIN_BEST_EXECUTION: {
+      preferredPosition: "Best execution policy maintained and applied to all orders. Policy reviewed annually and on material change in market structure. Order execution data available on request. Top 5 execution venues disclosed as required by MiFID II/UK MiFIR.",
+      acceptableFallback: "Best execution policy maintained. Annual review. Execution data on request.",
+      hardRedLine: "No best execution obligation where MiFID II/UK MiFIR applies to the services.",
+    },
+    FIN_FINANCIAL_PROMOTION: {
+      preferredPosition: "All financial promotions produced by or on behalf of us are approved by an FCA-authorised person before communication. Supplier warrants that any content it produces under this agreement complies with COBS 4 and relevant FCA guidance. Liability for unapproved financial promotions remains with the communicating party.",
+      acceptableFallback: "Financial promotions approval process agreed. Compliance with applicable FCA financial promotion rules warranted.",
+      hardRedLine: "No financial promotion compliance framework for contracts involving consumer-facing regulated content.",
+    },
+    FIN_MARGIN_COLLATERAL: {
+      preferredPosition: "Credit support documentation (CSA or equivalent) executed alongside master agreement. Collateral threshold and minimum transfer amounts agreed. Eligible collateral specified. Dispute resolution for margin calls within 1 business day. Close-out netting enforceability confirmed in applicable jurisdictions.",
+      acceptableFallback: "Margin and collateral terms documented. Close-out netting provisions included. Dispute process agreed.",
+      hardRedLine: "No credit support documentation for derivative or leveraged transactions; or close-out netting not contractually confirmed.",
+    },
+    FIN_BENCHMARK_RATES: {
+      preferredPosition: "All reference rates use current SONIA/SOFR (or applicable ARR) with agreed credit adjustment spread. Legacy LIBOR references replaced. Fallback provisions compliant with ISDA 2020 IBOR Fallbacks Protocol. Rate screen page, fallback hierarchy, and interpolation methodology specified in the contract.",
+      acceptableFallback: "Current ARR-based rates used. ISDA-compliant fallback provisions. Fallback hierarchy specified.",
+      hardRedLine: "Reference to discontinued benchmark rates with no fallback provision; or fallback mechanism creates unilateral rate-setting by one party.",
+    },
+    // ── Healthcare & Life Sciences clauses ───────────────────────────────────
+    HEALTH_PATIENT_DATA: {
+      preferredPosition: "Patient data processed only under explicit consent or Schedule 3 DPA 2018 condition. Separate Data Security and Protection Toolkit (DSPT) compliance warranted. NHS data security standards applied. No patient data shared with third parties without individual consent. Data flows documented and DPIA completed.",
+      acceptableFallback: "Patient data processing under lawful basis with DSPT compliance. DPIA completed. Third-party sharing restricted.",
+      hardRedLine: "Patient data processed without lawful basis; or no DSPT compliance obligation for contracts involving NHS patient data.",
+    },
+    HEALTH_REGULATORY_APPROVAL: {
+      preferredPosition: "Supplier warrants that all products and services covered by this agreement hold required MHRA, CE, or UKCA certification for their intended use. Obligation to notify us within 48 hours of any regulatory action (safety alert, recall, CE certificate withdrawal). Our use of the product does not constitute off-label use without our prior written consent.",
+      acceptableFallback: "Regulatory approvals warranted. Notification of safety alerts and recalls within 5 business days.",
+      hardRedLine: "No regulatory approval warranty for medical devices or in-vitro diagnostics; or no obligation to notify of safety alerts or recalls.",
+    },
+    HEALTH_PHARMACOVIGILANCE: {
+      preferredPosition: "Safety data exchange agreement (SDEA) executed alongside commercial agreement. Adverse event reports exchanged within required regulatory timeframes (15 calendar days for serious unexpected, 7 days for fatal/life-threatening). Each party maintains pharmacovigilance system to ICH E2E standard. Regulatory authority reportable events notified immediately.",
+      acceptableFallback: "SDEA executed. Adverse event reporting within required timeframes. Regulatory notification obligations allocated.",
+      hardRedLine: "No SDEA for agreements involving pharmacovigilance obligations; or adverse event reporting timelines that do not meet regulatory requirements.",
+    },
+    HEALTH_CLINICAL_PROTOCOL: {
+      preferredPosition: "Protocol deviations require sponsor approval. Material amendments require regulatory authority and ethics committee re-approval before implementation. Protocol holds triggered by safety signal implemented within 24 hours. We retain right to audit site compliance with protocol.",
+      acceptableFallback: "Material protocol amendments subject to approval process. Safety holds implemented promptly. Audit rights retained.",
+      hardRedLine: "Unilateral protocol amendments by site without sponsor notification; or no mechanism for immediate safety hold.",
+    },
+    HEALTH_NHS_TERMS: {
+      preferredPosition: "NHS Standard Contract (or equivalent NHS England terms) incorporated by reference where required. Data processing under Data Security and Protection Toolkit obligations. NHS Protect anti-fraud obligations warranted. NHS branding and identity guidelines complied with.",
+      acceptableFallback: "NHS contract requirements complied with. DSPT and data security obligations met.",
+      hardRedLine: "Non-compliance with NHS Standard Contract mandatory provisions; or failure to incorporate required NHS data security terms.",
+    },
+    HEALTH_PRODUCT_LIABILITY: {
+      preferredPosition: "Supplier maintains product liability insurance of minimum £10M per occurrence. Recall costs indemnified by supplier for defects attributable to supplier. We retain termination right without liability on any MHRA safety alert or recall affecting the product. Strict liability for product defects under CPA 1987 acknowledged.",
+      acceptableFallback: "Product liability insurance £5M+. Recall cost indemnity for supplier-caused defects. Termination right on safety alert.",
+      hardRedLine: "No product liability insurance requirement; or exclusion of strict liability for medical device defects.",
+    },
+    // ── Manufacturing & Supply Chain clauses ─────────────────────────────────
+    MFG_INCOTERMS: {
+      preferredPosition: "Delivery terms specify Incoterms 2020 rule, named place or port, and whether CIF/CIP insurance obligation uses Institute Cargo Clauses (A). Risk transfers at named point. Export licences and customs clearance responsibilities clearly allocated. Delivery documentation (commercial invoice, packing list, bill of lading or CMR) specified.",
+      acceptableFallback: "Incoterms 2020 specified with named place. Export and import responsibilities allocated. Required documentation listed.",
+      hardRedLine: "No Incoterms reference with ambiguous risk transfer; or delivery terms that leave export licensing obligations unallocated.",
+    },
+    MFG_QUALITY_STANDARDS: {
+      preferredPosition: "Products must meet ISO 9001 (or industry-equivalent: GMP, IATF 16949, AS9100) requirements. Certificate of Conformance provided with each delivery. We have right of inspection and rejection at delivery. Non-conforming goods returned at supplier's cost. CAPA (Corrective and Preventive Action) required for recurring defects.",
+      acceptableFallback: "Applicable quality standard compliance warranted. Certificate of Conformance on request. Inspection and rejection rights retained. CAPA process for recurring issues.",
+      hardRedLine: "No quality standard compliance obligation; or no right to inspect and reject non-conforming goods.",
+    },
+    MFG_PRODUCT_LIABILITY: {
+      preferredPosition: "Supplier indemnifies against all third-party product liability claims arising from defects in supplier-manufactured components. Product liability insurance minimum £5M per occurrence. Immediate notification and cooperation on product liability claims. Recall costs indemnified by the party whose defect caused the recall.",
+      acceptableFallback: "Product liability indemnity for defective components. Insurance £2M+. Notification and cooperation on claims.",
+      hardRedLine: "No product liability indemnity for supplier components; or exclusion of liability for defects in goods supplied.",
+    },
+    MFG_TOOLING_OWNERSHIP: {
+      preferredPosition: "All tooling, moulds, jigs, and fixtures paid for by us vest in us on creation. Tooling held by supplier is clearly identified as our property. Supplier maintains tooling at their cost. Tooling returned on demand within 30 days. No lien on our tooling for unpaid invoices.",
+      acceptableFallback: "Tooling paid for by us is our property. Identification and maintenance obligations. Return on 60 days' notice. No lien.",
+      hardRedLine: "Supplier claims ownership of tooling we paid for; or right to hold our tooling as security for unpaid invoices.",
+    },
+    MFG_SUPPLY_CHAIN_RESILIENCE: {
+      preferredPosition: "Supplier maintains minimum 8-week buffer stock for critical components. Alternative approved sources identified for sole-sourced materials. Business continuity plan maintained and tested annually. Immediate notification of any supply risk affecting our orders. Priority supply rights in shortage situations.",
+      acceptableFallback: "Buffer stock for critical items. BCP maintained. Supply risk notification within 48 hours. Reasonable priority allocation in shortage.",
+      hardRedLine: "No buffer stock obligation for critical components; no BCP; or supplier has no obligation to prioritise our supply in shortage.",
+    },
+    // ── Retail & eCommerce clauses ───────────────────────────────────────────
+    RET_DISTANCE_SELLING: {
+      preferredPosition: "All distance selling obligations under Consumer Rights Act 2015 and Consumer Contracts (Information, Cancellation and Additional Charges) Regulations 2013 complied with. 14-day cooling-off right clearly communicated. Pre-contract information provided in durable medium. Return shipping costs borne by supplier for defective goods.",
+      acceptableFallback: "Distance selling regulations compliance warranted. Cooling-off rights clearly stated. Pre-contract information obligations met.",
+      hardRedLine: "No cooling-off right for distance-sold contracts; or attempt to contractually limit statutory consumer rights.",
+    },
+    RET_CONSUMER_RETURNS: {
+      preferredPosition: "30-day returns policy for change of mind (exceeding statutory minimum). Defective goods returned at our cost within 24 months. Refund processed within 5 business days of return receipt. Exchange or refund at consumer's option for defective items. No restocking fees.",
+      acceptableFallback: "Statutory returns rights complied with. Defective goods policy clearly stated. Refund within 14 days of return.",
+      hardRedLine: "Returns policy that restricts statutory rights; or refund timeframes that exceed statutory maximums.",
+    },
+    RET_MARKETPLACE_TERMS: {
+      preferredPosition: "Platform seller terms fixed for minimum 12 months. Fee changes notified 90 days in advance with right to delist. Commission and fee structure transparent. Platform may not use our sales data to compete against us. Dispute resolution process for order issues available with 48-hour response.",
+      acceptableFallback: "Seller terms with 60-day change notice. Transparent fee structure. Sales data not used against us. Dispute process available.",
+      hardRedLine: "Platform may change fees with less than 30 days' notice; or use our seller data to develop competing products.",
+    },
+    RET_AGE_VERIFICATION: {
+      preferredPosition: "Age verification system compliant with applicable law and Ofcom/BBFC guidance for age-restricted products. Verification records retained in compliance with data protection law. We accept no liability for third-party age verification system failures if we have complied with contractual specifications.",
+      acceptableFallback: "Age verification compliant with applicable requirements. Liability for failure allocated to the party responsible for the verification system.",
+      hardRedLine: "No age verification obligation for age-restricted products; or we bear sole liability for failures in a third-party age verification system.",
+    },
+    RET_CONSUMER_CREDIT: {
+      preferredPosition: "BNPL and consumer credit products comply with Consumer Credit Act 1974 and FCA CONC rules. Clear disclosure of total cost of credit, APR, and repayment terms. FCA authorisation verified for credit broking or lending. No incentivised sales of unsuitable credit products.",
+      acceptableFallback: "Consumer credit compliance warranted. FCA authorisation confirmed. Transparent credit terms.",
+      hardRedLine: "Consumer credit products offered without FCA authorisation; or credit terms that do not comply with Consumer Credit Act disclosure requirements.",
+    },
+    // ── Media & Entertainment clauses ────────────────────────────────────────
+    MEDIA_RIGHTS_CLEARANCE: {
+      preferredPosition: "Supplier warrants full chain of title and all necessary rights clearances for all materials delivered. Underlying rights (music, archive footage, literary rights, personality rights, synchronisation) fully cleared for the specified media, territories, and term. E&O insurance minimum £1M per occurrence. Indemnity for third-party IP claims arising from defective title.",
+      acceptableFallback: "Chain of title warranty. E&O insurance. Indemnity for IP claims from undisclosed underlying rights encumbrances.",
+      hardRedLine: "No chain of title warranty; or delivery of materials without confirmation that underlying rights are cleared for our intended use.",
+    },
+    MEDIA_RESIDUALS_ROYALTIES: {
+      preferredPosition: "All residual obligations to guilds, unions, and collecting societies fully disclosed and allocated. Royalty accounting statements provided quarterly within 30 days of quarter end. Audit right on royalty calculations on 15 days' notice annually. No cross-collateralisation across separate titles or projects without consent.",
+      acceptableFallback: "Residual obligations disclosed and allocated. Semi-annual royalty accounting. Audit right annually.",
+      hardRedLine: "Undisclosed residual obligations falling on us; or cross-collateralisation of royalties across projects without consent.",
+    },
+    MEDIA_TALENT_OBLIGATIONS: {
+      preferredPosition: "All talent agreements (on-screen, voice, music performance) fully executed before production commences. Talent clearances cover all intended media, territories, and term. Likeness rights and approval rights clearly defined. Re-use fees and residuals pre-agreed. No talent approval rights that could prevent delivery.",
+      acceptableFallback: "Talent agreements in place before production. Clearances for primary media and territory. Re-use fee schedule agreed.",
+      hardRedLine: "Talent not contracted before production; or talent approval rights that give veto over editorial decisions without compensation.",
+    },
+    MEDIA_FORMAT_RIGHTS: {
+      preferredPosition: "Format rights, adaptation rights, and sequel/prequel rights clearly defined and allocated. Option periods and exercise prices specified. All languages and territories covered for primary distribution. Underlying literary or IP rights licensed for all intended adaptations. Moral rights waivers obtained where applicable.",
+      acceptableFallback: "Format and adaptation rights documented. Option terms and exercise prices clear. Primary territories and languages covered.",
+      hardRedLine: "Format rights that include unexpected sequel or franchise obligations we did not agree to; or adaptation rights that infringe underlying IP we cannot clear.",
+    },
+    MEDIA_SYNC_LICENSE: {
+      preferredPosition: "Synchronisation licence covers all intended uses: linear, on-demand, streaming, social, theatrical, and promotional. Territory, term, and media clearly specified. Master and publisher licences both obtained. No most-favoured-nation obligations that trigger additional payments without notice. Festival use covered.",
+      acceptableFallback: "Sync licence covers primary distribution media and territory. Both master and sync rights cleared. MFN obligations disclosed.",
+      hardRedLine: "Sync licence that does not cover all distribution platforms we use; or undisclosed MFN obligations that create unexpected payment obligations.",
+    },
+    // ── Energy & CleanTech clauses ───────────────────────────────────────────
+    ENERGY_OFFTAKE: {
+      preferredPosition: "Offtake volume, price, and indexation mechanism agreed for the full contract term. Curtailment rights clearly defined with compensation mechanism. Balancing responsibility allocated. Floor price protection included. Change in law provisions covering subsidy regime changes. Bankable contract terms accepted by project finance lenders.",
+      acceptableFallback: "Offtake terms agreed. Curtailment with compensation. Balancing allocation clear. Change in law provisions included.",
+      hardRedLine: "No curtailment compensation; or change in law provisions that place subsidy regime risk entirely on the generator without price adjustment.",
+    },
+    ENERGY_GRID_CONNECTION: {
+      preferredPosition: "Grid connection agreement with DNO/TO in place or conditions precedent to this contract. Connection capacity confirmed in writing. Rights of way and land access secured. Metering obligations and data access rights specified. Reinforcement cost allocation agreed.",
+      acceptableFallback: "Grid connection terms agreed or conditions precedent documented. Metering and data access specified.",
+      hardRedLine: "No confirmed grid connection capacity before financial close; or reinforcement costs that are uncapped and fall on us without contractual ceiling.",
+    },
+    ENERGY_SUBSIDY_REGIME: {
+      preferredPosition: "Applicable subsidy (CfD, ROC, FIT, REGO, BM) registration conditions confirmed. Compliance with scheme rules warranted. Change in scheme rules triggers renegotiation mechanism. Revenue waterfall clearly specifies subsidy payment priority. Clawback risk allocated.",
+      acceptableFallback: "Subsidy eligibility confirmed. Scheme rule compliance warranted. Change in law renegotiation mechanism included.",
+      hardRedLine: "Subsidy eligibility not confirmed; or change in subsidy scheme risk allocated entirely to us without pricing adjustment mechanism.",
+    },
+    ENERGY_ENVIRONMENTAL_PERMITS: {
+      preferredPosition: "All required environmental permits (Environmental Permit, planning consent, EIA, habitat survey) obtained or conditions precedent to financial close. Ongoing permit compliance warranted. We are notified within 48 hours of any permit breach or enforcement action. Decommissioning and remediation obligations clearly allocated.",
+      acceptableFallback: "Required permits in place or conditions precedent. Permit compliance warranted. Notification of enforcement within 5 days. Decommissioning obligations allocated.",
+      hardRedLine: "Financial close before required environmental permits obtained; or decommissioning liability unallocated.",
+    },
+    ENERGY_BALANCING_IMBALANCE: {
+      preferredPosition: "Balancing and imbalance risk clearly allocated between parties. Gate closure notification obligations specified. Imbalance settlement charges allocated to the party responsible for the imbalance. Forecasting obligations and accuracy requirements defined.",
+      acceptableFallback: "Balancing responsibility allocated. Gate closure obligations specified. Imbalance charges follow allocation of balancing responsibility.",
+      hardRedLine: "Imbalance risk allocated to us for generation dispatch decisions we do not control.",
+    },
+    // ── Education & EdTech clauses ───────────────────────────────────────────
+    EDU_SAFEGUARDING: {
+      preferredPosition: "All personnel with access to children or vulnerable adults hold enhanced DBS clearance updated within 3 years. Safeguarding policy compliant with Keeping Children Safe in Education 2024 and Working Together 2023. Designated Safeguarding Lead identified. Obligation to report safeguarding concerns immediately and cooperate with statutory investigations.",
+      acceptableFallback: "Enhanced DBS clearance for all relevant personnel. Safeguarding policy maintained and shared. Reporting obligations accepted.",
+      hardRedLine: "No DBS clearance requirement for personnel with unsupervised child access; or no safeguarding policy.",
+    },
+    EDU_STUDENT_DATA: {
+      preferredPosition: "Student personal data processed only for agreed educational purposes. Parental or guardian consent obtained for under-13 data processing. No student data used for advertising or profiling. Data minimisation applied. FERPA (US) or UK GDPR compliance warranted. Student records returned on contract termination.",
+      acceptableFallback: "Student data processing limited to educational purposes. Parental consent for under-13s. No profiling or advertising use. Records returned on termination.",
+      hardRedLine: "Student data used for commercial profiling; or no parental consent mechanism for children's data.",
+    },
+    EDU_CURRICULUM_RIGHTS: {
+      preferredPosition: "All curriculum content and course materials developed under this agreement vest in us on creation. Supplier retains pre-existing IP with broad licence. We may adapt, update, and republish content without restriction. No lock-in to supplier's LMS or content platform after contract ends. SCORM/xAPI compliance required for interoperability.",
+      acceptableFallback: "Curriculum content IP vests in us. Supplier background IP licensed perpetually. Platform interoperability (SCORM/xAPI) required.",
+      hardRedLine: "Supplier owns curriculum content we commissioned and paid for; or content locked into proprietary format preventing use on other platforms.",
+    },
+    EDU_ACCREDITATION: {
+      preferredPosition: "Accreditation body approval obtained before programme launch. Awarding body agreement executed and in force. Qualification specifications and assessment requirements complied with. We are notified within 24 hours of any accreditation risk or compliance concern. No material programme changes without awarding body approval.",
+      acceptableFallback: "Accreditation in place. Qualification compliance warranted. Notification of accreditation issues within 5 days.",
+      hardRedLine: "Programme launched before accreditation obtained; or material programme changes without awarding body approval risking students' qualifications.",
+    },
+    // ── Professional Services clauses ────────────────────────────────────────
+    PS_ENGAGEMENT_SCOPE: {
+      preferredPosition: "Scope of services defined in a detailed Statement of Work. Change request process agreed: written change order required; no additional charges without signed change order. Out-of-scope activities expressly identified. Scope creep not billable without our prior written approval.",
+      acceptableFallback: "Scope documented. Written change orders required for additional work. Out-of-scope items identified.",
+      hardRedLine: "Vague scope definition with no change control process; or supplier may expand scope and charge for it without our approval.",
+    },
+    PS_FEE_BILLING: {
+      preferredPosition: "Fixed fees or agreed hourly rates for the engagement term. Rate card locked for minimum 12 months. Expenses pre-approved and capped at cost only (no mark-up). Invoices itemised by task and time recorded. Payment within 30 days. No success fees or contingency arrangements without separate written agreement.",
+      acceptableFallback: "Agreed rates fixed for the term. Expenses at cost with pre-approval. Itemised invoices. 30-day payment.",
+      hardRedLine: "Unilateral rate increases during engagement; or expense mark-up without disclosure; or invoices without sufficient detail to verify.",
+    },
+    PS_CONFLICTS_INTEREST: {
+      preferredPosition: "Supplier confirms no actual or potential conflict of interest at engagement commencement and warrants to notify us immediately of any conflict arising during the engagement. Conflicts policy shared on request. We have right to terminate if conflict is not resolved to our satisfaction. No concurrent engagements with direct competitors without our consent.",
+      acceptableFallback: "Conflict disclosure at engagement commencement. Ongoing notification obligation. Termination right for unresolvable conflicts.",
+      hardRedLine: "No conflict of interest disclosure; or supplier may simultaneously advise direct competitors on related matters without consent.",
+    },
+    PS_PROFESSIONAL_LIABILITY: {
+      preferredPosition: "Supplier maintains professional indemnity insurance appropriate to the risk of the engagement: minimum £2M per claim for regulated professional services. PI policy maintained for minimum 6 years post-engagement (run-off cover). Certificate of insurance provided annually on request. No exclusion of liability for professional negligence causing financial loss.",
+      acceptableFallback: "PI insurance minimum £1M per claim. Run-off cover confirmed. Certificate on request. No exclusion of professional negligence liability.",
+      hardRedLine: "No PI insurance for regulated professional services; or exclusion of liability for professional negligence.",
+    },
   },
   MODERATE: {
     LIABILITY_CAP: {
@@ -975,6 +1738,449 @@ export const PLAYBOOK_DEFAULTS: Record<
       acceptableFallback: "Redemption as a long-stop only after 7+ years if no liquidity event has occurred, subject to 12-month notice and board approval.",
       hardRedLine: "Redemption rights exercisable within 5 years, at investor discretion, or without requiring a formal liquidity event.",
     },
+    // ── Insurance litigation clauses ─────────────────────────────────────────
+    INS_COVERAGE_RESPONSE: {
+      preferredPosition: "Policy clearly responds: all coverage triggers met, no exclusions apply, insured has complied with all conditions.",
+      acceptableFallback: "Coverage arguable: primary position responds but one or more conditions or exclusions require analysis before confirming.",
+      hardRedLine: "Coverage does not respond, a clear exclusion applies, or a material condition precedent has been breached.",
+    },
+    INS_EXCLUSIONS_ANALYSIS: {
+      preferredPosition: "No applicable exclusion identified. Policy wording unambiguous and insured's conduct does not trigger any exclusion.",
+      acceptableFallback: "One exclusion potentially applicable but arguments available on both sides. Requires senior review before position is taken.",
+      hardRedLine: "A clear and unambiguous exclusion applies. Coverage denial is legally defensible.",
+    },
+    INS_NOTIFICATION_COMPLIANCE: {
+      preferredPosition: "Notification received within the required timeframe, in the correct form, and to the correct party. No condition precedent issues.",
+      acceptableFallback: "Notification technically late but arguments available that condition was not a condition precedent, or that the insurer has not been prejudiced.",
+      hardRedLine: "Notification clearly non-compliant: materially out of time, wrong form, or missing information that cannot be excused.",
+    },
+    INS_QUANTUM_ASSESSMENT: {
+      preferredPosition: "Current reserve is adequate and reflects a realistic assessment of exposure. No reserve movement required.",
+      acceptableFallback: "Reserve requires review. Realistic range is above current reserve but within acceptable parameters for claims committee reporting.",
+      hardRedLine: "Current reserve is materially inadequate. Exposure significantly exceeds reserve. Immediate reserve uplift and committee reporting required.",
+    },
+    INS_DEFENCE_PROSPECTS: {
+      preferredPosition: "Strong defence prospects. Claim is defensible on liability and/or quantum. Recommend defend.",
+      acceptableFallback: "Reasonable defence prospects but outcome uncertain. Consider commercial settlement to manage costs and litigation risk.",
+      hardRedLine: "Weak or indefensible. Liability likely established. Settlement is the commercially rational outcome.",
+    },
+    INS_SETTLEMENT_AUTHORITY: {
+      preferredPosition: "Recommended settlement within litigation handler authority. No escalation required.",
+      acceptableFallback: "Recommended settlement within senior litigation counsel authority. Single-level escalation required.",
+      hardRedLine: "Recommended settlement exceeds claims committee or board authority. Full escalation required before any settlement discussions.",
+    },
+    INS_REGULATORY_OBLIGATIONS: {
+      preferredPosition: "All FCA claims handling obligations met. TCF requirements satisfied. All timeframes and reporting duties complied with.",
+      acceptableFallback: "One or more regulatory obligations at risk of breach. Remediation steps underway. FCA notification not yet required.",
+      hardRedLine: "Regulatory breach identified. FCA notification obligation triggered or imminent. Immediate compliance action required.",
+    },
+    INS_SUBROGATION_POTENTIAL: {
+      preferredPosition: "Strong subrogation prospects against an identifiable and solvent third party. Recovery action should be pursued.",
+      acceptableFallback: "Subrogation possible but uncertain. Third party identified; prospects require further investigation before committing to recovery action.",
+      hardRedLine: "Subrogation unlikely. Third party unidentified, insolvent, or defence of primary claim takes priority.",
+    },
+    INS_PANEL_FIRM_INSTRUCTIONS: {
+      preferredPosition: "Panel firm spend and strategy within approved guidelines. Budget forecast within approved parameters.",
+      acceptableFallback: "Panel spend approaching approved threshold. Budget review and approval required before further instruction.",
+      hardRedLine: "Panel spend exceeds approved threshold or strategy materially deviates from instructions. Immediate review and re-approval required.",
+    },
+    INS_RESERVE_ADEQUACY: {
+      preferredPosition: "Reserve is adequate and reflects current best estimate of ultimate exposure. No movement required at this stage.",
+      acceptableFallback: "Reserve requires upward review. Exposure development warrants adjustment before next reporting period.",
+      hardRedLine: "Reserve is materially inadequate. Immediate uplift required. Board or claims committee reporting obligation triggered.",
+    },
+    // ── Insurance litigation — extended ─────────────────────────────────────
+    INS_FRAUD_INDICATORS: {
+      preferredPosition: "Fraud screening at inception and quantum stage. SIU referral for high-value or flagged claims.",
+      acceptableFallback: "Ad-hoc fraud review where indicators present. Documentation retained.",
+      hardRedLine: "No fraud screening process or ability to refer to SIU.",
+    },
+    INS_REHABILITATION: {
+      preferredPosition: "Rehabilitation offered on injury claims above agreed threshold. Case manager appointed within 15 days.",
+      acceptableFallback: "Rehabilitation on request. Reasonable costs met by insurer.",
+      hardRedLine: "Rehabilitation excluded or capped at nominal amount.",
+    },
+    INS_EXPERT_EVIDENCE: {
+      preferredPosition: "SJE preferred for quantum. Party expert permitted for liability. Instructions agreed between parties.",
+      acceptableFallback: "Expert appointment by agreement failing which court direction.",
+      hardRedLine: "Insurer has no input into expert instruction scope.",
+    },
+    INS_PART36_CPR: {
+      preferredPosition: "Part 36 offer review within 7 business days. Counter-offer within 14 business days where appropriate.",
+      acceptableFallback: "Reasonable response to Part 36 offers within CPR deadline periods.",
+      hardRedLine: "Part 36 offers routinely ignored without documented rationale.",
+    },
+    INS_COSTS_BUDGETING: {
+      preferredPosition: "Costs budget filed as required. Material excess challenged. Phase-by-phase monitoring.",
+      acceptableFallback: "Costs reviewed at key milestones. Disproportionate spend challenged.",
+      hardRedLine: "Claimant costs accepted without challenge regardless of proportionality.",
+    },
+    INS_THIRD_PARTY_CAPTURE: {
+      preferredPosition: "Third-party capture on claims above agreed threshold. Initial contact within 10 days.",
+      acceptableFallback: "Capture offered where third party is unrepresented.",
+      hardRedLine: "No capture protocol or capture without independent medical assessment.",
+    },
+    INS_CLAIMS_TIMEFRAMES: {
+      preferredPosition: "Acknowledgement within 48 hours. Coverage position within 15 business days. Regular updates to insured.",
+      acceptableFallback: "Acknowledgement within 5 business days. Coverage decision within 21 business days.",
+      hardRedLine: "No acknowledgement or coverage decision timeframe obligation.",
+    },
+    INS_CONDITIONS_PRECEDENT: {
+      preferredPosition: "Material conditions precedent enforced. Minor procedural breaches waived where no prejudice to insurer.",
+      acceptableFallback: "Conditions precedent reviewed at inception and annually. Non-compliance documented.",
+      hardRedLine: "All conditions precedent treated as waived.",
+    },
+    INS_CONTRIBUTION: {
+      preferredPosition: "Contribution rights reserved in coverage letters. Pursued where recovery cost-effective.",
+      acceptableFallback: "Contribution considered at settlement. Reservation in correspondence.",
+      hardRedLine: "Contribution rights routinely waived.",
+    },
+    INS_REINSTATEMENT: {
+      preferredPosition: "Reinstatement offered where economically viable. Independent assessment of both bases. Insured election within 42 days.",
+      acceptableFallback: "Reinstatement on properties where rebuild cost is proportionate.",
+      hardRedLine: "No reinstatement option offered to insured.",
+    },
+    // ── Logistics contract clauses ───────────────────────────────────────────
+    LOG_LIABILITY_CAP_CMR: {
+      preferredPosition: "Liability limited to CMR Convention limits for international road freight (8.33 SDR per kg). All attempts to exclude CMR limits rejected.",
+      acceptableFallback: "Enhanced liability cap agreed at a defined per-consignment limit with corresponding insurance in place. CMR limits as backstop.",
+      hardRedLine: "Customer paper excludes CMR limits entirely and imposes uncapped liability for cargo loss or damage beyond insurance cover.",
+    },
+    LOG_CARGO_LIABILITY: {
+      preferredPosition: "Cargo liability limited to insured values. Customer has arranged own cargo insurance. Our liability capped at CMR or agreed per-consignment limit.",
+      acceptableFallback: "Liability for cargo loss or damage capped at a defined limit commensurate with our insurance cover. Enhanced limit with additional premium.",
+      hardRedLine: "Liability for cargo loss or damage exceeds our insurance cover. Uncapped exposure creates uninsurable risk.",
+    },
+    LOG_INDEMNITY: {
+      preferredPosition: "Indemnities are proportionate and fault-based. We indemnify for our own negligence only. Customer indemnifies for their acts, omissions, and misdescription of cargo.",
+      acceptableFallback: "Mutual indemnities limited to gross negligence and wilful misconduct. Each party responsible for losses caused by their own breach.",
+      hardRedLine: "We are required to indemnify the customer for their own negligence, misdescription of cargo, or inadequate packaging.",
+    },
+    LOG_SERVICE_LEVELS: {
+      preferredPosition: "SLAs are achievable and reflect operational reality. Force majeure covers customs delays, port congestion, industrial action, and weather events. Service credits proportionate and capped.",
+      acceptableFallback: "Reasonable SLAs with force majeure for material disruption events. Service credits as sole remedy for SLA breach capped at 10% of monthly fees.",
+      hardRedLine: "Punitive SLAs without force majeure for logistics-specific disruption. Service credits uncapped or structured as penalties.",
+    },
+    LOG_SUBCONTRACTING: {
+      preferredPosition: "Unrestricted right to subcontract to approved hauliers and logistics partners. Pass-through liability. No prior approval required for routine subcontracting.",
+      acceptableFallback: "Subcontracting permitted on notification. We remain liable for subcontractor performance. Named approved subcontractors list maintained.",
+      hardRedLine: "Prior written approval required for every subcontract engagement. Approval cannot be unreasonably withheld but creates operational bottleneck.",
+    },
+    LOG_DATA_GDPR: {
+      preferredPosition: "Controller/processor split clearly defined. DPA in place. Shipment data, customer data, and driver data obligations clearly allocated. Cross-border transfer mechanisms in place.",
+      acceptableFallback: "DPA in place with standard processing obligations. Data sharing with customs authorities covered by legitimate interest or legal obligation basis.",
+      hardRedLine: "No DPA where personal data is being processed. Ambiguous data ownership for tracking data or driver data.",
+    },
+    LOG_GOVERNING_LAW: {
+      preferredPosition: "English law governing the contract. English courts have exclusive jurisdiction. Consistent with our standard trading conditions.",
+      acceptableFallback: "English law with non-exclusive jurisdiction or agreed arbitration. Jurisdiction reflects major operational territory.",
+      hardRedLine: "Foreign jurisdiction with no local legal resource. Governing law clause that would determine outcome of a major cargo claim in an unfamiliar court.",
+    },
+    LOG_TERMINATION: {
+      preferredPosition: "Either party may terminate on 90 days written notice. No transition obligations beyond standard handover. Exit at any time on convenience without penalty.",
+      acceptableFallback: "120-day convenience termination. Standard data return and handover obligations. No punitive exit costs.",
+      hardRedLine: "Lock-in beyond 12 months with punitive exit costs. Transition obligations that create open-ended liability on exit.",
+    },
+    LOG_TRADE_COMPLIANCE: {
+      preferredPosition: "Each party responsible for their own trade compliance and sanctions screening. Customer warrants cargo does not breach sanctions. Immediate suspension right if sanctions risk identified.",
+      acceptableFallback: "Shared trade compliance obligations. Mutual notification of any sanctions exposure. Suspension right on reasonable grounds.",
+      hardRedLine: "We are required to take on the customer's sanctions screening and export control compliance obligations without corresponding indemnity.",
+    },
+    LOG_AUDIT_REPORTING: {
+      preferredPosition: "Annual audit right on 30 days written notice. Reporting obligations limited to agreed KPI metrics. Audit costs borne by auditing party unless material breach found.",
+      acceptableFallback: "Audit on 15 days notice, once per year. Standard operational reporting. Reasonable audit costs.",
+      hardRedLine: "Continuous access right or real-time reporting obligations without a data security framework. Audit costs borne by us regardless of outcome.",
+    },
+    // ── Logistics contract — extended ────────────────────────────────────────
+    LOG_CARRIER_PAYMENT: {
+      preferredPosition: "Payment within 30 days. Fuel surcharges linked to published index. 14-day notice of material increases.",
+      acceptableFallback: "45-day payment. Fuel surcharges with index reference. Reasonable notice of increases.",
+      hardRedLine: "Uncapped or non-indexed fuel surcharges; payment terms below 14 days.",
+    },
+    LOG_DANGEROUS_GOODS: {
+      preferredPosition: "ADR compliance mandatory. Valid certificate held. Incident reporting within 4 hours of occurrence.",
+      acceptableFallback: "ADR compliance required. Documentation provided on request.",
+      hardRedLine: "No ADR compliance or training obligation.",
+    },
+    LOG_CUSTOMS_CLEARANCE: {
+      preferredPosition: "Customs clearance responsibilities allocated per agreed Incoterms. Full trade data provided by shipper on time.",
+      acceptableFallback: "Carrier arranges customs on request. Shipper provides accurate commodity codes.",
+      hardRedLine: "No customs responsibility allocation.",
+    },
+    LOG_PACKAGING_LABELING: {
+      preferredPosition: "Packaging to applicable transport standards. Shipper warrants compliance. Non-compliant consignments refused at shipper's risk.",
+      acceptableFallback: "Reasonable packaging obligations. Carrier notifies shipper of deficiencies.",
+      hardRedLine: "No packaging compliance warranty or refusal right.",
+    },
+    LOG_COLD_CHAIN: {
+      preferredPosition: "Temperature maintained to agreed range. Monitoring data provided on delivery. Alert if range exceeded.",
+      acceptableFallback: "Temperature monitoring in place. Records available on request.",
+      hardRedLine: "No cold chain monitoring or data retention.",
+    },
+    LOG_TRACK_TRACE: {
+      preferredPosition: "Shipment tracking available to customer. ETA updates on significant change. Records retained 2 years.",
+      acceptableFallback: "Tracking data available on request. Reasonable updates during transit.",
+      hardRedLine: "No tracking capability or shipment visibility.",
+    },
+    LOG_FORCE_MAJEURE: {
+      preferredPosition: "Force majeure for genuine unforeseeable transport disruptions. 48-hour notice. 10-day long-stop.",
+      acceptableFallback: "Force majeure with reasonable notice and customer right to alternative routing after 14 days.",
+      hardRedLine: "Force majeure clause covering foreseeable operational risk.",
+    },
+    LOG_INSURANCE_CERT: {
+      preferredPosition: "CMR and goods-in-transit insurance required. Evidence provided at contract commencement and on renewal.",
+      acceptableFallback: "Insurance in place. Certificate provided on request within 5 business days.",
+      hardRedLine: "No insurance requirements or evidence obligation.",
+    },
+    LOG_INTERNATIONAL_CONVENTIONS: {
+      preferredPosition: "CMR/Hague-Visby/Montreal apply as relevant to each transport mode. Parties acknowledge convention liability limits.",
+      acceptableFallback: "Applicable convention governs. Special declaration for high-value cargo.",
+      hardRedLine: "Convention liability excluded or undermined by contract terms.",
+    },
+    LOG_DRIVER_COMPLIANCE: {
+      preferredPosition: "Drivers hold valid licences and CPC. Tachograph records maintained. Compliance evidence on request.",
+      acceptableFallback: "Carrier warrants driver compliance with applicable regulations. Evidence on request.",
+      hardRedLine: "No driver qualification obligation.",
+    },
+    // ── Technology & SaaS clauses ────────────────────────────────────────────
+    TECH_API_TERMS: {
+      preferredPosition: "API access governed by documented SLA. Rate limits disclosed upfront and not unilaterally reduced during term. Versioning policy guarantees minimum 12-month deprecation notice. Breaking changes require 6-month advance notice. We retain right to access our data via API for full term plus 90-day extraction period post-termination.",
+      acceptableFallback: "API access on published terms. 6-month deprecation notice. Data extraction rights on termination for 60 days.",
+      hardRedLine: "No guaranteed API availability, no deprecation notice, or no data extraction right on termination.",
+    },
+    TECH_UPTIME_SLA: {
+      preferredPosition: "99.9% monthly uptime (excluding scheduled maintenance). Scheduled maintenance windows in non-peak hours with 48-hour notice. Service credits of 10% monthly fee per 0.1% below SLA, capped at 30% monthly fee. Persistent breach (3 consecutive months below SLA) triggers termination right without penalty.",
+      acceptableFallback: "99.5% uptime. Service credits as sole remedy for SLA breach. Termination right after 6 months of persistent underperformance.",
+      hardRedLine: "No uptime SLA, no service credits, or credits that cap all liability for downtime causing material business disruption.",
+    },
+    TECH_DATA_PORTABILITY: {
+      preferredPosition: "Full data export in machine-readable format (CSV, JSON, or API) at any time during the term and for 90 days post-termination at no additional charge. Supplier must not degrade data quality or completeness on export. Deletion certification provided on request after extraction period.",
+      acceptableFallback: "Data export in standard format available on request with 10 business days' notice. 60-day post-termination extraction period.",
+      hardRedLine: "No data export right, export in proprietary non-portable format only, or export charged at rates that make it economically prohibitive.",
+    },
+    TECH_OPEN_SOURCE: {
+      preferredPosition: "Supplier discloses all open source components used in the service. No copyleft (GPL/AGPL) components that could affect our IP in deliverables. SBOM (Software Bill of Materials) provided on request. CVE notifications within 24 hours for critical vulnerabilities in disclosed components.",
+      acceptableFallback: "Open source disclosure on request. No GPL-licensed components in deliverables. CVE notification for critical vulnerabilities within 5 business days.",
+      hardRedLine: "No open source disclosure obligation where deliverables may incorporate copyleft-licensed components affecting our IP.",
+    },
+    TECH_SECURITY_STANDARDS: {
+      preferredPosition: "Supplier holds current ISO 27001 certification or SOC 2 Type II attestation. Annual penetration testing by approved third party. Security patches applied within 72 hours of critical CVE disclosure. Security incident notification within 4 hours of confirmed breach.",
+      acceptableFallback: "ISO 27001 or SOC 2 Type II. Annual pen testing. Critical patches within 5 business days. Security incident notification within 24 hours.",
+      hardRedLine: "No security certification, no pen testing obligation, or incident notification period exceeding 72 hours for critical breaches.",
+    },
+    TECH_CHANGE_MANAGEMENT: {
+      preferredPosition: "All material changes to the service (new features affecting existing workflows, UI changes, deprecations) communicated 30 days in advance. Release notes provided. Backward compatibility maintained for minimum 12 months on APIs and data schemas. Emergency hotfixes documented and notified within 24 hours.",
+      acceptableFallback: "Material changes notified with 14 days' advance notice. API backward compatibility for 6 months minimum.",
+      hardRedLine: "No advance change notice; or supplier may make breaking changes to APIs or data schemas without notice.",
+    },
+    // ── Financial Services clauses ───────────────────────────────────────────
+    FIN_REGULATORY_PERMISSIONS: {
+      preferredPosition: "Counterparty warrants it holds all required FCA/PRA authorisations for the regulated activities performed under this agreement. Obligation to notify us within 24 hours of any restriction, variation, or withdrawal of permissions. Immediate suspension right if permissions lapse. Contract voids automatically if counterparty loses required permissions.",
+      acceptableFallback: "Permissions warranty. Notification of material regulatory action within 5 business days. Termination right on permissions lapse.",
+      hardRedLine: "No regulatory permissions warranty where counterparty performs regulated activities; or no notification obligation on permissions change.",
+    },
+    FIN_CLIENT_MONEY: {
+      preferredPosition: "Client money held in segregated accounts in accordance with FCA CASS rules. Statutory trust acknowledged in contract. Daily reconciliation. Immediate notification of any CASS breach. We are named as beneficiary on segregated accounts.",
+      acceptableFallback: "CASS-compliant segregation. Reconciliation within 2 business days. Notification of breaches within 24 hours.",
+      hardRedLine: "No CASS segregation commitment for contracts involving client money; or commingling of client and firm money.",
+    },
+    FIN_BEST_EXECUTION: {
+      preferredPosition: "Best execution policy maintained and applied to all orders. Policy reviewed annually and on material change in market structure. Order execution data available on request. Top 5 execution venues disclosed as required by MiFID II/UK MiFIR.",
+      acceptableFallback: "Best execution policy maintained. Annual review. Execution data on request.",
+      hardRedLine: "No best execution obligation where MiFID II/UK MiFIR applies to the services.",
+    },
+    FIN_FINANCIAL_PROMOTION: {
+      preferredPosition: "All financial promotions produced by or on behalf of us are approved by an FCA-authorised person before communication. Supplier warrants that any content it produces under this agreement complies with COBS 4 and relevant FCA guidance. Liability for unapproved financial promotions remains with the communicating party.",
+      acceptableFallback: "Financial promotions approval process agreed. Compliance with applicable FCA financial promotion rules warranted.",
+      hardRedLine: "No financial promotion compliance framework for contracts involving consumer-facing regulated content.",
+    },
+    FIN_MARGIN_COLLATERAL: {
+      preferredPosition: "Credit support documentation (CSA or equivalent) executed alongside master agreement. Collateral threshold and minimum transfer amounts agreed. Eligible collateral specified. Dispute resolution for margin calls within 1 business day. Close-out netting enforceability confirmed in applicable jurisdictions.",
+      acceptableFallback: "Margin and collateral terms documented. Close-out netting provisions included. Dispute process agreed.",
+      hardRedLine: "No credit support documentation for derivative or leveraged transactions; or close-out netting not contractually confirmed.",
+    },
+    FIN_BENCHMARK_RATES: {
+      preferredPosition: "All reference rates use current SONIA/SOFR (or applicable ARR) with agreed credit adjustment spread. Legacy LIBOR references replaced. Fallback provisions compliant with ISDA 2020 IBOR Fallbacks Protocol. Rate screen page, fallback hierarchy, and interpolation methodology specified in the contract.",
+      acceptableFallback: "Current ARR-based rates used. ISDA-compliant fallback provisions. Fallback hierarchy specified.",
+      hardRedLine: "Reference to discontinued benchmark rates with no fallback provision; or fallback mechanism creates unilateral rate-setting by one party.",
+    },
+    // ── Healthcare & Life Sciences clauses ───────────────────────────────────
+    HEALTH_PATIENT_DATA: {
+      preferredPosition: "Patient data processed only under explicit consent or Schedule 3 DPA 2018 condition. Separate Data Security and Protection Toolkit (DSPT) compliance warranted. NHS data security standards applied. No patient data shared with third parties without individual consent. Data flows documented and DPIA completed.",
+      acceptableFallback: "Patient data processing under lawful basis with DSPT compliance. DPIA completed. Third-party sharing restricted.",
+      hardRedLine: "Patient data processed without lawful basis; or no DSPT compliance obligation for contracts involving NHS patient data.",
+    },
+    HEALTH_REGULATORY_APPROVAL: {
+      preferredPosition: "Supplier warrants that all products and services covered by this agreement hold required MHRA, CE, or UKCA certification for their intended use. Obligation to notify us within 48 hours of any regulatory action (safety alert, recall, CE certificate withdrawal). Our use of the product does not constitute off-label use without our prior written consent.",
+      acceptableFallback: "Regulatory approvals warranted. Notification of safety alerts and recalls within 5 business days.",
+      hardRedLine: "No regulatory approval warranty for medical devices or in-vitro diagnostics; or no obligation to notify of safety alerts or recalls.",
+    },
+    HEALTH_PHARMACOVIGILANCE: {
+      preferredPosition: "Safety data exchange agreement (SDEA) executed alongside commercial agreement. Adverse event reports exchanged within required regulatory timeframes (15 calendar days for serious unexpected, 7 days for fatal/life-threatening). Each party maintains pharmacovigilance system to ICH E2E standard. Regulatory authority reportable events notified immediately.",
+      acceptableFallback: "SDEA executed. Adverse event reporting within required timeframes. Regulatory notification obligations allocated.",
+      hardRedLine: "No SDEA for agreements involving pharmacovigilance obligations; or adverse event reporting timelines that do not meet regulatory requirements.",
+    },
+    HEALTH_CLINICAL_PROTOCOL: {
+      preferredPosition: "Protocol deviations require sponsor approval. Material amendments require regulatory authority and ethics committee re-approval before implementation. Protocol holds triggered by safety signal implemented within 24 hours. We retain right to audit site compliance with protocol.",
+      acceptableFallback: "Material protocol amendments subject to approval process. Safety holds implemented promptly. Audit rights retained.",
+      hardRedLine: "Unilateral protocol amendments by site without sponsor notification; or no mechanism for immediate safety hold.",
+    },
+    HEALTH_NHS_TERMS: {
+      preferredPosition: "NHS Standard Contract (or equivalent NHS England terms) incorporated by reference where required. Data processing under Data Security and Protection Toolkit obligations. NHS Protect anti-fraud obligations warranted. NHS branding and identity guidelines complied with.",
+      acceptableFallback: "NHS contract requirements complied with. DSPT and data security obligations met.",
+      hardRedLine: "Non-compliance with NHS Standard Contract mandatory provisions; or failure to incorporate required NHS data security terms.",
+    },
+    HEALTH_PRODUCT_LIABILITY: {
+      preferredPosition: "Supplier maintains product liability insurance of minimum £10M per occurrence. Recall costs indemnified by supplier for defects attributable to supplier. We retain termination right without liability on any MHRA safety alert or recall affecting the product. Strict liability for product defects under CPA 1987 acknowledged.",
+      acceptableFallback: "Product liability insurance £5M+. Recall cost indemnity for supplier-caused defects. Termination right on safety alert.",
+      hardRedLine: "No product liability insurance requirement; or exclusion of strict liability for medical device defects.",
+    },
+    // ── Manufacturing & Supply Chain clauses ─────────────────────────────────
+    MFG_INCOTERMS: {
+      preferredPosition: "Delivery terms specify Incoterms 2020 rule, named place or port, and whether CIF/CIP insurance obligation uses Institute Cargo Clauses (A). Risk transfers at named point. Export licences and customs clearance responsibilities clearly allocated. Delivery documentation (commercial invoice, packing list, bill of lading or CMR) specified.",
+      acceptableFallback: "Incoterms 2020 specified with named place. Export and import responsibilities allocated. Required documentation listed.",
+      hardRedLine: "No Incoterms reference with ambiguous risk transfer; or delivery terms that leave export licensing obligations unallocated.",
+    },
+    MFG_QUALITY_STANDARDS: {
+      preferredPosition: "Products must meet ISO 9001 (or industry-equivalent: GMP, IATF 16949, AS9100) requirements. Certificate of Conformance provided with each delivery. We have right of inspection and rejection at delivery. Non-conforming goods returned at supplier's cost. CAPA (Corrective and Preventive Action) required for recurring defects.",
+      acceptableFallback: "Applicable quality standard compliance warranted. Certificate of Conformance on request. Inspection and rejection rights retained. CAPA process for recurring issues.",
+      hardRedLine: "No quality standard compliance obligation; or no right to inspect and reject non-conforming goods.",
+    },
+    MFG_PRODUCT_LIABILITY: {
+      preferredPosition: "Supplier indemnifies against all third-party product liability claims arising from defects in supplier-manufactured components. Product liability insurance minimum £5M per occurrence. Immediate notification and cooperation on product liability claims. Recall costs indemnified by the party whose defect caused the recall.",
+      acceptableFallback: "Product liability indemnity for defective components. Insurance £2M+. Notification and cooperation on claims.",
+      hardRedLine: "No product liability indemnity for supplier components; or exclusion of liability for defects in goods supplied.",
+    },
+    MFG_TOOLING_OWNERSHIP: {
+      preferredPosition: "All tooling, moulds, jigs, and fixtures paid for by us vest in us on creation. Tooling held by supplier is clearly identified as our property. Supplier maintains tooling at their cost. Tooling returned on demand within 30 days. No lien on our tooling for unpaid invoices.",
+      acceptableFallback: "Tooling paid for by us is our property. Identification and maintenance obligations. Return on 60 days' notice. No lien.",
+      hardRedLine: "Supplier claims ownership of tooling we paid for; or right to hold our tooling as security for unpaid invoices.",
+    },
+    MFG_SUPPLY_CHAIN_RESILIENCE: {
+      preferredPosition: "Supplier maintains minimum 8-week buffer stock for critical components. Alternative approved sources identified for sole-sourced materials. Business continuity plan maintained and tested annually. Immediate notification of any supply risk affecting our orders. Priority supply rights in shortage situations.",
+      acceptableFallback: "Buffer stock for critical items. BCP maintained. Supply risk notification within 48 hours. Reasonable priority allocation in shortage.",
+      hardRedLine: "No buffer stock obligation for critical components; no BCP; or supplier has no obligation to prioritise our supply in shortage.",
+    },
+    // ── Retail & eCommerce clauses ───────────────────────────────────────────
+    RET_DISTANCE_SELLING: {
+      preferredPosition: "All distance selling obligations under Consumer Rights Act 2015 and Consumer Contracts (Information, Cancellation and Additional Charges) Regulations 2013 complied with. 14-day cooling-off right clearly communicated. Pre-contract information provided in durable medium. Return shipping costs borne by supplier for defective goods.",
+      acceptableFallback: "Distance selling regulations compliance warranted. Cooling-off rights clearly stated. Pre-contract information obligations met.",
+      hardRedLine: "No cooling-off right for distance-sold contracts; or attempt to contractually limit statutory consumer rights.",
+    },
+    RET_CONSUMER_RETURNS: {
+      preferredPosition: "30-day returns policy for change of mind (exceeding statutory minimum). Defective goods returned at our cost within 24 months. Refund processed within 5 business days of return receipt. Exchange or refund at consumer's option for defective items. No restocking fees.",
+      acceptableFallback: "Statutory returns rights complied with. Defective goods policy clearly stated. Refund within 14 days of return.",
+      hardRedLine: "Returns policy that restricts statutory rights; or refund timeframes that exceed statutory maximums.",
+    },
+    RET_MARKETPLACE_TERMS: {
+      preferredPosition: "Platform seller terms fixed for minimum 12 months. Fee changes notified 90 days in advance with right to delist. Commission and fee structure transparent. Platform may not use our sales data to compete against us. Dispute resolution process for order issues available with 48-hour response.",
+      acceptableFallback: "Seller terms with 60-day change notice. Transparent fee structure. Sales data not used against us. Dispute process available.",
+      hardRedLine: "Platform may change fees with less than 30 days' notice; or use our seller data to develop competing products.",
+    },
+    RET_AGE_VERIFICATION: {
+      preferredPosition: "Age verification system compliant with applicable law and Ofcom/BBFC guidance for age-restricted products. Verification records retained in compliance with data protection law. We accept no liability for third-party age verification system failures if we have complied with contractual specifications.",
+      acceptableFallback: "Age verification compliant with applicable requirements. Liability for failure allocated to the party responsible for the verification system.",
+      hardRedLine: "No age verification obligation for age-restricted products; or we bear sole liability for failures in a third-party age verification system.",
+    },
+    RET_CONSUMER_CREDIT: {
+      preferredPosition: "BNPL and consumer credit products comply with Consumer Credit Act 1974 and FCA CONC rules. Clear disclosure of total cost of credit, APR, and repayment terms. FCA authorisation verified for credit broking or lending. No incentivised sales of unsuitable credit products.",
+      acceptableFallback: "Consumer credit compliance warranted. FCA authorisation confirmed. Transparent credit terms.",
+      hardRedLine: "Consumer credit products offered without FCA authorisation; or credit terms that do not comply with Consumer Credit Act disclosure requirements.",
+    },
+    // ── Media & Entertainment clauses ────────────────────────────────────────
+    MEDIA_RIGHTS_CLEARANCE: {
+      preferredPosition: "Supplier warrants full chain of title and all necessary rights clearances for all materials delivered. Underlying rights (music, archive footage, literary rights, personality rights, synchronisation) fully cleared for the specified media, territories, and term. E&O insurance minimum £1M per occurrence. Indemnity for third-party IP claims arising from defective title.",
+      acceptableFallback: "Chain of title warranty. E&O insurance. Indemnity for IP claims from undisclosed underlying rights encumbrances.",
+      hardRedLine: "No chain of title warranty; or delivery of materials without confirmation that underlying rights are cleared for our intended use.",
+    },
+    MEDIA_RESIDUALS_ROYALTIES: {
+      preferredPosition: "All residual obligations to guilds, unions, and collecting societies fully disclosed and allocated. Royalty accounting statements provided quarterly within 30 days of quarter end. Audit right on royalty calculations on 15 days' notice annually. No cross-collateralisation across separate titles or projects without consent.",
+      acceptableFallback: "Residual obligations disclosed and allocated. Semi-annual royalty accounting. Audit right annually.",
+      hardRedLine: "Undisclosed residual obligations falling on us; or cross-collateralisation of royalties across projects without consent.",
+    },
+    MEDIA_TALENT_OBLIGATIONS: {
+      preferredPosition: "All talent agreements (on-screen, voice, music performance) fully executed before production commences. Talent clearances cover all intended media, territories, and term. Likeness rights and approval rights clearly defined. Re-use fees and residuals pre-agreed. No talent approval rights that could prevent delivery.",
+      acceptableFallback: "Talent agreements in place before production. Clearances for primary media and territory. Re-use fee schedule agreed.",
+      hardRedLine: "Talent not contracted before production; or talent approval rights that give veto over editorial decisions without compensation.",
+    },
+    MEDIA_FORMAT_RIGHTS: {
+      preferredPosition: "Format rights, adaptation rights, and sequel/prequel rights clearly defined and allocated. Option periods and exercise prices specified. All languages and territories covered for primary distribution. Underlying literary or IP rights licensed for all intended adaptations. Moral rights waivers obtained where applicable.",
+      acceptableFallback: "Format and adaptation rights documented. Option terms and exercise prices clear. Primary territories and languages covered.",
+      hardRedLine: "Format rights that include unexpected sequel or franchise obligations we did not agree to; or adaptation rights that infringe underlying IP we cannot clear.",
+    },
+    MEDIA_SYNC_LICENSE: {
+      preferredPosition: "Synchronisation licence covers all intended uses: linear, on-demand, streaming, social, theatrical, and promotional. Territory, term, and media clearly specified. Master and publisher licences both obtained. No most-favoured-nation obligations that trigger additional payments without notice. Festival use covered.",
+      acceptableFallback: "Sync licence covers primary distribution media and territory. Both master and sync rights cleared. MFN obligations disclosed.",
+      hardRedLine: "Sync licence that does not cover all distribution platforms we use; or undisclosed MFN obligations that create unexpected payment obligations.",
+    },
+    // ── Energy & CleanTech clauses ───────────────────────────────────────────
+    ENERGY_OFFTAKE: {
+      preferredPosition: "Offtake volume, price, and indexation mechanism agreed for the full contract term. Curtailment rights clearly defined with compensation mechanism. Balancing responsibility allocated. Floor price protection included. Change in law provisions covering subsidy regime changes. Bankable contract terms accepted by project finance lenders.",
+      acceptableFallback: "Offtake terms agreed. Curtailment with compensation. Balancing allocation clear. Change in law provisions included.",
+      hardRedLine: "No curtailment compensation; or change in law provisions that place subsidy regime risk entirely on the generator without price adjustment.",
+    },
+    ENERGY_GRID_CONNECTION: {
+      preferredPosition: "Grid connection agreement with DNO/TO in place or conditions precedent to this contract. Connection capacity confirmed in writing. Rights of way and land access secured. Metering obligations and data access rights specified. Reinforcement cost allocation agreed.",
+      acceptableFallback: "Grid connection terms agreed or conditions precedent documented. Metering and data access specified.",
+      hardRedLine: "No confirmed grid connection capacity before financial close; or reinforcement costs that are uncapped and fall on us without contractual ceiling.",
+    },
+    ENERGY_SUBSIDY_REGIME: {
+      preferredPosition: "Applicable subsidy (CfD, ROC, FIT, REGO, BM) registration conditions confirmed. Compliance with scheme rules warranted. Change in scheme rules triggers renegotiation mechanism. Revenue waterfall clearly specifies subsidy payment priority. Clawback risk allocated.",
+      acceptableFallback: "Subsidy eligibility confirmed. Scheme rule compliance warranted. Change in law renegotiation mechanism included.",
+      hardRedLine: "Subsidy eligibility not confirmed; or change in subsidy scheme risk allocated entirely to us without pricing adjustment mechanism.",
+    },
+    ENERGY_ENVIRONMENTAL_PERMITS: {
+      preferredPosition: "All required environmental permits (Environmental Permit, planning consent, EIA, habitat survey) obtained or conditions precedent to financial close. Ongoing permit compliance warranted. We are notified within 48 hours of any permit breach or enforcement action. Decommissioning and remediation obligations clearly allocated.",
+      acceptableFallback: "Required permits in place or conditions precedent. Permit compliance warranted. Notification of enforcement within 5 days. Decommissioning obligations allocated.",
+      hardRedLine: "Financial close before required environmental permits obtained; or decommissioning liability unallocated.",
+    },
+    ENERGY_BALANCING_IMBALANCE: {
+      preferredPosition: "Balancing and imbalance risk clearly allocated between parties. Gate closure notification obligations specified. Imbalance settlement charges allocated to the party responsible for the imbalance. Forecasting obligations and accuracy requirements defined.",
+      acceptableFallback: "Balancing responsibility allocated. Gate closure obligations specified. Imbalance charges follow allocation of balancing responsibility.",
+      hardRedLine: "Imbalance risk allocated to us for generation dispatch decisions we do not control.",
+    },
+    // ── Education & EdTech clauses ───────────────────────────────────────────
+    EDU_SAFEGUARDING: {
+      preferredPosition: "All personnel with access to children or vulnerable adults hold enhanced DBS clearance updated within 3 years. Safeguarding policy compliant with Keeping Children Safe in Education 2024 and Working Together 2023. Designated Safeguarding Lead identified. Obligation to report safeguarding concerns immediately and cooperate with statutory investigations.",
+      acceptableFallback: "Enhanced DBS clearance for all relevant personnel. Safeguarding policy maintained and shared. Reporting obligations accepted.",
+      hardRedLine: "No DBS clearance requirement for personnel with unsupervised child access; or no safeguarding policy.",
+    },
+    EDU_STUDENT_DATA: {
+      preferredPosition: "Student personal data processed only for agreed educational purposes. Parental or guardian consent obtained for under-13 data processing. No student data used for advertising or profiling. Data minimisation applied. FERPA (US) or UK GDPR compliance warranted. Student records returned on contract termination.",
+      acceptableFallback: "Student data processing limited to educational purposes. Parental consent for under-13s. No profiling or advertising use. Records returned on termination.",
+      hardRedLine: "Student data used for commercial profiling; or no parental consent mechanism for children's data.",
+    },
+    EDU_CURRICULUM_RIGHTS: {
+      preferredPosition: "All curriculum content and course materials developed under this agreement vest in us on creation. Supplier retains pre-existing IP with broad licence. We may adapt, update, and republish content without restriction. No lock-in to supplier's LMS or content platform after contract ends. SCORM/xAPI compliance required for interoperability.",
+      acceptableFallback: "Curriculum content IP vests in us. Supplier background IP licensed perpetually. Platform interoperability (SCORM/xAPI) required.",
+      hardRedLine: "Supplier owns curriculum content we commissioned and paid for; or content locked into proprietary format preventing use on other platforms.",
+    },
+    EDU_ACCREDITATION: {
+      preferredPosition: "Accreditation body approval obtained before programme launch. Awarding body agreement executed and in force. Qualification specifications and assessment requirements complied with. We are notified within 24 hours of any accreditation risk or compliance concern. No material programme changes without awarding body approval.",
+      acceptableFallback: "Accreditation in place. Qualification compliance warranted. Notification of accreditation issues within 5 days.",
+      hardRedLine: "Programme launched before accreditation obtained; or material programme changes without awarding body approval risking students' qualifications.",
+    },
+    // ── Professional Services clauses ────────────────────────────────────────
+    PS_ENGAGEMENT_SCOPE: {
+      preferredPosition: "Scope of services defined in a detailed Statement of Work. Change request process agreed: written change order required; no additional charges without signed change order. Out-of-scope activities expressly identified. Scope creep not billable without our prior written approval.",
+      acceptableFallback: "Scope documented. Written change orders required for additional work. Out-of-scope items identified.",
+      hardRedLine: "Vague scope definition with no change control process; or supplier may expand scope and charge for it without our approval.",
+    },
+    PS_FEE_BILLING: {
+      preferredPosition: "Fixed fees or agreed hourly rates for the engagement term. Rate card locked for minimum 12 months. Expenses pre-approved and capped at cost only (no mark-up). Invoices itemised by task and time recorded. Payment within 30 days. No success fees or contingency arrangements without separate written agreement.",
+      acceptableFallback: "Agreed rates fixed for the term. Expenses at cost with pre-approval. Itemised invoices. 30-day payment.",
+      hardRedLine: "Unilateral rate increases during engagement; or expense mark-up without disclosure; or invoices without sufficient detail to verify.",
+    },
+    PS_CONFLICTS_INTEREST: {
+      preferredPosition: "Supplier confirms no actual or potential conflict of interest at engagement commencement and warrants to notify us immediately of any conflict arising during the engagement. Conflicts policy shared on request. We have right to terminate if conflict is not resolved to our satisfaction. No concurrent engagements with direct competitors without our consent.",
+      acceptableFallback: "Conflict disclosure at engagement commencement. Ongoing notification obligation. Termination right for unresolvable conflicts.",
+      hardRedLine: "No conflict of interest disclosure; or supplier may simultaneously advise direct competitors on related matters without consent.",
+    },
+    PS_PROFESSIONAL_LIABILITY: {
+      preferredPosition: "Supplier maintains professional indemnity insurance appropriate to the risk of the engagement: minimum £2M per claim for regulated professional services. PI policy maintained for minimum 6 years post-engagement (run-off cover). Certificate of insurance provided annually on request. No exclusion of liability for professional negligence causing financial loss.",
+      acceptableFallback: "PI insurance minimum £1M per claim. Run-off cover confirmed. Certificate on request. No exclusion of professional negligence liability.",
+      hardRedLine: "No PI insurance for regulated professional services; or exclusion of liability for professional negligence.",
+    },
   },
   COMMERCIAL: {
     LIABILITY_CAP: {
@@ -1278,5 +2484,477 @@ export const PLAYBOOK_DEFAULTS: Record<
       acceptableFallback: "Redemption only as a long-stop after 7+ years if no liquidity event has occurred, with 12-month written notice and board approval.",
       hardRedLine: "Redemption rights exercisable within 5 years, or at investor discretion, or without requiring a formal liquidity event.",
     },
+    // ── Insurance litigation clauses ─────────────────────────────────────────
+    INS_COVERAGE_RESPONSE: {
+      preferredPosition: "Policy clearly responds: all coverage triggers met, no exclusions apply, insured has complied with all conditions.",
+      acceptableFallback: "Coverage arguable: primary position responds but one or more conditions or exclusions require analysis before confirming.",
+      hardRedLine: "Coverage does not respond, a clear exclusion applies, or a material condition precedent has been breached.",
+    },
+    INS_EXCLUSIONS_ANALYSIS: {
+      preferredPosition: "No applicable exclusion identified. Policy wording unambiguous and insured's conduct does not trigger any exclusion.",
+      acceptableFallback: "One exclusion potentially applicable but arguments available on both sides. Requires senior review before position is taken.",
+      hardRedLine: "A clear and unambiguous exclusion applies. Coverage denial is legally defensible.",
+    },
+    INS_NOTIFICATION_COMPLIANCE: {
+      preferredPosition: "Notification received within the required timeframe, in the correct form, and to the correct party. No condition precedent issues.",
+      acceptableFallback: "Notification technically late but arguments available that condition was not a condition precedent, or that the insurer has not been prejudiced.",
+      hardRedLine: "Notification clearly non-compliant: materially out of time, wrong form, or missing information that cannot be excused.",
+    },
+    INS_QUANTUM_ASSESSMENT: {
+      preferredPosition: "Current reserve is adequate and reflects a realistic assessment of exposure. No reserve movement required.",
+      acceptableFallback: "Reserve requires review. Realistic range is above current reserve but within acceptable parameters for claims committee reporting.",
+      hardRedLine: "Current reserve is materially inadequate. Exposure significantly exceeds reserve. Immediate reserve uplift and committee reporting required.",
+    },
+    INS_DEFENCE_PROSPECTS: {
+      preferredPosition: "Strong defence prospects. Claim is defensible on liability and/or quantum. Recommend defend.",
+      acceptableFallback: "Reasonable defence prospects but outcome uncertain. Consider commercial settlement to manage costs and litigation risk.",
+      hardRedLine: "Weak or indefensible. Liability likely established. Settlement is the commercially rational outcome.",
+    },
+    INS_SETTLEMENT_AUTHORITY: {
+      preferredPosition: "Recommended settlement within litigation handler authority. No escalation required.",
+      acceptableFallback: "Recommended settlement within senior litigation counsel authority. Single-level escalation required.",
+      hardRedLine: "Recommended settlement exceeds claims committee or board authority. Full escalation required before any settlement discussions.",
+    },
+    INS_REGULATORY_OBLIGATIONS: {
+      preferredPosition: "All FCA claims handling obligations met. TCF requirements satisfied. All timeframes and reporting duties complied with.",
+      acceptableFallback: "One or more regulatory obligations at risk of breach. Remediation steps underway. FCA notification not yet required.",
+      hardRedLine: "Regulatory breach identified. FCA notification obligation triggered or imminent. Immediate compliance action required.",
+    },
+    INS_SUBROGATION_POTENTIAL: {
+      preferredPosition: "Strong subrogation prospects against an identifiable and solvent third party. Recovery action should be pursued.",
+      acceptableFallback: "Subrogation possible but uncertain. Third party identified; prospects require further investigation before committing to recovery action.",
+      hardRedLine: "Subrogation unlikely. Third party unidentified, insolvent, or defence of primary claim takes priority.",
+    },
+    INS_PANEL_FIRM_INSTRUCTIONS: {
+      preferredPosition: "Panel firm spend and strategy within approved guidelines. Budget forecast within approved parameters.",
+      acceptableFallback: "Panel spend approaching approved threshold. Budget review and approval required before further instruction.",
+      hardRedLine: "Panel spend exceeds approved threshold or strategy materially deviates from instructions. Immediate review and re-approval required.",
+    },
+    INS_RESERVE_ADEQUACY: {
+      preferredPosition: "Reserve is adequate and reflects current best estimate of ultimate exposure. No movement required at this stage.",
+      acceptableFallback: "Reserve requires upward review. Exposure development warrants adjustment before next reporting period.",
+      hardRedLine: "Reserve is materially inadequate. Immediate uplift required. Board or claims committee reporting obligation triggered.",
+    },
+    // ── Insurance litigation — extended ─────────────────────────────────────
+    INS_FRAUD_INDICATORS: {
+      preferredPosition: "Proportionate fraud screening on high-value claims. Referral to SIU where indicators warrant.",
+      acceptableFallback: "Fraud review on request. Reasonable investigation timelines.",
+      hardRedLine: "Blanket refusal to engage with fraud investigation.",
+    },
+    INS_REHABILITATION: {
+      preferredPosition: "Rehabilitation considered where cost-effective versus quantum reduction potential.",
+      acceptableFallback: "Ad-hoc rehabilitation offers where claimant requests.",
+      hardRedLine: "Rehabilitation entirely excluded.",
+    },
+    INS_EXPERT_EVIDENCE: {
+      preferredPosition: "Pragmatic expert use. SJE on medical causation where both parties agree.",
+      acceptableFallback: "Party expert where SJE not agreed. Reasonable costs.",
+      hardRedLine: "No right to challenge expert evidence or instructions.",
+    },
+    INS_PART36_CPR: {
+      preferredPosition: "Part 36 offers considered on merits. Response within CPR timeframes.",
+      acceptableFallback: "Respond to Part 36 offers where commercially justified.",
+      hardRedLine: "No engagement with Part 36 process.",
+    },
+    INS_COSTS_BUDGETING: {
+      preferredPosition: "Costs budget filed where required. Proportionality challenge on clearly excessive phases only.",
+      acceptableFallback: "Costs reviewed at settlement. Negotiate where disproportionate.",
+      hardRedLine: "No mechanism to challenge costs.",
+    },
+    INS_THIRD_PARTY_CAPTURE: {
+      preferredPosition: "Third-party capture where commercially justified. Contact within 14 days.",
+      acceptableFallback: "Capture on higher-value unrepresented claims.",
+      hardRedLine: "Capture without proper independent assessment.",
+    },
+    INS_CLAIMS_TIMEFRAMES: {
+      preferredPosition: "Acknowledgement within 5 business days. Coverage decision within 21 business days where possible.",
+      acceptableFallback: "Reasonable response times. Updates on material developments.",
+      hardRedLine: "No claims handling timeframe obligations.",
+    },
+    INS_CONDITIONS_PRECEDENT: {
+      preferredPosition: "Conditions precedent enforced where breach causes actual prejudice to insurer.",
+      acceptableFallback: "Proportionate approach to conditions precedent enforcement.",
+      hardRedLine: "Conditions precedent unenforceable regardless of breach.",
+    },
+    INS_CONTRIBUTION: {
+      preferredPosition: "Contribution pursued where net recovery justifies cost. Proportional share agreed by negotiation.",
+      acceptableFallback: "Contribution rights reserved. Pursued on high-value claims.",
+      hardRedLine: "No mechanism to pursue contribution.",
+    },
+    INS_REINSTATEMENT: {
+      preferredPosition: "Reinstatement or indemnity elected by insured. Cost comparison provided within 21 days of loss.",
+      acceptableFallback: "Reinstatement where insured requests and cost is not disproportionate.",
+      hardRedLine: "Insured has no election right between reinstatement and indemnity.",
+    },
+    // ── Logistics contract clauses ───────────────────────────────────────────
+    LOG_LIABILITY_CAP_CMR: {
+      preferredPosition: "Liability limited to CMR Convention limits for international road freight (8.33 SDR per kg). All attempts to exclude CMR limits rejected.",
+      acceptableFallback: "Enhanced liability cap agreed at a defined per-consignment limit with corresponding insurance in place. CMR limits as backstop.",
+      hardRedLine: "Customer paper excludes CMR limits entirely and imposes uncapped liability for cargo loss or damage beyond insurance cover.",
+    },
+    LOG_CARGO_LIABILITY: {
+      preferredPosition: "Cargo liability limited to insured values. Customer has arranged own cargo insurance. Our liability capped at CMR or agreed per-consignment limit.",
+      acceptableFallback: "Liability for cargo loss or damage capped at a defined limit commensurate with our insurance cover. Enhanced limit with additional premium.",
+      hardRedLine: "Liability for cargo loss or damage exceeds our insurance cover. Uncapped exposure creates uninsurable risk.",
+    },
+    LOG_INDEMNITY: {
+      preferredPosition: "Indemnities are proportionate and fault-based. We indemnify for our own negligence only. Customer indemnifies for their acts, omissions, and misdescription of cargo.",
+      acceptableFallback: "Mutual indemnities limited to gross negligence and wilful misconduct. Each party responsible for losses caused by their own breach.",
+      hardRedLine: "We are required to indemnify the customer for their own negligence, misdescription of cargo, or inadequate packaging.",
+    },
+    LOG_SERVICE_LEVELS: {
+      preferredPosition: "SLAs are achievable and reflect operational reality. Force majeure covers customs delays, port congestion, industrial action, and weather events. Service credits proportionate and capped.",
+      acceptableFallback: "Reasonable SLAs with force majeure for material disruption events. Service credits as sole remedy for SLA breach capped at 10% of monthly fees.",
+      hardRedLine: "Punitive SLAs without force majeure for logistics-specific disruption. Service credits uncapped or structured as penalties.",
+    },
+    LOG_SUBCONTRACTING: {
+      preferredPosition: "Unrestricted right to subcontract to approved hauliers and logistics partners. Pass-through liability. No prior approval required for routine subcontracting.",
+      acceptableFallback: "Subcontracting permitted on notification. We remain liable for subcontractor performance. Named approved subcontractors list maintained.",
+      hardRedLine: "Prior written approval required for every subcontract engagement. Approval cannot be unreasonably withheld but creates operational bottleneck.",
+    },
+    LOG_DATA_GDPR: {
+      preferredPosition: "Controller/processor split clearly defined. DPA in place. Shipment data, customer data, and driver data obligations clearly allocated. Cross-border transfer mechanisms in place.",
+      acceptableFallback: "DPA in place with standard processing obligations. Data sharing with customs authorities covered by legitimate interest or legal obligation basis.",
+      hardRedLine: "No DPA where personal data is being processed. Ambiguous data ownership for tracking data or driver data.",
+    },
+    LOG_GOVERNING_LAW: {
+      preferredPosition: "English law governing the contract. English courts have exclusive jurisdiction. Consistent with our standard trading conditions.",
+      acceptableFallback: "English law with non-exclusive jurisdiction or agreed arbitration. Jurisdiction reflects major operational territory.",
+      hardRedLine: "Foreign jurisdiction with no local legal resource. Governing law clause that would determine outcome of a major cargo claim in an unfamiliar court.",
+    },
+    LOG_TERMINATION: {
+      preferredPosition: "Either party may terminate on 90 days written notice. No transition obligations beyond standard handover. Exit at any time on convenience without penalty.",
+      acceptableFallback: "120-day convenience termination. Standard data return and handover obligations. No punitive exit costs.",
+      hardRedLine: "Lock-in beyond 12 months with punitive exit costs. Transition obligations that create open-ended liability on exit.",
+    },
+    LOG_TRADE_COMPLIANCE: {
+      preferredPosition: "Each party responsible for their own trade compliance and sanctions screening. Customer warrants cargo does not breach sanctions. Immediate suspension right if sanctions risk identified.",
+      acceptableFallback: "Shared trade compliance obligations. Mutual notification of any sanctions exposure. Suspension right on reasonable grounds.",
+      hardRedLine: "We are required to take on the customer's sanctions screening and export control compliance obligations without corresponding indemnity.",
+    },
+    LOG_AUDIT_REPORTING: {
+      preferredPosition: "Annual audit right on 30 days written notice. Reporting obligations limited to agreed KPI metrics. Audit costs borne by auditing party unless material breach found.",
+      acceptableFallback: "Audit on 15 days notice, once per year. Standard operational reporting. Reasonable audit costs.",
+      hardRedLine: "Continuous access right or real-time reporting obligations without a data security framework. Audit costs borne by us regardless of outcome.",
+    },
+    // ── Logistics contract — extended ────────────────────────────────────────
+    LOG_CARRIER_PAYMENT: {
+      preferredPosition: "Payment within 45 days. Fuel surcharges based on market rates with quarterly review.",
+      acceptableFallback: "60-day payment acceptable where carrier provides credit. Surcharges reviewed quarterly.",
+      hardRedLine: "No fuel surcharge mechanism or uncapped surcharges.",
+    },
+    LOG_DANGEROUS_GOODS: {
+      preferredPosition: "ADR compliance where applicable. Carrier warrants compliance with relevant dangerous goods regulations.",
+      acceptableFallback: "Reasonable compliance with dangerous goods regulations. Incident notification promptly.",
+      hardRedLine: "No dangerous goods compliance warranty.",
+    },
+    LOG_CUSTOMS_CLEARANCE: {
+      preferredPosition: "Customs cleared per Incoterms. Reasonable cooperation between parties on documentation.",
+      acceptableFallback: "Carrier arranges clearance where agreed. Shipper liability for incorrect data.",
+      hardRedLine: "No customs documentation obligations.",
+    },
+    LOG_PACKAGING_LABELING: {
+      preferredPosition: "Packaging to applicable standards. Shipper responsible for compliance. Carrier not liable for damage arising from inadequate packaging.",
+      acceptableFallback: "Shipper warrants adequate packaging. Carrier's liability excluded for packaging failures.",
+      hardRedLine: "Carrier liable for damage regardless of packaging condition.",
+    },
+    LOG_COLD_CHAIN: {
+      preferredPosition: "Temperature-controlled transport where specified. Data provided on delivery. Liability limited to agreed temperature excursion.",
+      acceptableFallback: "Reasonable temperature maintenance. Records on request.",
+      hardRedLine: "No cold chain obligation or records.",
+    },
+    LOG_TRACK_TRACE: {
+      preferredPosition: "Tracking available where carrier systems permit. Status updates on request.",
+      acceptableFallback: "Best efforts tracking. Customer notified of material delays.",
+      hardRedLine: "No visibility into shipment status.",
+    },
+    LOG_FORCE_MAJEURE: {
+      preferredPosition: "Force majeure for events genuinely beyond carrier's control. Reasonable notice. Good faith efforts to mitigate.",
+      acceptableFallback: "Carrier notifies and mitigates. Customer may seek alternative routing after reasonable period.",
+      hardRedLine: "Force majeure excusing foreseeable capacity or commercial issues.",
+    },
+    LOG_INSURANCE_CERT: {
+      preferredPosition: "Carrier maintains adequate insurance for cargo carried. Certificate available on request.",
+      acceptableFallback: "Insurance evidence on reasonable request. Minimum CMR limits.",
+      hardRedLine: "No insurance obligation on carrier.",
+    },
+    LOG_INTERNATIONAL_CONVENTIONS: {
+      preferredPosition: "Applicable convention applies to each mode of transport. Liability in accordance with convention limits unless special declaration agreed.",
+      acceptableFallback: "Convention limits apply. Higher value cargo specially declared at additional premium.",
+      hardRedLine: "Convention liability excluded.",
+    },
+    LOG_DRIVER_COMPLIANCE: {
+      preferredPosition: "Carrier warrants all drivers are legally compliant. Records available on reasonable request.",
+      acceptableFallback: "Carrier maintains driver records. Compliance certificate on annual request.",
+      hardRedLine: "No driver compliance warranty.",
+    },
+    // ── Technology & SaaS clauses ────────────────────────────────────────────
+    TECH_API_TERMS: {
+      preferredPosition: "API access governed by documented SLA. Rate limits disclosed upfront and not unilaterally reduced during term. Versioning policy guarantees minimum 12-month deprecation notice. Breaking changes require 6-month advance notice. We retain right to access our data via API for full term plus 90-day extraction period post-termination.",
+      acceptableFallback: "API access on published terms. 6-month deprecation notice. Data extraction rights on termination for 60 days.",
+      hardRedLine: "No guaranteed API availability, no deprecation notice, or no data extraction right on termination.",
+    },
+    TECH_UPTIME_SLA: {
+      preferredPosition: "99.9% monthly uptime (excluding scheduled maintenance). Scheduled maintenance windows in non-peak hours with 48-hour notice. Service credits of 10% monthly fee per 0.1% below SLA, capped at 30% monthly fee. Persistent breach (3 consecutive months below SLA) triggers termination right without penalty.",
+      acceptableFallback: "99.5% uptime. Service credits as sole remedy for SLA breach. Termination right after 6 months of persistent underperformance.",
+      hardRedLine: "No uptime SLA, no service credits, or credits that cap all liability for downtime causing material business disruption.",
+    },
+    TECH_DATA_PORTABILITY: {
+      preferredPosition: "Full data export in machine-readable format (CSV, JSON, or API) at any time during the term and for 90 days post-termination at no additional charge. Supplier must not degrade data quality or completeness on export. Deletion certification provided on request after extraction period.",
+      acceptableFallback: "Data export in standard format available on request with 10 business days' notice. 60-day post-termination extraction period.",
+      hardRedLine: "No data export right, export in proprietary non-portable format only, or export charged at rates that make it economically prohibitive.",
+    },
+    TECH_OPEN_SOURCE: {
+      preferredPosition: "Supplier discloses all open source components used in the service. No copyleft (GPL/AGPL) components that could affect our IP in deliverables. SBOM (Software Bill of Materials) provided on request. CVE notifications within 24 hours for critical vulnerabilities in disclosed components.",
+      acceptableFallback: "Open source disclosure on request. No GPL-licensed components in deliverables. CVE notification for critical vulnerabilities within 5 business days.",
+      hardRedLine: "No open source disclosure obligation where deliverables may incorporate copyleft-licensed components affecting our IP.",
+    },
+    TECH_SECURITY_STANDARDS: {
+      preferredPosition: "Supplier holds current ISO 27001 certification or SOC 2 Type II attestation. Annual penetration testing by approved third party. Security patches applied within 72 hours of critical CVE disclosure. Security incident notification within 4 hours of confirmed breach.",
+      acceptableFallback: "ISO 27001 or SOC 2 Type II. Annual pen testing. Critical patches within 5 business days. Security incident notification within 24 hours.",
+      hardRedLine: "No security certification, no pen testing obligation, or incident notification period exceeding 72 hours for critical breaches.",
+    },
+    TECH_CHANGE_MANAGEMENT: {
+      preferredPosition: "All material changes to the service (new features affecting existing workflows, UI changes, deprecations) communicated 30 days in advance. Release notes provided. Backward compatibility maintained for minimum 12 months on APIs and data schemas. Emergency hotfixes documented and notified within 24 hours.",
+      acceptableFallback: "Material changes notified with 14 days' advance notice. API backward compatibility for 6 months minimum.",
+      hardRedLine: "No advance change notice; or supplier may make breaking changes to APIs or data schemas without notice.",
+    },
+    // ── Financial Services clauses ───────────────────────────────────────────
+    FIN_REGULATORY_PERMISSIONS: {
+      preferredPosition: "Counterparty warrants it holds all required FCA/PRA authorisations for the regulated activities performed under this agreement. Obligation to notify us within 24 hours of any restriction, variation, or withdrawal of permissions. Immediate suspension right if permissions lapse. Contract voids automatically if counterparty loses required permissions.",
+      acceptableFallback: "Permissions warranty. Notification of material regulatory action within 5 business days. Termination right on permissions lapse.",
+      hardRedLine: "No regulatory permissions warranty where counterparty performs regulated activities; or no notification obligation on permissions change.",
+    },
+    FIN_CLIENT_MONEY: {
+      preferredPosition: "Client money held in segregated accounts in accordance with FCA CASS rules. Statutory trust acknowledged in contract. Daily reconciliation. Immediate notification of any CASS breach. We are named as beneficiary on segregated accounts.",
+      acceptableFallback: "CASS-compliant segregation. Reconciliation within 2 business days. Notification of breaches within 24 hours.",
+      hardRedLine: "No CASS segregation commitment for contracts involving client money; or commingling of client and firm money.",
+    },
+    FIN_BEST_EXECUTION: {
+      preferredPosition: "Best execution policy maintained and applied to all orders. Policy reviewed annually and on material change in market structure. Order execution data available on request. Top 5 execution venues disclosed as required by MiFID II/UK MiFIR.",
+      acceptableFallback: "Best execution policy maintained. Annual review. Execution data on request.",
+      hardRedLine: "No best execution obligation where MiFID II/UK MiFIR applies to the services.",
+    },
+    FIN_FINANCIAL_PROMOTION: {
+      preferredPosition: "All financial promotions produced by or on behalf of us are approved by an FCA-authorised person before communication. Supplier warrants that any content it produces under this agreement complies with COBS 4 and relevant FCA guidance. Liability for unapproved financial promotions remains with the communicating party.",
+      acceptableFallback: "Financial promotions approval process agreed. Compliance with applicable FCA financial promotion rules warranted.",
+      hardRedLine: "No financial promotion compliance framework for contracts involving consumer-facing regulated content.",
+    },
+    FIN_MARGIN_COLLATERAL: {
+      preferredPosition: "Credit support documentation (CSA or equivalent) executed alongside master agreement. Collateral threshold and minimum transfer amounts agreed. Eligible collateral specified. Dispute resolution for margin calls within 1 business day. Close-out netting enforceability confirmed in applicable jurisdictions.",
+      acceptableFallback: "Margin and collateral terms documented. Close-out netting provisions included. Dispute process agreed.",
+      hardRedLine: "No credit support documentation for derivative or leveraged transactions; or close-out netting not contractually confirmed.",
+    },
+    FIN_BENCHMARK_RATES: {
+      preferredPosition: "All reference rates use current SONIA/SOFR (or applicable ARR) with agreed credit adjustment spread. Legacy LIBOR references replaced. Fallback provisions compliant with ISDA 2020 IBOR Fallbacks Protocol. Rate screen page, fallback hierarchy, and interpolation methodology specified in the contract.",
+      acceptableFallback: "Current ARR-based rates used. ISDA-compliant fallback provisions. Fallback hierarchy specified.",
+      hardRedLine: "Reference to discontinued benchmark rates with no fallback provision; or fallback mechanism creates unilateral rate-setting by one party.",
+    },
+    // ── Healthcare & Life Sciences clauses ───────────────────────────────────
+    HEALTH_PATIENT_DATA: {
+      preferredPosition: "Patient data processed only under explicit consent or Schedule 3 DPA 2018 condition. Separate Data Security and Protection Toolkit (DSPT) compliance warranted. NHS data security standards applied. No patient data shared with third parties without individual consent. Data flows documented and DPIA completed.",
+      acceptableFallback: "Patient data processing under lawful basis with DSPT compliance. DPIA completed. Third-party sharing restricted.",
+      hardRedLine: "Patient data processed without lawful basis; or no DSPT compliance obligation for contracts involving NHS patient data.",
+    },
+    HEALTH_REGULATORY_APPROVAL: {
+      preferredPosition: "Supplier warrants that all products and services covered by this agreement hold required MHRA, CE, or UKCA certification for their intended use. Obligation to notify us within 48 hours of any regulatory action (safety alert, recall, CE certificate withdrawal). Our use of the product does not constitute off-label use without our prior written consent.",
+      acceptableFallback: "Regulatory approvals warranted. Notification of safety alerts and recalls within 5 business days.",
+      hardRedLine: "No regulatory approval warranty for medical devices or in-vitro diagnostics; or no obligation to notify of safety alerts or recalls.",
+    },
+    HEALTH_PHARMACOVIGILANCE: {
+      preferredPosition: "Safety data exchange agreement (SDEA) executed alongside commercial agreement. Adverse event reports exchanged within required regulatory timeframes (15 calendar days for serious unexpected, 7 days for fatal/life-threatening). Each party maintains pharmacovigilance system to ICH E2E standard. Regulatory authority reportable events notified immediately.",
+      acceptableFallback: "SDEA executed. Adverse event reporting within required timeframes. Regulatory notification obligations allocated.",
+      hardRedLine: "No SDEA for agreements involving pharmacovigilance obligations; or adverse event reporting timelines that do not meet regulatory requirements.",
+    },
+    HEALTH_CLINICAL_PROTOCOL: {
+      preferredPosition: "Protocol deviations require sponsor approval. Material amendments require regulatory authority and ethics committee re-approval before implementation. Protocol holds triggered by safety signal implemented within 24 hours. We retain right to audit site compliance with protocol.",
+      acceptableFallback: "Material protocol amendments subject to approval process. Safety holds implemented promptly. Audit rights retained.",
+      hardRedLine: "Unilateral protocol amendments by site without sponsor notification; or no mechanism for immediate safety hold.",
+    },
+    HEALTH_NHS_TERMS: {
+      preferredPosition: "NHS Standard Contract (or equivalent NHS England terms) incorporated by reference where required. Data processing under Data Security and Protection Toolkit obligations. NHS Protect anti-fraud obligations warranted. NHS branding and identity guidelines complied with.",
+      acceptableFallback: "NHS contract requirements complied with. DSPT and data security obligations met.",
+      hardRedLine: "Non-compliance with NHS Standard Contract mandatory provisions; or failure to incorporate required NHS data security terms.",
+    },
+    HEALTH_PRODUCT_LIABILITY: {
+      preferredPosition: "Supplier maintains product liability insurance of minimum £10M per occurrence. Recall costs indemnified by supplier for defects attributable to supplier. We retain termination right without liability on any MHRA safety alert or recall affecting the product. Strict liability for product defects under CPA 1987 acknowledged.",
+      acceptableFallback: "Product liability insurance £5M+. Recall cost indemnity for supplier-caused defects. Termination right on safety alert.",
+      hardRedLine: "No product liability insurance requirement; or exclusion of strict liability for medical device defects.",
+    },
+    // ── Manufacturing & Supply Chain clauses ─────────────────────────────────
+    MFG_INCOTERMS: {
+      preferredPosition: "Delivery terms specify Incoterms 2020 rule, named place or port, and whether CIF/CIP insurance obligation uses Institute Cargo Clauses (A). Risk transfers at named point. Export licences and customs clearance responsibilities clearly allocated. Delivery documentation (commercial invoice, packing list, bill of lading or CMR) specified.",
+      acceptableFallback: "Incoterms 2020 specified with named place. Export and import responsibilities allocated. Required documentation listed.",
+      hardRedLine: "No Incoterms reference with ambiguous risk transfer; or delivery terms that leave export licensing obligations unallocated.",
+    },
+    MFG_QUALITY_STANDARDS: {
+      preferredPosition: "Products must meet ISO 9001 (or industry-equivalent: GMP, IATF 16949, AS9100) requirements. Certificate of Conformance provided with each delivery. We have right of inspection and rejection at delivery. Non-conforming goods returned at supplier's cost. CAPA (Corrective and Preventive Action) required for recurring defects.",
+      acceptableFallback: "Applicable quality standard compliance warranted. Certificate of Conformance on request. Inspection and rejection rights retained. CAPA process for recurring issues.",
+      hardRedLine: "No quality standard compliance obligation; or no right to inspect and reject non-conforming goods.",
+    },
+    MFG_PRODUCT_LIABILITY: {
+      preferredPosition: "Supplier indemnifies against all third-party product liability claims arising from defects in supplier-manufactured components. Product liability insurance minimum £5M per occurrence. Immediate notification and cooperation on product liability claims. Recall costs indemnified by the party whose defect caused the recall.",
+      acceptableFallback: "Product liability indemnity for defective components. Insurance £2M+. Notification and cooperation on claims.",
+      hardRedLine: "No product liability indemnity for supplier components; or exclusion of liability for defects in goods supplied.",
+    },
+    MFG_TOOLING_OWNERSHIP: {
+      preferredPosition: "All tooling, moulds, jigs, and fixtures paid for by us vest in us on creation. Tooling held by supplier is clearly identified as our property. Supplier maintains tooling at their cost. Tooling returned on demand within 30 days. No lien on our tooling for unpaid invoices.",
+      acceptableFallback: "Tooling paid for by us is our property. Identification and maintenance obligations. Return on 60 days' notice. No lien.",
+      hardRedLine: "Supplier claims ownership of tooling we paid for; or right to hold our tooling as security for unpaid invoices.",
+    },
+    MFG_SUPPLY_CHAIN_RESILIENCE: {
+      preferredPosition: "Supplier maintains minimum 8-week buffer stock for critical components. Alternative approved sources identified for sole-sourced materials. Business continuity plan maintained and tested annually. Immediate notification of any supply risk affecting our orders. Priority supply rights in shortage situations.",
+      acceptableFallback: "Buffer stock for critical items. BCP maintained. Supply risk notification within 48 hours. Reasonable priority allocation in shortage.",
+      hardRedLine: "No buffer stock obligation for critical components; no BCP; or supplier has no obligation to prioritise our supply in shortage.",
+    },
+    // ── Retail & eCommerce clauses ───────────────────────────────────────────
+    RET_DISTANCE_SELLING: {
+      preferredPosition: "All distance selling obligations under Consumer Rights Act 2015 and Consumer Contracts (Information, Cancellation and Additional Charges) Regulations 2013 complied with. 14-day cooling-off right clearly communicated. Pre-contract information provided in durable medium. Return shipping costs borne by supplier for defective goods.",
+      acceptableFallback: "Distance selling regulations compliance warranted. Cooling-off rights clearly stated. Pre-contract information obligations met.",
+      hardRedLine: "No cooling-off right for distance-sold contracts; or attempt to contractually limit statutory consumer rights.",
+    },
+    RET_CONSUMER_RETURNS: {
+      preferredPosition: "30-day returns policy for change of mind (exceeding statutory minimum). Defective goods returned at our cost within 24 months. Refund processed within 5 business days of return receipt. Exchange or refund at consumer's option for defective items. No restocking fees.",
+      acceptableFallback: "Statutory returns rights complied with. Defective goods policy clearly stated. Refund within 14 days of return.",
+      hardRedLine: "Returns policy that restricts statutory rights; or refund timeframes that exceed statutory maximums.",
+    },
+    RET_MARKETPLACE_TERMS: {
+      preferredPosition: "Platform seller terms fixed for minimum 12 months. Fee changes notified 90 days in advance with right to delist. Commission and fee structure transparent. Platform may not use our sales data to compete against us. Dispute resolution process for order issues available with 48-hour response.",
+      acceptableFallback: "Seller terms with 60-day change notice. Transparent fee structure. Sales data not used against us. Dispute process available.",
+      hardRedLine: "Platform may change fees with less than 30 days' notice; or use our seller data to develop competing products.",
+    },
+    RET_AGE_VERIFICATION: {
+      preferredPosition: "Age verification system compliant with applicable law and Ofcom/BBFC guidance for age-restricted products. Verification records retained in compliance with data protection law. We accept no liability for third-party age verification system failures if we have complied with contractual specifications.",
+      acceptableFallback: "Age verification compliant with applicable requirements. Liability for failure allocated to the party responsible for the verification system.",
+      hardRedLine: "No age verification obligation for age-restricted products; or we bear sole liability for failures in a third-party age verification system.",
+    },
+    RET_CONSUMER_CREDIT: {
+      preferredPosition: "BNPL and consumer credit products comply with Consumer Credit Act 1974 and FCA CONC rules. Clear disclosure of total cost of credit, APR, and repayment terms. FCA authorisation verified for credit broking or lending. No incentivised sales of unsuitable credit products.",
+      acceptableFallback: "Consumer credit compliance warranted. FCA authorisation confirmed. Transparent credit terms.",
+      hardRedLine: "Consumer credit products offered without FCA authorisation; or credit terms that do not comply with Consumer Credit Act disclosure requirements.",
+    },
+    // ── Media & Entertainment clauses ────────────────────────────────────────
+    MEDIA_RIGHTS_CLEARANCE: {
+      preferredPosition: "Supplier warrants full chain of title and all necessary rights clearances for all materials delivered. Underlying rights (music, archive footage, literary rights, personality rights, synchronisation) fully cleared for the specified media, territories, and term. E&O insurance minimum £1M per occurrence. Indemnity for third-party IP claims arising from defective title.",
+      acceptableFallback: "Chain of title warranty. E&O insurance. Indemnity for IP claims from undisclosed underlying rights encumbrances.",
+      hardRedLine: "No chain of title warranty; or delivery of materials without confirmation that underlying rights are cleared for our intended use.",
+    },
+    MEDIA_RESIDUALS_ROYALTIES: {
+      preferredPosition: "All residual obligations to guilds, unions, and collecting societies fully disclosed and allocated. Royalty accounting statements provided quarterly within 30 days of quarter end. Audit right on royalty calculations on 15 days' notice annually. No cross-collateralisation across separate titles or projects without consent.",
+      acceptableFallback: "Residual obligations disclosed and allocated. Semi-annual royalty accounting. Audit right annually.",
+      hardRedLine: "Undisclosed residual obligations falling on us; or cross-collateralisation of royalties across projects without consent.",
+    },
+    MEDIA_TALENT_OBLIGATIONS: {
+      preferredPosition: "All talent agreements (on-screen, voice, music performance) fully executed before production commences. Talent clearances cover all intended media, territories, and term. Likeness rights and approval rights clearly defined. Re-use fees and residuals pre-agreed. No talent approval rights that could prevent delivery.",
+      acceptableFallback: "Talent agreements in place before production. Clearances for primary media and territory. Re-use fee schedule agreed.",
+      hardRedLine: "Talent not contracted before production; or talent approval rights that give veto over editorial decisions without compensation.",
+    },
+    MEDIA_FORMAT_RIGHTS: {
+      preferredPosition: "Format rights, adaptation rights, and sequel/prequel rights clearly defined and allocated. Option periods and exercise prices specified. All languages and territories covered for primary distribution. Underlying literary or IP rights licensed for all intended adaptations. Moral rights waivers obtained where applicable.",
+      acceptableFallback: "Format and adaptation rights documented. Option terms and exercise prices clear. Primary territories and languages covered.",
+      hardRedLine: "Format rights that include unexpected sequel or franchise obligations we did not agree to; or adaptation rights that infringe underlying IP we cannot clear.",
+    },
+    MEDIA_SYNC_LICENSE: {
+      preferredPosition: "Synchronisation licence covers all intended uses: linear, on-demand, streaming, social, theatrical, and promotional. Territory, term, and media clearly specified. Master and publisher licences both obtained. No most-favoured-nation obligations that trigger additional payments without notice. Festival use covered.",
+      acceptableFallback: "Sync licence covers primary distribution media and territory. Both master and sync rights cleared. MFN obligations disclosed.",
+      hardRedLine: "Sync licence that does not cover all distribution platforms we use; or undisclosed MFN obligations that create unexpected payment obligations.",
+    },
+    // ── Energy & CleanTech clauses ───────────────────────────────────────────
+    ENERGY_OFFTAKE: {
+      preferredPosition: "Offtake volume, price, and indexation mechanism agreed for the full contract term. Curtailment rights clearly defined with compensation mechanism. Balancing responsibility allocated. Floor price protection included. Change in law provisions covering subsidy regime changes. Bankable contract terms accepted by project finance lenders.",
+      acceptableFallback: "Offtake terms agreed. Curtailment with compensation. Balancing allocation clear. Change in law provisions included.",
+      hardRedLine: "No curtailment compensation; or change in law provisions that place subsidy regime risk entirely on the generator without price adjustment.",
+    },
+    ENERGY_GRID_CONNECTION: {
+      preferredPosition: "Grid connection agreement with DNO/TO in place or conditions precedent to this contract. Connection capacity confirmed in writing. Rights of way and land access secured. Metering obligations and data access rights specified. Reinforcement cost allocation agreed.",
+      acceptableFallback: "Grid connection terms agreed or conditions precedent documented. Metering and data access specified.",
+      hardRedLine: "No confirmed grid connection capacity before financial close; or reinforcement costs that are uncapped and fall on us without contractual ceiling.",
+    },
+    ENERGY_SUBSIDY_REGIME: {
+      preferredPosition: "Applicable subsidy (CfD, ROC, FIT, REGO, BM) registration conditions confirmed. Compliance with scheme rules warranted. Change in scheme rules triggers renegotiation mechanism. Revenue waterfall clearly specifies subsidy payment priority. Clawback risk allocated.",
+      acceptableFallback: "Subsidy eligibility confirmed. Scheme rule compliance warranted. Change in law renegotiation mechanism included.",
+      hardRedLine: "Subsidy eligibility not confirmed; or change in subsidy scheme risk allocated entirely to us without pricing adjustment mechanism.",
+    },
+    ENERGY_ENVIRONMENTAL_PERMITS: {
+      preferredPosition: "All required environmental permits (Environmental Permit, planning consent, EIA, habitat survey) obtained or conditions precedent to financial close. Ongoing permit compliance warranted. We are notified within 48 hours of any permit breach or enforcement action. Decommissioning and remediation obligations clearly allocated.",
+      acceptableFallback: "Required permits in place or conditions precedent. Permit compliance warranted. Notification of enforcement within 5 days. Decommissioning obligations allocated.",
+      hardRedLine: "Financial close before required environmental permits obtained; or decommissioning liability unallocated.",
+    },
+    ENERGY_BALANCING_IMBALANCE: {
+      preferredPosition: "Balancing and imbalance risk clearly allocated between parties. Gate closure notification obligations specified. Imbalance settlement charges allocated to the party responsible for the imbalance. Forecasting obligations and accuracy requirements defined.",
+      acceptableFallback: "Balancing responsibility allocated. Gate closure obligations specified. Imbalance charges follow allocation of balancing responsibility.",
+      hardRedLine: "Imbalance risk allocated to us for generation dispatch decisions we do not control.",
+    },
+    // ── Education & EdTech clauses ───────────────────────────────────────────
+    EDU_SAFEGUARDING: {
+      preferredPosition: "All personnel with access to children or vulnerable adults hold enhanced DBS clearance updated within 3 years. Safeguarding policy compliant with Keeping Children Safe in Education 2024 and Working Together 2023. Designated Safeguarding Lead identified. Obligation to report safeguarding concerns immediately and cooperate with statutory investigations.",
+      acceptableFallback: "Enhanced DBS clearance for all relevant personnel. Safeguarding policy maintained and shared. Reporting obligations accepted.",
+      hardRedLine: "No DBS clearance requirement for personnel with unsupervised child access; or no safeguarding policy.",
+    },
+    EDU_STUDENT_DATA: {
+      preferredPosition: "Student personal data processed only for agreed educational purposes. Parental or guardian consent obtained for under-13 data processing. No student data used for advertising or profiling. Data minimisation applied. FERPA (US) or UK GDPR compliance warranted. Student records returned on contract termination.",
+      acceptableFallback: "Student data processing limited to educational purposes. Parental consent for under-13s. No profiling or advertising use. Records returned on termination.",
+      hardRedLine: "Student data used for commercial profiling; or no parental consent mechanism for children's data.",
+    },
+    EDU_CURRICULUM_RIGHTS: {
+      preferredPosition: "All curriculum content and course materials developed under this agreement vest in us on creation. Supplier retains pre-existing IP with broad licence. We may adapt, update, and republish content without restriction. No lock-in to supplier's LMS or content platform after contract ends. SCORM/xAPI compliance required for interoperability.",
+      acceptableFallback: "Curriculum content IP vests in us. Supplier background IP licensed perpetually. Platform interoperability (SCORM/xAPI) required.",
+      hardRedLine: "Supplier owns curriculum content we commissioned and paid for; or content locked into proprietary format preventing use on other platforms.",
+    },
+    EDU_ACCREDITATION: {
+      preferredPosition: "Accreditation body approval obtained before programme launch. Awarding body agreement executed and in force. Qualification specifications and assessment requirements complied with. We are notified within 24 hours of any accreditation risk or compliance concern. No material programme changes without awarding body approval.",
+      acceptableFallback: "Accreditation in place. Qualification compliance warranted. Notification of accreditation issues within 5 days.",
+      hardRedLine: "Programme launched before accreditation obtained; or material programme changes without awarding body approval risking students' qualifications.",
+    },
+    // ── Professional Services clauses ────────────────────────────────────────
+    PS_ENGAGEMENT_SCOPE: {
+      preferredPosition: "Scope of services defined in a detailed Statement of Work. Change request process agreed: written change order required; no additional charges without signed change order. Out-of-scope activities expressly identified. Scope creep not billable without our prior written approval.",
+      acceptableFallback: "Scope documented. Written change orders required for additional work. Out-of-scope items identified.",
+      hardRedLine: "Vague scope definition with no change control process; or supplier may expand scope and charge for it without our approval.",
+    },
+    PS_FEE_BILLING: {
+      preferredPosition: "Fixed fees or agreed hourly rates for the engagement term. Rate card locked for minimum 12 months. Expenses pre-approved and capped at cost only (no mark-up). Invoices itemised by task and time recorded. Payment within 30 days. No success fees or contingency arrangements without separate written agreement.",
+      acceptableFallback: "Agreed rates fixed for the term. Expenses at cost with pre-approval. Itemised invoices. 30-day payment.",
+      hardRedLine: "Unilateral rate increases during engagement; or expense mark-up without disclosure; or invoices without sufficient detail to verify.",
+    },
+    PS_CONFLICTS_INTEREST: {
+      preferredPosition: "Supplier confirms no actual or potential conflict of interest at engagement commencement and warrants to notify us immediately of any conflict arising during the engagement. Conflicts policy shared on request. We have right to terminate if conflict is not resolved to our satisfaction. No concurrent engagements with direct competitors without our consent.",
+      acceptableFallback: "Conflict disclosure at engagement commencement. Ongoing notification obligation. Termination right for unresolvable conflicts.",
+      hardRedLine: "No conflict of interest disclosure; or supplier may simultaneously advise direct competitors on related matters without consent.",
+    },
+    PS_PROFESSIONAL_LIABILITY: {
+      preferredPosition: "Supplier maintains professional indemnity insurance appropriate to the risk of the engagement: minimum £2M per claim for regulated professional services. PI policy maintained for minimum 6 years post-engagement (run-off cover). Certificate of insurance provided annually on request. No exclusion of liability for professional negligence causing financial loss.",
+      acceptableFallback: "PI insurance minimum £1M per claim. Run-off cover confirmed. Certificate on request. No exclusion of professional negligence liability.",
+      hardRedLine: "No PI insurance for regulated professional services; or exclusion of liability for professional negligence.",
+    },
   },
 };
+
+export interface LitigationIntakeData {
+  id: string;
+  documentId: string;
+  stage: number;
+  hardStopData: string; // JSON
+  defenceData: string;  // JSON
+  fraudFlag: boolean;
+  fcaBreach: boolean;
+  vulnerableCustomer: boolean;
+  hardStopPassed: boolean;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  // Client-only flag sent to trigger completedAt on the server
+  complete?: boolean;
+}
+
+export interface AncillaryDocumentData {
+  id: string;
+  documentId: string;
+  originalName: string;
+  filename: string;
+  fileType: string;
+  privilegeFlag: boolean;
+  transcription?: string;
+  transcriptionConfirmed: boolean;
+  uploadedAt: string;
+}

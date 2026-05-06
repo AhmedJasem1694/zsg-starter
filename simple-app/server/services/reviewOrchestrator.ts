@@ -1,7 +1,7 @@
 import path from "path";
 import { prisma } from "../db.js";
 import { parseDocument, chunkText } from "./documentParser.js";
-import { classifyClauses, CLAUSE_CATEGORIES } from "./clauseClassifier.js";
+import { classifyClauses } from "./clauseClassifier.js";
 import {
   compareClauseToPlaybook,
   buildAbsentClauseResult,
@@ -30,8 +30,13 @@ export async function runReview(documentId: string): Promise<void> {
     const rawText = await parseDocument(filePath);
     const chunks = chunkText(rawText);
 
+    const company = doc.company;
+
     // Classify all chunks into clause categories
-    const classified = await classifyClauses(chunks);
+    // Derive active categories from the company's playbook rules
+    // This handles any workflow type or industry combination automatically
+    const playbookCategories = Array.from(new Set(company.playbookRules.map((r) => r.clauseCategory)));
+    const classified = await classifyClauses(chunks, company.workflowType, playbookCategories);
 
     // Deduplicate - keep highest-confidence chunk per category
     const bestByCategory = new Map<string, (typeof classified)[0]>();
@@ -41,8 +46,6 @@ export async function runReview(documentId: string): Promise<void> {
         bestByCategory.set(item.category, item);
       }
     }
-
-    const company = doc.company;
 
     // Fetch regulatory context once - injected into every clause comparison
     const regulatoryContext = await getRegulationSummaryForLLM(company.id);
@@ -62,11 +65,8 @@ export async function runReview(documentId: string): Promise<void> {
       ruleId: string | null;
     }> = [];
 
-    for (const category of CLAUSE_CATEGORIES) {
-      const rule = company.playbookRules.find(
-        (r) => r.clauseCategory === category
-      );
-      if (!rule) continue; // No playbook rule for this category - skip
+    for (const rule of company.playbookRules) {
+      const category = rule.clauseCategory;
 
       const match = bestByCategory.get(category);
 

@@ -20,16 +20,36 @@ function mapJurisdiction(jurisdiction: string): Jurisdiction[] {
 
   if (j.includes("england") || j.includes("uk") || j.includes("wales") || j.includes("scotland") || j.includes("britain"))
     result.push("GB");
-  if (j.includes("eu") || j.includes("europe") || j.includes("european"))
+  if (j.includes("eu") || j.includes("europe") || j.includes("european") || j.includes("ireland") || j.includes("netherlands") || j.includes("dutch") || j.includes("holland"))
     result.push("EU");
+  if (j.includes("ireland") || j.includes("ie ") || j === "ie")
+    result.push("IE");
+  if (j.includes("netherlands") || j.includes("dutch") || j.includes("holland") || j.includes("nl ") || j === "nl")
+    result.push("NL");
   if (j.includes("us") || j.includes("united states") || j.includes("america") || j.includes("california") || j.includes("new york") || j.includes("delaware"))
     result.push("US");
   if (j.includes("singapore") || j.includes("sg"))
     result.push("SG");
   if (j.includes("uae") || j.includes("dubai") || j.includes("abu dhabi") || j.includes("difc") || j.includes("adgm") || j.includes("emirates"))
     result.push("AE");
+  if (j.includes("switzerland") || j.includes("swiss") || j.includes("zurich") || j.includes("geneva") || j.includes("ch ") || j === "ch")
+    result.push("CH");
+  if (j.includes("hong kong") || j.includes("hksar") || j.includes("hk ") || j === "hk")
+    result.push("HK");
+  if (j.includes("japan") || j.includes("japanese") || j.includes("tokyo") || j.includes("jp ") || j === "jp")
+    result.push("JP");
+  if (j.includes("canada") || j.includes("canadian") || j.includes("ontario") || j.includes("british columbia"))
+    result.push("CA");
+  if (j.includes("saudi") || j.includes("ksa") || j.includes("riyadh"))
+    result.push("KSA");
+  if (j.includes("korea") || j.includes("korean") || j.includes("seoul") || j.includes("kr ") || j === "kr")
+    result.push("KR");
+  if (j.includes("india") || j.includes("indian") || j.includes("mumbai") || j.includes("delhi") || j.includes("bangalore") || j.includes("bengaluru") || j.includes("in ") || j === "in")
+    result.push("IN");
+  if (j.includes("brazil") || j.includes("brasil") || j.includes("brazilian") || j.includes("são paulo") || j.includes("sao paulo") || j.includes("rio") || j.includes("br ") || j === "br")
+    result.push("BR");
 
-  // Default: include all jurisdictions if none matched (global company)
+  // Default: include GB + EU if none matched
   if (result.length === 0) result.push("GB", "EU");
 
   return result;

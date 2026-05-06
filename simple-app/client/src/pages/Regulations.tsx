@@ -1,34 +1,36 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw, Shield, Globe, AlertCircle } from "lucide-react";
-import { getRegulations, detectRegulations } from "../lib/api";
+import { getRegulations, detectRegulations, getCompany } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
+import UpgradeBanner from "../components/UpgradeBanner";
 import type { CompanyRegulation } from "../lib/types";
 
-const JURISDICTION_FLAGS: Record<string, string> = {
-  GB: "🇬🇧",
-  EU: "🇪🇺",
-  US: "🇺🇸",
-  SG: "🇸🇬",
-  AE: "🇦🇪",
-};
-
 const JURISDICTION_LABELS: Record<string, string> = {
-  GB: "United Kingdom",
-  EU: "European Union",
-  US: "United States",
-  SG: "Singapore",
-  AE: "United Arab Emirates",
+  GB:  "United Kingdom",
+  EU:  "European Union",
+  IE:  "Ireland",
+  NL:  "Netherlands",
+  CH:  "Switzerland",
+  US:  "United States",
+  CA:  "Canada",
+  SG:  "Singapore",
+  HK:  "Hong Kong",
+  JP:  "Japan",
+  AE:  "United Arab Emirates",
+  KSA: "Saudi Arabia",
+  KR:  "South Korea",
+  IN:  "India",
+  BR:  "Brazil",
 };
 
 function RegCard({ reg }: { reg: CompanyRegulation }) {
-  const flag = JURISDICTION_FLAGS[reg.jurisdiction] ?? "🌐";
   const label = JURISDICTION_LABELS[reg.jurisdiction] ?? reg.jurisdiction;
 
   return (
     <div className="card p-5 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
-          <span className="text-lg">{flag}</span>
+          <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-mono">{reg.jurisdiction}</span>
           <div>
             <div className="text-sm font-semibold">{reg.frameworkName}</div>
             <div className="text-xs text-muted-foreground">{reg.regulator} · {label}</div>
@@ -61,6 +63,12 @@ function groupByJurisdiction(regs: CompanyRegulation[]) {
 export default function Regulations() {
   const queryClient = useQueryClient();
 
+  const { data: company } = useQuery({
+    queryKey: ["company"],
+    queryFn: getCompany,
+    retry: false,
+  });
+
   const { data: regulations = [], isLoading } = useQuery({
     queryKey: ["regulations"],
     queryFn: getRegulations,
@@ -72,6 +80,10 @@ export default function Regulations() {
   });
 
   const grouped = groupByJurisdiction(regulations);
+
+  // Free plan: show upgrade banner instead of full feature
+  const plan = (company as { plan?: string } | undefined)?.plan ?? "FREE";
+  const isLocked = plan === "FREE";
 
   return (
     <AppLayout>
@@ -94,16 +106,32 @@ export default function Regulations() {
           </button>
         </div>
 
-        {/* Info banner */}
-        <div className="card bg-accent border-accent-border p-4 flex gap-3">
-          <Shield size={16} className="text-primary mt-0.5 shrink-0" />
-          <p className="text-sm text-foreground/80">
-            MIKE injects these regulatory requirements into every contract review - flagging clauses that conflict with your
-            obligations even if your playbook doesn't explicitly mention them.
-          </p>
-        </div>
+        {/* Upgrade banner for free plan */}
+        {isLocked && (
+          <UpgradeBanner
+            feature="Regulatory intelligence"
+            description="MIKE injects live regulatory requirements into every contract review — flagging clauses that conflict with your sector and jurisdiction obligations even if your playbook doesn't mention them."
+            bullets={[
+              "Automatic detection for your sector and jurisdiction",
+              "Cross-referenced on every clause review",
+              "Updated as regulations change",
+            ]}
+            tier="starter"
+          />
+        )}
 
-        {isLoading ? (
+        {/* Info banner — shown to paying users */}
+        {!isLocked && (
+          <div className="card bg-accent border-accent-border p-4 flex gap-3">
+            <Shield size={16} className="text-primary mt-0.5 shrink-0" />
+            <p className="text-sm text-foreground/80">
+              MIKE injects these regulatory requirements into every contract review - flagging clauses that conflict with your
+              obligations even if your playbook doesn't explicitly mention them.
+            </p>
+          </div>
+        )}
+
+        {isLocked ? null : isLoading ? (
           <div className="text-sm text-muted-foreground py-8 text-center">Loading regulatory frameworks…</div>
         ) : regulations.length === 0 ? (
           <div className="card p-10 text-center space-y-4">
@@ -128,7 +156,7 @@ export default function Regulations() {
             {Array.from(grouped.entries()).map(([jurisdiction, regs]) => (
               <div key={jurisdiction} className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-xl">{JURISDICTION_FLAGS[jurisdiction] ?? "🌐"}</span>
+                  <span className="text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-mono">{jurisdiction}</span>
                   <h2 className="text-base font-semibold">
                     {JURISDICTION_LABELS[jurisdiction] ?? jurisdiction}
                   </h2>

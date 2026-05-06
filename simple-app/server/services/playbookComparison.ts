@@ -23,6 +23,7 @@ export interface ComparisonResult {
 }
 
 type Persona = "CORPORATE" | "FOUNDER" | "PE_FUND";
+type WorkflowType = "COMMERCIAL_CONTRACT" | "INSURANCE_LITIGATION" | "LOGISTICS_CONTRACT";
 
 function personaContext(persona: Persona, companyName: string, sector: string): { role: string; audienceNote: string; actionStyle: string } {
   switch (persona) {
@@ -48,15 +49,36 @@ function personaContext(persona: Persona, companyName: string, sector: string): 
   }
 }
 
+function workflowContext(workflowType: WorkflowType): { role: string; audienceNote: string; actionStyle: string } | null {
+  switch (workflowType) {
+    case "INSURANCE_LITIGATION":
+      return {
+        role: "You are MIKE, a legal intelligence layer for insurance litigation teams. You assess claims and coverage positions against regulatory obligations and settlement authority frameworks.",
+        audienceNote: "The reader is in-house litigation counsel. Be precise on coverage analysis, quantum, and FCA regulatory obligations. Cite FCA Handbook (ICOBS, DISP) and FOS decisions where relevant.",
+        actionStyle: "Frame output as litigation management instructions: coverage position, defence prospects, reserve adequacy, settlement authority level, and any regulatory flags requiring immediate action.",
+      };
+    case "LOGISTICS_CONTRACT":
+      return {
+        role: "You are MIKE, a legal risk analyser for logistics and supply chain legal teams. You assess carrier, customer, and warehouse contracts against company positions and logistics-specific regulatory obligations including CMR Convention, BIFA standard trading conditions, and trade compliance requirements.",
+        audienceNote: "The reader is Head of Legal at a logistics business. Speak logistics language: cargo, consignments, hauliers, SLAs, CMR limits. Commercial and operational impact matters more than abstract legal risk.",
+        actionStyle: "Frame output as contract negotiation instructions for a logistics business: what CMR limits apply, whether subcontracting rights are adequate, whether liability exposure exceeds insurance cover.",
+      };
+    default:
+      return null;
+  }
+}
+
 export async function compareClauseToPlaybook(
   clauseText: string,
   rule: PlaybookRule,
   companyName: string,
   sector: string,
   regulatoryContext: string = "",
-  persona: Persona = "CORPORATE"
+  persona: Persona = "CORPORATE",
+  workflowType: string = "COMMERCIAL_CONTRACT"
 ): Promise<ComparisonResult> {
-  const ctx = personaContext(persona, companyName, sector);
+  const wfCtx = workflowContext(workflowType as WorkflowType);
+  const ctx = wfCtx ?? personaContext(persona, companyName, sector);
 
   const systemPrompt = `${ctx.role}
 ${ctx.audienceNote}
