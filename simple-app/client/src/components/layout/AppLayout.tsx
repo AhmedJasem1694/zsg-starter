@@ -28,12 +28,16 @@ const LEGAL_NAV_SECONDARY = [
 // ── Founder nav ───────────────────────────────────────────────────────────────
 
 const FOUNDER_NAV = [
-  { to: "/app/founder/dashboard", icon: LayoutDashboard, label: "My Contracts" },
-  { to: "/app/founder/documents", icon: FileText,        label: "All Documents" },
+  { to: "/app/founder/dashboard",  icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/app/legal/playbook",     icon: BookOpen,        label: "Playbook" },
+  { to: "/app/legal/portfolio",    icon: PieChart,        label: "Portfolio Risk" },
+  { to: "/app/legal/timings",      icon: CalendarClock,   label: "Contract Timings" },
+  { to: "/app/legal/bulk-review",  icon: LayoutGrid,      label: "Bulk review" },
 ];
 
 const FOUNDER_NAV_SECONDARY = [
-  { to: "/resources", icon: HelpCircle, label: "Help" },
+  { to: "/security",  icon: Lock,       label: "Security" },
+  { to: "/resources", icon: HelpCircle, label: "Resources" },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -47,7 +51,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: company } = useQuery({ queryKey: ["company"], queryFn: getCompany, retry: false });
 
   const persona: Persona = (company as { persona?: Persona } | undefined)?.persona ?? "CORPORATE";
-  const isFounder = location.pathname.startsWith("/app/founder");
+  const isFounder = persona === "FOUNDER";
 
   const nav           = isFounder ? FOUNDER_NAV         : LEGAL_NAV;
   const navSecondary  = isFounder ? FOUNDER_NAV_SECONDARY : LEGAL_NAV_SECONDARY;
@@ -71,7 +75,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         {/* Logo */}
-        <div className="flex items-center gap-2.5 px-5 py-5 border-b border-sidebar-border">
+        <Link to="/" className="flex items-center gap-2.5 px-5 py-5 border-b border-sidebar-border hover:opacity-80 transition-opacity">
           <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shrink-0">
             <span className="text-white text-xs font-bold">M</span>
           </div>
@@ -81,7 +85,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               {isFounder ? "Your Deal Assistant" : "Legal Decision Engine"}
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Company chip */}
         {company && (

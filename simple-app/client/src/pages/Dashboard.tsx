@@ -3,12 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Upload, FileText, AlertTriangle, CheckCircle, Clock,
-  RotateCcw, Shield, ChevronRight, AlertCircle,
+  RotateCcw, Shield, ChevronRight, AlertCircle, LayoutGrid, ArrowRight,
 } from "lucide-react";
 import { getDocuments, uploadDocument, startReview, getCompany, getDocumentStats } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import MikeNoticedPanel from "../components/MikeNoticedPanel";
 import MissingDocsPanel from "../components/MissingDocsPanel";
+import { Link } from "react-router-dom";
 import type { DocumentStatus } from "../lib/types";
 import { MOCK_MODE, MOCK_DOCUMENTS } from "../lib/mockData";
 import type { UploadedDocument } from "../lib/types";
@@ -347,7 +348,7 @@ export default function Dashboard() {
           <div>
             <h1 className="text-2xl font-semibold">Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Upload a contract and MIKE reviews it in ~2 minutes
+              Upload a contract and MIKE reviews it in minutes, not hours
               {useMock && (
                 <span className="ml-2 text-xs bg-amber-100 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5">
                   Demo data
@@ -549,7 +550,7 @@ export default function Dashboard() {
                 <div className="card-body text-center py-12">
                   <FileText size={32} className="text-muted-foreground/30 mx-auto mb-3" />
                   <div className="text-sm font-medium text-muted-foreground">No contracts reviewed yet</div>
-                  <div className="text-xs text-muted-foreground mt-1">Upload one above — MIKE reviews it in about 2 minutes</div>
+                  <div className="text-xs text-muted-foreground mt-1">Upload one above to get started</div>
                 </div>
               ) : (
                 <div className="divide-y divide-card-border">
@@ -687,6 +688,25 @@ export default function Dashboard() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* Legal Inheritance */}
+            <div className="card border-primary/20" style={{ background: "hsl(172 84% 6%)" }}>
+              <div className="card-body space-y-3">
+                <div className="flex items-center gap-2">
+                  <LayoutGrid size={14} className="text-primary shrink-0" />
+                  <span className="text-sm font-semibold">Legal Inheritance</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Already have a contract library? Upload your entire back-catalogue in one go. MIKE reviews every document against your playbook and surfaces hidden risk across your existing portfolio.
+                </p>
+                <Link
+                  to="/app/legal/bulk-review"
+                  className="inline-flex items-center gap-1.5 text-xs text-primary font-medium hover:opacity-80 transition-opacity"
+                >
+                  Run a bulk review <ArrowRight size={11} />
+                </Link>
               </div>
             </div>
 

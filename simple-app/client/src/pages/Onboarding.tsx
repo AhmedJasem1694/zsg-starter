@@ -54,22 +54,6 @@ const STEPS = ["Workflow", "Persona", "Company", "Contracts", "Playbook", "Appro
 
 // ─── Industry config ──────────────────────────────────────────────────────────
 
-const INDUSTRY_ICONS: Record<Industry, string> = {
-  TECHNOLOGY_SAAS:          "💻",
-  FINANCIAL_SERVICES:       "🏦",
-  HEALTHCARE_LIFESCIENCES:  "🏥",
-  GAMING_INTERACTIVE:       "🎮",
-  PROPERTY_REAL_ESTATE:     "🏢",
-  PROFESSIONAL_SERVICES:    "💼",
-  MANUFACTURING_SUPPLY:     "🏭",
-  LOGISTICS_SUPPLY:         "🚛",
-  RETAIL_ECOMMERCE:         "🛒",
-  MEDIA_ENTERTAINMENT:      "🎬",
-  ENERGY_CLEANTECH:         "⚡",
-  EDUCATION_EDTECH:         "📚",
-  LEGAL_SERVICES:           "⚖️",
-  OTHER:                    "🔲",
-};
 
 // ─── Contract types ───────────────────────────────────────────────────────────
 
@@ -881,7 +865,6 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
                   <div className={`w-3.5 h-3.5 rounded shrink-0 flex items-center justify-center transition-colors ${sel ? "bg-primary" : "border border-white/20"}`}>
                     {sel && <span className="text-white text-[9px] font-bold">✓</span>}
                   </div>
-                  <span className="text-base shrink-0">{INDUSTRY_ICONS[value]}</span>
                   <span className="leading-tight truncate">{label}</span>
                 </button>
               );
@@ -1064,7 +1047,6 @@ function Step3ContractType({ values, industries, persona, workflowType, onChange
         </span>
         {industries.map((ind) => (
           <span key={ind} className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-xs text-white/70">
-            <span>{INDUSTRY_ICONS[ind]}</span>
             <span>{INDUSTRY_LABELS[ind]}</span>
           </span>
         ))}

@@ -1,6 +1,56 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, AlertTriangle, Minus, Zap, BookOpen, Scale, TrendingUp, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
+
+// ─── Cycling phrases in hero headline ────────────────────────────────────────
+const PHRASES = ["always on.", "always current.", "never wrong.", "built for you."];
+
+function CyclingPhrase() {
+  const [index, setIndex]     = useState(0);
+  const [phase, setPhase]     = useState<"in" | "out">("in");
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setPhase("out");
+      setTimeout(() => {
+        setIndex((i) => (i + 1) % PHRASES.length);
+        setPhase("in");
+      }, 220);
+    }, 2800);
+    return () => clearInterval(tick);
+  }, []);
+
+  return (
+    <span
+      key={index}
+      className={phase === "in" ? "phrase-in" : "phrase-out"}
+      style={{
+        background: "linear-gradient(90deg, hsl(172 84% 45%), hsl(172 84% 70%))",
+        WebkitBackgroundClip: "text",
+        WebkitTextFillColor: "transparent",
+      }}
+    >
+      {PHRASES[index]}
+    </span>
+  );
+}
+
+// ─── Scroll reveal hook ───────────────────────────────────────────────────────
+function useScrollReveal() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { el.classList.add("visible"); obs.disconnect(); } },
+      { threshold: 0.12 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return ref;
+}
 
 const BG   = "hsl(220 20% 9%)";
 const CARD = "hsl(220 20% 13%)";
@@ -81,6 +131,13 @@ function ProductPreview() {
 
 export default function Landing() {
   const { user } = useAuth();
+  const revealComparison    = useScrollReveal();
+  const revealKnowledge     = useScrollReveal();
+  const revealHowItWorks    = useScrollReveal();
+  const revealWhoItsFor     = useScrollReveal();
+  const revealRegulatory    = useScrollReveal();
+  const revealFeedback      = useScrollReveal();
+  const revealPricing       = useScrollReveal();
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: BG }}>
@@ -132,31 +189,30 @@ export default function Landing() {
 
         <div className="relative max-w-4xl mx-auto px-6 py-20 text-center space-y-7">
           {/* Jurisdiction pill */}
-          <div className="inline-flex items-center gap-2 border border-white/10 rounded-full px-4 py-1.5 text-xs text-white/55 bg-white/5 backdrop-blur-sm">
+          <div className="hero-animate inline-flex items-center gap-2 border border-white/10 rounded-full px-4 py-1.5 text-xs text-white/55 bg-white/5 backdrop-blur-sm" style={{ animationDelay: "0ms" }}>
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shrink-0" />
             14 jurisdictions including UK · EU · UAE · US · KSA
           </div>
 
           {/* Headline */}
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] text-white">
+          <h1 className="hero-animate text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.1] text-white" style={{ animationDelay: "120ms" }}>
             Your knowledge lawyer,{" "}
-            <span style={{ background: "linear-gradient(90deg, hsl(172 84% 45%), hsl(172 84% 65%))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              always on.
-            </span>
+            <br className="hidden sm:block" />
+            <CyclingPhrase />
           </h1>
 
           {/* Description */}
-          <p className="text-lg sm:text-xl text-white/65 leading-relaxed max-w-2xl mx-auto">
+          <p className="hero-animate text-lg sm:text-xl text-white/65 leading-relaxed max-w-2xl mx-auto" style={{ animationDelay: "260ms" }}>
             MIKE reviews contracts against your playbook, your regulatory obligations, and your history - and tells you exactly where to push back before you sign.
           </p>
 
           {/* Dismissal line */}
-          <p className="text-xs text-white/30 tracking-wide">
+          <p className="hero-animate text-xs text-white/30 tracking-wide" style={{ animationDelay: "360ms" }}>
             Not a chatbot. Not a contract summariser. Not a CLM. A decision engine that gets smarter with every contract processed.
           </p>
 
           {/* CTA */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <div className="hero-animate flex flex-col sm:flex-row items-center justify-center gap-3 pt-2" style={{ animationDelay: "460ms" }}>
             {user ? (
               <Link to="/dashboard" className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-xl shadow-primary/30 text-sm">
                 Go to dashboard <ArrowRight size={15} />
@@ -173,13 +229,13 @@ export default function Landing() {
             )}
           </div>
 
-          {/* Stats strip - anchors credibility above the fold */}
-          <div className="pt-4 grid grid-cols-4 gap-4 max-w-lg mx-auto border-t border-white/8 mt-4">
+          {/* Stats strip */}
+          <div className="hero-animate pt-4 grid grid-cols-4 gap-4 max-w-lg mx-auto border-t border-white/8 mt-4" style={{ animationDelay: "560ms" }}>
             {[
-              { value: "50+",  label: "Clause types" },
-              { value: "14",   label: "Jurisdictions" },
-              { value: "minutes",  label: "Not hours" },
-              { value: "100%", label: "Playbook-calibrated" },
+              { value: "50+",     label: "Clause types" },
+              { value: "14",      label: "Jurisdictions" },
+              { value: "minutes", label: "Not hours" },
+              { value: "100%",    label: "Playbook-calibrated" },
             ].map(({ value, label }) => (
               <div key={label} className="text-center space-y-0.5">
                 <div className="text-lg font-bold text-white">{value}</div>
@@ -189,7 +245,7 @@ export default function Landing() {
           </div>
 
           {/* Scroll hint */}
-          <div className="pt-4 flex flex-col items-center gap-1.5 opacity-30">
+          <div className="hero-animate pt-4 flex flex-col items-center gap-1.5 opacity-30" style={{ animationDelay: "700ms" }}>
             <div className="w-px h-6 bg-white/30 rounded-full" />
             <span className="text-[10px] text-white/40 tracking-widest uppercase">scroll</span>
           </div>
@@ -197,7 +253,7 @@ export default function Landing() {
       </section>
 
       {/* ─── COMPARISON - first thing you see on scroll ───────────────────────── */}
-      <section id="why-mike" className="py-20 border-t border-white/8" style={{ background: ALT }}>
+      <section id="why-mike" ref={revealComparison} className="scroll-reveal py-20 border-t border-white/8" style={{ background: ALT }}>
         <div className="max-w-5xl mx-auto px-6 space-y-10">
 
           {/* Heading */}
@@ -265,7 +321,7 @@ export default function Landing() {
       </section>
 
       {/* ─── KNOWLEDGE LAWYER ─────────────────────────────────────────────────── */}
-      <section className="py-20 border-t border-white/8">
+      <section ref={revealKnowledge} className="scroll-reveal py-20 border-t border-white/8">
         <div className="max-w-5xl mx-auto px-6">
           <div className="rounded-2xl border border-white/8 overflow-hidden" style={{ background: CARD }}>
             <div className="grid lg:grid-cols-2 gap-0">
@@ -311,7 +367,7 @@ export default function Landing() {
 
 
       {/* ─── HOW IT WORKS ────────────────────────────────────────────────────── */}
-      <section id="how-it-works" className="border-y border-white/8 py-20" style={{ background: ALT }}>
+      <section id="how-it-works" ref={revealHowItWorks} className="scroll-reveal border-y border-white/8 py-20" style={{ background: ALT }}>
         <div className="max-w-5xl mx-auto px-6 space-y-16">
 
           <div className="text-center">
@@ -363,7 +419,7 @@ export default function Landing() {
       </section>
 
       {/* ─── WHO IT'S FOR ────────────────────────────────────────────────────── */}
-      <section className="py-20 border-b border-white/8">
+      <section ref={revealWhoItsFor} className="scroll-reveal py-20 border-b border-white/8">
         <div className="max-w-6xl mx-auto px-6 space-y-10">
           <div className="text-center space-y-3">
             <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Built for every side of the deal</h2>
@@ -377,6 +433,7 @@ export default function Landing() {
                   "Review counterparty paper against your exact positions",
                   "Fallback language ready to paste into your redline",
                   "Escalation routing to the right approver, automatically",
+                  "Legal Inheritance - bulk upload your existing contract library and surface hidden risk across your whole portfolio",
                 ],
                 link: null,
               },
@@ -412,7 +469,7 @@ export default function Landing() {
       </section>
 
       {/* ─── REGULATORY INTELLIGENCE ─────────────────────────────────────────── */}
-      <section className="border-b border-white/8 py-20" style={{ background: "hsl(222 47% 8%)" }}>
+      <section ref={revealRegulatory} className="scroll-reveal border-b border-white/8 py-20" style={{ background: "hsl(222 47% 8%)" }}>
         <div className="max-w-6xl mx-auto px-6">
           <div className="rounded-2xl border border-white/8 overflow-hidden" style={{ background: "hsl(222 47% 9%)" }}>
             <div className="grid lg:grid-cols-2 gap-0">
@@ -456,7 +513,7 @@ export default function Landing() {
       </section>
 
       {/* ─── FEEDBACK LOOP ───────────────────────────────────────────────────── */}
-      <section className="border-b border-white/8 py-20" style={{ background: ALT }}>
+      <section ref={revealFeedback} className="scroll-reveal border-b border-white/8 py-20" style={{ background: ALT }}>
         <div className="max-w-3xl mx-auto px-6 text-center space-y-6">
           <div className="inline-block text-xs font-bold text-primary tracking-widest uppercase">The feedback loop</div>
           <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
@@ -483,7 +540,7 @@ export default function Landing() {
       </section>
 
       {/* ─── PRICING ─────────────────────────────────────────────────────────── */}
-      <section id="pricing" className="max-w-6xl mx-auto px-6 py-20 space-y-10">
+      <section id="pricing" ref={revealPricing} className="scroll-reveal max-w-6xl mx-auto px-6 py-20 space-y-10">
         <div className="text-center space-y-3">
           <div className="inline-block text-xs font-bold text-primary tracking-widest uppercase">Pricing</div>
           <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">A fraction of what a knowledge lawyer costs</h2>
