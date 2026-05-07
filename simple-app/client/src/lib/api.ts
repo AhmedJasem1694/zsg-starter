@@ -210,3 +210,42 @@ export const saveFeedback = (
     notes?: string;
   }
 ) => req("POST", `/api/feedback/${resultId}`, data);
+
+// Memory / patterns
+export interface ClauseOutcome {
+  clauseCategory: string;
+  total: number;
+  accepted: number;
+  escalated: number;
+  dismissed: number;
+  redCount: number;
+  amberCount: number;
+  greenCount: number;
+}
+
+export interface MikePattern {
+  type: string;
+  message: string;
+  severity: "info" | "warn" | "good";
+}
+
+export const getFeedbackPatterns = () =>
+  req<{ patterns: MikePattern[]; clauseOutcomes: ClauseOutcome[] }>(
+    "GET",
+    "/api/feedback/patterns"
+  );
+
+// Generate negotiation reply
+export const generateReply = (resultId: string, tone?: string) =>
+  req<{ reply: string }>("POST", `/api/review/generate-reply/${resultId}`, { tone: tone ?? "professional" });
+
+// Missing documents
+export interface MissingDoc {
+  contractType: string;
+  label: string;
+  reason: string;
+  priority: "high" | "medium";
+}
+
+export const getMissingDocuments = () =>
+  req<{ missing: MissingDoc[] }>("GET", "/api/documents/missing");

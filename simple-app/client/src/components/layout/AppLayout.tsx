@@ -1,23 +1,42 @@
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Settings, LogOut, Menu, Shield, Lock, HelpCircle, PieChart, CalendarClock, LayoutGrid } from "lucide-react";
+import {
+  LayoutDashboard, BookOpen, Settings, LogOut, Menu, Shield,
+  Lock, HelpCircle, PieChart, CalendarClock, LayoutGrid, FileText,
+} from "lucide-react";
 import { useAuth, useLogout } from "../../hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { getCompany } from "../../lib/api";
+import type { Persona } from "../../lib/types";
 
-const NAV = [
-  { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/playbook", icon: BookOpen, label: "Playbook" },
-  { to: "/regulations", icon: Shield, label: "Regulations" },
-  { to: "/portfolio", icon: PieChart, label: "Portfolio Risk" },
-  { to: "/timings", icon: CalendarClock, label: "Contract Timings" },
-  { to: "/bulk-review", icon: LayoutGrid, label: "Bulk review" },
+// ── Legal nav ─────────────────────────────────────────────────────────────────
+
+const LEGAL_NAV = [
+  { to: "/app/legal/dashboard",   icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/app/legal/playbook",    icon: BookOpen,         label: "Playbook" },
+  { to: "/app/legal/regulations", icon: Shield,           label: "Regulations" },
+  { to: "/app/legal/portfolio",   icon: PieChart,         label: "Portfolio Risk" },
+  { to: "/app/legal/timings",     icon: CalendarClock,    label: "Contract Timings" },
+  { to: "/app/legal/bulk-review", icon: LayoutGrid,       label: "Bulk review" },
 ];
 
-const NAV_SECONDARY = [
-  { to: "/security", icon: Lock, label: "Security" },
-  { to: "/resources", icon: HelpCircle, label: "Resources" },
+const LEGAL_NAV_SECONDARY = [
+  { to: "/security",  icon: Lock,        label: "Security" },
+  { to: "/resources", icon: HelpCircle,  label: "Resources" },
 ];
+
+// ── Founder nav ───────────────────────────────────────────────────────────────
+
+const FOUNDER_NAV = [
+  { to: "/app/founder/dashboard", icon: LayoutDashboard, label: "My Contracts" },
+  { to: "/app/founder/documents", icon: FileText,        label: "All Documents" },
+];
+
+const FOUNDER_NAV_SECONDARY = [
+  { to: "/resources", icon: HelpCircle, label: "Help" },
+];
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -26,6 +45,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const logout = useLogout();
   const { data: company } = useQuery({ queryKey: ["company"], queryFn: getCompany, retry: false });
+
+  const persona: Persona = (company as { persona?: Persona } | undefined)?.persona ?? "CORPORATE";
+  const isFounder = location.pathname.startsWith("/app/founder");
+
+  const nav           = isFounder ? FOUNDER_NAV         : LEGAL_NAV;
+  const navSecondary  = isFounder ? FOUNDER_NAV_SECONDARY : LEGAL_NAV_SECONDARY;
+  const settingsTarget = isFounder ? "/onboarding" : "/onboarding";
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -51,7 +77,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
           <div>
             <div className="text-sm font-semibold text-sidebar-foreground">MIKE</div>
-            <div className="text-[10px] text-sidebar-foreground/40 tracking-wide uppercase">Legal Decision Engine</div>
+            <div className="text-[10px] text-sidebar-foreground/40 tracking-wide uppercase">
+              {isFounder ? "Your Deal Assistant" : "Legal Decision Engine"}
+            </div>
           </div>
         </div>
 
@@ -59,13 +87,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {company && (
           <div className="mx-3 mt-3 px-3 py-2 rounded-lg bg-sidebar-accent/60 border border-sidebar-border">
             <div className="text-xs font-medium text-sidebar-foreground/90 truncate">{company.name}</div>
-            <div className="text-[10px] text-sidebar-foreground/50 truncate">{company.sector}</div>
+            <div className="text-[10px] text-sidebar-foreground/50 truncate">
+              {isFounder ? (persona === "FOUNDER" ? "Founder" : "Investor") : company.sector}
+            </div>
           </div>
         )}
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-0.5">
-          {NAV.map(({ to, icon: Icon, label }) => {
+          {nav.map(({ to, icon: Icon, label }) => {
             const active = location.pathname === to || location.pathname.startsWith(to + "/");
             return (
               <Link
@@ -84,7 +114,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Secondary nav */}
         <div className="px-3 pb-2 space-y-0.5 border-t border-sidebar-border pt-3">
           <div className="px-3 pb-1 text-[10px] uppercase tracking-widest text-sidebar-foreground/30 font-medium">More</div>
-          {NAV_SECONDARY.map(({ to, icon: Icon, label }) => {
+          {navSecondary.map(({ to, icon: Icon, label }) => {
             const active = location.pathname === to;
             return (
               <Link
@@ -104,7 +134,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="px-3 py-4 border-t border-sidebar-border space-y-0.5">
           <button
             className="nav-item w-full"
-            onClick={() => { setOpen(false); navigate("/onboarding"); }}
+            onClick={() => { setOpen(false); navigate(settingsTarget); }}
           >
             <Settings size={16} className="shrink-0" />
             Settings

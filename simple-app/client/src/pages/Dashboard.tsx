@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { getDocuments, uploadDocument, startReview, getCompany, getDocumentStats } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
+import MikeNoticedPanel from "../components/MikeNoticedPanel";
+import MissingDocsPanel from "../components/MissingDocsPanel";
 import type { DocumentStatus } from "../lib/types";
 import { MOCK_MODE, MOCK_DOCUMENTS } from "../lib/mockData";
 import type { UploadedDocument } from "../lib/types";
@@ -293,7 +295,7 @@ export default function Dashboard() {
       await reviewMutation.mutateAsync(doc.id);
       // For insurance litigation workflow, redirect to intake flow
       if (workflowType === "INSURANCE_LITIGATION") {
-        navigate(`/litigation-intake/${doc.id}`);
+        navigate(`/app/legal/litigation-intake/${doc.id}`);
         return;
       }
       // Reset form
@@ -565,7 +567,7 @@ export default function Dashboard() {
                         key={doc.id}
                         className={`px-5 py-4 flex items-center gap-4 transition-colors
                           ${isClickable ? "hover:bg-muted/20 cursor-pointer" : ""}`}
-                        onClick={isClickable ? () => navigate(`/review/${doc.id}`) : undefined}
+                        onClick={isClickable ? () => navigate(`/app/legal/review/${doc.id}`) : undefined}
                       >
                         <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
                           <FileText size={15} className="text-muted-foreground" />
@@ -687,6 +689,12 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+
+            {/* MIKE noticed (memory layer) */}
+            <MikeNoticedPanel />
+
+            {/* Missing docs */}
+            <MissingDocsPanel />
 
           </div>
         </div>

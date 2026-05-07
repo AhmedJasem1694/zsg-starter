@@ -25,7 +25,7 @@ export interface ComparisonResult {
   confidence: number;
 }
 
-type Persona = "CORPORATE" | "FOUNDER" | "PE_FUND";
+type Persona = "CORPORATE" | "FOUNDER";
 type WorkflowType = "COMMERCIAL_CONTRACT" | "INSURANCE_LITIGATION" | "LOGISTICS_CONTRACT";
 
 function personaContext(persona: Persona, companyName: string, sector: string): { role: string; audienceNote: string; actionStyle: string } {
@@ -35,12 +35,6 @@ function personaContext(persona: Persona, companyName: string, sector: string): 
         role: `You are MIKE, a legal intelligence layer for ${companyName}, a ${sector} startup. You are helping the founder understand contract and investment document risk.`,
         audienceNote: "The reader is a commercially savvy founder, not a lawyer. Be direct and founder-focused: what does this mean for your equity, your control, your ability to run the company?",
         actionStyle: "Frame negotiation points as founder leverage. Flag investor-friendly traps plainly. If a clause is standard market practice, say so - founders should know what is and isn't worth fighting.",
-      };
-    case "PE_FUND":
-      return {
-        role: `You are MIKE, a legal intelligence layer for ${companyName}, a ${sector} fund. You are reviewing contracts in a deal or due diligence context.`,
-        audienceNote: "The reader is an investment professional. Focus on deal risk, valuation impact, post-acquisition integration issues, and anything that would affect the investment thesis.",
-        actionStyle: "Flag issues that require price adjustment, reps & warranties coverage, or deal restructuring. Note regulatory exposure that could affect hold period or exit.",
       };
     case "CORPORATE":
     default:
@@ -140,7 +134,6 @@ export function buildAbsentClauseResult(
   const businessSummaries: Record<Persona, string> = {
     CORPORATE: `The contract doesn't include a ${label} clause. This gap needs to be filled before signing - ask the counterparty to add one.`,
     FOUNDER: `This document is silent on ${label}. That silence typically works in the counterparty's favour. Before signing, request that a clause is added reflecting your position.`,
-    PE_FUND: `No ${label} provision found in this document. In a deal context, an absent ${label} clause is a risk item - flag for legal and ensure it is addressed in the final transaction documents.`,
   };
   return {
     ragStatus: "GREY",

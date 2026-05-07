@@ -107,21 +107,18 @@ export default function CaseStudy() {
               <p>Before you sign a term sheet, MIKE tells you exactly what you're agreeing to - in plain English, with the exit waterfall modelled, and with a recommended action for every clause that deviates from market standard or your hard red lines.</p>
             </div>
             <div className="space-y-2">
-              <div className="text-xs font-bold text-primary uppercase tracking-widest mb-3">For PE & M&A funds</div>
-              <p>When you're running DD on a target, MIKE analyses the cap table agreements, SHA, and existing investor terms - surfacing the obligations and preferences you're acquiring alongside the business, before you commit capital.</p>
+              <div className="text-xs font-bold text-primary uppercase tracking-widest mb-3">For in-house legal teams</div>
+              <p>Before you sign a supplier or customer contract, MIKE checks every clause against your playbook, flags what deviates from your standard positions, and gives you the fallback language to push back with.</p>
             </div>
           </div>
         </div>
 
         {/* CTA */}
         <div className="text-center space-y-4 pb-8">
-          <p className="text-white/55 text-sm">Ready to review your next investment document?</p>
+          <p className="text-white/55 text-sm">Ready to review your next contract?</p>
           <div className="flex items-center justify-center gap-3">
             <Link to="/register" className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity text-sm">
               Get started
-            </Link>
-            <Link to="/for-funds" className="inline-flex items-center gap-2 px-6 py-3 border border-white/15 text-white hover:border-white/30 rounded-xl transition-colors text-sm">
-              For PE & M&A funds
             </Link>
           </div>
         </div>

@@ -74,7 +74,7 @@ export async function runReview(documentId: string): Promise<void> {
           category,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           rule as any,
-          (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER" | "PE_FUND"
+          (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER"
         );
         results.push({
           clauseCategory: category,
@@ -112,7 +112,7 @@ export async function runReview(documentId: string): Promise<void> {
         company["name"] as string,
         company["sector"] as string,
         combinedRegContext,
-        (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER" | "PE_FUND"
+        (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER"
       );
 
       results.push({

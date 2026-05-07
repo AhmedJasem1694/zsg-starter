@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import path from "path";
 import { z } from "zod";
@@ -8,6 +8,21 @@ import { runReview } from "./services/reviewOrchestrator.js";
 import { detectAndSaveRegulations } from "./services/regulatoryDetection.js";
 import { requireAuth, signToken } from "./middleware/auth.js";
 import { transcribeAudioFile } from "./services/transcription.js";
+import { chatComplete } from "./services/openrouter.js";
+
+// ── Express 4 async error helper ─────────────────────────────────────────────
+// Express 4 does NOT automatically forward rejected async handlers to next().
+// Without this wrapper, any uncaught throw in an async route crashes the Node
+// process in Node 20+ (unhandledRejection → exit 1).  Wrapping every handler
+// ensures errors reach the global error middleware instead.
+function ah(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    fn(req, res, next).catch((err: unknown) => {
+      console.error("[route throw]", (err as Error)?.message ?? err);
+      next(err);
+    });
+  };
+}
 
 const COOKIE_OPTS = {
   httpOnly: true,
@@ -25,7 +40,7 @@ const companySchema = z.object({
   role: z.enum(["BUYER", "SUPPLIER", "BOTH", "INSURER_INHOUSE", "PANEL_FIRM", "TPA", "CLAIMANT_FIRM", "DEFENDANT_FIRM"]),
   riskAppetite: z.enum(["CONSERVATIVE", "MODERATE", "COMMERCIAL"]),
   industry: z.string().optional(),
-  persona: z.enum(["CORPORATE", "FOUNDER", "PE_FUND"]).optional(),
+  persona: z.enum(["CORPORATE", "FOUNDER"]).optional(),
   workflowType: z.enum(["COMMERCIAL_CONTRACT", "INSURANCE_LITIGATION", "LOGISTICS_CONTRACT"]).optional(),
 });
 
@@ -118,7 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ── Auth ─────────────────────────────────────────────────────────────────────
 
-  app.post("/api/auth/register", async (req: Request, res: Response) => {
+  app.post("/api/auth/register", ah(async (req: Request, res: Response) => {
     const parsed = z.object({
       name: z.string().min(1),
       email: z.string().email(),
@@ -151,9 +166,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       throw err;
     }
-  });
+  }));
 
-  app.post("/api/auth/login", async (req: Request, res: Response) => {
+  app.post("/api/auth/login", ah(async (req: Request, res: Response) => {
     const parsed = z.object({
       email: z.string().email(),
       password: z.string().min(1),
@@ -174,7 +189,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch {
       sendError(res, 401, "Invalid email or password");
     }
-  });
+  }));
 
   app.post("/api/auth/logout", (_req: Request, res: Response) => {
     res.clearCookie("token");
@@ -187,13 +202,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ── Company ─────────────────────────────────────────────────────────────────
 
-  app.post("/api/company", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/company", requireAuth, ah(async (req: Request, res: Response) => {
     const parsed = companySchema.safeParse(req.body);
     if (!parsed.success) { sendError(res, 400, parsed.error.message); return; }
 
-    // Single-company mode: wipe existing before creating
+    // Single-company mode: wipe existing before creating.
+    // Cascade-delete handles child records (playbook_rules, documents, etc).
+    // Ignore individual delete errors so a stuck record doesn't block re-setup.
     const existing = await pb.collection("companies").getFullList();
-    await Promise.all(existing.map((c) => pb.collection("companies").delete(c.id)));
+    await Promise.allSettled(existing.map((c) => pb.collection("companies").delete(c.id)));
 
     const company = await pb.collection("companies").create(parsed.data);
 
@@ -201,9 +218,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     detectAndSaveRegulations(company.id).catch(console.error);
 
     res.json(mapCompany(company));
-  });
+  }));
 
-  app.get("/api/company", requireAuth, async (_req: Request, res: Response) => {
+  app.get("/api/company", requireAuth, ah(async (_req: Request, res: Response) => {
     const company = await getCompany();
     if (!company) { sendError(res, 404, "No company configured"); return; }
 
@@ -227,11 +244,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       approvalContacts: approvalContacts.map(mapContact),
       regulations: regulations.map(mapRegulation),
     });
-  });
+  }));
 
   // ── Regulatory ───────────────────────────────────────────────────────────────
 
-  app.post("/api/regulatory/detect", requireAuth, async (_req: Request, res: Response) => {
+  app.post("/api/regulatory/detect", requireAuth, ah(async (_req: Request, res: Response) => {
     const company = await getCompany();
     if (!company) { sendError(res, 404, "No company configured"); return; }
 
@@ -241,9 +258,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       sort: "+jurisdiction",
     });
     res.json(regs.map(mapRegulation));
-  });
+  }));
 
-  app.get("/api/regulatory", requireAuth, async (_req: Request, res: Response) => {
+  app.get("/api/regulatory", requireAuth, ah(async (_req: Request, res: Response) => {
     const company = await getCompany();
     if (!company) { res.json([]); return; }
 
@@ -252,11 +269,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       sort: "+jurisdiction",
     });
     res.json(regs.map(mapRegulation));
-  });
+  }));
 
   // ── Playbook Rules ───────────────────────────────────────────────────────────
 
-  app.post("/api/playbook/rules", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/playbook/rules", requireAuth, ah(async (req: Request, res: Response) => {
     const company = await getCompany();
     if (!company) { sendError(res, 404, "No company configured"); return; }
 
@@ -285,9 +302,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     );
 
     res.json(created.map(mapRule));
-  });
+  }));
 
-  app.get("/api/playbook/rules", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/playbook/rules", requireAuth, ah(async (req: Request, res: Response) => {
     const company = await getCompany();
     if (!company) { res.json([]); return; }
 
@@ -301,24 +318,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       sort: "+created",
     });
     res.json(rules.map(mapRule));
-  });
+  }));
 
-  app.put("/api/playbook/rule/:id", requireAuth, async (req: Request, res: Response) => {
+  app.put("/api/playbook/rule/:id", requireAuth, ah(async (req: Request, res: Response) => {
     const parsed = playbookRuleSchema.partial().safeParse(req.body);
     if (!parsed.success) { sendError(res, 400, parsed.error.message); return; }
 
     const rule = await pb.collection("playbook_rules").update(req.params.id, parsed.data);
     res.json(mapRule(rule));
-  });
+  }));
 
-  app.delete("/api/playbook/rule/:id", requireAuth, async (req: Request, res: Response) => {
+  app.delete("/api/playbook/rule/:id", requireAuth, ah(async (req: Request, res: Response) => {
     await pb.collection("playbook_rules").delete(req.params.id);
     res.json({ ok: true });
-  });
+  }));
 
   // ── Approval Contacts ────────────────────────────────────────────────────────
 
-  app.post("/api/company/contacts", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/company/contacts", requireAuth, ah(async (req: Request, res: Response) => {
     const company = await getCompany();
     if (!company) { sendError(res, 404, "No company configured"); return; }
 
@@ -338,7 +355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       parsed.data.map((c) => pb.collection("approval_contacts").create({ ...c, company: company.id }))
     );
     res.json(created.map(mapContact));
-  });
+  }));
 
   // ── Documents ────────────────────────────────────────────────────────────────
 
@@ -346,7 +363,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     "/api/documents/upload",
     requireAuth,
     upload.single("contract"),
-    async (req: Request, res: Response) => {
+    ah(async (req: Request, res: Response) => {
       const company = await getCompany();
       if (!company) { sendError(res, 400, "Complete onboarding before uploading"); return; }
 
@@ -379,10 +396,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       res.json(mapDoc(doc));
-    }
+    })
   );
 
-  app.get("/api/documents", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/documents", requireAuth, ah(async (req: Request, res: Response) => {
     const company = await getCompany();
     if (!company) { res.json([]); return; }
 
@@ -425,9 +442,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     res.json(mapped);
-  });
+  }));
 
-  app.get("/api/documents/stats", requireAuth, async (_req: Request, res: Response) => {
+  app.get("/api/documents/stats", requireAuth, ah(async (_req: Request, res: Response) => {
     const company = await getCompany();
     if (!company) {
       res.json({ totalContracts: 0, totalValue: 0, redContracts: 0, renewalsDue: 0 });
@@ -466,9 +483,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }).length;
 
     res.json({ totalContracts, totalValue, redContracts, renewalsDue });
-  });
+  }));
 
-  app.get("/api/documents/:id", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/documents/:id", requireAuth, ah(async (req: Request, res: Response) => {
     let doc: PBRecord;
     try {
       doc = await pb.collection("uploaded_documents").getOne(req.params.id);
@@ -494,11 +511,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }));
 
     res.json({ ...mapDoc(doc), reviewResults });
-  });
+  }));
 
   // ── Review ───────────────────────────────────────────────────────────────────
 
-  app.post("/api/review/:documentId", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/review/:documentId", requireAuth, ah(async (req: Request, res: Response) => {
     let doc: PBRecord;
     try {
       doc = await pb.collection("uploaded_documents").getOne(req.params.documentId);
@@ -527,9 +544,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     runReview(doc.id).catch(console.error);
     res.json({ status: "started", documentId: doc.id });
-  });
+  }));
 
-  app.get("/api/review/:documentId", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/review/:documentId", requireAuth, ah(async (req: Request, res: Response) => {
     let doc: PBRecord;
     try {
       doc = await pb.collection("uploaded_documents").getOne(req.params.documentId);
@@ -556,11 +573,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }));
 
     res.json({ ...mapDoc(doc), reviewResults });
-  });
+  }));
 
   // ── Feedback ─────────────────────────────────────────────────────────────────
 
-  app.post("/api/feedback/:resultId", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/feedback/:resultId", requireAuth, ah(async (req: Request, res: Response) => {
     const parsed = feedbackSchema.safeParse(req.body);
     if (!parsed.success) { sendError(res, 400, parsed.error.message); return; }
 
@@ -579,11 +596,219 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     res.json(mapFeedback(feedback));
-  });
+  }));
+
+  // ── Feedback patterns (memory layer) ─────────────────────────────────────────
+
+  app.get("/api/feedback/patterns", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json({ patterns: [], clauseOutcomes: [], topCounterparties: [] }); return; }
+
+    const [results, feedbacks] = await Promise.all([
+      pb.collection("review_results").getFullList({
+        filter: `document.company = "${company.id}"`,
+        fields: "id,clauseCategory,ragStatus,clauseSummary,businessSummary,recommendedAction",
+      }),
+      pb.collection("user_feedback").getFullList({
+        filter: `result.document.company = "${company.id}"`,
+        fields: "result,userAction,finalClauseText,notes,created",
+      }),
+    ]);
+
+    const fbMap = new Map<string, PBRecord>();
+    for (const f of feedbacks) fbMap.set(f["result"] as string, f);
+
+    // Per-clause-category aggregation
+    const catStats: Record<string, {
+      total: number; accepted: number; escalated: number; dismissed: number;
+      ragCounts: Record<string, number>;
+    }> = {};
+
+    for (const r of results) {
+      const cat = r["clauseCategory"] as string;
+      if (!catStats[cat]) catStats[cat] = { total: 0, accepted: 0, escalated: 0, dismissed: 0, ragCounts: {} };
+      catStats[cat].total++;
+      catStats[cat].ragCounts[r["ragStatus"] as string] = (catStats[cat].ragCounts[r["ragStatus"] as string] ?? 0) + 1;
+      const fb = fbMap.get(r.id);
+      if (fb) {
+        const action = fb["userAction"] as string;
+        if (action === "ACCEPTED")  catStats[cat].accepted++;
+        if (action === "ESCALATED") catStats[cat].escalated++;
+        if (action === "DISMISSED") catStats[cat].dismissed++;
+      }
+    }
+
+    // Build MIKE NOTICED insights
+    const patterns: { type: string; message: string; severity: "info" | "warn" | "good" }[] = [];
+
+    for (const [cat, stats] of Object.entries(catStats)) {
+      if (stats.accepted >= 3 && (stats.ragCounts["RED"] ?? 0) > 0) {
+        patterns.push({
+          type: "repeated_acceptance",
+          message: `You've accepted ${stats.ragCounts["RED"]} red-flagged ${cat.replace(/_/g, " ")} clause${stats.ragCounts["RED"] > 1 ? "s" : ""} — consider updating your playbook.`,
+          severity: "warn",
+        });
+      }
+      if (stats.escalated >= 2) {
+        patterns.push({
+          type: "repeated_escalation",
+          message: `${cat.replace(/_/g, " ")} has been escalated ${stats.escalated} times — this clause type consistently needs legal review.`,
+          severity: "info",
+        });
+      }
+      if (stats.ragCounts["GREY"] ?? 0 >= 3) {
+        patterns.push({
+          type: "frequently_absent",
+          message: `${cat.replace(/_/g, " ")} has been absent in ${stats.ragCounts["GREY"]} contracts — worth requesting this clause proactively.`,
+          severity: "warn",
+        });
+      }
+    }
+
+    // Overall acceptance rate for RED clauses
+    const totalRed       = results.filter((r) => r["ragStatus"] === "RED").length;
+    const acceptedRedFbs = feedbacks.filter((f) => f["userAction"] === "ACCEPTED");
+    const acceptedRed    = acceptedRedFbs.filter((f) => {
+      const r = results.find((x) => x.id === f["result"]);
+      return r?.["ragStatus"] === "RED";
+    }).length;
+
+    if (totalRed > 0 && acceptedRed / totalRed > 0.5) {
+      patterns.push({
+        type: "high_red_acceptance",
+        message: `You've accepted ${acceptedRed} out of ${totalRed} red-flagged clauses. Consider whether your playbook positions are realistic.`,
+        severity: "warn",
+      });
+    }
+
+    const totalGreen = results.filter((r) => r["ragStatus"] === "GREEN").length;
+    if (totalGreen > 5 && acceptedRed === 0) {
+      patterns.push({
+        type: "clean_streak",
+        message: `${totalGreen} clauses have been green across your contracts — your playbook is working well.`,
+        severity: "good",
+      });
+    }
+
+    // Clause outcomes (for playbook page)
+    const clauseOutcomes = Object.entries(catStats)
+      .filter(([, s]) => s.total > 0)
+      .map(([cat, s]) => ({
+        clauseCategory: cat,
+        total: s.total,
+        accepted: s.accepted,
+        escalated: s.escalated,
+        dismissed: s.dismissed,
+        redCount: s.ragCounts["RED"] ?? 0,
+        amberCount: s.ragCounts["AMBER"] ?? 0,
+        greenCount: s.ragCounts["GREEN"] ?? 0,
+      }))
+      .sort((a, b) => b.total - a.total);
+
+    res.json({ patterns: patterns.slice(0, 6), clauseOutcomes });
+  }));
+
+  // ── Generate negotiation reply ────────────────────────────────────────────────
+
+  app.post("/api/review/generate-reply/:resultId", requireAuth, ah(async (req: Request, res: Response) => {
+    const { resultId } = req.params;
+    const { tone = "professional" } = req.body as { tone?: string };
+
+    const result = await pb.collection("review_results").getOne(resultId);
+    if (!result) { res.status(404).json({ error: "Result not found" }); return; }
+
+    // Get the document for context (counterparty name, contract type)
+    const doc = await pb.collection("uploaded_documents").getOne(result["document"] as string).catch(() => null);
+    const counterparty = doc?.["counterpartyName"] as string | undefined;
+    const contractType = doc?.["contractType"] as string | undefined;
+
+    // Build a prompt for a negotiation reply
+    const clauseLabel = (result["clauseCategory"] as string).replace(/_/g, " ");
+    const ragStatus   = result["ragStatus"] as string;
+    const summary     = result["clauseSummary"] as string ?? "";
+    const recommended = result["recommendedAction"] as string ?? "";
+    const fallback    = result["suggestedFallback"] as string ?? "";
+
+    const systemPrompt = `You are a commercial contract negotiation expert.
+Write a short, ${tone} email paragraph (3-5 sentences) that a business owner can send to the other side to negotiate the ${clauseLabel} clause.
+The clause is currently rated ${ragStatus} (RED = problematic, AMBER = needs improvement, GREEN = fine).
+Be specific, polite, and suggest the improved wording. Do not use legalese — keep it plain English.
+Output ONLY the email text, no subject line, no preamble.`;
+
+    const userPrompt = `Contract: ${contractType ?? "commercial agreement"}
+${counterparty ? `Counterparty: ${counterparty}` : ""}
+Clause issue: ${summary}
+What to do: ${recommended}
+Preferred wording: ${fallback}
+
+Write the negotiation email paragraph.`;
+
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey || apiKey === "your-api-key-here") {
+      // Fallback: compose a template-based reply
+      const templateReply = fallback
+        ? `Thank you for sending through the contract. Regarding the ${clauseLabel} clause, we'd like to propose the following amendment: "${fallback}". This better reflects our standard position and we'd welcome your thoughts.`
+        : `Thank you for sending through the contract. We'd like to discuss the ${clauseLabel} clause before proceeding — please let us know when you're available to talk through our proposed changes.`;
+      res.json({ reply: templateReply });
+      return;
+    }
+
+    const reply = await chatComplete([
+      { role: "system", content: systemPrompt },
+      { role: "user",   content: userPrompt },
+    ], 300);
+
+    res.json({ reply: reply.trim() });
+  }));
+
+  // ── Missing document check ────────────────────────────────────────────────────
+
+  app.get("/api/documents/missing", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json({ missing: [] }); return; }
+
+    const docs = await pb.collection("uploaded_documents").getFullList({
+      filter: `company = "${company.id}"`,
+      fields: "contractType,status",
+    });
+
+    const persona   = (company["persona"] as string) ?? "CORPORATE";
+    const workflow  = (company["workflowType"] as string) ?? "COMMERCIAL_CONTRACT";
+    const uploaded  = new Set(docs.map((d) => d["contractType"] as string));
+
+    const recommendations: { contractType: string; label: string; reason: string; priority: "high" | "medium" }[] = [];
+
+    if (persona === "FOUNDER") {
+      if (!uploaded.has("SHA") && !uploaded.has("SUBSCRIPTION_AGREEMENT")) {
+        recommendations.push({ contractType: "SHA", label: "Shareholders' Agreement", reason: "Every funded company needs a SHA to govern investor rights, board seats, and exit mechanics.", priority: "high" });
+      }
+      if (!uploaded.has("TERM_SHEET")) {
+        recommendations.push({ contractType: "TERM_SHEET", label: "Term Sheet", reason: "If you're fundraising, review your term sheet before signing — it sets the economic terms.", priority: "high" });
+      }
+      if (!uploaded.has("NDA")) {
+        recommendations.push({ contractType: "NDA", label: "NDA / Confidentiality Agreement", reason: "Share sensitive information with investors and partners under a signed NDA.", priority: "medium" });
+      }
+      if (!uploaded.has("EMPLOYMENT") && !uploaded.has("CONTRACTOR_AGREEMENT")) {
+        recommendations.push({ contractType: "EMPLOYMENT", label: "Founder / Employee Agreements", reason: "IP assignment and vesting need to be in writing before you hire or take investment.", priority: "high" });
+      }
+    } else if (workflow === "COMMERCIAL_CONTRACT") {
+      if (!uploaded.has("NDA") && !uploaded.has("CONFIDENTIALITY_AGREEMENT")) {
+        recommendations.push({ contractType: "NDA", label: "NDA", reason: "Protect confidential information before starting commercial conversations.", priority: "medium" });
+      }
+      if (!uploaded.has("DPA")) {
+        recommendations.push({ contractType: "DPA", label: "Data Processing Agreement", reason: "Required under UK GDPR if any supplier handles personal data on your behalf.", priority: "high" });
+      }
+      if (!uploaded.has("MSA") && !uploaded.has("SUPPLIER_AGREEMENT")) {
+        recommendations.push({ contractType: "SUPPLIER_AGREEMENT", label: "Supplier / Master Services Agreement", reason: "A framework MSA avoids re-negotiating terms on every order.", priority: "medium" });
+      }
+    }
+
+    res.json({ missing: recommendations });
+  }));
 
   // ── Stats ────────────────────────────────────────────────────────────────────
 
-  app.get("/api/stats", requireAuth, async (_req: Request, res: Response) => {
+  app.get("/api/stats", requireAuth, ah(async (_req: Request, res: Response) => {
     const company = await getCompany();
     if (!company) { res.json(null); return; }
 
@@ -651,11 +876,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       },
       topIssues,
     });
-  });
+  }));
 
   // ── Portfolio ─────────────────────────────────────────────────────────────────
 
-  app.get("/api/portfolio", requireAuth, async (_req: Request, res: Response) => {
+  app.get("/api/portfolio", requireAuth, ah(async (_req: Request, res: Response) => {
     const company = await getCompany();
     if (!company) { res.json(null); return; }
 
@@ -724,11 +949,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       : `${totalDocs} contract${totalDocs !== 1 ? "s" : ""} reviewed with no RED flags. Your playbook positions are holding well.`;
 
     res.json({ groups, topRedCategories, byContractType, insight, totalDocuments: totalDocs, totalClauses: results.length });
-  });
+  }));
 
   // ── Timings ───────────────────────────────────────────────────────────────────
 
-  app.get("/api/timings", requireAuth, async (_req: Request, res: Response) => {
+  app.get("/api/timings", requireAuth, ah(async (_req: Request, res: Response) => {
     const company = await getCompany();
     if (!company) { res.json(null); return; }
 
@@ -781,18 +1006,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ].filter((o) => o.count > 0);
 
     res.json({ flagged, overview, totalDocuments: docs.length });
-  });
+  }));
 
   // ── Litigation Intake ─────────────────────────────────────────────────────────
 
-  app.get("/api/litigation/intake/:documentId", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/litigation/intake/:documentId", requireAuth, ah(async (req: Request, res: Response) => {
     const intakes = await pb.collection("litigation_intakes").getFullList({
       filter: `document = "${req.params.documentId}"`,
     });
     res.json(intakes.length > 0 ? mapIntake(intakes[0]) : null);
-  });
+  }));
 
-  app.post("/api/litigation/intake/:documentId", requireAuth, async (req: Request, res: Response) => {
+  app.post("/api/litigation/intake/:documentId", requireAuth, ah(async (req: Request, res: Response) => {
     const body = req.body as {
       stage?: number;
       hardStopData?: string;
@@ -830,7 +1055,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     res.json(mapIntake(intake));
-  });
+  }));
 
   // ── Ancillary Documents ───────────────────────────────────────────────────────
 
@@ -838,7 +1063,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     "/api/ancillary/:documentId",
     requireAuth,
     uploadAncillary.single("file"),
-    async (req: Request, res: Response) => {
+    ah(async (req: Request, res: Response) => {
       const file = req.file;
       if (!file) { sendError(res, 400, "No file uploaded"); return; }
 
@@ -864,21 +1089,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }).catch(console.error);
       }
-    }
+    })
   );
 
-  app.get("/api/ancillary/:documentId", requireAuth, async (req: Request, res: Response) => {
+  app.get("/api/ancillary/:documentId", requireAuth, ah(async (req: Request, res: Response) => {
     const docs = await pb.collection("ancillary_documents").getFullList({
       filter: `document = "${req.params.documentId}"`,
       sort: "-created",
     });
     res.json(docs.map(mapAncillary));
-  });
+  }));
 
-  app.delete("/api/ancillary/:ancillaryId", requireAuth, async (req: Request, res: Response) => {
+  app.delete("/api/ancillary/:ancillaryId", requireAuth, ah(async (req: Request, res: Response) => {
     await pb.collection("ancillary_documents").delete(req.params.ancillaryId);
     res.json({ ok: true });
-  });
+  }));
 
   // ── Health ───────────────────────────────────────────────────────────────────
 

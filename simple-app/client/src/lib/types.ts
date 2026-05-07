@@ -411,7 +411,7 @@ export const GAMING_CLAUSE_CATEGORIES: ClauseCategory[] = [
   "LOOT_BOX_MECHANICS",
 ];
 
-// Investment document clause types (shown for FOUNDER / PE_FUND personas)
+// Investment document clause types (shown for FOUNDER persona)
 export const INVESTMENT_CLAUSE_CATEGORIES: ClauseCategory[] = [
   "LIQUIDATION_PREFERENCE",
   "ANTI_DILUTION",
@@ -533,18 +533,16 @@ export function getIndustryClauseCategories(industry: Industry): ClauseCategory[
 }
 
 // Persona - determines onboarding flow and MIKE output framing
-export type Persona = "CORPORATE" | "FOUNDER" | "PE_FUND";
+export type Persona = "CORPORATE" | "FOUNDER";
 
 export const PERSONA_LABELS: Record<Persona, string> = {
   CORPORATE: "In-house / Corporate",
   FOUNDER:   "Founder / Startup",
-  PE_FUND:   "PE / M&A Fund",
 };
 
 export const PERSONA_DESCRIPTIONS: Record<Persona, string> = {
   CORPORATE: "Review counterparty paper against your playbook. Flag deviations, produce fallback language, route escalations.",
   FOUNDER:   "All commercial contracts plus investment documents - term sheets, SHA, liquidation preferences. Plain-English output for sophisticated non-lawyers.",
-  PE_FUND:   "Legal and regulatory DD on target companies. Portfolio risk analysis. Anticipated legislative changes mapped to your fund's risk appetite.",
 };
 
 export type Industry =

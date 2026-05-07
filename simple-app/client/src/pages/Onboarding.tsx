@@ -20,6 +20,7 @@ import {
   type Industry,
   type Persona,
   type WorkflowType,
+  type CompanyRegulation,
 } from "../lib/types";
 
 type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
@@ -105,12 +106,12 @@ const CONTRACT_TYPES: { value: string; label: string; group: string; industries:
   { value: "JV_AGREEMENT",           label: "Joint Venture Agreement",               group: "Corporate",      industries: [] },
   { value: "SHARE_PURCHASE",         label: "Share Purchase Agreement (SPA)",        group: "Corporate",      industries: [] },
   // ── Investment documents (Founder / PE only) ──────────────────────────────
-  { value: "TERM_SHEET",             label: "Term Sheet / Investment Terms",          group: "Investment",     industries: [], personas: ["FOUNDER","PE_FUND"] },
-  { value: "SUBSCRIPTION_AGREEMENT", label: "Subscription / Investment Agreement",   group: "Investment",     industries: [], personas: ["FOUNDER","PE_FUND"] },
-  { value: "SHA",                    label: "Shareholders' Agreement (SHA)",          group: "Investment",     industries: [], personas: ["FOUNDER","PE_FUND"] },
-  { value: "CONVERTIBLE_NOTE",       label: "Convertible Loan Note (CLN)",           group: "Investment",     industries: [], personas: ["FOUNDER","PE_FUND"] },
-  { value: "SAFE",                   label: "Simple Agreement for Future Equity (SAFE)", group: "Investment", industries: [], personas: ["FOUNDER","PE_FUND"] },
-  { value: "INVESTMENT_AGREEMENT",   label: "Investment Agreement",                  group: "Investment",     industries: [], personas: ["FOUNDER","PE_FUND"] },
+  { value: "TERM_SHEET",             label: "Term Sheet / Investment Terms",          group: "Investment",     industries: [], personas: ["FOUNDER"] },
+  { value: "SUBSCRIPTION_AGREEMENT", label: "Subscription / Investment Agreement",   group: "Investment",     industries: [], personas: ["FOUNDER"] },
+  { value: "SHA",                    label: "Shareholders' Agreement (SHA)",          group: "Investment",     industries: [], personas: ["FOUNDER"] },
+  { value: "CONVERTIBLE_NOTE",       label: "Convertible Loan Note (CLN)",           group: "Investment",     industries: [], personas: ["FOUNDER"] },
+  { value: "SAFE",                   label: "Simple Agreement for Future Equity (SAFE)", group: "Investment", industries: [], personas: ["FOUNDER"] },
+  { value: "INVESTMENT_AGREEMENT",   label: "Investment Agreement",                  group: "Investment",     industries: [], personas: ["FOUNDER"] },
   { value: "OTHER",                  label: "Other",                                 group: "Other",          industries: [] },
 ];
 
@@ -256,11 +257,9 @@ export default function Onboarding() {
 
   function handlePersonaNext(chosen: Persona) {
     setPersona(chosen);
-    // Pre-select sensible defaults for investment personas
+    // Pre-select sensible defaults for founder
     if (chosen === "FOUNDER") {
       setSelectedContractTypes(["TERM_SHEET", "SUBSCRIPTION_AGREEMENT", "SHA"]);
-    } else if (chosen === "PE_FUND") {
-      setSelectedContractTypes(["SHARE_PURCHASE", "SHA", "TERM_SHEET"]);
     } else {
       setSelectedContractTypes(["SUPPLIER_AGREEMENT"]);
     }
@@ -273,13 +272,21 @@ export default function Onboarding() {
     const industryStr     = selectedIndustries.join(", ") || "OTHER";
     const sectorStr       = companyForm.sector.trim() || selectedIndustries.map((i) => INDUSTRY_LABELS[i]).join(", ");
     setCompanyForm((prev) => ({ ...prev, jurisdiction: jurisdictionStr, industry: industryStr, sector: sectorStr }));
-    setStep(3);
+
+    // Founder persona: skip contract-type, playbook, and approvers
+    // — auto-initialise investment playbook and jump straight to Launch
+    if (persona === "FOUNDER") {
+      setPlaybook(initPlaybook(companyForm.riskAppetite, false, false, true, workflowType, selectedIndustries));
+      setStep(7);
+    } else {
+      setStep(3);
+    }
   }
 
   function handleContractTypeNext() {
     const isProperty   = selectedContractTypes.some((ct) => PROPERTY_CONTRACT_TYPES.includes(ct));
     const isGaming     = selectedIndustries.includes("GAMING_INTERACTIVE");
-    const isInvestment = persona === "FOUNDER" || persona === "PE_FUND" ||
+    const isInvestment = persona === "FOUNDER" ||
                          selectedContractTypes.some((ct) => INVESTMENT_CONTRACT_TYPES.includes(ct));
     setPlaybook(initPlaybook(companyForm.riskAppetite, isProperty, isGaming, isInvestment, workflowType, selectedIndustries));
     setStep(4);
@@ -289,31 +296,72 @@ export default function Onboarding() {
     setPlaybook((prev) => prev.map((r) => (r.clauseCategory === cat ? { ...r, [field]: value } : r)));
   }
 
+  /** Creates (or re-creates) the company, then runs regulatory detection.
+   *  Uses createCompany directly (not companyMutation) to avoid sharing
+   *  useMutation state with handleFinish. Returns full regulation objects
+   *  so Step 6 can display jurisdiction + industry groupings. */
+  async function runDetection(): Promise<CompanyRegulation[]> {
+    await createCompany({ ...companyForm, persona, workflowType });
+    return detectRegulations();
+  }
+
   async function handleFinish() {
     setSaving(true);
     setFinishError("");
     try {
-      await companyMutation.mutateAsync({ ...companyForm, persona, workflowType });
-      await savePlaybookRules(
-        playbook.map(({ clauseCategory, preferredPosition, acceptableFallback, hardRedLine, approvalRequired, fallbackTemplate, riskWeight }) => ({
+      // Step 1: Always (re)create the company — idempotent because POST /api/company
+      // deletes any existing company first (single-company mode).
+      try {
+        await companyMutation.mutateAsync({ ...companyForm, persona, workflowType });
+      } catch (e) {
+        throw new Error(`Company setup failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
+      // Step 2: Save playbook rules — filter out any entries missing required fields
+      // (can happen if the user cleared a text area or if a category has no default)
+      const validRules = playbook
+        .map(({ clauseCategory, preferredPosition, acceptableFallback, hardRedLine, approvalRequired, fallbackTemplate, riskWeight }) => ({
           clauseCategory, preferredPosition, acceptableFallback, hardRedLine, approvalRequired, fallbackTemplate, riskWeight,
         }))
-      );
+        .filter((r) => r.preferredPosition?.trim() && r.acceptableFallback?.trim() && r.hardRedLine?.trim());
+
+      try {
+        await savePlaybookRules(validRules);
+      } catch (e) {
+        throw new Error(`Playbook save failed: ${e instanceof Error ? e.message : String(e)}`);
+      }
+
+      // Step 3: Save contacts (optional)
       const validContacts = contacts.filter((c) => c.name && c.email);
-      if (validContacts.length > 0) await saveContacts(validContacts);
-      if (!regulationsDetected) await detectRegulations().catch(() => {});
+      if (validContacts.length > 0) {
+        try {
+          await saveContacts(validContacts);
+        } catch (e) {
+          console.warn("[handleFinish] contacts save failed (non-fatal):", e);
+        }
+      }
+
+      // Step 4: Detect regs — fire-and-forget, never blocks navigation
+      detectRegulations().catch(() => {});
+
       await queryClient.invalidateQueries({ queryKey: ["company"] });
       navigate("/dashboard");
     } catch (e: unknown) {
-      setFinishError(e instanceof Error ? e.message : "Something went wrong - please try again.");
-      console.error(e);
+      const msg = e instanceof Error ? e.message : "Something went wrong - please try again.";
+      setFinishError(msg);
+      console.error("[handleFinish]", e);
     } finally {
       setSaving(false);
     }
   }
 
-  // Progress: step 0–6 → 0–100%
-  const progressPct = (step / (STEPS.length - 1)) * 100;
+  // Founder persona uses only 3 visible steps (0→1→2→7=launch)
+  const isFounderFlow = persona === "FOUNDER";
+  const effectiveStepCount = isFounderFlow ? 3 : STEPS.length;
+  // Map actual step index to display progress for founder flow
+  const founderDisplayStep = step === 7 ? 3 : step; // steps 0,1,2 stay same; step 7 = last
+  const displayStep = isFounderFlow ? founderDisplayStep : step;
+  const progressPct = (displayStep / (effectiveStepCount - 1)) * 100;
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: BG }}>
@@ -332,7 +380,7 @@ export default function Onboarding() {
         </Link>
         <div className="ml-auto flex items-center gap-4">
           <Link to="/" className="text-xs text-white/35 hover:text-white/70 transition-colors hidden sm:block">← Home</Link>
-          <span className="text-xs text-white/25">Step {step + 1} of {STEPS.length}</span>
+          <span className="text-xs text-white/25">Step {displayStep + 1} of {effectiveStepCount}</span>
         </div>
       </header>
 
@@ -347,9 +395,12 @@ export default function Onboarding() {
       {/* Step labels */}
       <div className="border-b border-white/8 px-6 py-3" style={{ background: "hsl(222 47% 8%)" }}>
         <div className="flex items-center gap-0 max-w-2xl">
-          {STEPS.map((label, i) => {
-            const done   = i < step;
-            const active = i === step;
+          {(isFounderFlow ? ["Workflow", "Persona", "About you", "Launch"] : STEPS).map((label, i) => {
+            // For founder flow, map display index to actual step: 0→0, 1→1, 2→2, 3→7
+            const actualStep = isFounderFlow && i === 3 ? 7 : i;
+            const done   = isFounderFlow ? displayStep > i : i < step;
+            const active = isFounderFlow ? displayStep === i : i === step;
+            void actualStep;
             return (
               <div key={label} className="flex items-center flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
@@ -364,7 +415,7 @@ export default function Onboarding() {
                     {label}
                   </span>
                 </div>
-                {i < STEPS.length - 1 && (
+                {i < effectiveStepCount - 1 && (
                   <div className={`flex-1 h-px mx-2 transition-colors ${done ? "bg-primary/40" : "bg-white/8"}`} />
                 )}
               </div>
@@ -401,8 +452,8 @@ export default function Onboarding() {
         )}
         {step === 4 && <Step4Playbook playbook={playbook} onUpdate={updateRule} onBack={() => setStep(3)} onNext={() => setStep(5)} />}
         {step === 5 && <Step5Approvers contacts={contacts} persona={persona} onChange={setContacts} onBack={() => setStep(4)} onNext={() => setStep(6)} />}
-        {step === 6 && <Step6Regulations companyForm={companyForm} detected={regulationsDetected} onDetected={() => setRegulationsDetected(true)} onBack={() => setStep(5)} onNext={() => setStep(7)} />}
-        {step === 7 && <Step7Done persona={persona} saving={saving} error={finishError} onBack={() => setStep(6)} onFinish={handleFinish} />}
+        {step === 6 && <Step6Regulations companyForm={companyForm} detected={regulationsDetected} onDetected={() => setRegulationsDetected(true)} onBack={() => setStep(5)} onNext={() => setStep(7)} detectFn={runDetection} />}
+        {step === 7 && <Step7Done persona={persona} saving={saving} error={finishError} onBack={() => setStep(persona === "FOUNDER" ? 2 : 6)} onFinish={handleFinish} />}
       </main>
     </div>
   );
@@ -512,19 +563,6 @@ const PERSONA_CONFIG: {
       "Know what to push back on before you sign",
     ],
     badge: "Includes investment clause library",
-  },
-  {
-    id: "PE_FUND",
-    icon: "📊",
-    label: "PE / M&A fund",
-    tagline: "Running DD on targets, structuring deals and managing portfolio risk.",
-    bullets: [
-      "DD contract review across target company",
-      "Investment document clause analysis",
-      "Portfolio risk appetite configuration",
-      "Anticipated regulatory pipeline (UK, EU, US)",
-    ],
-    badge: "Portfolio DD coming in V2",
   },
 ];
 
@@ -693,7 +731,6 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
   const headings: Record<Persona, { title: string; sub: string }> = {
     CORPORATE: { title: "Tell MIKE about your company", sub: "This shapes your playbook defaults and regulatory detection." },
     FOUNDER:   { title: "Tell MIKE about your startup", sub: "This configures your investment clause defaults and operational playbook." },
-    PE_FUND:   { title: "Tell MIKE about your fund", sub: "This configures your deal analysis framework and portfolio risk appetite." },
   };
   const { title, sub } = headings[persona];
 
@@ -820,10 +857,10 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
 
       <div className="space-y-5">
 
-        {/* Company / Fund name */}
-        <DarkField label={persona === "PE_FUND" ? "Fund name" : persona === "FOUNDER" ? "Company name" : "Company name"} required>
+        {/* Company name */}
+        <DarkField label={persona === "FOUNDER" ? "Company name" : "Company name"} required>
           <DarkInput
-            placeholder={persona === "PE_FUND" ? "Apex Capital Partners" : "Acme Ltd"}
+            placeholder="Acme Ltd"
             value={form.name}
             onChange={(e) => onChange({ ...form, name: e.target.value })}
           />
@@ -883,8 +920,8 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
           {selectedJurisdictions.length === 0 && <p className="text-xs text-red-400 mt-1">Select at least one jurisdiction</p>}
         </DarkField>
 
-        {/* Role - only show for CORPORATE/FOUNDER; PE_FUND is investor */}
-        {persona !== "PE_FUND" && (
+        {/* Role */}
+        {(
           <DarkField label="Your typical contract role" required>
             <DarkSelect value={form.role} onChange={(v) => onChange({ ...form, role: v as CompanyRole })} options={[
               { value: "BUYER",    label: "Buyer / Customer" },
@@ -895,10 +932,10 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
         )}
 
         {/* Risk appetite */}
-        <DarkField label={persona === "PE_FUND" ? "Fund risk appetite" : "Risk appetite"} required hint="Sets default clause positions - adjust each one in the playbook step.">
+        <DarkField label="Risk appetite" required hint="Sets default clause positions - adjust each one in the playbook step.">
           <div className="grid grid-cols-3 gap-2 mt-1">
             {([
-              { value: "CONSERVATIVE", label: "Conservative", sub: persona === "PE_FUND" ? "Maximum investor protection" : "Maximum protection" },
+              { value: "CONSERVATIVE", label: "Conservative", sub: "Maximum protection" },
               { value: "MODERATE",     label: "Moderate",     sub: "Balanced (recommended)" },
               { value: "COMMERCIAL",   label: "Commercial",   sub: persona === "FOUNDER" ? "Founder-friendly" : "Deal-oriented" },
             ] as const).map((opt) => {
@@ -1023,7 +1060,7 @@ function Step3ContractType({ values, industries, persona, workflowType, onChange
       {/* Persona + industry tags */}
       <div className="flex flex-wrap gap-2">
         <span className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/15 bg-white/5 text-xs text-white/50">
-          {persona === "CORPORATE" ? "🏛️ In-house" : persona === "FOUNDER" ? "🚀 Founder" : "📊 PE / M&A"}
+          {persona === "CORPORATE" ? "In-house" : "Founder"}
         </span>
         {industries.map((ind) => (
           <span key={ind} className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-xs text-white/70">
@@ -1162,17 +1199,17 @@ function Step5Approvers({ contacts, persona, onChange, onBack, onNext }: {
   }
 
   const ROLE_LABELS: Record<ApprovalRole, { label: string; sub: string }> = {
-    LEGAL: { label: "Legal team",      sub: persona === "PE_FUND" ? "Deal legal review" : "Day-to-day clause review" },
+    LEGAL: { label: "Legal team",      sub: "Day-to-day clause review" },
     GC:    { label: "General Counsel", sub: "High-risk decisions" },
-    CFO:   { label: persona === "PE_FUND" ? "CFO / Finance partner" : "CFO", sub: "Financial exposure thresholds" },
-    BOARD: { label: persona === "PE_FUND" ? "Investment committee" : "Board", sub: "Material contracts" },
+    CFO:   { label: "CFO",   sub: "Financial exposure thresholds" },
+    BOARD: { label: "Board", sub: "Material contracts" },
   };
 
   return (
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-bold text-white tracking-tight">
-          {persona === "PE_FUND" ? "Approvals & escalation" : "Approval matrix"}
+          {"Approval matrix"}
         </h2>
         <p className="text-white/45 text-sm mt-2">
           When MIKE triggers an escalation, it names the right person. Leave blank if not applicable.
@@ -1211,29 +1248,86 @@ function Step5Approvers({ contacts, persona, onChange, onBack, onNext }: {
 
 // ─── Step 6: Regulations ──────────────────────────────────────────────────────
 
-function Step6Regulations({ companyForm, detected, onDetected, onBack, onNext }: {
+const JURISDICTION_LABELS: Record<string, string> = {
+  GB:  "United Kingdom",
+  EU:  "European Union",
+  IE:  "Ireland",
+  NL:  "Netherlands",
+  CH:  "Switzerland",
+  US:  "United States",
+  CA:  "Canada",
+  SG:  "Singapore",
+  HK:  "Hong Kong",
+  JP:  "Japan",
+  AE:  "United Arab Emirates",
+  KSA: "Saudi Arabia",
+  KR:  "South Korea",
+  IN:  "India",
+  BR:  "Brazil",
+};
+
+// Plain-English descriptions of each jurisdiction's regulatory flavour
+const JURISDICTION_CONTEXT: Record<string, string> = {
+  GB:  "UK domestic law post-Brexit — FCA, ICO, CMA and sector regulators",
+  EU:  "EU-wide rules that apply if you operate in, sell to, or process data from EU countries",
+  IE:  "Irish law — important if you're EU-passporting via Dublin",
+  NL:  "Dutch law — relevant for Netherlands-incorporated entities",
+  CH:  "Swiss law — applies if you contract under Swiss jurisdiction",
+  US:  "US federal & state law — relevant for US-facing products or contracts",
+  CA:  "Canadian law — PIPEDA privacy and provincial regulations",
+  SG:  "Singapore law — MAS regulated activities and PDPA",
+  HK:  "Hong Kong law — SFC regulated activities",
+  JP:  "Japanese law — APPI privacy and FSA regulations",
+  AE:  "UAE / DIFC / ADGM law — relevant for Middle East operations",
+  KSA: "Saudi Arabian law — PDPL and SAMA regulations",
+  KR:  "South Korean law — PIPA and FSC regulations",
+  IN:  "Indian law — DPDP Act and RBI/SEBI regulations",
+  BR:  "Brazilian law — LGPD privacy and BACEN regulations",
+};
+
+function Step6Regulations({ companyForm, detected, onDetected, onBack, onNext, detectFn }: {
   companyForm: CompanyForm;
   detected: boolean;
   onDetected: () => void;
   onBack: () => void;
   onNext: () => void;
+  detectFn: () => Promise<CompanyRegulation[]>;
 }) {
   const [detecting, setDetecting] = useState(false);
-  const [regs, setRegs] = useState<{ frameworkName: string; regulator: string }[]>([]);
+  const [regs, setRegs] = useState<CompanyRegulation[]>([]);
   const [error, setError] = useState("");
+
+  // User's selected industries as a Set for fast lookup
+  const userIndustries = new Set(companyForm.industry.split(", ").map((s) => s.trim()));
 
   async function detect() {
     setDetecting(true);
     setError("");
     try {
-      const result = await detectRegulations();
+      const result = await detectFn();
       setRegs(result);
       onDetected();
-    } catch {
-      setError("Could not detect frameworks - skip for now and detect later from the Regulations page.");
+    } catch (e) {
+      console.error("[detect]", e);
+      setError("Could not detect frameworks — skip for now and detect later from the Regulations page.");
     } finally {
       setDetecting(false);
     }
+  }
+
+  // Group detected regs by jurisdiction
+  const byJurisdiction = regs.reduce<Record<string, CompanyRegulation[]>>((acc, r) => {
+    (acc[r.jurisdiction] ??= []).push(r);
+    return acc;
+  }, {});
+
+  // For each reg, find which of the user's industries it covers
+  function matchingIndustries(appliesTo: string): string[] {
+    return appliesTo
+      .split(",")
+      .map((s) => s.trim())
+      .filter((code) => userIndustries.has(code))
+      .map((code) => INDUSTRY_LABELS[code as Industry] ?? code);
   }
 
   return (
@@ -1241,23 +1335,24 @@ function Step6Regulations({ companyForm, detected, onDetected, onBack, onNext }:
       <div>
         <h2 className="text-2xl font-bold text-white tracking-tight">Regulatory environment</h2>
         <p className="text-white/45 text-sm mt-2 leading-relaxed">
-          MIKE auto-detects applicable regulations from your sector and jurisdiction, then flags clauses that conflict with your obligations.
+          MIKE auto-detects the laws and regulations your contracts need to comply with, based on your industry and where you operate. These are injected into every review.
         </p>
       </div>
 
+      {/* Context card */}
       <div className="rounded-xl border border-white/10 p-5 space-y-4" style={{ background: CARD }}>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <div className="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-1">Industry</div>
+            <div className="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-1">Your industry</div>
             <div className="text-white/70">{companyForm.industry.split(", ").map((i) => INDUSTRY_LABELS[i as Industry] ?? i).join(", ")}</div>
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-1">Jurisdiction</div>
+            <div className="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-1">Where you operate</div>
             <div className="text-white/70">{companyForm.jurisdiction}</div>
           </div>
         </div>
 
-        {!detected ? (
+        {!detected && (
           <button onClick={detect} disabled={detecting}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
             {detecting
@@ -1265,30 +1360,79 @@ function Step6Regulations({ companyForm, detected, onDetected, onBack, onNext }:
               : "Detect applicable regulations"
             }
           </button>
-        ) : null}
+        )}
 
         {error && <p className="text-xs text-amber-400">{error}</p>}
-
-        {detected && regs.length > 0 && (
-          <div className="space-y-2">
-            <div className="text-sm font-semibold text-emerald-400 flex items-center gap-1.5">
-              <CheckCircle size={14} /> {regs.length} frameworks detected
-            </div>
-            <div className="space-y-1.5">
-              {regs.map((r) => (
-                <div key={r.frameworkName} className="flex items-center gap-2 text-xs text-white/50">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                  {r.frameworkName} <span className="text-white/25">· {r.regulator}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {detected && regs.length === 0 && (
-          <p className="text-sm text-white/40">No specific frameworks detected. MIKE will apply general contract standards.</p>
-        )}
       </div>
+
+      {/* Results — grouped by jurisdiction */}
+      {detected && regs.length > 0 && (
+        <div className="space-y-6">
+          <div className="flex items-center gap-2">
+            <CheckCircle size={15} className="text-emerald-400 shrink-0" />
+            <span className="text-sm font-semibold text-emerald-400">{regs.length} regulatory framework{regs.length !== 1 ? "s" : ""} detected</span>
+            <span className="text-xs text-white/30">— MIKE will flag contract clauses that conflict with these</span>
+          </div>
+
+          {Object.entries(byJurisdiction).map(([jurisdiction, items]) => (
+            <div key={jurisdiction} className="space-y-3">
+              {/* Jurisdiction header */}
+              <div className="flex items-start gap-3">
+                <span className="text-[10px] font-bold bg-white/10 text-white/60 px-2 py-1 rounded font-mono shrink-0 mt-0.5">
+                  {jurisdiction}
+                </span>
+                <div>
+                  <div className="text-sm font-semibold text-white">
+                    {JURISDICTION_LABELS[jurisdiction] ?? jurisdiction}
+                    <span className="ml-2 text-xs text-white/30 font-normal">
+                      {items.length} framework{items.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  {JURISDICTION_CONTEXT[jurisdiction] && (
+                    <div className="text-xs text-white/35 mt-0.5">{JURISDICTION_CONTEXT[jurisdiction]}</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Frameworks within this jurisdiction */}
+              <div className="space-y-2 pl-2 border-l border-white/8">
+                {items.map((r) => {
+                  const industries = matchingIndustries(r.appliesTo);
+                  return (
+                    <div key={r.frameworkName}
+                      className="rounded-lg border border-white/8 p-3.5 space-y-2"
+                      style={{ background: "hsl(222 47% 9%)" }}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-semibold text-white/90">{r.frameworkName}</div>
+                          <div className="text-xs text-white/35 mt-0.5">{r.regulator}</div>
+                        </div>
+                        {industries.length > 0 && (
+                          <div className="flex flex-wrap gap-1 justify-end shrink-0">
+                            {industries.map((ind) => (
+                              <span key={ind}
+                                className="text-[10px] bg-primary/15 text-primary border border-primary/25 rounded-full px-2 py-0.5 font-medium whitespace-nowrap">
+                                {ind}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {r.description && (
+                        <p className="text-xs text-white/45 leading-relaxed">{r.description}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {detected && regs.length === 0 && (
+        <p className="text-sm text-white/40">No specific frameworks detected. MIKE will apply general contract standards.</p>
+      )}
 
       <div className="flex justify-between pt-2">
         <button onClick={onBack} className="px-4 py-2.5 text-sm text-white/40 hover:text-white/70 transition-colors">← Back</button>
@@ -1324,13 +1468,6 @@ function Step7Done({ persona, saving, error, onBack, onFinish }: {
       "Operational contracts reviewed against your standard positions",
       "Plain-English explanation of what each clause means for you as founder",
       "Know what to push back on before you sign",
-    ],
-    PE_FUND: [
-      "Upload target company contracts for DD review",
-      "MIKE maps risk exposure across the contract portfolio",
-      "Investment terms compared against your deal criteria",
-      "Escalation triggers surfaced for IC review",
-      "Portfolio risk appetite applied consistently across all deals",
     ],
   };
 

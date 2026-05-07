@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, AlertTriangle, Clock, CheckCircle, Download, ChevronDown, ChevronUp } from "lucide-react";
-import { getReview, saveFeedback } from "../lib/api";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { ArrowLeft, AlertTriangle, Clock, CheckCircle, Download, ChevronDown, ChevronUp, Mail, Copy, Loader2 } from "lucide-react";
+import { getReview, saveFeedback, generateReply } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument } from "../lib/types";
 import { CLAUSE_LABELS } from "../lib/types";
@@ -44,8 +44,8 @@ export default function ReviewDetail() {
     },
   });
 
-  async function handleFeedback(resultId: string, action: FeedbackAction) {
-    await saveFeedback(resultId, { userAction: action });
+  async function handleFeedback(resultId: string, action: FeedbackAction, finalClauseText?: string) {
+    await saveFeedback(resultId, { userAction: action, finalClauseText });
     await queryClient.invalidateQueries({ queryKey: ["review", id] });
   }
 
@@ -53,7 +53,7 @@ export default function ReviewDetail() {
     return (
       <AppLayout>
         <div className="px-6 py-8 max-w-5xl mx-auto">
-          <BackButton onClick={() => navigate("/dashboard")} />
+          <BackButton onClick={() => navigate("/app/legal/dashboard")} />
           <div className="text-sm text-muted-foreground mt-8">Loading review…</div>
         </div>
       </AppLayout>
@@ -64,7 +64,7 @@ export default function ReviewDetail() {
     return (
       <AppLayout>
         <div className="px-6 py-8 max-w-5xl mx-auto">
-          <BackButton onClick={() => navigate("/dashboard")} />
+          <BackButton onClick={() => navigate("/app/legal/dashboard")} />
           <div className="text-sm text-destructive mt-8">Document not found.</div>
         </div>
       </AppLayout>
@@ -75,7 +75,7 @@ export default function ReviewDetail() {
     return (
       <AppLayout>
         <div className="px-6 py-8 max-w-5xl mx-auto space-y-4">
-          <BackButton onClick={() => navigate("/dashboard")} />
+          <BackButton onClick={() => navigate("/app/legal/dashboard")} />
           <div className="card p-12 text-center space-y-4">
             <div className="w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto" />
             <div className="font-semibold">MIKE is reviewing this contract</div>
@@ -93,7 +93,7 @@ export default function ReviewDetail() {
     return (
       <AppLayout>
         <div className="px-6 py-8 max-w-5xl mx-auto space-y-4">
-          <BackButton onClick={() => navigate("/dashboard")} />
+          <BackButton onClick={() => navigate("/app/legal/dashboard")} />
           <div className="card p-12 text-center space-y-3">
             <AlertTriangle size={32} className="text-destructive mx-auto" />
             <div className="font-semibold text-destructive">Review failed</div>
@@ -123,7 +123,7 @@ export default function ReviewDetail() {
       <div className="px-6 py-8 max-w-5xl mx-auto space-y-6">
         {/* Back + title */}
         <div className="space-y-1">
-          <BackButton onClick={() => navigate("/dashboard")} />
+          <BackButton onClick={() => navigate("/app/legal/dashboard")} />
           <h1 className="text-xl font-semibold truncate">{doc.originalName}</h1>
           <div className="text-sm text-muted-foreground">
             {doc.contractType.replace(/_/g, " ")} ·{" "}
@@ -188,7 +188,7 @@ export default function ReviewDetail() {
               result={result}
               expanded={expandedId === result.id}
               onToggle={() => setExpandedId(expandedId === result.id ? null : result.id)}
-              onFeedback={(action) => handleFeedback(result.id, action)}
+              onFeedback={(action, finalClauseText) => handleFeedback(result.id, action, finalClauseText)}
             />
           ))}
           {filtered.length === 0 && (
@@ -213,15 +213,33 @@ function ClauseCard({
   result: ReviewResult;
   expanded: boolean;
   onToggle: () => void;
-  onFeedback: (action: FeedbackAction) => Promise<void>;
+  onFeedback: (action: FeedbackAction, finalClauseText?: string) => Promise<void>;
 }) {
   const [submitting, setSubmitting] = useState<FeedbackAction | null>(null);
+  const [generatedReply, setGeneratedReply] = useState<string | null>(null);
+  const [copiedReply, setCopiedReply] = useState(false);
+  const [showWhatAgreed, setShowWhatAgreed] = useState(false);
+  const [agreedText, setAgreedText] = useState("");
+
   const feedback = result.feedback;
   const label = CLAUSE_LABELS[result.clauseCategory] ?? result.clauseCategory;
 
-  async function handle(action: FeedbackAction) {
+  const replyMutation = useMutation({
+    mutationFn: () => generateReply(result.id, "professional"),
+    onSuccess: (data) => setGeneratedReply(data.reply),
+  });
+
+  function copyReply() {
+    if (!generatedReply) return;
+    void navigator.clipboard.writeText(generatedReply).then(() => {
+      setCopiedReply(true);
+      setTimeout(() => setCopiedReply(false), 2000);
+    });
+  }
+
+  async function handle(action: FeedbackAction, finalClauseText?: string) {
     setSubmitting(action);
-    try { await onFeedback(action); } finally { setSubmitting(null); }
+    try { await onFeedback(action, finalClauseText); } finally { setSubmitting(null); }
   }
 
   return (
@@ -299,6 +317,48 @@ function ClauseCard({
             </div>
           </Detail>
 
+          {/* Generate reply (for RED/AMBER clauses) */}
+          {(result.ragStatus === "RED" || result.ragStatus === "AMBER") && (
+            <div>
+              {!generatedReply ? (
+                <button
+                  className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
+                  onClick={() => replyMutation.mutate()}
+                  disabled={replyMutation.isPending}
+                >
+                  {replyMutation.isPending ? (
+                    <><Loader2 size={11} className="animate-spin" /> Drafting reply…</>
+                  ) : (
+                    <><Mail size={11} /> Draft negotiation reply</>
+                  )}
+                </button>
+              ) : (
+                <Detail title="Negotiation reply — copy and send">
+                  <div className="space-y-2">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap bg-card border border-card-border rounded-lg px-4 py-3">
+                      {generatedReply}
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"
+                        onClick={copyReply}
+                      >
+                        <Copy size={11} />
+                        {copiedReply ? "Copied!" : "Copy text"}
+                      </button>
+                      <button
+                        className="btn-ghost text-xs px-3 py-1.5 text-muted-foreground"
+                        onClick={() => setGeneratedReply(null)}
+                      >
+                        Regenerate
+                      </button>
+                    </div>
+                  </div>
+                </Detail>
+              )}
+            </div>
+          )}
+
           {/* Feedback */}
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-card-border">
             <span className="text-xs text-muted-foreground">Outcome:</span>
@@ -312,7 +372,10 @@ function ClauseCard({
                 <button
                   key={action}
                   disabled={!!submitting}
-                  onClick={() => handle(action)}
+                  onClick={() => {
+                    if (action === "ACCEPTED") { setShowWhatAgreed(true); return; }
+                    void handle(action);
+                  }}
                   className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
                     feedback?.userAction === action
                       ? "bg-foreground text-background border-foreground"
@@ -324,6 +387,35 @@ function ClauseCard({
               );
             })}
           </div>
+
+          {/* What was agreed capture */}
+          {showWhatAgreed && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3 space-y-2">
+              <div className="text-xs font-medium text-emerald-800">
+                Optional: record the final agreed wording
+              </div>
+              <textarea
+                className="input text-xs min-h-[64px] resize-none w-full"
+                placeholder="Paste the final clause text as signed…"
+                value={agreedText}
+                onChange={(e) => setAgreedText(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <button
+                  className="btn-primary text-xs px-3 py-1.5"
+                  onClick={() => { void handle("ACCEPTED", agreedText || undefined); setShowWhatAgreed(false); }}
+                >
+                  Save & accept
+                </button>
+                <button
+                  className="btn-ghost text-xs px-3 py-1.5"
+                  onClick={() => { void handle("ACCEPTED"); setShowWhatAgreed(false); }}
+                >
+                  Accept without recording
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
