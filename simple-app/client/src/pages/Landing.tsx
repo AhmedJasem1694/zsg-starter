@@ -134,7 +134,7 @@ export default function Landing() {
           {/* Jurisdiction pill */}
           <div className="inline-flex items-center gap-2 border border-white/10 rounded-full px-4 py-1.5 text-xs text-white/55 bg-white/5 backdrop-blur-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shrink-0" />
-            UK · EU · US · India · Brazil · Singapore · +9 more
+            14 jurisdictions including UK · EU · UAE · US · KSA
           </div>
 
           {/* Headline */}
@@ -178,7 +178,7 @@ export default function Landing() {
             {[
               { value: "50+",  label: "Clause types" },
               { value: "14",   label: "Jurisdictions" },
-              { value: "~2m",  label: "Per review" },
+              { value: "minutes",  label: "Not hours" },
               { value: "100%", label: "Playbook-calibrated" },
             ].map(({ value, label }) => (
               <div key={label} className="text-center space-y-0.5">
@@ -325,7 +325,7 @@ export default function Landing() {
             {[
               { n: "01", title: "Set your playbook",         body: "Define your positions and red lines once. MIKE pre-fills sensible defaults for your sector." },
               { n: "02", title: "Upload the contract",        body: "Drop in a PDF or DOCX. MIKE maps every clause against your playbook and live regulatory obligations." },
-              { n: "03", title: "Get your verdict",           body: "Red, Amber, Green per clause. Fallback language. Escalation triggers. Ready in under two minutes." },
+              { n: "03", title: "Get your verdict",           body: "Red, Amber, Green per clause. Fallback language. Escalation triggers. Minutes, not hours." },
             ].map(({ n, title, body }) => (
               <div key={n} className="space-y-3">
                 <div className="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center text-xs font-mono text-primary shrink-0" style={{ background: CARD2 }}>
