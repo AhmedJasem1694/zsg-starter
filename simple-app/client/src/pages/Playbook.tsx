@@ -52,12 +52,12 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
             <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
               <span className="bg-muted px-1.5 py-0.5 rounded-full">{outcome.total} reviews</span>
               {outcome.redCount > 0 && outcome.accepted > 0 && (
-                <span className="text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
+                <span className="text-[#FCD34D] bg-[#1C0F00] border border-[#431407] px-1.5 py-0.5 rounded-full">
                   {outcome.accepted} accepted
                 </span>
               )}
               {outcome.escalated > 0 && (
-                <span className="text-blue-600 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded-full">
+                <span className="text-[#60A5FA] bg-[#172B4D] border border-[#1E3A5F] px-1.5 py-0.5 rounded-full">
                   {outcome.escalated} escalated
                 </span>
               )}
@@ -84,11 +84,11 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
               <div className="flex flex-wrap gap-3">
                 {[
                   { label: "Reviewed",   val: outcome.total,     color: "" },
-                  { label: "RED",        val: outcome.redCount,  color: "text-red-600" },
-                  { label: "AMBER",      val: outcome.amberCount, color: "text-amber-600" },
-                  { label: "GREEN",      val: outcome.greenCount, color: "text-emerald-600" },
-                  { label: "Accepted",   val: outcome.accepted,  color: "text-foreground" },
-                  { label: "Escalated",  val: outcome.escalated, color: "text-blue-600" },
+                  { label: "RED",        val: outcome.redCount,   color: "text-[#FCA5A5]" },
+                  { label: "AMBER",      val: outcome.amberCount, color: "text-[#FCD34D]" },
+                  { label: "GREEN",      val: outcome.greenCount, color: "text-[#86EFAC]" },
+                  { label: "Accepted",   val: outcome.accepted,   color: "text-foreground" },
+                  { label: "Escalated",  val: outcome.escalated,  color: "text-[#60A5FA]" },
                 ].map(({ label, val, color }) => val > 0 ? (
                   <div key={label} className="text-xs">
                     <span className={`font-semibold ${color}`}>{val}</span>
@@ -97,7 +97,7 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
                 ) : null)}
               </div>
               {outcome.accepted > 0 && outcome.redCount > 0 && (
-                <p className="text-xs text-amber-700">
+                <p className="text-xs text-[#FCD34D]">
                   ⚠ You accepted {outcome.accepted} clause{outcome.accepted > 1 ? "s" : ""} that MIKE flagged.
                   Consider reviewing your position below.
                 </p>
@@ -114,7 +114,7 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
             <div key={field} className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</label>
               <textarea
-                className="input min-h-[80px] resize-y text-sm"
+                className="input min-h-[80px] resize-y text-sm font-mono"
                 value={draft[field] ?? ""}
                 onChange={(e) => setDraft({ ...draft, [field]: e.target.value })}
               />
@@ -135,7 +135,7 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
           </div>
 
           <div className="flex justify-end gap-2 pt-1">
-            {saved && <span className="text-xs text-emerald-600 flex items-center gap-1">✓ Saved</span>}
+            {saved && <span className="text-xs text-[#86EFAC] flex items-center gap-1">✓ Saved</span>}
             <button
               className="btn-primary gap-2 text-sm"
               onClick={() => mut.mutate()}
@@ -169,15 +169,15 @@ function OutcomesView({ outcomes }: { outcomes: ClauseOutcome[] }) {
     <div className="space-y-6">
       {/* Drift alert */}
       {drifted.length > 0 && (
-        <div className="card border-amber-200 bg-amber-50/40 p-4 space-y-2">
-          <div className="text-sm font-semibold text-amber-800">Negotiation drift detected</div>
-          <p className="text-xs text-amber-700">
+        <div className="card border-[#431407] bg-[#1C0F00] p-4 space-y-2">
+          <div className="text-sm font-semibold text-[#FCD34D]">Negotiation drift detected</div>
+          <p className="text-xs text-[#FCD34D] opacity-80">
             These clause types have been accepted even when MIKE flagged them as RED —
             your team may be drifting from your playbook position.
           </p>
           <div className="flex flex-wrap gap-2 mt-1">
             {drifted.map((o) => (
-              <span key={o.clauseCategory} className="text-xs bg-amber-100 border border-amber-200 text-amber-800 px-2 py-0.5 rounded-full">
+              <span key={o.clauseCategory} className="text-xs bg-[#1C0F00] border border-[#431407] text-[#FCD34D] px-2 py-0.5 rounded-full">
                 {CLAUSE_LABELS[o.clauseCategory as ClauseCategory] ?? o.clauseCategory.replace(/_/g, " ")}
                 {" "}({o.accepted}×)
               </span>
@@ -192,9 +192,9 @@ function OutcomesView({ outcomes }: { outcomes: ClauseOutcome[] }) {
           <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">
             <span>Clause</span>
             <span className="text-center">Reviews</span>
-            <span className="text-center text-red-500">Red</span>
-            <span className="text-center text-emerald-600">Accepted</span>
-            <span className="text-center text-blue-600">Escalated</span>
+            <span className="text-center text-[#FCA5A5]">Red</span>
+            <span className="text-center text-[#86EFAC]">Accepted</span>
+            <span className="text-center text-[#60A5FA]">Escalated</span>
           </div>
         </div>
         <div className="divide-y divide-card-border">
@@ -202,19 +202,19 @@ function OutcomesView({ outcomes }: { outcomes: ClauseOutcome[] }) {
             <div
               key={o.clauseCategory}
               className={`grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center px-5 py-3 text-sm
-                ${o.accepted > 0 && o.redCount > 0 ? "bg-amber-50/30" : ""}`}
+                ${o.accepted > 0 && o.redCount > 0 ? "bg-[#1C0F00]" : ""}`}
             >
               <span className="font-medium text-sm">
                 {CLAUSE_LABELS[o.clauseCategory as ClauseCategory] ?? o.clauseCategory.replace(/_/g, " ")}
               </span>
               <span className="text-center text-muted-foreground text-xs w-12">{o.total}</span>
-              <span className={`text-center text-xs w-12 ${o.redCount > 0 ? "text-red-600 font-semibold" : "text-muted-foreground"}`}>
+              <span className={`text-center text-xs w-12 ${o.redCount > 0 ? "text-[#FCA5A5] font-semibold" : "text-muted-foreground"}`}>
                 {o.redCount || "—"}
               </span>
               <span className={`text-center text-xs w-16 ${o.accepted > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
                 {o.accepted || "—"}
               </span>
-              <span className={`text-center text-xs w-16 ${o.escalated > 0 ? "text-blue-600 font-medium" : "text-muted-foreground"}`}>
+              <span className={`text-center text-xs w-16 ${o.escalated > 0 ? "text-[#60A5FA] font-medium" : "text-muted-foreground"}`}>
                 {o.escalated || "—"}
               </span>
             </div>
@@ -224,9 +224,9 @@ function OutcomesView({ outcomes }: { outcomes: ClauseOutcome[] }) {
 
       {/* Clean streak */}
       {clean.length > 0 && (
-        <div className="card border-emerald-200 bg-emerald-50/30 p-4">
-          <div className="text-sm font-semibold text-emerald-800 mb-1">Playbook holding strong</div>
-          <p className="text-xs text-emerald-700">
+        <div className="card border-[#14532D] bg-[#052E16] p-4">
+          <div className="text-sm font-semibold text-[#86EFAC] mb-1">Playbook holding strong</div>
+          <p className="text-xs text-[#86EFAC] opacity-80">
             {clean.length} clause type{clean.length > 1 ? "s" : ""} ({clean.map((o) => CLAUSE_LABELS[o.clauseCategory as ClauseCategory] ?? o.clauseCategory.replace(/_/g, " ")).join(", ")}) have been consistently green.
           </p>
         </div>

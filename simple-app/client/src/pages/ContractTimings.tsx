@@ -63,15 +63,15 @@ function TimingsContent({ data }: { data: TimingsData }) {
             </p>
           </div>
           {data.flagged.length > 0 && (
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 shrink-0">
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#1F0A0A] text-[#FCA5A5] border border-[#450A0A] shrink-0">
               {data.flagged.filter((f) => f.ragStatus === "RED").length} need action
             </span>
           )}
         </div>
 
         {data.flagged.length === 0 ? (
-          <div className="card-body flex items-center gap-3 text-sm text-emerald-700">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+          <div className="card-body flex items-center gap-3 text-sm text-[#86EFAC]">
+            <div className="w-2 h-2 rounded-full bg-[#86EFAC] shrink-0" />
             No renewal or timing risks flagged across your reviewed contracts.
           </div>
         ) : (
@@ -81,12 +81,12 @@ function TimingsContent({ data }: { data: TimingsData }) {
                 {/* RAG indicator */}
                 <div className={`mt-0.5 flex items-center justify-center w-8 h-8 rounded-lg shrink-0 ${
                   item.ragStatus === "RED"
-                    ? "bg-red-50 border border-red-200"
-                    : "bg-amber-50 border border-amber-200"
+                    ? "bg-[#1F0A0A] border border-[#450A0A]"
+                    : "bg-[#1C0F00] border border-[#431407]"
                 }`}>
                   {item.ragStatus === "RED"
-                    ? <AlertTriangle size={14} className="text-red-600" />
-                    : <Clock size={14} className="text-amber-600" />
+                    ? <AlertTriangle size={14} className="text-[#FCA5A5]" />
+                    : <Clock size={14} className="text-[#FCD34D]" />
                   }
                 </div>
 

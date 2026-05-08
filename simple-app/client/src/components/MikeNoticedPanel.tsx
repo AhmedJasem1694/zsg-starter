@@ -4,9 +4,9 @@ import { getFeedbackPatterns } from "../lib/api";
 import type { MikePattern } from "../lib/api";
 
 function PatternIcon({ severity }: { severity: MikePattern["severity"] }) {
-  if (severity === "good")  return <CheckCircle  size={13} className="text-emerald-500 shrink-0 mt-0.5" />;
-  if (severity === "warn")  return <AlertTriangle size={13} className="text-amber-500 shrink-0 mt-0.5" />;
-  return                           <Info          size={13} className="text-blue-500 shrink-0 mt-0.5" />;
+  if (severity === "good")  return <CheckCircle  size={13} className="text-[#86EFAC] shrink-0 mt-0.5" />;
+  if (severity === "warn")  return <AlertTriangle size={13} className="text-[#FCD34D] shrink-0 mt-0.5" />;
+  return                           <Info          size={13} className="text-[#60A5FA] shrink-0 mt-0.5" />;
 }
 
 export default function MikeNoticedPanel() {

@@ -30,28 +30,28 @@ function founderRagLabel(s: RagStatus): string {
 
 function founderRagBg(s: RagStatus): string {
   return {
-    RED:   "bg-red-50 border-red-200",
-    AMBER: "bg-amber-50 border-amber-200",
-    GREEN: "bg-emerald-50 border-emerald-200",
-    GREY:  "bg-slate-50 border-slate-200",
+    RED:   "bg-[#1F0A0A] border-[#450A0A]",
+    AMBER: "bg-[#1C0F00] border-[#431407]",
+    GREEN: "bg-[#052E16] border-[#14532D]",
+    GREY:  "bg-[#0F172A] border-[#334155]",
   }[s];
 }
 
 function founderRagColor(s: RagStatus): string {
   return {
-    RED:   "text-red-700",
-    AMBER: "text-amber-700",
-    GREEN: "text-emerald-700",
-    GREY:  "text-slate-600",
+    RED:   "text-[#FCA5A5]",
+    AMBER: "text-[#FCD34D]",
+    GREEN: "text-[#86EFAC]",
+    GREY:  "text-[#94A3B8]",
   }[s];
 }
 
 function founderRagDot(s: RagStatus): string {
   return {
-    RED:   "bg-red-500",
-    AMBER: "bg-amber-400",
-    GREEN: "bg-emerald-500",
-    GREY:  "bg-slate-400",
+    RED:   "bg-[#FCA5A5]",
+    AMBER: "bg-[#FCD34D]",
+    GREEN: "bg-[#86EFAC]",
+    GREY:  "bg-[#475569]",
   }[s];
 }
 
@@ -185,11 +185,11 @@ function FounderClauseCard({
                   )}
                 </button>
               ) : (
-                <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 space-y-2">
+                <div className="copy-block rounded-lg p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <Mail size={12} className="text-blue-600" />
-                      <span className="text-xs font-semibold text-blue-700">Email reply — copy and send</span>
+                      <Mail size={12} className="text-[#60A5FA]" />
+                      <span className="text-xs font-semibold text-[#60A5FA]">Email reply — copy and send</span>
                     </div>
                     <div className="flex gap-1.5">
                       <button
@@ -207,7 +207,7 @@ function FounderClauseCard({
                       </button>
                     </div>
                   </div>
-                  <p className="text-sm text-blue-900 leading-relaxed whitespace-pre-wrap">{generatedReply}</p>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{generatedReply}</p>
                 </div>
               )}
             </div>
@@ -215,9 +215,9 @@ function FounderClauseCard({
 
           {/* Escalation note */}
           {result.escalationRequired && result.escalationTrigger && (
-            <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5">
-              <AlertTriangle size={13} className="text-red-600 mt-0.5 shrink-0" />
-              <p className="text-xs text-red-700">{result.escalationTrigger}</p>
+            <div className="flex items-start gap-2 rounded-lg bg-[#1F0A0A] border border-[#450A0A] px-3 py-2.5">
+              <AlertTriangle size={13} className="text-[#FCA5A5] mt-0.5 shrink-0" />
+              <p className="text-xs text-[#FCA5A5]">{result.escalationTrigger}</p>
             </div>
           )}
 
@@ -245,8 +245,8 @@ function FounderClauseCard({
 
           {/* "What was actually agreed" optional capture */}
           {showWhatAgreed && (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3 space-y-2">
-              <div className="text-xs font-medium text-emerald-800">
+            <div className="rounded-lg border border-[#14532D] bg-[#052E16] p-3 space-y-2">
+              <div className="text-xs font-medium text-[#86EFAC]">
                 Optional: what was the final agreed wording?
               </div>
               <textarea
@@ -389,9 +389,9 @@ export default function FounderReview() {
   const filtered = filter === "ALL" ? results : results.filter((r) => r.ragStatus === filter);
 
   const VERDICT_BANNER = {
-    safe:    { label: "Looks good — you can proceed",         color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", icon: CheckCircle },
-    caution: { label: "Worth a closer look before signing",   color: "text-amber-700",   bg: "bg-amber-50 border-amber-200",    icon: AlertCircle },
-    danger:  { label: "Don't sign yet — fix these first",     color: "text-red-700",     bg: "bg-red-50 border-red-200",        icon: AlertTriangle },
+    safe:    { label: "Looks good — you can proceed",         color: "text-[#86EFAC]", bg: "bg-[#052E16] border-[#14532D]", icon: CheckCircle },
+    caution: { label: "Worth a closer look before signing",   color: "text-[#FCD34D]", bg: "bg-[#1C0F00] border-[#431407]", icon: AlertCircle },
+    danger:  { label: "Don't sign yet — fix these first",     color: "text-[#FCA5A5]", bg: "bg-[#1F0A0A] border-[#450A0A]", icon: AlertTriangle },
   } as const;
 
   const banner = VERDICT_BANNER[verdict];
@@ -430,7 +430,7 @@ export default function FounderReview() {
         {topRisks.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <AlertTriangle size={14} className="text-amber-500" />
+              <AlertTriangle size={14} className="text-[#FCD34D]" />
               <h2 className="text-sm font-semibold">Top things to focus on</h2>
             </div>
             {topRisks.map((result) => (

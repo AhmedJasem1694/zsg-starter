@@ -2,130 +2,152 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── MIKE Design System ────────────────────────────────────────────────────── */
-/* Dark navy sidebar + slate-50 page bg + white cards + teal accent              */
+/* ─── MIKE Design System ─────────────────────────────────────────────────────
+   Bloomberg Terminal × Linear Enterprise × Mercury trust language
+   Dark navy base · Cobalt accent · Muted RAG · JetBrains Mono for clauses
+   ─────────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Page */
-  --background: 214 32% 97%;        /* slate-50 */
-  --foreground: 222 47% 11%;        /* slate-900 */
+  /* ── Page background ─────────────────────────────────────────────────── */
+  --background:    226 43% 8%;         /* #0B1020 — deep navy, not black     */
+  --foreground:    213 27% 84%;        /* #CBD5E1 — slate primary text       */
 
-  /* Cards / surfaces */
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --card-border: 214 32% 91%;       /* slate-200 */
+  /* ── Card & panel surfaces ───────────────────────────────────────────── */
+  --card:          222 47% 11%;        /* #0F172A                            */
+  --card-foreground: 213 27% 84%;
+  --card-border:   217 32% 17%;        /* #1E293B — subtle divider           */
 
-  /* Sidebar - dark navy */
-  --sidebar: 222 47% 8%;            /* near-black navy */
-  --sidebar-foreground: 213 31% 91%;
-  --sidebar-border: 222 47% 14%;
-  --sidebar-primary: 172 84% 30%;   /* teal-700 */
+  /* ── Sidebar ─────────────────────────────────────────────────────────── */
+  --sidebar:              222 47% 11%; /* #0F172A                            */
+  --sidebar-foreground:   215 20% 65%; /* #94A3B8                            */
+  --sidebar-border:       217 32% 17%; /* #1E293B                            */
+  --sidebar-primary:      221 83% 53%; /* #2563EB cobalt                     */
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 222 47% 14%;
-  --sidebar-accent-foreground: 213 31% 91%;
-  --sidebar-ring: 172 84% 30%;
-  --sidebar-primary-border: hsl(172 84% 30%);
+  --sidebar-accent:       218 54% 20%; /* #172B4D active bg                  */
+  --sidebar-accent-foreground: 213 94% 68%; /* #60A5FA                       */
+  --sidebar-ring:         221 83% 53%;
+  --sidebar-primary-border: #2563EB;
 
-  /* Primary action - teal */
-  --primary: 172 84% 25%;           /* teal-700 */
+  /* ── Primary action — muted cobalt blue ──────────────────────────────── */
+  --primary:       221 83% 53%;        /* #2563EB                            */
   --primary-foreground: 0 0% 100%;
-  --primary-border: hsl(172 84% 25%);
+  --primary-border: #2563EB;
 
-  /* Secondary */
-  --secondary: 214 32% 91%;
-  --secondary-foreground: 222 47% 11%;
-  --secondary-border: hsl(214 32% 84%);
+  /* ── Secondary ───────────────────────────────────────────────────────── */
+  --secondary:     217 32% 17%;        /* #1E293B                            */
+  --secondary-foreground: 215 20% 65%;
+  --secondary-border: hsl(215 25% 27%);
 
-  /* Muted */
-  --muted: 214 32% 94%;
-  --muted-foreground: 215 16% 47%;  /* slate-500 */
-  --muted-border: hsl(214 32% 88%);
+  /* ── Muted / elevated surface ────────────────────────────────────────── */
+  --muted:         221 39% 11%;        /* #111827                            */
+  --muted-foreground: 215 16% 47%;    /* #64748B                            */
+  --muted-border:  hsl(217 32% 17%);
 
-  /* Accent */
-  --accent: 172 55% 95%;            /* teal tint */
-  --accent-foreground: 172 84% 25%;
-  --accent-border: hsl(172 55% 88%);
+  /* ── Accent — cobalt ghost highlight ────────────────────────────────── */
+  --accent:        218 54% 20%;        /* #172B4D                            */
+  --accent-foreground: 213 94% 68%;   /* #60A5FA                            */
+  --accent-border: hsl(214 52% 25%);  /* #1E3A5F                            */
 
-  /* Destructive */
-  --destructive: 0 84% 60%;
+  /* ── Destructive ─────────────────────────────────────────────────────── */
+  --destructive:   0 72% 41%;          /* #B91C1C                            */
   --destructive-foreground: 0 0% 100%;
-  --destructive-border: hsl(0 84% 54%);
+  --destructive-border: hsl(0 80% 28%);
 
-  /* Borders & inputs */
-  --border: 214 32% 88%;
-  --input: 214 32% 88%;
-  --ring: 172 84% 25%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  --popover-border: 214 32% 88%;
+  /* ── Borders / inputs / ring ─────────────────────────────────────────── */
+  --border:        217 32% 17%;        /* #1E293B                            */
+  --input:         217 32% 17%;
+  --ring:          221 83% 53%;        /* #2563EB                            */
+  --popover:       222 47% 11%;
+  --popover-foreground: 213 27% 84%;
+  --popover-border: 217 32% 17%;
 
-  /* Typography */
+  /* ── Typography ──────────────────────────────────────────────────────── */
   --font-sans: 'Inter', sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: 'Roboto Mono', monospace;
+  --font-mono: 'JetBrains Mono', 'Roboto Mono', monospace;
   --radius: 0.5rem;
 
-  /* Elevation overlays */
-  --elevate-1: rgba(0,0,0,.03);
-  --elevate-2: rgba(0,0,0,.07);
+  /* ── Elevation overlays (light on dark) ──────────────────────────────── */
+  --elevate-1: rgba(255,255,255,.025);
+  --elevate-2: rgba(255,255,255,.05);
 
-  /* Shadows */
-  --shadow-xs: 0 1px 2px hsl(222 47% 11% / 0.06);
-  --shadow-sm: 0 1px 3px hsl(222 47% 11% / 0.08), 0 1px 2px hsl(222 47% 11% / 0.04);
-  --shadow:    0 4px 6px hsl(222 47% 11% / 0.07), 0 2px 4px hsl(222 47% 11% / 0.04);
-  --shadow-md: 0 8px 16px hsl(222 47% 11% / 0.08), 0 4px 6px hsl(222 47% 11% / 0.04);
-  --shadow-lg: 0 12px 24px hsl(222 47% 11% / 0.10), 0 8px 16px hsl(222 47% 11% / 0.06);
+  /* ── Shadows ─────────────────────────────────────────────────────────── */
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow:    0 4px 6px rgb(0 0 0 / 0.4), 0 2px 4px rgb(0 0 0 / 0.3);
+  --shadow-md: 0 8px 16px rgb(0 0 0 / 0.5), 0 4px 6px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 12px 24px rgb(0 0 0 / 0.6), 0 8px 16px rgb(0 0 0 / 0.5);
 }
 
 @layer base {
   * { @apply border-border; }
   body { @apply font-sans antialiased bg-background text-foreground; }
-  h1 { @apply text-2xl font-semibold tracking-tight; }
-  h2 { @apply text-xl font-semibold tracking-tight; }
+  h1 { @apply text-2xl font-bold tracking-tight; }
+  h2 { @apply text-xl font-bold tracking-tight; }
   h3 { @apply text-base font-semibold; }
 }
 
 @layer components {
-  /* Inputs */
-  .input {
-    @apply w-full rounded-lg border border-border bg-card px-3 py-2 text-sm
-      placeholder:text-muted-foreground
-      focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60
-      transition-colors;
-  }
 
-  /* Buttons */
+  /* ── Inputs ─────────────────────────────────────────────────────────── */
+  .input {
+    @apply w-full rounded-lg px-3 py-2 text-sm transition-colors
+      placeholder:text-muted-foreground focus:outline-none;
+    background: #1E293B;
+    border: 1px solid #334155;
+    color: #F1F5F9;
+  }
+  .input:focus {
+    border-color: #2563EB;
+    box-shadow: 0 0 0 3px #172B4D;
+  }
+  .input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ── Buttons ────────────────────────────────────────────────────────── */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 rounded-lg
-      bg-primary text-primary-foreground
-      px-4 py-2 text-sm font-medium
-      transition-all hover:opacity-90 active:scale-[0.98]
-      disabled:opacity-50 disabled:pointer-events-none
-      shadow-sm;
+      px-4 py-2 text-sm font-semibold text-white
+      transition-colors active:scale-[0.98]
+      disabled:opacity-50 disabled:pointer-events-none;
+    background: #2563EB;
   }
+  .btn-primary:hover:not(:disabled) { background: #3B82F6; }
+
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 rounded-lg
-      border border-border bg-card text-foreground
-      px-4 py-2 text-sm font-medium
-      transition-all hover:bg-muted active:scale-[0.98]
+      px-4 py-2 text-sm font-medium text-foreground
+      transition-colors active:scale-[0.98]
       disabled:opacity-50 disabled:pointer-events-none;
+    background: transparent;
+    border: 1px solid #334155;
   }
-  .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg
-      px-4 py-2 text-sm font-medium text-muted-foreground
-      hover:text-foreground hover:bg-muted
-      transition-colors disabled:opacity-50;
-  }
-  .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg
-      bg-destructive text-destructive-foreground
-      px-4 py-2 text-sm font-medium
-      transition-all hover:opacity-90 disabled:opacity-50;
+  .btn-secondary:hover:not(:disabled) {
+    background: #1A2540;
+    border-color: #475569;
   }
 
-  /* Cards */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg
+      px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50;
+    color: #94A3B8;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    color: #F1F5F9;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg
+      px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50;
+    background: #1F0A0A;
+    border: 1px solid #450A0A;
+    color: #FCA5A5;
+  }
+  .btn-danger:hover:not(:disabled) { background: #2D0A0A; }
+
+  /* ── Cards ──────────────────────────────────────────────────────────── */
   .card {
-    @apply bg-card border border-card-border rounded-xl shadow-sm;
+    @apply bg-card border border-card-border rounded-xl;
   }
   .card-header {
     @apply px-6 py-5 border-b border-card-border;
@@ -134,50 +156,75 @@
     @apply px-6 py-5;
   }
 
-  /* RAG badges */
-  .rag-red   { @apply bg-red-50 text-red-700 border border-red-200 rounded-md px-2 py-0.5 text-xs font-semibold; }
-  .rag-amber { @apply bg-amber-50 text-amber-700 border border-amber-200 rounded-md px-2 py-0.5 text-xs font-semibold; }
-  .rag-green { @apply bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md px-2 py-0.5 text-xs font-semibold; }
-  .rag-grey  { @apply bg-slate-100 text-slate-600 border border-slate-200 rounded-md px-2 py-0.5 text-xs font-semibold; }
+  /* ── RAG status badges — muted, elegant, uppercase ──────────────────── */
+  .rag-red {
+    @apply inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold uppercase tracking-wide;
+    background: #1F0A0A;
+    border: 1px solid #450A0A;
+    color: #FCA5A5;
+  }
+  .rag-amber {
+    @apply inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold uppercase tracking-wide;
+    background: #1C0F00;
+    border: 1px solid #431407;
+    color: #FCD34D;
+  }
+  .rag-green {
+    @apply inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold uppercase tracking-wide;
+    background: #052E16;
+    border: 1px solid #14532D;
+    color: #86EFAC;
+  }
+  .rag-grey {
+    @apply inline-flex items-center rounded px-2 py-0.5 text-xs font-semibold uppercase tracking-wide;
+    background: #0F172A;
+    border: 1px solid #334155;
+    color: #94A3B8;
+  }
 
-  /* Sidebar nav item */
+  /* ── Sidebar nav item ───────────────────────────────────────────────── */
   .nav-item {
     @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium
-      text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent
       transition-colors cursor-pointer;
+    color: #94A3B8;
+  }
+  .nav-item:hover {
+    color: #F1F5F9;
+    background: rgba(255,255,255,0.05);
   }
   .nav-item-active {
-    @apply bg-sidebar-accent text-sidebar-foreground;
+    background: #172B4D;
+    color: #F1F5F9;
+    /* Inset left border — doesn't shift content or break border-radius */
+    box-shadow: inset 2px 0 0 #2563EB;
+  }
+
+  /* ── Clause / fallback language block (JetBrains Mono) ─────────────── */
+  .clause-block {
+    @apply rounded-lg p-4 text-sm leading-relaxed;
+    font-family: 'JetBrains Mono', monospace;
+    background: #0B1020;
+    border: 1px solid #172B4D;
+    color: #94A3B8;
+  }
+
+  /* ── Copy-paste block (founder) ─────────────────────────────────────── */
+  .copy-block {
+    @apply rounded-lg p-4 text-sm leading-relaxed;
+    font-family: 'JetBrains Mono', monospace;
+    background: #172B4D;
+    border: 1px solid #1E3A5F;
+    color: #60A5FA;
   }
 }
 
-/* ─── Dark theme scope ──────────────────────────────────────────────────────── */
-/* Apply class="theme-dark" to any container to flip all CSS-variable-based     */
-/* components (inputs, cards, borders, text) to the dark navy palette.          */
+/* ─── Scrollbars ─────────────────────────────────────────────────────────── */
+::-webkit-scrollbar           { width: 6px; height: 6px; }
+::-webkit-scrollbar-track     { background: #0B1020; }
+::-webkit-scrollbar-thumb     { background: #334155; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-.theme-dark {
-  --background: 222 47% 6%;
-  --foreground: 213 31% 91%;
-  --card: 222 47% 10%;
-  --card-foreground: 213 31% 91%;
-  --card-border: 222 47% 17%;
-  --border: 222 47% 18%;
-  --input: 222 47% 13%;
-  --muted: 222 47% 13%;
-  --muted-foreground: 215 16% 55%;
-  --muted-border: hsl(222 47% 20%);
-  --accent: 172 55% 10%;
-  --accent-foreground: 172 84% 55%;
-  --accent-border: hsl(172 55% 20%);
-  --popover: 222 47% 10%;
-  --popover-foreground: 213 31% 91%;
-  --popover-border: 222 47% 18%;
-  --secondary: 222 47% 15%;
-  --secondary-foreground: 213 31% 85%;
-  --secondary-border: hsl(222 47% 22%);
-}
-
-/* ── Landing page animations ─────────────────────────────────────────────── */
+/* ─── Landing page animations ────────────────────────────────────────────── */
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(28px); }
@@ -196,12 +243,12 @@
 
 .phrase-in {
   display: inline-block;
-  animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeUp 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .phrase-out {
   display: inline-block;
-  animation: fadeIn 0.2s ease reverse forwards;
+  animation: fadeIn 0.15s ease reverse forwards;
 }
 
 .scroll-reveal {

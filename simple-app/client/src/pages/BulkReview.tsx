@@ -12,10 +12,10 @@ type DocWithResults = UploadedDocument & {
 };
 
 const RAG_CELL: Record<string, string> = {
-  RED:   "bg-red-100 text-red-700 font-semibold",
-  AMBER: "bg-amber-100 text-amber-700 font-semibold",
-  GREEN: "bg-emerald-100 text-emerald-700 font-semibold",
-  GREY:  "bg-slate-100 text-slate-500",
+  RED:   "bg-[#1F0A0A] text-[#FCA5A5] border border-[#450A0A] font-semibold",
+  AMBER: "bg-[#1C0F00] text-[#FCD34D] border border-[#431407] font-semibold",
+  GREEN: "bg-[#052E16] text-[#86EFAC] border border-[#14532D] font-semibold",
+  GREY:  "bg-[#0F172A] text-[#94A3B8] border border-[#334155]",
 };
 
 const RAG_SHORT: Record<string, string> = {
@@ -156,9 +156,9 @@ export default function BulkReview() {
 
         {/* Processing indicator */}
         {processingDocs.length > 0 && (
-          <div className="max-w-5xl card p-4 flex items-center gap-3 border-amber-200 bg-amber-50">
-            <div className="w-4 h-4 rounded-full border-2 border-amber-500 border-t-transparent animate-spin shrink-0" />
-            <span className="text-sm text-amber-800">
+          <div className="max-w-5xl card p-4 flex items-center gap-3 border-[#431407] bg-[#1C0F00]">
+            <div className="w-4 h-4 rounded-full border-2 border-[#FCD34D] border-t-transparent animate-spin shrink-0" />
+            <span className="text-sm text-[#FCD34D]">
               {processingDocs.length} contract{processingDocs.length !== 1 ? "s" : ""} being reviewed — results will appear automatically.
             </span>
           </div>
@@ -208,7 +208,7 @@ export default function BulkReview() {
                   return (
                     <tr
                       key={doc.id}
-                      className={`border-b border-card-border hover:bg-muted/30 transition-colors ${hasRed ? "bg-red-50/30" : ""}`}
+                      className={`border-b border-card-border hover:bg-muted/30 transition-colors ${hasRed ? "bg-[#1F0A0A]/40" : ""}`}
                     >
                       <td className="px-4 py-3 sticky left-0 bg-background z-10 min-w-[200px]">
                         <div className="flex items-center gap-2">
@@ -263,10 +263,10 @@ export default function BulkReview() {
           <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground max-w-5xl">
             <span className="font-medium">Key:</span>
             {[
-              { short: "R", label: "Red — review required", cls: "bg-red-100 text-red-700" },
-              { short: "A", label: "Amber — caution",       cls: "bg-amber-100 text-amber-700" },
-              { short: "G", label: "Green — acceptable",    cls: "bg-emerald-100 text-emerald-700" },
-              { short: "—", label: "Not found",             cls: "bg-slate-100 text-slate-500" },
+              { short: "R", label: "Red — review required", cls: "bg-[#1F0A0A] text-[#FCA5A5] border border-[#450A0A]" },
+              { short: "A", label: "Amber — caution",       cls: "bg-[#1C0F00] text-[#FCD34D] border border-[#431407]" },
+              { short: "G", label: "Green — acceptable",    cls: "bg-[#052E16] text-[#86EFAC] border border-[#14532D]" },
+              { short: "—", label: "Not found",             cls: "bg-[#0F172A] text-[#94A3B8] border border-[#334155]" },
             ].map(({ short, label, cls }) => (
               <span key={short} className="flex items-center gap-1.5">
                 <span className={`inline-block px-1.5 py-0.5 rounded font-bold text-[10px] ${cls}`}>{short}</span>

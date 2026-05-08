@@ -68,14 +68,14 @@ function PortfolioContent({ data }: { data: PortfolioData }) {
               {total > 0 ? (
                 <>
                   <div className="flex h-2 rounded-full overflow-hidden gap-0.5 mb-2">
-                    {red   > 0 && <div className="bg-red-500"     style={{ flex: red }} />}
-                    {amber > 0 && <div className="bg-amber-400"   style={{ flex: amber }} />}
-                    {green > 0 && <div className="bg-emerald-500" style={{ flex: green }} />}
+                    {red   > 0 && <div className="bg-[#FCA5A5]" style={{ flex: red }} />}
+                    {amber > 0 && <div className="bg-[#FCD34D]" style={{ flex: amber }} />}
+                    {green > 0 && <div className="bg-[#86EFAC]" style={{ flex: green }} />}
                   </div>
                   <div className="flex gap-3 text-xs text-muted-foreground">
-                    {red   > 0 && <span className="text-red-600 font-medium">{red} Red</span>}
-                    {amber > 0 && <span className="text-amber-600 font-medium">{amber} Amber</span>}
-                    {green > 0 && <span className="text-emerald-600 font-medium">{green} Green</span>}
+                    {red   > 0 && <span className="text-[#FCA5A5] font-medium">{red} Red</span>}
+                    {amber > 0 && <span className="text-[#FCD34D] font-medium">{amber} Amber</span>}
+                    {green > 0 && <span className="text-[#86EFAC] font-medium">{green} Green</span>}
                   </div>
                 </>
               ) : (
@@ -103,10 +103,10 @@ function PortfolioContent({ data }: { data: PortfolioData }) {
                     <span className="font-medium">
                       {CLAUSE_LABELS[category as ClauseCategory] ?? category.replace(/_/g, " ")}
                     </span>
-                    <span className="text-red-600 font-semibold">{count} issue{count !== 1 ? "s" : ""} ({pct}%)</span>
+                    <span className="text-[#FCA5A5] font-semibold">{count} issue{count !== 1 ? "s" : ""} ({pct}%)</span>
                   </div>
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-red-400 rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} />
+                    <div className="h-full bg-[#FCA5A5] rounded-full" style={{ width: `${Math.min(pct, 100)}%` }} />
                   </div>
                 </div>
               ))

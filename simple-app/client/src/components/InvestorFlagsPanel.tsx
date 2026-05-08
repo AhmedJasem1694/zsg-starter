@@ -63,23 +63,23 @@ export default function InvestorFlagsPanel() {
   if (flags.length === 0) return null;
 
   return (
-    <div className="card border-amber-200 bg-amber-50/40">
+    <div className="card border-[#431407] bg-[#1C0F00]">
       <div className="card-body space-y-3">
         <div className="flex items-center gap-2">
-          <TrendingDown size={14} className="text-amber-600" />
-          <span className="text-sm font-semibold text-amber-800">Investor term flags</span>
+          <TrendingDown size={14} className="text-[#FCD34D]" />
+          <span className="text-sm font-semibold text-[#FCD34D]">Investor term flags</span>
         </div>
-        <p className="text-xs text-amber-700">
+        <p className="text-xs text-[#FCD34D] opacity-80">
           MIKE spotted these investor-unfriendly terms in your investment documents.
         </p>
         <div className="space-y-2">
           {flags.slice(0, 5).map(({ docId, docName, result }) => (
             <button
               key={result.id}
-              className="w-full flex items-start gap-2.5 text-left rounded-lg hover:bg-amber-100/60 px-2 py-1.5 transition-colors"
+              className="w-full flex items-start gap-2.5 text-left rounded-lg hover:bg-[#FCD34D]/10 px-2 py-1.5 transition-colors"
               onClick={() => navigate(`/app/founder/review/${docId}`)}
             >
-              <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${result.ragStatus === "RED" ? "bg-red-500" : "bg-amber-400"}`} />
+              <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${result.ragStatus === "RED" ? "bg-[#FCA5A5]" : "bg-[#FCD34D]"}`} />
               <div className="flex-1 min-w-0">
                 <div className="text-xs font-medium text-foreground">
                   {FOUNDER_FLAG_LABELS[result.clauseCategory as ClauseCategory]

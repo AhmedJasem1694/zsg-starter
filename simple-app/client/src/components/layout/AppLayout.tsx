@@ -80,8 +80,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <span className="text-white text-xs font-bold">M</span>
           </div>
           <div>
-            <div className="text-sm font-semibold text-sidebar-foreground">MIKE</div>
-            <div className="text-[10px] text-sidebar-foreground/40 tracking-wide uppercase">
+            <div className="text-sm font-semibold text-sidebar-foreground leading-none">MIKE</div>
+            <div className="text-[9px] text-sidebar-foreground/50 tracking-widest uppercase mt-1">
               {isFounder ? "Your Deal Assistant" : "Legal Decision Engine"}
             </div>
           </div>
@@ -108,7 +108,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 onClick={() => setOpen(false)}
                 className={`nav-item ${active ? "nav-item-active" : ""}`}
               >
-                <Icon size={16} className="shrink-0" />
+                <Icon size={16} className="shrink-0" style={{ color: active ? "#60A5FA" : "#64748B" }} />
                 {label}
               </Link>
             );
@@ -127,7 +127,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 onClick={() => setOpen(false)}
                 className={`nav-item ${active ? "nav-item-active" : ""}`}
               >
-                <Icon size={16} className="shrink-0" />
+                <Icon size={16} className="shrink-0" style={{ color: active ? "#60A5FA" : "#64748B" }} />
                 {label}
               </Link>
             );

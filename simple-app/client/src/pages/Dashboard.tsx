@@ -167,11 +167,11 @@ function getSignReadiness(results: { ragStatus: string }[]): SignReadiness {
 }
 
 const READINESS_CONFIG: Record<SignReadiness, { label: string; color: string; bg: string; icon: React.ElementType }> = {
-  "ready":     { label: "Ready to sign",   color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", icon: CheckCircle },
-  "negotiate": { label: "Negotiate first", color: "text-amber-700",   bg: "bg-amber-50 border-amber-200",    icon: AlertTriangle },
-  "review":    { label: "Review needed",   color: "text-amber-600",   bg: "bg-amber-50 border-amber-100",    icon: AlertCircle },
-  "not-ready": { label: "Do not sign yet", color: "text-red-700",     bg: "bg-red-50 border-red-200",        icon: AlertTriangle },
-  "pending":   { label: "Reviewing…",      color: "text-muted-foreground", bg: "bg-muted border-border",    icon: Clock },
+  "ready":     { label: "Ready to sign",   color: "text-[#86EFAC]",        bg: "bg-[#052E16] border-[#14532D]",  icon: CheckCircle },
+  "negotiate": { label: "Negotiate first", color: "text-[#FCD34D]",        bg: "bg-[#1C0F00] border-[#431407]",  icon: AlertTriangle },
+  "review":    { label: "Review needed",   color: "text-[#FCD34D]",        bg: "bg-[#1C0F00] border-[#431407]",  icon: AlertCircle },
+  "not-ready": { label: "Do not sign yet", color: "text-[#FCA5A5]",        bg: "bg-[#1F0A0A] border-[#450A0A]",  icon: AlertTriangle },
+  "pending":   { label: "Reviewing…",      color: "text-muted-foreground", bg: "bg-muted border-border",          icon: Clock },
 };
 
 // ─── Mini RAG bar component ───────────────────────────────────────────────────
@@ -187,10 +187,10 @@ function MiniRagBar({ results }: { results: { ragStatus: string }[] }) {
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex h-1.5 w-20 rounded-full overflow-hidden gap-px">
-        {red   > 0 && <div className="bg-red-500"     style={{ width: `${(red / total) * 100}%` }} />}
-        {amber > 0 && <div className="bg-amber-400"   style={{ width: `${(amber / total) * 100}%` }} />}
-        {green > 0 && <div className="bg-emerald-500" style={{ width: `${(green / total) * 100}%` }} />}
-        {grey  > 0 && <div className="bg-slate-300"   style={{ width: `${(grey / total) * 100}%` }} />}
+        {red   > 0 && <div className="bg-[#FCA5A5]" style={{ width: `${(red / total) * 100}%` }} />}
+        {amber > 0 && <div className="bg-[#FCD34D]" style={{ width: `${(amber / total) * 100}%` }} />}
+        {green > 0 && <div className="bg-[#86EFAC]" style={{ width: `${(green / total) * 100}%` }} />}
+        {grey  > 0 && <div className="bg-[#475569]"   style={{ width: `${(grey / total) * 100}%` }} />}
       </div>
       <span className="text-[10px] text-muted-foreground">{total} clauses</span>
     </div>
@@ -350,15 +350,15 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground mt-0.5">
               Upload a contract and MIKE reviews it in minutes, not hours
               {useMock && (
-                <span className="ml-2 text-xs bg-amber-100 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5">
+                <span className="ml-2 text-xs bg-[#1C0F00] text-[#FCD34D] border border-[#431407] rounded-full px-2 py-0.5">
                   Demo data
                 </span>
               )}
             </p>
           </div>
           {processing && (
-            <span className="text-xs text-amber-600 flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-full px-3 py-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+            <span className="text-xs text-[#FCD34D] flex items-center gap-1.5 bg-[#1C0F00] border border-[#431407] rounded-full px-3 py-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D] animate-pulse" />
               Review in progress
             </span>
           )}
@@ -379,7 +379,7 @@ export default function Dashboard() {
               { label: "Renewals in 90 days", value: stats.renewalsDue > 0 ? `${stats.renewalsDue} due` : "None" },
             ].map((s) => (
               <div key={s.label} className="card px-4 py-3">
-                <div className={`text-lg font-semibold ${s.highlight ? "text-red-600" : ""}`}>{s.value}</div>
+                <div className={`text-lg font-semibold ${s.highlight ? "text-[#FCA5A5]" : ""}`}>{s.value}</div>
                 <div className="text-xs text-muted-foreground mt-0.5">{s.label}</div>
               </div>
             ))}
@@ -617,8 +617,8 @@ export default function Dashboard() {
                         </div>
 
                         {doc.status === "PROCESSING" && (
-                          <span className="flex items-center gap-1 text-xs text-amber-600 shrink-0">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" /> Reviewing
+                          <span className="flex items-center gap-1 text-xs text-[#FCD34D] shrink-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D] animate-pulse" /> Reviewing
                           </span>
                         )}
                         {doc.status === "FAILED" && (
@@ -692,7 +692,7 @@ export default function Dashboard() {
             </div>
 
             {/* Legal Inheritance */}
-            <div className="card border-primary/20" style={{ background: "hsl(172 84% 6%)" }}>
+            <div className="card border-[#1E3A5F]" style={{ background: "#172B4D" }}>
               <div className="card-body space-y-3">
                 <div className="flex items-center gap-2">
                   <LayoutGrid size={14} className="text-primary shrink-0" />

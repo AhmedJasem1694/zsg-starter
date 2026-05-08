@@ -310,11 +310,11 @@ export default function LitigationIntake() {
             <div key={s.n} className={`flex items-center gap-2 flex-1 ${i < 2 ? "after:content-[''] after:flex-1 after:h-px after:bg-border" : ""}`}>
               <div
                 className={`flex items-center gap-1.5 shrink-0 ${
-                  currentStage > s.n ? "text-emerald-600" : currentStage === s.n ? "text-primary font-semibold" : "text-muted-foreground"
+                  currentStage > s.n ? "text-[#86EFAC]" : currentStage === s.n ? "text-primary font-semibold" : "text-muted-foreground"
                 }`}
               >
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border ${
-                  currentStage > s.n ? "bg-emerald-100 border-emerald-300 text-emerald-700" :
+                  currentStage > s.n ? "bg-[#052E16] border-[#14532D] text-[#86EFAC]" :
                   currentStage === s.n ? "bg-primary text-primary-foreground border-primary" :
                   "bg-muted border-border text-muted-foreground"
                 }`}>
@@ -329,9 +329,9 @@ export default function LitigationIntake() {
         {/* ── STAGE 1 ─────────────────────────────────────────────────────── */}
         {currentStage === 1 && (
           <div className="space-y-4">
-            <div className="card border-amber-200 bg-amber-50 p-4 flex gap-3">
-              <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-sm text-amber-800">
+            <div className="card border-[#431407] bg-[#1C0F00] p-4 flex gap-3">
+              <AlertCircle size={16} className="text-[#FCD34D] shrink-0 mt-0.5" />
+              <p className="text-sm text-[#FCD34D]">
                 Answer all 8 questions before proceeding. If any hard stop fires, MIKE will pause and tell you what action is required.
               </p>
             </div>
@@ -362,9 +362,9 @@ export default function LitigationIntake() {
                   </div>
                   {status && (
                     <div className={`flex gap-2 p-3 rounded-lg text-xs ${
-                      status.type === "block" ? "bg-red-50 border border-red-200 text-red-800" :
-                      status.type === "warn" ? "bg-amber-50 border border-amber-200 text-amber-800" :
-                      "bg-blue-50 border border-blue-200 text-blue-800"
+                      status.type === "block" ? "bg-[#1F0A0A] border border-[#450A0A] text-[#FCA5A5]" :
+                      status.type === "warn" ? "bg-[#1C0F00] border border-[#431407] text-[#FCD34D]" :
+                      "bg-[#172B4D] border border-[#1E3A5F] text-[#60A5FA]"
                     }`}>
                       <AlertTriangle size={13} className="shrink-0 mt-0.5" />
                       {status.message}
@@ -375,12 +375,12 @@ export default function LitigationIntake() {
             })}
 
             {hardStopBlocked && (
-              <div className="card border-red-300 bg-red-50 p-5 space-y-2">
-                <div className="flex items-center gap-2 text-red-700 font-semibold text-sm">
+              <div className="card border-[#450A0A] bg-[#1F0A0A] p-5 space-y-2">
+                <div className="flex items-center gap-2 text-[#FCA5A5] font-semibold text-sm">
                   <AlertTriangle size={16} />
                   Hard stop — assessment paused
                 </div>
-                <p className="text-xs text-red-700">{hardStopBlocked}</p>
+                <p className="text-xs text-[#FCA5A5]">{hardStopBlocked}</p>
               </div>
             )}
 
@@ -576,9 +576,9 @@ export default function LitigationIntake() {
         {/* ── STAGE 3 ─────────────────────────────────────────────────────── */}
         {currentStage === 3 && (
           <div className="space-y-4">
-            <div className="card border-violet-200 bg-violet-50 p-4 flex gap-3">
-              <Lock size={16} className="text-violet-600 shrink-0 mt-0.5" />
-              <p className="text-sm text-violet-800">
+            <div className="card border-[#312E81] bg-[#1E1B4B] p-4 flex gap-3">
+              <Lock size={16} className="text-[#A5B4FC] shrink-0 mt-0.5" />
+              <p className="text-sm text-[#A5B4FC]">
                 You will be asked whether each document is legally privileged before uploading. Privileged documents are stored separately and excluded from all external exports.
               </p>
             </div>
@@ -657,17 +657,17 @@ export default function LitigationIntake() {
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs text-muted-foreground">{ad.fileType}</span>
                           {ad.privilegeFlag && (
-                            <span className="text-[10px] bg-violet-100 text-violet-700 border border-violet-200 rounded px-1.5 py-0.5 flex items-center gap-0.5">
+                            <span className="text-[10px] bg-[#1E1B4B] text-[#A5B4FC] border border-[#312E81] rounded px-1.5 py-0.5 flex items-center gap-0.5">
                               <Lock size={9} /> Privileged
                             </span>
                           )}
                           {(ad.fileType === "AUDIO" || ad.fileType === "VIDEO") && !ad.transcription && (
-                            <span className="text-[10px] bg-amber-100 text-amber-700 border border-amber-200 rounded px-1.5 py-0.5">
+                            <span className="text-[10px] bg-[#1C0F00] text-[#FCD34D] border border-[#431407] rounded px-1.5 py-0.5">
                               Transcription pending
                             </span>
                           )}
                           {(ad.fileType === "AUDIO" || ad.fileType === "VIDEO") && ad.transcription && (
-                            <span className="text-[10px] bg-emerald-100 text-emerald-700 border border-emerald-200 rounded px-1.5 py-0.5">Transcribed</span>
+                            <span className="text-[10px] bg-[#052E16] text-[#86EFAC] border border-[#14532D] rounded px-1.5 py-0.5">Transcribed</span>
                           )}
                         </div>
                       </div>
@@ -693,9 +693,9 @@ export default function LitigationIntake() {
 
             {/* Privileged vault summary */}
             {(ancillaryDocs as AncillaryDocumentData[]).some((d) => d.privilegeFlag) && (
-              <div className="card border-violet-200 bg-violet-50 p-4 flex gap-3">
-                <Shield size={16} className="text-violet-600 shrink-0 mt-0.5" />
-                <p className="text-sm text-violet-800">
+              <div className="card border-[#312E81] bg-[#1E1B4B] p-4 flex gap-3">
+                <Shield size={16} className="text-[#A5B4FC] shrink-0 mt-0.5" />
+                <p className="text-sm text-[#A5B4FC]">
                   {(ancillaryDocs as AncillaryDocumentData[]).filter((d) => d.privilegeFlag).length} privileged document(s) stored securely. These will not appear in any export sent outside your legal team.
                 </p>
               </div>

@@ -168,9 +168,9 @@ const JURISDICTION_OPTIONS = [
 
 // ─── Dark palette helpers ─────────────────────────────────────────────────────
 
-const BG   = "hsl(222 47% 6%)";
-const CARD = "hsl(222 47% 10%)";
-const CARD2 = "hsl(222 47% 13%)";
+const BG    = "#0B1020";
+const CARD  = "#0F172A";
+const CARD2 = "#111827";
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -352,7 +352,7 @@ export default function Onboarding() {
 
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-white/8 flex items-center gap-3 px-6 py-4 backdrop-blur-md"
-        style={{ background: "hsl(222 47% 6% / 0.85)" }}>
+        style={{ background: "rgba(11,16,32,0.88)" }}>
         <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
             <span className="text-white text-xs font-bold">M</span>
@@ -377,7 +377,7 @@ export default function Onboarding() {
       </div>
 
       {/* Step labels */}
-      <div className="border-b border-white/8 px-6 py-3" style={{ background: "hsl(222 47% 8%)" }}>
+      <div className="border-b border-white/8 px-6 py-3" style={{ background: "#0F172A" }}>
         <div className="flex items-center gap-0 max-w-2xl">
           {(isFounderFlow ? ["Workflow", "Persona", "About you", "Launch"] : STEPS).map((label, i) => {
             // For founder flow, map display index to actual step: 0→0, 1→1, 2→2, 3→7
@@ -1383,7 +1383,7 @@ function Step6Regulations({ companyForm, detected, onDetected, onBack, onNext, d
                   return (
                     <div key={r.frameworkName}
                       className="rounded-lg border border-white/8 p-3.5 space-y-2"
-                      style={{ background: "hsl(222 47% 9%)" }}>
+                      style={{ background: "#0B1020" }}>
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="text-sm font-semibold text-white/90">{r.frameworkName}</div>
@@ -1538,7 +1538,7 @@ function DarkTextarea({ label, value, onChange }: { label: string; value: string
     <div className="space-y-1.5">
       <label className="text-[10px] font-semibold uppercase tracking-widest text-white/30">{label}</label>
       <textarea
-        className="w-full rounded-xl border border-white/10 px-3.5 py-2.5 text-sm text-white/70 placeholder:text-white/20 focus:outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition-colors min-h-[80px] resize-y"
+        className="w-full rounded-xl border border-white/10 px-3.5 py-2.5 text-sm text-white/70 placeholder:text-white/20 focus:outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition-colors min-h-[80px] resize-y font-mono"
         style={{ background: CARD2 }}
         value={value}
         onChange={(e) => onChange(e.target.value)}

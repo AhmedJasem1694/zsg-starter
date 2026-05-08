@@ -15,10 +15,10 @@ const RAG_BADGE: Record<RagStatus, string> = {
 };
 
 const RAG_DOT: Record<RagStatus, string> = {
-  RED:   "bg-red-500",
-  AMBER: "bg-amber-500",
-  GREEN: "bg-emerald-500",
-  GREY:  "bg-slate-400",
+  RED:   "bg-[#FCA5A5]",
+  AMBER: "bg-[#FCD34D]",
+  GREEN: "bg-[#86EFAC]",
+  GREY:  "bg-[#475569]",
 };
 
 const RAG_LABEL: Record<RagStatus, string> = {
@@ -170,8 +170,8 @@ export default function ReviewDetail() {
                 onClick={() => setFilter(f)}
                 className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                   filter === f
-                    ? "bg-foreground text-background border-foreground"
-                    : "border-border hover:border-foreground/50 text-foreground"
+                    ? "bg-[#2563EB] text-white border-[#2563EB]"
+                    : "border-border hover:border-[#475569] text-foreground"
                 }`}
               >
                 {f === "ALL" ? `All (${count})` : `${RAG_LABEL[f as RagStatus]} (${count})`}
@@ -254,12 +254,12 @@ function ClauseCard({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold">{label}</span>
             {result.isAbsent && (
-              <span className="text-[11px] bg-slate-100 text-slate-600 border border-slate-200 rounded px-1.5 py-0.5">
+              <span className="text-[11px] bg-[#0F172A] text-[#94A3B8] border border-[#334155] rounded px-1.5 py-0.5">
                 Not found in contract
               </span>
             )}
             {result.escalationRequired && (
-              <span className="text-[11px] bg-red-100 text-red-700 border border-red-200 rounded px-1.5 py-0.5 flex items-center gap-1">
+              <span className="text-[11px] bg-[#1F0A0A] text-[#FCA5A5] border border-[#450A0A] rounded px-1.5 py-0.5 flex items-center gap-1">
                 <AlertTriangle size={10} /> Escalate
               </span>
             )}
@@ -296,16 +296,16 @@ function ClauseCard({
 
           {result.suggestedFallback && (
             <Detail title="Suggested fallback language">
-              <blockquote className="text-sm leading-relaxed border-l-2 border-primary/50 pl-4 text-muted-foreground italic">
+              <div className="clause-block text-sm leading-relaxed">
                 {result.suggestedFallback}
-              </blockquote>
+              </div>
             </Detail>
           )}
 
           {result.escalationRequired && result.escalationTrigger && (
             <Detail title="Escalation trigger">
-              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-800 flex gap-2">
-                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+              <div className="bg-[#1F0A0A] border border-[#450A0A] rounded-lg px-4 py-3 text-sm text-[#FCA5A5] flex gap-2">
+                <AlertTriangle size={14} className="shrink-0 mt-0.5 text-[#FCA5A5]" />
                 {result.escalationTrigger}
               </div>
             </Detail>
@@ -378,8 +378,8 @@ function ClauseCard({
                   }}
                   className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
                     feedback?.userAction === action
-                      ? "bg-foreground text-background border-foreground"
-                      : "border-border hover:border-foreground/50"
+                      ? "bg-[#2563EB] text-white border-[#2563EB]"
+                      : "border-border hover:border-[#475569]"
                   }`}
                 >
                   {submitting === action ? "…" : <>{icons[action]} {action.charAt(0) + action.slice(1).toLowerCase()}</>}
@@ -390,8 +390,8 @@ function ClauseCard({
 
           {/* What was agreed capture */}
           {showWhatAgreed && (
-            <div className="rounded-lg border border-emerald-200 bg-emerald-50/40 p-3 space-y-2">
-              <div className="text-xs font-medium text-emerald-800">
+            <div className="rounded-lg border border-[#14532D] bg-[#052E16] p-3 space-y-2">
+              <div className="text-xs font-medium text-[#86EFAC]">
                 Optional: record the final agreed wording
               </div>
               <textarea
@@ -576,11 +576,11 @@ function EscalationSummary({
   const signOffSequence = APPROVER_ORDER.filter((a) => requiredApprovers.has(a));
 
   return (
-    <div className="card overflow-hidden border border-red-200">
+    <div className="card overflow-hidden border border-[#450A0A]">
       {/* Header */}
-      <div className="bg-red-600 px-5 py-3 flex items-center gap-3">
-        <AlertTriangle size={16} className="text-white shrink-0" />
-        <span className="text-sm font-semibold text-white flex-1">
+      <div className="bg-[#1F0A0A] px-5 py-3 flex items-center gap-3 border-b border-[#450A0A]">
+        <AlertTriangle size={16} className="text-[#FCA5A5] shrink-0" />
+        <span className="text-sm font-semibold text-[#FCA5A5] flex-1">
           Escalation required — {tiersActive} tier{tiersActive !== 1 ? "s" : ""} triggered
         </span>
       </div>
@@ -588,18 +588,18 @@ function EscalationSummary({
       <div className="p-4 space-y-3">
         {/* Tier 1 — Clause Risk */}
         {tier1Clauses.length > 0 && (
-          <div className="rounded-lg bg-red-50 border border-red-200 p-4 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-red-700">
+          <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] p-4 space-y-2">
+            <div className="text-xs font-semibold uppercase tracking-wider text-[#FCA5A5]">
               Tier 1 — Clause Risk
             </div>
             <ul className="space-y-1.5">
               {tier1Clauses.map((r) => (
-                <li key={r.id} className="flex gap-2 text-sm text-red-800">
+                <li key={r.id} className="flex gap-2 text-sm text-[#FCA5A5]">
                   <span className="shrink-0 mt-0.5">•</span>
                   <span>
                     <span className="font-semibold">{CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory}</span>
                     {r.escalationTrigger && (
-                      <span className="text-red-700"> — {r.escalationTrigger}</span>
+                      <span className="opacity-80"> — {r.escalationTrigger}</span>
                     )}
                   </span>
                 </li>
@@ -610,11 +610,11 @@ function EscalationSummary({
 
         {/* Tier 2 — Contract Value */}
         {valueTier && (
-          <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+          <div className="rounded-lg bg-[#1C0F00] border border-[#431407] p-4 space-y-2">
+            <div className="text-xs font-semibold uppercase tracking-wider text-[#FCD34D]">
               Tier 2 — Contract Value
             </div>
-            <div className="text-sm text-amber-800">
+            <div className="text-sm text-[#FCD34D]">
               <span className="font-semibold">
                 {doc.currency ?? "£"}{doc.contractValue!.toLocaleString("en-GB")}
               </span>{" "}
@@ -625,13 +625,13 @@ function EscalationSummary({
 
         {/* Tier 3 — Governance */}
         {govTriggers.length > 0 && (
-          <div className="rounded-lg bg-violet-50 border border-violet-200 p-4 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-violet-700">
+          <div className="rounded-lg bg-[#1E1B4B] border border-[#312E81] p-4 space-y-2">
+            <div className="text-xs font-semibold uppercase tracking-wider text-[#A5B4FC]">
               Tier 3 — Governance
             </div>
             <ul className="space-y-1.5">
               {govTriggers.map((t, i) => (
-                <li key={i} className="flex gap-2 text-sm text-violet-800">
+                <li key={i} className="flex gap-2 text-sm text-[#A5B4FC]">
                   <span className="shrink-0 mt-0.5">•</span>
                   <span>{t.label}</span>
                 </li>
@@ -649,7 +649,7 @@ function EscalationSummary({
             <div className="flex flex-wrap items-center gap-1.5">
               {signOffSequence.map((approver, i) => (
                 <span key={approver} className="flex items-center gap-1.5">
-                  <span className="inline-flex items-center bg-foreground text-background text-xs font-semibold px-2.5 py-1 rounded-full">
+                  <span className="inline-flex items-center bg-[#2563EB] text-white text-xs font-semibold px-2.5 py-1 rounded-full">
                     {approver}
                   </span>
                   {i < signOffSequence.length - 1 && (
