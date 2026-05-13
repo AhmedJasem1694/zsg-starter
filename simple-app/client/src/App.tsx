@@ -18,6 +18,8 @@ import Portfolio from "./pages/Portfolio";
 import ContractTimings from "./pages/ContractTimings";
 import LitigationIntake from "./pages/LitigationIntake";
 import BulkReview from "./pages/BulkReview";
+import Patterns from "./pages/Patterns";
+import AuditTrail from "./pages/AuditTrail";
 import FounderDashboard from "./pages/founder/FounderDashboard";
 import FounderReview from "./pages/founder/FounderReview";
 import type { Persona } from "./lib/types";
@@ -159,6 +161,14 @@ function AppRoutes() {
       <Route
         path="/app/legal/bulk-review"
         element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><BulkReview /></RequireAuth>}
+      />
+      <Route
+        path="/app/legal/patterns"
+        element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><Patterns /></RequireAuth>}
+      />
+      <Route
+        path="/app/legal/audit"
+        element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><AuditTrail /></RequireAuth>}
       />
       <Route
         path="/app/legal/litigation-intake/:id"

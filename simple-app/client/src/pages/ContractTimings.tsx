@@ -22,9 +22,9 @@ export default function ContractTimings() {
     <AppLayout>
       <div className="px-6 py-8 max-w-7xl mx-auto space-y-7">
         <div>
-          <h1 className="text-2xl font-semibold">Contract Timings</h1>
+          <h1 className="text-2xl font-semibold">Renewals & Notice Dates</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Renewal, termination, and timing risks flagged across your reviewed contracts
+            Renewal dates, notice periods, and termination windows across your reviewed contracts
           </p>
         </div>
 

@@ -47,7 +47,7 @@ const VERDICT_CONFIG: Record<Verdict, {
   safe:    { label: "Looks good",           sublabel: "No major issues found",       color: "text-[#86EFAC]",        bg: "bg-[#052E16]",  border: "border-[#14532D]",  icon: CheckCircle   },
   caution: { label: "Worth a closer look",  sublabel: "A few things to negotiate",   color: "text-[#FCD34D]",        bg: "bg-[#1C0F00]",  border: "border-[#431407]",  icon: AlertTriangle },
   danger:  { label: "Don't sign yet",       sublabel: "Fix these issues first",      color: "text-[#FCA5A5]",        bg: "bg-[#1F0A0A]",  border: "border-[#450A0A]",  icon: AlertTriangle },
-  pending: { label: "Reviewing…",           sublabel: "MIKE is reading your contract", color: "text-muted-foreground", bg: "bg-muted", border: "border-border",      icon: Clock         },
+  pending: { label: "Reviewing…",           sublabel: "Zane is reading your contract", color: "text-muted-foreground", bg: "bg-muted", border: "border-border",      icon: Clock         },
 };
 
 const CONTRACT_TYPES = [
@@ -140,9 +140,9 @@ export default function FounderDashboard() {
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold">Hi, {firstName} 👋</h1>
+            <h1 className="text-2xl font-semibold">Hi, {firstName}</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Drop a contract below — MIKE tells you if it's safe to sign.
+              Drop a contract below. Zane will tell you if it is safe to sign.
             </p>
           </div>
           {processing && (
@@ -169,7 +169,7 @@ export default function FounderDashboard() {
             {redCount === 0 && complete.length > 0 && (
               <div className="px-4 py-2 rounded-lg border bg-[#052E16] border-[#14532D] text-sm text-[#86EFAC]">
                 <span className="font-semibold">All clear</span>
-                <span className="ml-1">— no red flags</span>
+                <span className="ml-1">No red flags</span>
               </div>
             )}
           </div>
@@ -227,7 +227,7 @@ export default function FounderDashboard() {
                     <div className="space-y-3">
                       <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto" />
                       <div className="text-sm font-medium">Reading your contract…</div>
-                      <div className="text-xs text-muted-foreground">MIKE is checking every clause for you</div>
+                      <div className="text-xs text-muted-foreground">Zane is checking every clause for you</div>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -243,6 +243,58 @@ export default function FounderDashboard() {
                 </div>
               </div>
             </div>
+
+            {/* Processing stage cards — one per PROCESSING document */}
+            {(documents as UploadedDocument[])
+              .filter((d) => d.status === "PROCESSING")
+              .map((d) => {
+                const elapsedSec = (Date.now() - new Date(d.uploadedAt).getTime()) / 1000;
+                const STAGES = [
+                  { label: "Reading your contract",           maxSec: 15  },
+                  { label: "Removing personal details",        maxSec: 35  },
+                  { label: "Identifying key clauses",          maxSec: 70  },
+                  { label: "Comparing against your playbook",  maxSec: 130 },
+                  { label: "Checking investment terms",        maxSec: 200 },
+                  { label: "Preparing your risk report",       maxSec: Infinity },
+                ];
+                const activeIdx = STAGES.findIndex((s) => elapsedSec < s.maxSec);
+                const stageIdx  = activeIdx === -1 ? STAGES.length - 1 : activeIdx;
+                return (
+                  <div key={d.id} className="card p-5 space-y-4 border-[#1C2A3A]" style={{ background: "#0D1B2A" }}>
+                    <div className="flex items-center gap-2.5">
+                      <Sparkles size={15} className="text-[#60A5FA]" />
+                      <div>
+                        <div className="text-sm font-semibold text-[#93C5FD]">Reviewing: {d.originalName}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">Usually takes 1–3 minutes</div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      {STAGES.map((stage, i) => {
+                        const done    = i < stageIdx;
+                        const active  = i === stageIdx;
+                        const pending = i > stageIdx;
+                        return (
+                          <div key={stage.label} className="flex items-center gap-2.5">
+                            <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0
+                              ${done    ? "bg-[#14532D] border-[#166534]" : ""}
+                              ${active  ? "bg-[#1C0F00] border-[#92400E] animate-pulse" : ""}
+                              ${pending ? "bg-transparent border-[#1E293B]" : ""}`}>
+                              {done   && <CheckCircle size={9} className="text-[#86EFAC]" />}
+                              {active && <span className="w-1 h-1 rounded-full bg-[#FCD34D]" />}
+                            </div>
+                            <span className={`text-xs leading-none
+                              ${done    ? "text-muted-foreground line-through" : ""}
+                              ${active  ? "text-[#FCD34D] font-medium" : ""}
+                              ${pending ? "text-muted-foreground/35" : ""}`}>
+                              {stage.label}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
 
             {/* Contract list */}
             <div className="card">
@@ -329,24 +381,24 @@ export default function FounderDashboard() {
           {/* Right — guide */}
           <div className="space-y-5">
 
-            {/* What MIKE does */}
+            {/* What Zane does */}
             <div className="card bg-accent border-accent-border">
               <div className="card-body space-y-4">
                 <div className="flex items-center gap-2">
                   <Sparkles size={14} className="text-primary" />
-                  <span className="text-sm font-semibold text-accent-foreground">What MIKE checks</span>
+                  <span className="text-sm font-semibold text-accent-foreground">What Zane checks</span>
                 </div>
                 <div className="space-y-3 text-xs text-foreground/80">
                   {[
-                    { emoji: "💸", text: "Who pays if something goes wrong" },
-                    { emoji: "🔒", text: "Who owns what you build or share" },
-                    { emoji: "🚪", text: "How hard is it to get out" },
-                    { emoji: "🔄", text: "Automatic renewals you might miss" },
-                    { emoji: "🌍", text: "Which country's law applies" },
-                    { emoji: "🛡️", text: "Data protection obligations" },
-                  ].map(({ emoji, text }) => (
+                    { text: "Who pays if something goes wrong" },
+                    { text: "Who owns what you build or share" },
+                    { text: "How hard is it to get out" },
+                    { text: "Automatic renewals you might miss" },
+                    { text: "Which country's law applies" },
+                    { text: "Data protection obligations" },
+                  ].map(({ text }) => (
                     <div key={text} className="flex items-start gap-2.5">
-                      <span className="text-sm shrink-0">{emoji}</span>
+                      <div className="w-1 h-1 rounded-full bg-primary/60 shrink-0 mt-1.5" />
                       <span className="leading-relaxed">{text}</span>
                     </div>
                   ))}
@@ -382,7 +434,7 @@ export default function FounderDashboard() {
             {/* Missing docs */}
             <MissingDocsPanel />
 
-            {/* MIKE noticed */}
+            {/* Zane noticed */}
             <MikeNoticedPanel />
 
           </div>

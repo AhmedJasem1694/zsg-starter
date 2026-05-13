@@ -104,8 +104,8 @@ const INVESTMENT_CONTRACT_TYPES = ["TERM_SHEET","SUBSCRIPTION_AGREEMENT","SHA","
 
 const LITIGATION_CLAIM_TYPES: { value: string; label: string; sub: string; group: string }[] = [
   // Motor
-  { value: "MOTOR_PI",          label: "Motor — Personal Injury",      sub: "RTA injuries, whiplash, serious injury",                      group: "Motor" },
-  { value: "MOTOR_PROPERTY",    label: "Motor — Property Damage",      sub: "Vehicle damage, third party property",                        group: "Motor" },
+  { value: "MOTOR_PI",          label: "Motor: Personal Injury",      sub: "RTA injuries, whiplash, serious injury",                      group: "Motor" },
+  { value: "MOTOR_PROPERTY",    label: "Motor: Property Damage",      sub: "Vehicle damage, third party property",                        group: "Motor" },
   // Liability
   { value: "EMPLOYERS_LI",      label: "Employers Liability",          sub: "Workplace accidents, occupational disease",                   group: "Liability" },
   { value: "PUBLIC_LI",         label: "Public Liability",             sub: "Slips, trips, third party injury or damage",                  group: "Liability" },
@@ -358,7 +358,7 @@ export default function Onboarding() {
             <span className="text-white text-xs font-bold">M</span>
           </div>
           <div>
-            <span className="text-sm font-semibold text-white">MIKE</span>
+            <span className="text-sm font-semibold text-white">Zane</span>
             <span className="text-[10px] text-white/30 ml-2 tracking-widest uppercase hidden sm:block">Legal Decision Engine</span>
           </div>
         </Link>
@@ -454,7 +454,7 @@ const WORKFLOW_OPTIONS: { value: WorkflowType; label: string; description: strin
   {
     value: "INSURANCE_LITIGATION",
     label: "Litigation",
-    description: "Triage and manage claims across insurance, commercial civil, property, employment, and professional indemnity — from coverage analysis through to settlement authority and FCA compliance.",
+    description: "Triage and manage claims across insurance, commercial civil, property, employment, and professional indemnity. Coverage analysis through to settlement authority and FCA compliance.",
   },
 ];
 
@@ -466,7 +466,7 @@ function Step0Workflow({ onNext }: { onNext: (w: WorkflowType) => void }) {
       <div>
         <h2 className="text-2xl font-bold text-white tracking-tight">Select your workflow</h2>
         <p className="text-white/45 text-sm mt-2 leading-relaxed">
-          MIKE adapts its clause library and output framing to your workflow type. You can change this later.
+          Zane adapts its clause library and output framing to your workflow type. You can change this later.
         </p>
       </div>
 
@@ -582,10 +582,10 @@ function Step1Persona({ workflowType, onNext, onBack }: { workflowType: Workflow
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-bold text-white tracking-tight">
-          {isLitigation ? "How does your team operate?" : "How will you use MIKE?"}
+          {isLitigation ? "How does your team operate?" : "How will you use Zane?"}
         </h2>
         <p className="text-white/45 text-sm mt-2 leading-relaxed">
-          MIKE adapts its clause library, playbook defaults and output framing to your context.
+          Zane adapts its clause library, playbook defaults and output framing to your context.
           You can change this later.
         </p>
       </div>
@@ -615,7 +615,6 @@ function Step1Persona({ workflowType, onNext, onBack }: { workflowType: Workflow
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xl">{p.icon}</span>
                     <span className="text-sm font-semibold text-white">{p.label}</span>
                     {p.badge && (
                       <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border border-primary/30 text-primary/80 bg-primary/10">
@@ -661,7 +660,7 @@ function Step1Persona({ workflowType, onNext, onBack }: { workflowType: Workflow
 // ─── Step 2: Company ──────────────────────────────────────────────────────────
 
 const LITIGATION_PRACTICE_TYPES: { value: string; label: string; sub: string }[] = [
-  { value: "Insurance Litigation — All classes", label: "Insurance — All Classes",    sub: "Motor, EL/PL, PI, Property, Cyber, D&O, Marine" },
+  { value: "Insurance Litigation: All classes", label: "Insurance: All Classes",    sub: "Motor, EL/PL, PI, Property, Cyber, D&O, Marine" },
   { value: "Personal Injury Litigation",          label: "Personal Injury",            sub: "RTA, Employers Liability, Public Liability, Clinical Negligence" },
   { value: "Commercial Civil Litigation",         label: "Commercial Civil",           sub: "Contract disputes, debt recovery, fraud, injunctions" },
   { value: "Property Litigation",                 label: "Property Litigation",        sub: "Landlord & tenant, boundary disputes, adverse possession" },
@@ -713,8 +712,8 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
 
   // Persona-adapted heading
   const headings: Record<Persona, { title: string; sub: string }> = {
-    CORPORATE: { title: "Tell MIKE about your company", sub: "This shapes your playbook defaults and regulatory detection." },
-    FOUNDER:   { title: "Tell MIKE about your startup", sub: "This configures your investment clause defaults and operational playbook." },
+    CORPORATE: { title: "Tell Zane about your company", sub: "This shapes your playbook defaults and regulatory detection." },
+    FOUNDER:   { title: "Tell Zane about your startup", sub: "This configures your investment clause defaults and operational playbook." },
   };
   const { title, sub } = headings[persona];
 
@@ -723,9 +722,9 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
     return (
       <div className="space-y-8">
         <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Tell MIKE about your practice</h2>
+          <h2 className="text-2xl font-bold text-white tracking-tight">Tell Zane about your practice</h2>
           <p className="text-white/45 text-sm mt-2 leading-relaxed">
-            This calibrates MIKE's coverage analysis, FCA obligations, and settlement authority thresholds.{" "}
+            This calibrates Zane's coverage analysis, FCA obligations, and settlement authority thresholds.{" "}
             Required fields marked <span className="text-red-400">*</span>
           </p>
         </div>
@@ -795,26 +794,17 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
             {selectedJurisdictions.length === 0 && <p className="text-xs text-red-400 mt-1">Select at least one jurisdiction</p>}
           </DarkField>
 
-          {/* Risk appetite — litigation-labelled */}
-          <DarkField label="Settlement posture" required hint="Sets default clause positions - adjust each one in the playbook step.">
-            <div className="grid grid-cols-3 gap-2 mt-1">
-              {([
+          {/* Settlement posture slider */}
+          <DarkField label="Settlement posture" required hint="Sets default clause positions — adjust each one in the playbook step.">
+            <RiskAppetiteSlider
+              value={form.riskAppetite}
+              onChange={(v) => onChange({ ...form, riskAppetite: v })}
+              labels={[
                 { value: "CONSERVATIVE", label: "Conservative", sub: "Defend aggressively — every case on merits" },
                 { value: "MODERATE",     label: "Moderate",     sub: "Balanced — merits-driven with pragmatic settlement" },
                 { value: "COMMERCIAL",   label: "Commercial",   sub: "Settlement-focused — resolve cost-effectively" },
-              ] as const).map((opt) => {
-                const sel = form.riskAppetite === opt.value;
-                return (
-                  <button key={opt.value} type="button" onClick={() => onChange({ ...form, riskAppetite: opt.value })}
-                    className={`flex flex-col gap-0.5 px-3 py-3 rounded-xl border text-left transition-all ${
-                      sel ? "border-primary bg-primary/15 text-white" : "border-white/10 text-white/45 hover:border-white/25"
-                    }`} style={{ background: sel ? undefined : CARD }}>
-                    <span className="text-xs font-semibold">{opt.label}</span>
-                    <span className="text-[10px] text-white/35 leading-tight">{opt.sub}</span>
-                  </button>
-                );
-              })}
-            </div>
+              ]}
+            />
           </DarkField>
         </div>
 
@@ -851,7 +841,7 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
         </DarkField>
 
         {/* Industry multi-select */}
-        <DarkField label="Industry" required hint="Select all that apply - MIKE filters contract types and injects sector-specific clauses.">
+        <DarkField label="Industry" required hint="Select all that apply - Zane filters contract types and injects sector-specific clauses.">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
             {allIndustries.map(([value, label]) => {
               const sel = selectedIndustries.includes(value);
@@ -914,26 +904,17 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
           </DarkField>
         )}
 
-        {/* Risk appetite */}
-        <DarkField label="Risk appetite" required hint="Sets default clause positions - adjust each one in the playbook step.">
-          <div className="grid grid-cols-3 gap-2 mt-1">
-            {([
+        {/* Risk appetite slider */}
+        <DarkField label="Risk appetite" required hint="Sets default clause positions — adjust each one in the playbook step.">
+          <RiskAppetiteSlider
+            value={form.riskAppetite}
+            onChange={(v) => onChange({ ...form, riskAppetite: v })}
+            labels={[
               { value: "CONSERVATIVE", label: "Conservative", sub: "Maximum protection" },
               { value: "MODERATE",     label: "Moderate",     sub: "Balanced (recommended)" },
               { value: "COMMERCIAL",   label: "Commercial",   sub: persona === "FOUNDER" ? "Founder-friendly" : "Deal-oriented" },
-            ] as const).map((opt) => {
-              const sel = form.riskAppetite === opt.value;
-              return (
-                <button key={opt.value} type="button" onClick={() => onChange({ ...form, riskAppetite: opt.value })}
-                  className={`flex flex-col gap-0.5 px-3 py-3 rounded-xl border text-left transition-all ${
-                    sel ? "border-primary bg-primary/15 text-white" : "border-white/10 text-white/45 hover:border-white/25"
-                  }`} style={{ background: sel ? undefined : CARD }}>
-                  <span className="text-xs font-semibold">{opt.label}</span>
-                  <span className="text-[10px] text-white/35 leading-tight">{opt.sub}</span>
-                </button>
-              );
-            })}
-          </div>
+            ]}
+          />
         </DarkField>
       </div>
 
@@ -976,7 +957,7 @@ function Step3ContractType({ values, industries, persona, workflowType, onChange
         <div>
           <h2 className="text-2xl font-bold text-white tracking-tight">Claim types handled</h2>
           <p className="text-white/45 text-sm mt-2">
-            Select all the claim types your team regularly handles. MIKE calibrates its coverage analysis and assessment categories accordingly.
+            Select all the claim types your team regularly handles. Zane calibrates its coverage analysis and assessment categories accordingly.
           </p>
         </div>
 
@@ -1037,7 +1018,7 @@ function Step3ContractType({ values, industries, persona, workflowType, onChange
     <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-bold text-white tracking-tight">Contract types</h2>
-        <p className="text-white/45 text-sm mt-2">Select all the types you regularly deal with. MIKE will inject the right clauses for each.</p>
+        <p className="text-white/45 text-sm mt-2">Select all the types you regularly deal with. Zane will inject the right clauses for each.</p>
       </div>
 
       {/* Persona + industry tags */}
@@ -1194,7 +1175,7 @@ function Step5Approvers({ contacts, persona, onChange, onBack, onNext }: {
           {"Approval matrix"}
         </h2>
         <p className="text-white/45 text-sm mt-2">
-          When MIKE triggers an escalation, it names the right person. Leave blank if not applicable.
+          When Zane triggers an escalation, it names the right person. Leave blank if not applicable.
         </p>
       </div>
       <div className="space-y-3">
@@ -1317,7 +1298,7 @@ function Step6Regulations({ companyForm, detected, onDetected, onBack, onNext, d
       <div>
         <h2 className="text-2xl font-bold text-white tracking-tight">Regulatory environment</h2>
         <p className="text-white/45 text-sm mt-2 leading-relaxed">
-          MIKE auto-detects the laws and regulations your contracts need to comply with, based on your industry and where you operate. These are injected into every review.
+          Zane auto-detects the laws and regulations your contracts need to comply with, based on your industry and where you operate. These are injected into every review.
         </p>
       </div>
 
@@ -1353,7 +1334,7 @@ function Step6Regulations({ companyForm, detected, onDetected, onBack, onNext, d
           <div className="flex items-center gap-2">
             <CheckCircle size={15} className="text-emerald-400 shrink-0" />
             <span className="text-sm font-semibold text-emerald-400">{regs.length} regulatory framework{regs.length !== 1 ? "s" : ""} detected</span>
-            <span className="text-xs text-white/30">— MIKE will flag contract clauses that conflict with these</span>
+            <span className="text-xs text-white/30">— Zane will flag contract clauses that conflict with these</span>
           </div>
 
           {Object.entries(byJurisdiction).map(([jurisdiction, items]) => (
@@ -1413,7 +1394,7 @@ function Step6Regulations({ companyForm, detected, onDetected, onBack, onNext, d
       )}
 
       {detected && regs.length === 0 && (
-        <p className="text-sm text-white/40">No specific frameworks detected. MIKE will apply general contract standards.</p>
+        <p className="text-sm text-white/40">No specific frameworks detected. Zane will apply general contract standards.</p>
       )}
 
       <div className="flex justify-between pt-2">
@@ -1439,14 +1420,14 @@ function Step7Done({ persona, saving, error, onBack, onFinish }: {
   const bullets: Record<Persona, string[]> = {
     CORPORATE: [
       "Upload counterparty paper (PDF or DOCX)",
-      "MIKE extracts and classifies key clauses automatically",
+      "Zane extracts and classifies key clauses automatically",
       "Each clause is compared against your playbook + live regulations",
       "You get a Red / Amber / Green risk report with fallback language",
-      "MIKE tells you exactly what to push back on and who needs to approve",
+      "Zane tells you exactly what to push back on and who needs to approve",
     ],
     FOUNDER: [
       "Upload term sheets, shareholder agreements or commercial contracts",
-      "MIKE flags investment clause traps: participating preferred, full ratchet, drag-along",
+      "Zane flags investment clause traps: participating preferred, full ratchet, drag-along",
       "Operational contracts reviewed against your standard positions",
       "Plain-English explanation of what each clause means for you as founder",
       "Know what to push back on before you sign",
@@ -1456,8 +1437,8 @@ function Step7Done({ persona, saving, error, onBack, onFinish }: {
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">MIKE is ready</h2>
-        <p className="text-white/45 text-sm mt-2">Your playbook is set. Upload your first contract and MIKE will review it within minutes.</p>
+        <h2 className="text-2xl font-bold text-white tracking-tight">Zane is ready</h2>
+        <p className="text-white/45 text-sm mt-2">Your playbook is set. Upload your first contract and Zane will review it within minutes.</p>
       </div>
 
       <div className="rounded-xl border border-white/10 p-6 space-y-4" style={{ background: CARD }}>
@@ -1484,8 +1465,66 @@ function Step7Done({ persona, saving, error, onBack, onFinish }: {
           className="inline-flex items-center gap-2 px-8 py-3 bg-primary text-white text-sm font-bold rounded-xl hover:opacity-90 transition-opacity shadow-xl shadow-primary/30 disabled:opacity-50">
           {saving ? (
             <><span className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" /> Setting up…</>
-          ) : "Launch MIKE →"}
+          ) : "Launch Zane →"}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Risk appetite slider ─────────────────────────────────────────────────────
+
+const RISK_VALUES = ["CONSERVATIVE", "MODERATE", "COMMERCIAL"] as const;
+
+function RiskAppetiteSlider({
+  value,
+  onChange,
+  labels,
+}: {
+  value: RiskAppetite;
+  onChange: (v: RiskAppetite) => void;
+  labels: { value: RiskAppetite; label: string; sub: string }[];
+}) {
+  const idx = RISK_VALUES.indexOf(value);
+  const current = labels[idx] ?? labels[1];
+
+  return (
+    <div className="space-y-3 mt-1">
+      {/* Slider track */}
+      <div className="px-1">
+        <input
+          type="range"
+          min={0}
+          max={2}
+          step={1}
+          value={idx}
+          onChange={(e) => onChange(RISK_VALUES[parseInt(e.target.value)] as RiskAppetite)}
+          className="w-full accent-primary cursor-pointer"
+          style={{ accentColor: "hsl(var(--primary))" }}
+        />
+        {/* Tick labels */}
+        <div className="flex justify-between mt-1">
+          {labels.map((l) => (
+            <button
+              key={l.value}
+              type="button"
+              onClick={() => onChange(l.value)}
+              className={`text-[10px] font-medium transition-colors ${
+                value === l.value ? "text-primary" : "text-white/30 hover:text-white/55"
+              }`}
+            >
+              {l.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {/* Selected description */}
+      <div className="rounded-xl border border-primary/30 bg-primary/8 px-4 py-3 flex items-start gap-2.5">
+        <div className="w-2 h-2 rounded-full bg-primary mt-1 shrink-0" />
+        <div>
+          <div className="text-xs font-semibold text-white">{current.label}</div>
+          <div className="text-[11px] text-white/50 mt-0.5">{current.sub}</div>
+        </div>
       </div>
     </div>
   );

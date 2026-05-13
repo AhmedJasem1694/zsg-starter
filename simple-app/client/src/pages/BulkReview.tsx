@@ -91,7 +91,7 @@ export default function BulkReview() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `mike-bulk-review-${new Date().toISOString().split("T")[0]}.csv`;
+    a.download = `zane-bulk-review-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -104,9 +104,9 @@ export default function BulkReview() {
         {/* Header */}
         <div className="flex items-start justify-between gap-4 max-w-5xl">
           <div>
-            <h1 className="text-2xl font-semibold">Bulk review</h1>
+            <h1 className="text-2xl font-semibold">Bulk Review</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Upload multiple contracts at once. MIKE reviews them all and shows a risk matrix across your portfolio.
+              Compare multiple contracts against the same playbook and identify recurring risk across your portfolio.
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -159,7 +159,7 @@ export default function BulkReview() {
           <div className="max-w-5xl card p-4 flex items-center gap-3 border-[#431407] bg-[#1C0F00]">
             <div className="w-4 h-4 rounded-full border-2 border-[#FCD34D] border-t-transparent animate-spin shrink-0" />
             <span className="text-sm text-[#FCD34D]">
-              {processingDocs.length} contract{processingDocs.length !== 1 ? "s" : ""} being reviewed — results will appear automatically.
+              {processingDocs.length} contract{processingDocs.length !== 1 ? "s" : ""} being reviewed. Results will appear automatically.
             </span>
           </div>
         )}
@@ -173,7 +173,7 @@ export default function BulkReview() {
             <Upload size={36} className="text-muted-foreground/30 mx-auto mb-4" />
             <div className="text-base font-semibold">Upload contracts to begin</div>
             <div className="text-sm text-muted-foreground mt-1">
-              Select multiple PDF or DOCX files — MIKE reviews them all in parallel
+              Select multiple PDF or DOCX files. Zane reviews them all in parallel.
             </div>
           </div>
         )}
@@ -263,9 +263,9 @@ export default function BulkReview() {
           <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground max-w-5xl">
             <span className="font-medium">Key:</span>
             {[
-              { short: "R", label: "Red — review required", cls: "bg-[#1F0A0A] text-[#FCA5A5] border border-[#450A0A]" },
-              { short: "A", label: "Amber — caution",       cls: "bg-[#1C0F00] text-[#FCD34D] border border-[#431407]" },
-              { short: "G", label: "Green — acceptable",    cls: "bg-[#052E16] text-[#86EFAC] border border-[#14532D]" },
+              { short: "R", label: "Red: review required", cls: "bg-[#1F0A0A] text-[#FCA5A5] border border-[#450A0A]" },
+              { short: "A", label: "Amber: caution",       cls: "bg-[#1C0F00] text-[#FCD34D] border border-[#431407]" },
+              { short: "G", label: "Green: acceptable",    cls: "bg-[#052E16] text-[#86EFAC] border border-[#14532D]" },
               { short: "—", label: "Not found",             cls: "bg-[#0F172A] text-[#94A3B8] border border-[#334155]" },
             ].map(({ short, label, cls }) => (
               <span key={short} className="flex items-center gap-1.5">

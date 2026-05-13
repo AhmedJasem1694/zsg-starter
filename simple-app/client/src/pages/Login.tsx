@@ -34,7 +34,7 @@ export default function Login() {
             <span className="text-white text-sm font-bold">M</span>
           </div>
           <div>
-            <div className="font-semibold text-lg">Sign in to MIKE</div>
+            <div className="font-semibold text-lg">Sign in to Zane</div>
             <div className="text-sm text-muted-foreground">Your legal decision engine</div>
           </div>
         </div>

@@ -12,9 +12,21 @@ interface PlaybookRule {
 }
 
 export type RagStatus = "RED" | "AMBER" | "GREEN" | "GREY";
+export type ConfidenceLabel = "HIGH" | "MEDIUM" | "LOW";
+
+export interface RegulatoryCitation {
+  /** Specific article, section or rule number */
+  article: string;
+  /** Name of the regulation or framework */
+  regulation: string;
+  /** One-sentence relevance note */
+  relevance: string;
+}
 
 export interface ComparisonResult {
   ragStatus: RagStatus;
+  /** Explicit comparison: "Your playbook says X, this clause says Y, these carve-outs are missing." */
+  comparisonStatement: string;
   clauseSummary: string;
   whyItMatters: string;
   recommendedAction: string;
@@ -22,7 +34,10 @@ export interface ComparisonResult {
   escalationRequired: boolean;
   escalationTrigger: string;
   businessSummary: string;
-  confidence: number;
+  /** Qualitative confidence — LOW triggers mandatory lawyer review flag in the UI */
+  confidenceLabel: ConfidenceLabel;
+  /** Specific regulatory references (article numbers, regulation names) cited in this analysis */
+  regulatoryCitations: RegulatoryCitation[];
 }
 
 type Persona = "CORPORATE" | "FOUNDER";
@@ -96,20 +111,31 @@ ${clauseText}
 Return ONLY valid JSON with this exact structure:
 {
   "ragStatus": "RED" | "AMBER" | "GREEN",
+  "comparisonStatement": "EXACT format: 'Your playbook requires [X]. This clause provides [Y]. The following protections are missing: [Z].' Be specific — name the actual words, caps, carve-outs, or conditions that differ.",
   "clauseSummary": "1-2 sentence plain English summary of what the clause actually says",
-  "whyItMatters": "Why this matters for ${companyName} specifically - tied to the playbook and any applicable regulations",
+  "whyItMatters": "Why this matters for ${companyName} specifically — tied to the playbook and any applicable regulations",
   "recommendedAction": "Specific action: accept / push back / push back strongly / escalate",
   "suggestedFallback": "Specific redraft or negotiation talking point",
   "escalationRequired": true | false,
-  "escalationTrigger": "Condition under which escalation is mandatory (or empty string)",
+  "escalationTrigger": "Condition under which escalation is mandatory (or empty string if none)",
   "businessSummary": "One paragraph in plain English for a non-lawyer stakeholder",
-  "confidence": 0.0-1.0
+  "confidenceLabel": "HIGH" | "MEDIUM" | "LOW",
+  "regulatoryCitations": [
+    { "article": "Article 28", "regulation": "UK GDPR", "relevance": "One sentence on why this article applies" }
+  ]
 }
 
 RAG rules:
 - GREEN: clause meets preferred position or acceptable fallback
 - AMBER: clause is below preferred but above red line; negotiation needed
-- RED: clause breaches red line or is missing a required protection`;
+- RED: clause breaches red line or is missing a required protection
+
+Confidence rules:
+- HIGH: clause text is clear and your comparison is definitive
+- MEDIUM: clause is ambiguous or partially overlapping — some interpretation required
+- LOW: clause is unclear, heavily cross-referenced, or you cannot confirm the position from the text alone; flag for mandatory lawyer review
+
+Regulatory citations: include only citations where you can name the specific article or rule number. If none apply, return an empty array.`;
 
   const text = await chatComplete(
     [
@@ -137,6 +163,7 @@ export function buildAbsentClauseResult(
   };
   return {
     ragStatus: "GREY",
+    comparisonStatement: `Your playbook requires a ${label} clause. This contract contains no ${label} clause. All protections under this heading are absent.`,
     clauseSummary: `No ${label} clause found in the counterparty paper.`,
     whyItMatters: `The absence of this clause leaves your position unprotected. Counterparty paper that is silent on ${label} typically defaults to the counterparty's favour.`,
     recommendedAction: `Request insertion of a ${label} clause reflecting your preferred position.`,
@@ -144,6 +171,7 @@ export function buildAbsentClauseResult(
     escalationRequired: false,
     escalationTrigger: "",
     businessSummary: businessSummaries[persona],
-    confidence: 1,
+    confidenceLabel: "HIGH" as ConfidenceLabel,
+    regulatoryCitations: [],
   };
 }

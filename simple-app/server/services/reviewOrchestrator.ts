@@ -9,6 +9,9 @@ import {
 import { getRegulationSummaryForLLM } from "./regulatoryDetection.js";
 import { getRegulatoryContext, formatRegulatoryContextForPrompt } from "./regulatoryEngine.js";
 import { sendEscalationEmail } from "./emailService.js";
+import { anonymise, deanonymise, buildKnownEntities } from "./piiAnonymiser.js";
+import { audit } from "./auditLogger.js";
+import { persistOutcomePatterns } from "./outcomeCapture.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PBRecord = Record<string, any>;
@@ -27,10 +30,58 @@ export async function runReview(documentId: string): Promise<void> {
 
   await pb.collection("uploaded_documents").update(documentId, { status: "PROCESSING" });
 
+  // Audit: review started
+  await audit({
+    action: "review_started",
+    entityType: "uploaded_document",
+    entityId: documentId,
+    companyId: company.id,
+    detail: { contractType: doc["contractType"], originalName: doc["originalName"] },
+  });
+
   try {
     const filePath = path.join(process.cwd(), "uploads", doc["filename"] as string);
     const rawText = await parseDocument(filePath);
-    const chunks = chunkText(rawText);
+
+    // ── PII Anonymisation ────────────────────────────────────────────────────
+    // Anonymise the raw contract text BEFORE it is sent to any external LLM.
+    // We replace known party names first, then apply structural PII patterns.
+    await audit({
+      action: "pii_anonymisation_started",
+      entityType: "uploaded_document",
+      entityId: documentId,
+      companyId: company.id,
+    });
+
+    const knownEntities = buildKnownEntities(
+      company["name"] as string,
+      doc["counterpartyName"] as string | undefined,
+    );
+
+    const { anonymisedText, entityMap, sessionId } = await anonymise(
+      rawText,
+      knownEntities,
+      documentId
+    );
+
+    await audit({
+      action: "pii_anonymisation_completed",
+      entityType: "uploaded_document",
+      entityId: documentId,
+      companyId: company.id,
+      detail: {
+        sessionId,
+        entitiesDetected: entityMap.length,
+        entityTypes: Array.from(new Set(entityMap.map((e) => e.type))),
+      },
+    });
+
+    console.log(
+      `[PII] Session ${sessionId}: ${entityMap.length} entities anonymised before LLM call.`
+    );
+    // ────────────────────────────────────────────────────────────────────────
+
+    const chunks = chunkText(anonymisedText);
 
     // Derive active categories from the company's playbook rules
     const playbookCategories = Array.from(new Set(playbookRules.map((r) => r["clauseCategory"] as string)));
@@ -51,6 +102,7 @@ export async function runReview(documentId: string): Promise<void> {
     const results: Array<{
       clauseCategory: string;
       ragStatus: string;
+      comparisonStatement: string;
       clauseSummary: string;
       whyItMatters: string;
       recommendedAction: string;
@@ -58,7 +110,8 @@ export async function runReview(documentId: string): Promise<void> {
       escalationRequired: boolean;
       escalationTrigger: string | null;
       businessSummary: string;
-      confidence: number;
+      confidenceLabel: string;
+      regulatoryCitations: string; // JSON
       isAbsent: boolean;
       clauseId: string | null;
       ruleId: string | null;
@@ -79,6 +132,7 @@ export async function runReview(documentId: string): Promise<void> {
         results.push({
           clauseCategory: category,
           ...absent,
+          regulatoryCitations: JSON.stringify(absent.regulatoryCitations),
           escalationTrigger: absent.escalationTrigger || null,
           isAbsent: true,
           clauseId: null,
@@ -87,11 +141,11 @@ export async function runReview(documentId: string): Promise<void> {
         continue;
       }
 
-      // Store extracted clause
+      // Store extracted clause — de-anonymise rawText for user-facing display
       const extractedClause = await pb.collection("extracted_clauses").create({
         document: documentId,
         clauseCategory: category,
-        rawText: match.rawText,
+        rawText: deanonymise(match.rawText, entityMap),
         confidence: match.confidence,
       });
 
@@ -105,6 +159,8 @@ export async function runReview(documentId: string): Promise<void> {
       const combinedRegContext = regulatoryContext + clauseRegContext;
 
       // Compare against playbook with regulatory context
+      // Note: match.rawText is already anonymised — company/counterparty names
+      // are placeholders. The comparison result text is de-anonymised below.
       const comparison = await compareClauseToPlaybook(
         match.rawText,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -115,10 +171,42 @@ export async function runReview(documentId: string): Promise<void> {
         (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER"
       );
 
+      // ── De-anonymise LLM output fields ─────────────────────────────────────
+      // Restore original party names / PII in user-facing text fields.
+      const deAnon = <T extends string | null | undefined>(s: T): T =>
+        (s ? deanonymise(s, entityMap) : s) as T;
+
+      const deanonComparison = {
+        ...comparison,
+        clauseSummary:      deAnon(comparison.clauseSummary),
+        whyItMatters:       deAnon(comparison.whyItMatters),
+        recommendedAction:  deAnon(comparison.recommendedAction),
+        suggestedFallback:  deAnon(comparison.suggestedFallback),
+        escalationTrigger:  deAnon(comparison.escalationTrigger),
+        businessSummary:    deAnon(comparison.businessSummary),
+      };
+      // ───────────────────────────────────────────────────────────────────────
+
+      // Audit: RAG status assigned
+      await audit({
+        action: "rag_status_assigned",
+        entityType: "review_result",
+        entityId: extractedClause.id,
+        companyId: company.id,
+        detail: {
+          documentId,
+          clauseCategory: category,
+          ragStatus: deanonComparison.ragStatus,
+          confidenceLabel: deanonComparison.confidenceLabel,
+          escalationRequired: deanonComparison.escalationRequired,
+        },
+      });
+
       results.push({
         clauseCategory: category,
-        ...comparison,
-        escalationTrigger: comparison.escalationTrigger || null,
+        ...deanonComparison,
+        regulatoryCitations: JSON.stringify(deanonComparison.regulatoryCitations ?? []),
+        escalationTrigger: deanonComparison.escalationTrigger || null,
         isAbsent: false,
         clauseId: extractedClause.id,
         ruleId: rule.id,
@@ -134,6 +222,7 @@ export async function runReview(documentId: string): Promise<void> {
           rule: r.ruleId,
           clauseCategory: r.clauseCategory,
           ragStatus: r.ragStatus,
+          comparisonStatement: r.comparisonStatement,
           clauseSummary: r.clauseSummary,
           whyItMatters: r.whyItMatters,
           recommendedAction: r.recommendedAction,
@@ -141,13 +230,34 @@ export async function runReview(documentId: string): Promise<void> {
           escalationRequired: r.escalationRequired,
           escalationTrigger: r.escalationTrigger,
           businessSummary: r.businessSummary,
-          confidence: r.confidence,
+          confidenceLabel: r.confidenceLabel,
+          regulatoryCitations: r.regulatoryCitations,
           isAbsent: r.isAbsent,
         })
       )
     );
 
     await pb.collection("uploaded_documents").update(documentId, { status: "COMPLETE" });
+
+    await audit({
+      action: "review_completed",
+      entityType: "uploaded_document",
+      entityId: documentId,
+      companyId: company.id,
+      detail: {
+        totalClauses: results.length,
+        redCount:   results.filter((r) => r.ragStatus === "RED").length,
+        amberCount: results.filter((r) => r.ragStatus === "AMBER").length,
+        greenCount: results.filter((r) => r.ragStatus === "GREEN").length,
+        greyCount:  results.filter((r) => r.ragStatus === "GREY").length,
+        escalations: results.filter((r) => r.escalationRequired).length,
+      },
+    });
+
+    // Persist outcome patterns — fire-and-forget
+    persistOutcomePatterns(company.id).catch((err: unknown) => {
+      console.error("[MIKE] Outcome pattern persistence failed:", err);
+    });
 
     // Send escalation emails — fire-and-forget, never block or fail the review
     const escalations = results.filter((r) => r.escalationRequired && r.ruleId);
@@ -180,6 +290,13 @@ export async function runReview(documentId: string): Promise<void> {
     }
   } catch (err) {
     await pb.collection("uploaded_documents").update(documentId, { status: "FAILED" });
+    await audit({
+      action: "review_failed",
+      entityType: "uploaded_document",
+      entityId: documentId,
+      companyId: company.id,
+      detail: { error: (err as Error)?.message ?? String(err) },
+    });
     throw err;
   }
 }

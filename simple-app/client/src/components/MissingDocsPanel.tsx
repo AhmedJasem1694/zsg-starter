@@ -21,7 +21,7 @@ export default function MissingDocsPanel() {
           <span className="text-sm font-semibold">Documents to review</span>
         </div>
         <p className="text-xs text-muted-foreground">
-          These document types are typically important for your setup — MIKE hasn't seen them yet.
+          These document types are typically important for your setup. Zane has not seen them yet.
         </p>
         <div className="space-y-3">
           {missing.map((m) => (

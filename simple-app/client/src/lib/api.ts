@@ -39,7 +39,7 @@ export const createCompany = (data: {
 }) => req<Company>("POST", "/api/company", data);
 
 // Playbook
-export const getPlaybookRules = () => req<PlaybookRule[]>("GET", "/api/playbook/rules");
+export const getPlaybookRules = () => req<{ rules: PlaybookRule[]; playbookVersion: number }>("GET", "/api/playbook/rules");
 export const savePlaybookRules = (rules: Omit<PlaybookRule, "id" | "companyId">[]) =>
   req<PlaybookRule[]>("POST", "/api/playbook/rules", { rules });
 export const updatePlaybookRule = (id: string, data: Partial<PlaybookRule>) =>
@@ -211,6 +211,24 @@ export const saveFeedback = (
   }
 ) => req("POST", `/api/feedback/${resultId}`, data);
 
+/**
+ * Teach Zane — lawyer provides what Zane got wrong and the correct analysis.
+ * Stored as feedbackType: TEACH_MIKE and routed to the knowledge layer.
+ */
+export const teachMike = (
+  resultId: string,
+  data: { incorrectOutput: string; correctOutput: string; notes?: string }
+) => req("POST", `/api/feedback/teach-mike/${resultId}`, data);
+
+/**
+ * False Positive — marks the clause extraction as incorrect (clause wasn't
+ * really present or was misclassified). Logged to improve the classifier.
+ */
+export const markFalsePositive = (
+  resultId: string,
+  notes?: string
+) => req("POST", `/api/feedback/false-positive/${resultId}`, { notes });
+
 // Memory / patterns
 export interface ClauseOutcome {
   clauseCategory: string;
@@ -249,3 +267,37 @@ export interface MissingDoc {
 
 export const getMissingDocuments = () =>
   req<{ missing: MissingDoc[] }>("GET", "/api/documents/missing");
+
+export interface AuditEntry {
+  id: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  companyId: string;
+  userId: string;
+  detail: Record<string, unknown>;
+  createdAt: string;
+}
+
+export const getAuditLog = (page = 1, limit = 50) =>
+  req<{ entries: AuditEntry[]; totalPages: number; totalItems: number; page: number }>(
+    "GET",
+    `/api/audit?page=${page}&limit=${limit}`
+  );
+
+export const createPlaybookRule = (data: {
+  clauseCategory: string;
+  preferredPosition?: string;
+  acceptableFallback?: string;
+  hardRedLine?: string;
+  fallbackTemplate?: string;
+  approvalRequired?: string;
+  workflowType?: string;
+}) => req<{ id: string; clauseCategory: string }>("POST", "/api/playbook/rule", data);
+
+export const generatePlaybookSuggestion = (clauseCategory: string, workflowType?: string) =>
+  req<{ preferredPosition: string; acceptableFallback: string; hardRedLine: string }>(
+    "POST",
+    "/api/playbook/generate-suggestion",
+    { clauseCategory, workflowType }
+  );

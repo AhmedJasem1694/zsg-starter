@@ -41,7 +41,7 @@ export default function Register() {
             <span className="text-white text-sm font-bold">M</span>
           </div>
           <div>
-            <div className="font-semibold text-lg">Create your MIKE account</div>
+            <div className="font-semibold text-lg">Create your Zane account</div>
             <div className="text-sm text-muted-foreground">Takes 30 seconds</div>
           </div>
         </div>

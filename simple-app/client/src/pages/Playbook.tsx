@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, Save, BarChart2, BookOpen } from "lucide-react";
-import { getPlaybookRules, updatePlaybookRule, getFeedbackPatterns } from "../lib/api";
+import { ChevronDown, ChevronUp, Save, BarChart2, BookOpen, Sparkles, Loader2, Plus, X } from "lucide-react";
+import { getPlaybookRules, updatePlaybookRule, getFeedbackPatterns, generatePlaybookSuggestion, createPlaybookRule } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import { CLAUSE_LABELS, type ClauseCategory, type PlaybookRule, type ApprovalRole } from "../lib/types";
 import type { ClauseOutcome } from "../lib/api";
@@ -21,6 +21,32 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<PlaybookRule>(rule);
   const [saved, setSaved] = useState(false);
+  const [suggestion, setSuggestion] = useState<{ preferredPosition: string; acceptableFallback: string; hardRedLine: string } | null>(null);
+  const [showSuggestion, setShowSuggestion] = useState(false);
+  const [suggestionLoading, setSuggestionLoading] = useState(false);
+
+  async function handleGenerateSuggestion() {
+    setSuggestionLoading(true);
+    try {
+      const result = await generatePlaybookSuggestion(rule.clauseCategory, rule.workflowType);
+      setSuggestion(result);
+      setShowSuggestion(true);
+    } finally {
+      setSuggestionLoading(false);
+    }
+  }
+
+  function applySuggestion() {
+    if (!suggestion) return;
+    setDraft((d) => ({
+      ...d,
+      preferredPosition: suggestion.preferredPosition,
+      acceptableFallback: suggestion.acceptableFallback,
+      hardRedLine: suggestion.hardRedLine,
+    }));
+    setShowSuggestion(false);
+    setSuggestion(null);
+  }
 
   const mut = useMutation({
     mutationFn: () => updatePlaybookRule(rule.id, {
@@ -98,10 +124,62 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
               </div>
               {outcome.accepted > 0 && outcome.redCount > 0 && (
                 <p className="text-xs text-[#FCD34D]">
-                  ⚠ You accepted {outcome.accepted} clause{outcome.accepted > 1 ? "s" : ""} that MIKE flagged.
+                  You accepted {outcome.accepted} clause{outcome.accepted > 1 ? "s" : ""} that Zane flagged as red.
                   Consider reviewing your position below.
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Feature 39 — Generate suggested position */}
+          <div className="flex items-center gap-3">
+            <button
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#312E81] bg-[#1E1B4B] text-[#A5B4FC] hover:bg-[#312E81] transition-colors disabled:opacity-50"
+              onClick={() => void handleGenerateSuggestion()}
+              disabled={suggestionLoading}
+            >
+              {suggestionLoading ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+              {suggestionLoading ? "Generating…" : "Generate suggested position"}
+            </button>
+            <span className="text-[10px] text-muted-foreground/60">Zane suggests a starting position based on market standards for your sector</span>
+          </div>
+
+          {/* Suggestion panel */}
+          {showSuggestion && suggestion && (
+            <div className="rounded-xl border border-[#312E81] bg-[#0F0E1A] p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles size={12} className="text-[#A5B4FC]" />
+                  <span className="text-xs font-semibold text-[#C4B5FD]">Suggested starting position</span>
+                </div>
+                <span className="text-[10px] text-muted-foreground/50 bg-[#1E1B4B] border border-[#312E81] rounded px-2 py-0.5">
+                  AI-generated. Review before saving.
+                </span>
+              </div>
+              {[
+                { label: "Preferred position",    value: suggestion.preferredPosition },
+                { label: "Acceptable fallback",   value: suggestion.acceptableFallback },
+                { label: "Hard red line",         value: suggestion.hardRedLine },
+              ].map(({ label, value }) => (
+                <div key={label} className="space-y-1">
+                  <div className="text-[10px] font-semibold uppercase tracking-widest text-[#7C3AED]/70">{label}</div>
+                  <div className="text-xs text-[#C4B5FD] leading-relaxed font-mono bg-[#1E1B4B] rounded-lg px-3 py-2">{value}</div>
+                </div>
+              ))}
+              <div className="flex gap-2 pt-1">
+                <button
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#7C3AED] text-white hover:bg-[#6D28D9] transition-colors"
+                  onClick={applySuggestion}
+                >
+                  <Sparkles size={11} /> Use this suggestion
+                </button>
+                <button
+                  className="text-xs px-3 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setShowSuggestion(false)}
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
           )}
 
@@ -151,13 +229,166 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
   );
 }
 
+// ── Add clause panel ──────────────────────────────────────────────────────────
+
+function AddClausePanel({ workflowType, onSaved }: { workflowType?: string; onSaved: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [clauseCategory, setClauseCategory] = useState("");
+  const [preferredPosition, setPreferredPosition] = useState("");
+  const [acceptableFallback, setAcceptableFallback] = useState("");
+  const [hardRedLine, setHardRedLine] = useState("");
+  const [fallbackTemplate, setFallbackTemplate] = useState("");
+  const [approvalRequired, setApprovalRequired] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function handleGenerate() {
+    if (!clauseCategory.trim()) return;
+    setGenerating(true);
+    try {
+      const result = await generatePlaybookSuggestion(clauseCategory, workflowType);
+      setPreferredPosition(result.preferredPosition);
+      setAcceptableFallback(result.acceptableFallback);
+      setHardRedLine(result.hardRedLine);
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function handleSave() {
+    if (!clauseCategory.trim()) return;
+    setSaving(true);
+    try {
+      await createPlaybookRule({
+        clauseCategory: clauseCategory.trim().toUpperCase().replace(/\s+/g, "_"),
+        preferredPosition,
+        acceptableFallback,
+        hardRedLine,
+        fallbackTemplate,
+        approvalRequired: approvalRequired || undefined,
+        workflowType,
+      });
+      setSaved(true);
+      setTimeout(() => {
+        setOpen(false);
+        setSaved(false);
+        setClauseCategory(""); setPreferredPosition(""); setAcceptableFallback("");
+        setHardRedLine(""); setFallbackTemplate(""); setApprovalRequired("");
+        onSaved();
+      }, 800);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-[#475569] rounded-xl px-5 py-4 w-full transition-colors"
+        onClick={() => setOpen(true)}
+      >
+        <Plus size={15} className="shrink-0" />
+        Add clause position
+      </button>
+    );
+  }
+
+  return (
+    <div className="card border-[#312E81] overflow-hidden" style={{ background: "#0F0E1A" }}>
+      <div className="px-5 py-4 border-b border-[#312E81] flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Plus size={14} className="text-[#A5B4FC]" />
+          <span className="text-sm font-semibold text-[#C4B5FD]">Add clause position</span>
+        </div>
+        <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
+          <X size={15} />
+        </button>
+      </div>
+
+      <div className="px-5 py-5 space-y-4">
+        {/* Clause name + Generate */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Clause name</label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              className="input text-sm flex-1"
+              placeholder="e.g. Limitation of Liability, Data Protection, Force Majeure…"
+              value={clauseCategory}
+              onChange={(e) => setClauseCategory(e.target.value)}
+            />
+            <button
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#312E81] bg-[#1E1B4B] text-[#A5B4FC] hover:bg-[#312E81] transition-colors disabled:opacity-50 shrink-0"
+              onClick={() => void handleGenerate()}
+              disabled={generating || !clauseCategory.trim()}
+            >
+              {generating ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
+              {generating ? "Generating…" : "Generate positions"}
+            </button>
+          </div>
+          <p className="text-[10px] text-muted-foreground/50">
+            Enter the clause name then click Generate. Zane suggests a starting position based on market standards.
+          </p>
+        </div>
+
+        {/* Fields */}
+        {[
+          { label: "Preferred position",                 key: "preferredPosition",  val: preferredPosition,  set: setPreferredPosition },
+          { label: "Acceptable fallback",                key: "acceptableFallback", val: acceptableFallback, set: setAcceptableFallback },
+          { label: "Hard red line (non-negotiable)",     key: "hardRedLine",        val: hardRedLine,        set: setHardRedLine },
+          { label: "Suggested fallback wording (optional)", key: "fallbackTemplate", val: fallbackTemplate,  set: setFallbackTemplate },
+        ].map(({ label, key, val, set }) => (
+          <div key={key} className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</label>
+            <textarea
+              className="input min-h-[72px] resize-y text-sm font-mono"
+              value={val}
+              onChange={(e) => set(e.target.value)}
+              placeholder={`${label}…`}
+            />
+          </div>
+        ))}
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Who approves exceptions?</label>
+          <select
+            className="input text-sm"
+            value={approvalRequired}
+            onChange={(e) => setApprovalRequired(e.target.value)}
+          >
+            {APPROVAL_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex items-center gap-3 pt-1 border-t border-[#312E81]">
+          {saved && <span className="text-xs text-[#86EFAC] flex items-center gap-1">✓ Clause added to playbook</span>}
+          <div className="ml-auto flex gap-2">
+            <button className="btn-ghost text-xs px-3 py-1.5" onClick={() => setOpen(false)}>Cancel</button>
+            <button
+              className="btn-primary text-xs px-4 py-1.5 flex items-center gap-1.5"
+              onClick={() => void handleSave()}
+              disabled={saving || !clauseCategory.trim()}
+            >
+              {saving ? <Loader2 size={11} className="animate-spin" /> : <Save size={11} />}
+              {saving ? "Saving…" : "Add to playbook"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Outcomes tab ──────────────────────────────────────────────────────────────
 
 function OutcomesView({ outcomes }: { outcomes: ClauseOutcome[] }) {
   if (outcomes.length === 0) {
     return (
       <div className="card p-8 text-center text-sm text-muted-foreground">
-        No feedback data yet — accept, escalate or dismiss clauses on your review pages to track outcomes here.
+        No feedback data yet. Accept, escalate or dismiss clauses on your review pages to track outcomes here.
       </div>
     );
   }
@@ -172,8 +403,7 @@ function OutcomesView({ outcomes }: { outcomes: ClauseOutcome[] }) {
         <div className="card border-[#431407] bg-[#1C0F00] p-4 space-y-2">
           <div className="text-sm font-semibold text-[#FCD34D]">Negotiation drift detected</div>
           <p className="text-xs text-[#FCD34D] opacity-80">
-            These clause types have been accepted even when MIKE flagged them as RED —
-            your team may be drifting from your playbook position.
+            These clause types have been accepted even when Zane flagged them as red. Your team may be drifting from the playbook position.
           </p>
           <div className="flex flex-wrap gap-2 mt-1">
             {drifted.map((o) => (
@@ -238,18 +468,29 @@ function OutcomesView({ outcomes }: { outcomes: ClauseOutcome[] }) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function Playbook() {
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<"playbook" | "outcomes">("playbook");
 
-  const { data: rules = [], isLoading } = useQuery({
+  const { data: rulesData, isLoading } = useQuery({
     queryKey: ["playbook-rules"],
     queryFn: getPlaybookRules,
   });
+  const rules = rulesData?.rules ?? [];
+  const playbookVersion = rulesData?.playbookVersion ?? 1;
 
   const { data: patternsData } = useQuery({
     queryKey: ["feedback-patterns"],
     queryFn: getFeedbackPatterns,
     staleTime: 5 * 60 * 1000,
   });
+
+  // Get company for workflowType (for suggestion context)
+  const { data: company } = useQuery({
+    queryKey: ["company"],
+    queryFn: () => import("../lib/api").then((m) => m.getCompany()),
+    retry: false,
+  });
+  const workflowType = (company as { workflowType?: string } | undefined)?.workflowType;
 
   const outcomeMap = new Map<string, ClauseOutcome>(
     (patternsData?.clauseOutcomes ?? []).map((o) => [o.clauseCategory, o])
@@ -258,11 +499,18 @@ export default function Playbook() {
   return (
     <AppLayout>
       <div className="px-6 py-8 max-w-4xl mx-auto space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Playbook</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Your legal positions for each clause type — and how they compare to your actual outcomes.
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold">Playbook</h1>
+            <p className="text-muted-foreground text-sm mt-1">
+              Your legal positions for each clause type and how they compare to your actual negotiation outcomes.
+            </p>
+          </div>
+          {!isLoading && (
+            <span className="text-[11px] text-muted-foreground/60 border border-border rounded-full px-2.5 py-1 shrink-0 mt-1">
+              v{playbookVersion}
+            </span>
+          )}
         </div>
 
         {/* Tabs */}
@@ -294,14 +542,21 @@ export default function Playbook() {
           isLoading ? (
             <div className="text-sm text-muted-foreground py-8 text-center">Loading playbook…</div>
           ) : rules.length === 0 ? (
-            <div className="card p-8 text-center text-sm text-muted-foreground">
-              No playbook rules found. Go through onboarding to set up your playbook.
+            <div className="card p-8 text-center space-y-2">
+              <div className="text-sm font-medium text-muted-foreground">No playbook rules found</div>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                Add preferred positions, fallback language and approval triggers before running reviews.
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
               {rules.map((rule) => (
                 <RuleCard key={rule.id} rule={rule} outcome={outcomeMap.get(rule.clauseCategory)} />
               ))}
+              <AddClausePanel
+                workflowType={workflowType}
+                onSaved={() => void queryClient.invalidateQueries({ queryKey: ["playbook-rules"] })}
+              />
             </div>
           )
         ) : (

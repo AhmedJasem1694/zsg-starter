@@ -225,6 +225,11 @@ async function main() {
     relationField("rule", playbookRulesId, { cascadeDelete: false }),
     textField("clauseCategory", { required: true }),
     textField("ragStatus", { required: true }),
+    // Verification-first output fields
+    textField("comparisonStatement", { max: 5000 }),
+    textField("confidenceLabel"),          // HIGH | MEDIUM | LOW
+    textField("regulatoryCitations", { max: 20000 }),  // JSON array
+    // Standard output fields
     textField("clauseSummary", { max: 10000 }),
     textField("whyItMatters", { max: 10000 }),
     textField("recommendedAction", { max: 10000 }),
@@ -232,7 +237,6 @@ async function main() {
     boolField("escalationRequired"),
     textField("escalationTrigger"),
     textField("businessSummary", { max: 10000 }),
-    numberField("confidence"),
     boolField("isAbsent"),
   ]);
 
@@ -263,10 +267,86 @@ async function main() {
   // ── 11. user_feedback ────────────────────────────────────────────────────────
   await setupCollection("user_feedback", [
     relationField("result", reviewResultsId),
-    textField("userAction", { required: true }),
+    textField("userAction", { required: true }),   // ACCEPTED | EDITED | ESCALATED | DISMISSED
+    textField("feedbackType"),                      // STANDARD | TEACH_MIKE | FALSE_POSITIVE
     textField("editedOutput", { max: 10000 }),
     textField("finalClauseText", { max: 10000 }),
+    textField("correctOutput", { max: 10000 }),    // Teach MIKE: what the correct analysis should say
     textField("notes", { max: 5000 }),
+  ]);
+
+  // ── 12. detected_patterns ────────────────────────────────────────────────────
+  // L2 outcome memory: persisted patterns detected from lawyer feedback.
+  // Feeds the v3 synthesis layer and the "MIKE noticed" panel.
+  await setupCollection("detected_patterns", [
+    textField("companyId", { required: true }),
+    textField("clauseCategory", { required: true }),
+    textField("patternType", { required: true }),  // repeated_acceptance | repeated_escalation | frequently_absent | consistently_green
+    textField("message", { max: 2000 }),
+    textField("severity"),                          // info | warn | good
+    numberField("count"),
+  ]);
+
+  // ── 13. regulatory_synthesis_pages ────────────────────────────────────────────
+  // L3 synthesis: structured knowledge pages synthesised from regulatory data.
+  // Schema-only in v1 — populated by future synthesis pipeline.
+  await setupCollection("regulatory_synthesis_pages", [
+    textField("companyId", { required: true }),
+    textField("jurisdiction", { required: true }),
+    textField("sector"),
+    textField("topic", { required: true }),
+    textField("content", { max: 500000 }),          // rendered markdown
+    textField("citations", { max: 50000 }),          // JSON array of {article, regulation, url}
+    numberField("version"),
+  ]);
+
+  // ── 14. company_knowledge_pages ───────────────────────────────────────────────
+  // L3 synthesis: MIKE's accumulated knowledge about how THIS company negotiates.
+  // Schema-only in v1 — populated as L2 patterns accumulate.
+  await setupCollection("company_knowledge_pages", [
+    textField("companyId", { required: true }),
+    textField("pageType"),          // PLAYBOOK_INSIGHT | COUNTERPARTY_PATTERN | SECTOR_NORM
+    textField("topic", { required: true }),
+    textField("content", { max: 500000 }),
+    textField("sourceResultIds", { max: 50000 }),   // JSON array of review_result IDs used
+    textField("confidenceLabel"),                    // HIGH | MEDIUM | LOW
+    numberField("version"),
+  ]);
+
+  // ── 15. playbook_synthesis_pages ─────────────────────────────────────────────
+  // L3 synthesis: per-clause synthesis of trends, market norms, and negotiation patterns.
+  // Schema-only in v1 — populated as feedback volume grows.
+  await setupCollection("playbook_synthesis_pages", [
+    textField("companyId", { required: true }),
+    textField("clauseCategory", { required: true }),
+    textField("synthesisType"),     // RISK_TREND | NEGOTIATION_PATTERN | MARKET_NORM
+    textField("content", { max: 500000 }),
+    numberField("dataPoints"),      // number of results this synthesis is based on
+    textField("confidenceLabel"),
+    numberField("version"),
+  ]);
+
+  // ── 16. pii_sessions ─────────────────────────────────────────────────────────
+  // Stores the reversible entity map for each anonymisation session so that
+  // LLM output can be de-anonymised and PII events can be correlated in audits.
+  await setupCollection("pii_sessions", [
+    textField("sessionId", { required: true }),
+    textField("documentId"),
+    textField("entityMap", { max: 500000 }),  // JSON array of PiiEntity
+    numberField("entitiesDetected"),
+  ]);
+
+  // ── 17. audit_log ─────────────────────────────────────────────────────────────
+  // Immutable audit trail for all significant MIKE actions.
+  // Intentionally not using strict relations so entries survive deletions.
+  await setupCollection("audit_log", [
+    textField("action", { required: true }),
+    textField("entityType"),
+    textField("entityId"),
+    textField("companyId"),
+    textField("userId"),
+    textField("detail", { max: 100000 }), // JSON blob
+    textField("ipAddress"),
   ]);
 
   console.log("\n✅ All collections set up successfully.\n");

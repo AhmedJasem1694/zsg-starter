@@ -29,7 +29,9 @@ This is a full-stack TypeScript monorepo — one `package.json`, one `tsconfig.j
 - `server/pb.ts` — PocketBase admin client singleton; `initPocketBase()` authenticates and schedules token refresh every 30 min
 - `server/routes.ts` — all API routes registered here via `registerRoutes(app)`
 - `server/upload.ts` — Multer config, saves uploads to `./uploads/` with nanoid filenames
-- `server/services/reviewOrchestrator.ts` — main pipeline: parse → classify → compare → persist results. Called async (fire-and-forget) from the `POST /api/review/:id` route.
+- `server/services/reviewOrchestrator.ts` — main pipeline: parse → **anonymise** → classify → compare → **de-anonymise** → persist results. Called async (fire-and-forget) from the `POST /api/review/:id` route.
+- `server/services/piiAnonymiser.ts` — PII detection and anonymisation. Replaces party names (company, counterparty) and regex-detected PII (emails, phones, postcodes, IBANs, etc.) with placeholders **before** any LLM call. Entity map stored in `pii_sessions`. Call `anonymise()` before LLM, `deanonymise()` after.
+- `server/services/auditLogger.ts` — Structured audit trail writer. `audit()` and `auditSync()` write to `audit_log` collection. Never throws — logging failures are non-fatal.
 - `server/services/documentParser.ts` — PDF via `pdf-parse` (loaded with `createRequire` because it's CJS), DOCX via `mammoth`. Chunks text into ~2000-char blocks.
 - `server/services/clauseClassifier.ts` — single LLM call to classify all chunks into up to 10 clause categories; returns one best chunk per category.
 - `server/services/playbookComparison.ts` — per-clause LLM call comparing extracted text against the company's playbook rule; returns structured RAG output.
@@ -50,7 +52,7 @@ PocketBase runs as a **separate service** (Railway or local). The Express server
 
 **Single-company mode** — `POST /api/company` deletes all existing companies before creating a new one.
 
-**Collections** (11 total):
+**Collections** (17 total):
 
 | Collection | Purpose |
 |---|---|
@@ -65,6 +67,12 @@ PocketBase runs as a **separate service** (Railway or local). The Express server
 | `litigation_intakes` | Multi-stage litigation intake form state |
 | `ancillary_documents` | Supporting files (evidence, audio, etc.) |
 | `user_feedback` | User actions on review results |
+| `pii_sessions` | Reversible entity maps from PII anonymisation pipeline |
+| `audit_log` | Immutable audit trail for all significant MIKE actions |
+| `detected_patterns` | L2 outcome memory — persisted patterns from lawyer feedback |
+| `regulatory_synthesis_pages` | L3 synthesis schema — regulatory knowledge pages (schema-only v1) |
+| `company_knowledge_pages` | L3 synthesis schema — company negotiation knowledge (schema-only v1) |
+| `playbook_synthesis_pages` | L3 synthesis schema — per-clause trend synthesis (schema-only v1) |
 
 **Field name conventions**: PocketBase auto-provides `id`, `created`, `updated`. API responses alias `created` → `uploadedAt`/`createdAt` and relation ID fields to `*Id` names (e.g. `company` → `companyId`) via the mapper functions in `routes.ts`.
 

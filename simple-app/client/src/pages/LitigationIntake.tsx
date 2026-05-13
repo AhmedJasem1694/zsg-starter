@@ -296,7 +296,7 @@ export default function LitigationIntake() {
           </button>
           <h1 className="text-2xl font-semibold">Litigation intake</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Complete all three stages before MIKE can assess coverage and exposure.
+            Complete all three stages before Zane can assess coverage and exposure.
           </p>
         </div>
 
@@ -332,7 +332,7 @@ export default function LitigationIntake() {
             <div className="card border-[#431407] bg-[#1C0F00] p-4 flex gap-3">
               <AlertCircle size={16} className="text-[#FCD34D] shrink-0 mt-0.5" />
               <p className="text-sm text-[#FCD34D]">
-                Answer all 8 questions before proceeding. If any hard stop fires, MIKE will pause and tell you what action is required.
+                Answer all 8 questions before proceeding. If any hard stop fires, Zane will pause and tell you what action is required.
               </p>
             </div>
 
@@ -553,7 +553,7 @@ export default function LitigationIntake() {
               </div>
 
               <div>
-                <label className="text-xs text-muted-foreground block mb-1">Additional notes for MIKE</label>
+                <label className="text-xs text-muted-foreground block mb-1">Additional notes for Zane</label>
                 <textarea
                   className="input text-sm py-1.5 w-full min-h-[80px] resize-y"
                   placeholder="Any additional context relevant to coverage, defence, or quantum…"
@@ -713,7 +713,7 @@ export default function LitigationIntake() {
                 disabled={saveMutation.isPending}
                 onClick={() => void completeIntake()}
               >
-                {saveMutation.isPending ? "Saving…" : "Complete intake — view MIKE review"}
+                {saveMutation.isPending ? "Saving…" : "Complete intake — view Zane review"}
               </button>
             </div>
           </div>

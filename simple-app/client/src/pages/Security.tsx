@@ -54,7 +54,7 @@ const PILLARS = [
     icon: RefreshCw,
     title: "LLM Data Privacy",
     description:
-      "MIKE uses OpenRouter to access frontier models. Contract text is sent to the model only for the purpose of the review. Ephemeral prompt caching is used for playbook context - no contract data is cached.",
+      "Zane uses OpenRouter to access frontier models. Contract text is sent to the model only for the purpose of the review. Ephemeral prompt caching is used for playbook context - no contract data is cached.",
     checks: [
       "Prompt caching applied only to playbook rules (not contract text)",
       "No contract data retained by model provider beyond session",
@@ -66,7 +66,7 @@ const PILLARS = [
     icon: Shield,
     title: "Infrastructure Security",
     description:
-      "MIKE is designed to run on your own infrastructure or in a dedicated cloud environment. No shared compute or multi-tenant processing queues.",
+      "Zane is designed to run on your own infrastructure or in a dedicated cloud environment. No shared compute or multi-tenant processing queues.",
     checks: [
       "Self-hosted deployment option available",
       "No shared processing queues",
@@ -93,7 +93,7 @@ export default function Security() {
           <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
             <span className="text-white text-xs font-bold">M</span>
           </div>
-          <span className="font-semibold text-sm">MIKE</span>
+          <span className="font-semibold text-sm">Zane</span>
         </Link>
         <div className="flex items-center gap-6">
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Home</Link>
@@ -121,7 +121,7 @@ export default function Security() {
           </span>
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          MIKE is built for legal teams handling sensitive commercial agreements. We apply enterprise-grade
+          Zane is built for legal teams handling sensitive commercial agreements. We apply enterprise-grade
           security controls so you can review counterparty paper without putting client data at risk.
         </p>
       </section>
@@ -199,14 +199,14 @@ export default function Security() {
             <div>
               <h3 className="text-foreground font-medium mb-2">Cloud deployment</h3>
               <p>
-                MIKE's cloud offering runs in UK/EU data centres. Your contract data never leaves
+                Zane's cloud offering runs in UK/EU data centres. Your contract data never leaves
                 your chosen jurisdiction. Separate environments are available for EU GDPR and UK GDPR compliance.
               </p>
             </div>
             <div>
               <h3 className="text-foreground font-medium mb-2">Self-hosted option</h3>
               <p>
-                Enterprise customers can deploy MIKE entirely within their own infrastructure.
+                Enterprise customers can deploy Zane entirely within their own infrastructure.
                 Bring your own cloud, your own database, and your own LLM API keys.
                 Zero data leaves your environment.
               </p>
@@ -214,7 +214,7 @@ export default function Security() {
             <div>
               <h3 className="text-foreground font-medium mb-2">LLM routing</h3>
               <p>
-                MIKE routes LLM calls via OpenRouter. Enterprise customers can configure direct
+                Zane routes LLM calls via OpenRouter. Enterprise customers can configure direct
                 API integration with Anthropic, OpenAI, or Azure OpenAI for dedicated zero-retention
                 processing agreements.
               </p>
@@ -250,7 +250,7 @@ export default function Security() {
       {/* Footer */}
       <footer className="border-t border-border/40 py-8 px-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between text-xs text-muted-foreground">
-          <span>© 2025 MIKE Legal Decision Engine</span>
+          <span>© 2025 Zane Legal Decision Engine</span>
           <div className="flex gap-4">
             <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
             <Link to="/resources" className="hover:text-foreground transition-colors">Resources</Link>

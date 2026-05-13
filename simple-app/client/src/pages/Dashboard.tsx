@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Upload, FileText, AlertTriangle, CheckCircle, Clock,
   RotateCcw, Shield, ChevronRight, AlertCircle, LayoutGrid, ArrowRight,
+  CalendarClock, Bell, Lock, Activity,
 } from "lucide-react";
 import { getDocuments, uploadDocument, startReview, getCompany, getDocumentStats } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
@@ -22,7 +23,7 @@ interface DocWithRag {
   contractType: string;
   status: DocumentStatus;
   uploadedAt: string;
-  reviewResults?: { ragStatus: string }[];
+  reviewResults?: { ragStatus: string; escalationRequired?: boolean; feedback?: { userAction?: string } }[];
 }
 
 type SignReadiness = "ready" | "negotiate" | "review" | "not-ready" | "pending";
@@ -87,8 +88,8 @@ const COMMERCIAL_REVIEW_TYPES = [
 ];
 
 const INSURANCE_CLAIM_TYPES = [
-  { value: "MOTOR_PI",       label: "Motor — personal injury" },
-  { value: "MOTOR_PROPERTY", label: "Motor — property damage" },
+  { value: "MOTOR_PI",       label: "Motor: Personal injury" },
+  { value: "MOTOR_PROPERTY", label: "Motor: Property damage" },
   { value: "EMPLOYERS_LI",   label: "Employers Liability" },
   { value: "PUBLIC_LI",      label: "Public Liability" },
   { value: "PI",             label: "Professional Indemnity" },
@@ -153,6 +154,181 @@ const LOGISTICS_COUNTERPARTY_TYPES = [
   { value: "PORT_TERMINAL",    label: "Port / terminal operator" },
   { value: "OTHER",            label: "Other" },
 ];
+
+// ─── Processing stages ────────────────────────────────────────────────────────
+
+const PROCESSING_STAGES = [
+  { label: "Parsing document",              maxSec: 15  },
+  { label: "Anonymising sensitive data",    maxSec: 35  },
+  { label: "Identifying clause categories", maxSec: 70  },
+  { label: "Comparing against playbook",    maxSec: 130 },
+  { label: "Applying regulatory context",   maxSec: 200 },
+  { label: "Preparing review report",       maxSec: Infinity },
+];
+
+function ReviewProcessingCard({ doc }: { doc: { id: string; originalName: string; uploadedAt: string } }) {
+  const elapsedSec = (Date.now() - new Date(doc.uploadedAt).getTime()) / 1000;
+  const activeIdx  = PROCESSING_STAGES.findIndex((s) => elapsedSec < s.maxSec);
+  const stageIdx   = activeIdx === -1 ? PROCESSING_STAGES.length - 1 : activeIdx;
+
+  return (
+    <div className="card border-[#1C2A3A]" style={{ background: "#0D1B2A" }}>
+      <div className="card-body space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-xs font-semibold text-[#93C5FD] truncate">{doc.originalName}</div>
+          <span className="flex items-center gap-1 text-[10px] text-[#FCD34D] shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D] animate-pulse" /> Reviewing
+          </span>
+        </div>
+        <div className="space-y-1.5">
+          {PROCESSING_STAGES.map((stage, i) => {
+            const done    = i < stageIdx;
+            const active  = i === stageIdx;
+            const pending = i > stageIdx;
+            return (
+              <div key={stage.label} className="flex items-center gap-2.5">
+                <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-all
+                  ${done    ? "bg-[#14532D] border-[#166534]" : ""}
+                  ${active  ? "bg-[#1C0F00] border-[#92400E] animate-pulse" : ""}
+                  ${pending ? "bg-transparent border-[#1E293B]" : ""}`}>
+                  {done && <CheckCircle size={9} className="text-[#86EFAC]" />}
+                  {active && <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D]" />}
+                </div>
+                <span className={`text-xs leading-none transition-all
+                  ${done    ? "text-muted-foreground line-through" : ""}
+                  ${active  ? "text-[#FCD34D] font-medium" : ""}
+                  ${pending ? "text-muted-foreground/40" : ""}`}>
+                  {stage.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Risk inbox ───────────────────────────────────────────────────────────────
+
+interface RiskInboxProps {
+  documents: DocWithRag[];
+}
+
+function RiskInbox({ documents }: RiskInboxProps) {
+  const completed = documents.filter((d) => d.status === "COMPLETE");
+
+  // RED risk contracts
+  const redDocs = completed.filter((d) =>
+    (d.reviewResults ?? []).some((r) => r.ragStatus === "RED")
+  );
+
+  // Upcoming renewals (within 90 days)
+  const now = Date.now();
+  const ninetyDays = 90 * 24 * 60 * 60 * 1000;
+  const renewalDocs = (documents as (DocWithRag & { renewalDate?: string })[]).filter((d) => {
+    if (!d.renewalDate) return false;
+    const diff = new Date(d.renewalDate).getTime() - now;
+    return diff > 0 && diff <= ninetyDays;
+  });
+
+  const hasItems = redDocs.length > 0 || renewalDocs.length > 0;
+  if (!hasItems) return null;
+
+  return (
+    <div className="card border-[#1E1B4B]" style={{ background: "#0F0E1A" }}>
+      <div className="card-body space-y-3">
+        <div className="flex items-center gap-2">
+          <Bell size={14} className="text-[#A5B4FC]" />
+          <span className="text-sm font-semibold text-[#C4B5FD]">Risk inbox</span>
+        </div>
+
+        {redDocs.length > 0 && (
+          <div className="space-y-1.5">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-medium">Red flags open</div>
+            {redDocs.slice(0, 3).map((d) => {
+              const redCount = (d.reviewResults ?? []).filter((r) => r.ragStatus === "RED").length;
+              return (
+                <a key={d.id} href={`/app/legal/review/${d.id}`}
+                  className="flex items-center justify-between gap-2 text-xs py-1 hover:opacity-80 transition-opacity">
+                  <span className="truncate text-foreground/80">{d.originalName}</span>
+                  <span className="rag-red shrink-0">{redCount} RED</span>
+                </a>
+              );
+            })}
+          </div>
+        )}
+
+        {renewalDocs.length > 0 && (
+          <div className="space-y-1.5">
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-medium">Renewals due</div>
+            {renewalDocs.slice(0, 3).map((d) => {
+              const daysLeft = Math.ceil((new Date((d as DocWithRag & { renewalDate: string }).renewalDate).getTime() - now) / (1000 * 60 * 60 * 24));
+              return (
+                <div key={d.id} className="flex items-center justify-between gap-2 text-xs py-1">
+                  <span className="truncate text-foreground/80">{d.originalName}</span>
+                  <span className="flex items-center gap-1 text-[#FCD34D] shrink-0">
+                    <CalendarClock size={10} /> {daysLeft}d
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Approval queue ───────────────────────────────────────────────────────────
+
+function ApprovalQueue({ documents }: { documents: DocWithRag[] }) {
+  // Contracts with escalation-required results that haven't had ESCALATED feedback
+  const pending = documents.filter((d) =>
+    d.status === "COMPLETE" &&
+    (d.reviewResults ?? []).some(
+      (r) => r.escalationRequired && r.feedback?.userAction !== "ESCALATED"
+    )
+  );
+
+  if (pending.length === 0) return null;
+
+  return (
+    <div className="card border-[#2D1F00]" style={{ background: "#1A1200" }}>
+      <div className="card-body space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={14} className="text-[#FCD34D]" />
+            <span className="text-sm font-semibold text-[#FCD34D]">Pending approvals</span>
+          </div>
+          <span className="text-[10px] bg-[#FCD34D]/15 text-[#FCD34D] border border-[#FCD34D]/25 rounded-full px-2 py-0.5 font-semibold">
+            {pending.length}
+          </span>
+        </div>
+        <div className="space-y-1.5">
+          {pending.slice(0, 4).map((d) => {
+            const count = (d.reviewResults ?? []).filter(
+              (r) => r.escalationRequired && r.feedback?.userAction !== "ESCALATED"
+            ).length;
+            return (
+              <a
+                key={d.id}
+                href={`/app/legal/review/${d.id}`}
+                className="flex items-center justify-between gap-2 text-xs py-1.5 hover:opacity-80 transition-opacity"
+              >
+                <span className="truncate text-foreground/80">{d.originalName}</span>
+                <span className="text-[#FCD34D] shrink-0 font-medium">{count} clause{count !== 1 ? "s" : ""}</span>
+              </a>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
+          These contracts have clauses flagged for escalation. Open each to confirm, escalate or dismiss.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 // ─── Sign readiness helpers ───────────────────────────────────────────────────
 
@@ -348,7 +524,7 @@ export default function Dashboard() {
           <div>
             <h1 className="text-2xl font-semibold">Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Upload a contract and MIKE reviews it in minutes, not hours
+              Upload a contract and Zane reviews it in minutes, not hours
               {useMock && (
                 <span className="ml-2 text-xs bg-[#1C0F00] text-[#FCD34D] border border-[#431407] rounded-full px-2 py-0.5">
                   Demo data
@@ -468,7 +644,11 @@ export default function Dashboard() {
                   />
                 </div>
               </div>
-              <div className="card-body">
+              <div className="card-body space-y-3">
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60 bg-muted/30 rounded-lg px-3 py-2">
+                  <Lock size={10} className="shrink-0 text-muted-foreground/50" />
+                  Documents are anonymised before model review. Known entities and sensitive identifiers are replaced with placeholders and restored in your final output.
+                </div>
                 <div
                   className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer
                     ${dragOver ? "border-primary bg-accent scale-[1.01]" : "border-border hover:border-primary/60 hover:bg-accent/30"}
@@ -499,6 +679,13 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
+
+            {/* Processing stage cards */}
+            {(realDocuments as UploadedDocument[])
+              .filter((d) => d.status === "PROCESSING")
+              .map((d) => (
+                <ReviewProcessingCard key={d.id} doc={d} />
+              ))}
 
             {/* Search and filter */}
             {realDocuments.length > 0 && (
@@ -550,7 +737,9 @@ export default function Dashboard() {
                 <div className="card-body text-center py-12">
                   <FileText size={32} className="text-muted-foreground/30 mx-auto mb-3" />
                   <div className="text-sm font-medium text-muted-foreground">No contracts reviewed yet</div>
-                  <div className="text-xs text-muted-foreground mt-1">Upload one above to get started</div>
+                  <div className="text-xs text-muted-foreground mt-2 max-w-xs mx-auto leading-relaxed">
+                    Upload your first contract to generate a structured risk review against your playbook.
+                  </div>
                 </div>
               ) : (
                 <div className="divide-y divide-card-border">
@@ -641,8 +830,14 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Right col — guide only */}
+          {/* Right col */}
           <div className="space-y-5">
+
+            {/* Risk inbox — dynamic, only shows when there's something to flag */}
+            <RiskInbox documents={filteredDocuments as DocWithRag[]} />
+
+            {/* Approval queue — contracts with unresolved escalations */}
+            <ApprovalQueue documents={filteredDocuments as DocWithRag[]} />
 
             {/* How to read results */}
             <div className="card bg-accent border-accent-border">
@@ -653,10 +848,10 @@ export default function Dashboard() {
                 </div>
                 <div className="space-y-3 text-xs text-foreground/80">
                   {[
-                    { badge: "rag-red",   label: "Red",    desc: "Do not sign — fix this first" },
+                    { badge: "rag-red",   label: "Red",    desc: "Do not sign. Fix this first." },
                     { badge: "rag-amber", label: "Amber",  desc: "Worth negotiating before signing" },
                     { badge: "rag-green", label: "Green",  desc: "Looks good against your playbook" },
-                    { badge: "rag-grey",  label: "Absent", desc: "Clause missing — ask for it" },
+                    { badge: "rag-grey",  label: "Absent", desc: "Clause not found. Ask for it." },
                   ].map(({ badge, label, desc }) => (
                     <div key={label} className="flex items-start gap-2.5">
                       <span className={`${badge} mt-0.5 shrink-0`}>{label}</span>
@@ -667,10 +862,13 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* What MIKE checks */}
+            {/* What Zane checks */}
             <div className="card">
               <div className="card-body space-y-3">
-                <div className="text-sm font-semibold">What MIKE checks</div>
+                <div className="flex items-center gap-2">
+                  <Activity size={14} className="text-primary" />
+                  <span className="text-sm font-semibold">What Zane checks</span>
+                </div>
                 <div className="space-y-2 text-xs text-muted-foreground">
                   {[
                     "Liability caps and exclusions",
@@ -699,7 +897,7 @@ export default function Dashboard() {
                   <span className="text-sm font-semibold">Legal Inheritance</span>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Already have a contract library? Upload your entire back-catalogue in one go. MIKE reviews every document against your playbook and surfaces hidden risk across your existing portfolio.
+                  Already have a contract library? Upload your entire back-catalogue in one go. Zane reviews every document against your playbook and surfaces hidden risk across your existing portfolio.
                 </p>
                 <Link
                   to="/app/legal/bulk-review"
@@ -710,7 +908,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* MIKE noticed (memory layer) */}
+            {/* Patterns detected (memory layer) */}
             <MikeNoticedPanel />
 
             {/* Missing docs */}

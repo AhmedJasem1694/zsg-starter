@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import {
   LayoutDashboard, BookOpen, Settings, LogOut, Menu, Shield,
-  Lock, HelpCircle, PieChart, CalendarClock, LayoutGrid, FileText,
+  Lock, HelpCircle, PieChart, CalendarClock, LayoutGrid, Activity, ClipboardList,
 } from "lucide-react";
 import { useAuth, useLogout } from "../../hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -14,15 +14,16 @@ import type { Persona } from "../../lib/types";
 const LEGAL_NAV = [
   { to: "/app/legal/dashboard",   icon: LayoutDashboard, label: "Dashboard" },
   { to: "/app/legal/playbook",    icon: BookOpen,         label: "Playbook" },
-  { to: "/app/legal/regulations", icon: Shield,           label: "Regulations" },
   { to: "/app/legal/portfolio",   icon: PieChart,         label: "Portfolio Risk" },
-  { to: "/app/legal/timings",     icon: CalendarClock,    label: "Contract Timings" },
-  { to: "/app/legal/bulk-review", icon: LayoutGrid,       label: "Bulk review" },
+  { to: "/app/legal/regulations", icon: Shield,           label: "Regulatory Profile" },
+  { to: "/app/legal/timings",     icon: CalendarClock,    label: "Renewals" },
+  { to: "/app/legal/bulk-review", icon: LayoutGrid,       label: "Bulk Review" },
+  { to: "/app/legal/patterns",    icon: Activity,         label: "Patterns" },
 ];
 
 const LEGAL_NAV_SECONDARY = [
-  { to: "/security",  icon: Lock,        label: "Security" },
-  { to: "/resources", icon: HelpCircle,  label: "Resources" },
+  { to: "/app/legal/audit",  icon: ClipboardList, label: "Audit Trail" },
+  { to: "/security",         icon: Lock,          label: "Security" },
 ];
 
 // ── Founder nav ───────────────────────────────────────────────────────────────
@@ -31,13 +32,12 @@ const FOUNDER_NAV = [
   { to: "/app/founder/dashboard",  icon: LayoutDashboard, label: "Dashboard" },
   { to: "/app/legal/playbook",     icon: BookOpen,        label: "Playbook" },
   { to: "/app/legal/portfolio",    icon: PieChart,        label: "Portfolio Risk" },
-  { to: "/app/legal/timings",      icon: CalendarClock,   label: "Contract Timings" },
-  { to: "/app/legal/bulk-review",  icon: LayoutGrid,      label: "Bulk review" },
+  { to: "/app/legal/timings",      icon: CalendarClock,   label: "Renewals" },
+  { to: "/app/legal/bulk-review",  icon: LayoutGrid,      label: "Bulk Review" },
 ];
 
 const FOUNDER_NAV_SECONDARY = [
-  { to: "/security",  icon: Lock,       label: "Security" },
-  { to: "/resources", icon: HelpCircle, label: "Resources" },
+  { to: "/security", icon: Lock, label: "Security" },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -77,12 +77,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5 px-5 py-5 border-b border-sidebar-border hover:opacity-80 transition-opacity">
           <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shrink-0">
-            <span className="text-white text-xs font-bold">M</span>
+            <span className="text-white text-xs font-bold">Z</span>
           </div>
           <div>
-            <div className="text-sm font-semibold text-sidebar-foreground leading-none">MIKE</div>
+            <div className="text-sm font-semibold text-sidebar-foreground leading-none">Zane</div>
             <div className="text-[9px] text-sidebar-foreground/50 tracking-widest uppercase mt-1">
-              {isFounder ? "Your Deal Assistant" : "Legal Decision Engine"}
+              {isFounder ? "Founder Contract Review" : "Legal Intelligence Layer"}
             </div>
           </div>
         </Link>
@@ -165,7 +165,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <button onClick={() => setOpen(true)}>
             <Menu size={20} />
           </button>
-          <span className="font-semibold text-sm">MIKE</span>
+          <span className="font-semibold text-sm">Zane</span>
         </div>
 
         <main className="flex-1 overflow-y-auto">

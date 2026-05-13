@@ -55,6 +55,36 @@ function founderRagDot(s: RagStatus): string {
   }[s];
 }
 
+// ── Fundraising relevance mapping ────────────────────────────────────────────
+
+type FundraisingRelevance = "High investor concern" | "Standard diligence item" | "Worth noting";
+
+const FUNDRAISING_RELEVANCE: Record<string, FundraisingRelevance> = {
+  LIQUIDATION_PREFERENCE:  "High investor concern",
+  ANTI_DILUTION:           "High investor concern",
+  DRAG_ALONG:              "High investor concern",
+  BOARD_COMPOSITION:       "High investor concern",
+  OPTION_POOL_SHUFFLE:     "High investor concern",
+  PRO_RATA_RIGHTS:         "High investor concern",
+  PAY_TO_PLAY:             "High investor concern",
+  IP_OWNERSHIP:            "High investor concern",
+  VESTING_LEAVER:          "Standard diligence item",
+  INFORMATION_RIGHTS:      "Standard diligence item",
+  REDEMPTION_RIGHTS:       "Standard diligence item",
+  LIMITATION_OF_LIABILITY: "Standard diligence item",
+  INDEMNITY:               "Standard diligence item",
+  CHANGE_OF_CONTROL:       "Standard diligence item",
+  CONFIDENTIALITY:         "Worth noting",
+  GOVERNING_LAW:           "Worth noting",
+  DISPUTE_RESOLUTION:      "Worth noting",
+};
+
+const FUNDRAISING_RELEVANCE_COLOR: Record<FundraisingRelevance, string> = {
+  "High investor concern":   "text-[#FCA5A5] bg-[#1F0A0A] border-[#450A0A]",
+  "Standard diligence item": "text-[#FCD34D] bg-[#1C0F00] border-[#431407]",
+  "Worth noting":            "text-[#94A3B8] bg-[#0F172A] border-[#334155]",
+};
+
 // ── Risk card ─────────────────────────────────────────────────────────────────
 
 function FounderClauseCard({
@@ -77,6 +107,8 @@ function FounderClauseCard({
   const label = CLAUSE_LABELS[result.clauseCategory] ?? result.clauseCategory.replace(/_/g, " ");
   const tagBg = founderRagBg(result.ragStatus);
   const tagColor = founderRagColor(result.ragStatus);
+  const fundraisingRelevance = FUNDRAISING_RELEVANCE[result.clauseCategory] as FundraisingRelevance | undefined;
+  const frColor = fundraisingRelevance ? FUNDRAISING_RELEVANCE_COLOR[fundraisingRelevance] : null;
 
   const replyMutation = useMutation({
     mutationFn: () => generateReply(result.id, "friendly but firm"),
@@ -112,6 +144,11 @@ function FounderClauseCard({
               {founderRagLabel(result.ragStatus)}
             </span>
             <span className="text-sm font-medium text-foreground">{label}</span>
+            {fundraisingRelevance && frColor && (
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${frColor}`}>
+                {fundraisingRelevance}
+              </span>
+            )}
           </div>
           <p className="mt-1 text-sm text-foreground/80 line-clamp-2">
             {result.businessSummary || result.clauseSummary}
@@ -126,6 +163,19 @@ function FounderClauseCard({
 
       {expanded && (
         <div className="px-5 pb-5 space-y-4 border-t border-current/10 pt-4">
+
+          {/* Absent clause — specific playbook guidance */}
+          {result.isAbsent && (
+            <div className="flex items-start gap-2 rounded-lg bg-[#0F172A] border border-[#334155] px-3 py-2.5">
+              <AlertCircle size={13} className="text-[#94A3B8] mt-0.5 shrink-0" />
+              <div className="space-y-0.5">
+                <div className="text-xs font-semibold text-[#94A3B8]">Clause not found in this contract</div>
+                <p className="text-xs text-[#94A3B8]/80">
+                  Check whether your deal requires this clause to be present. If so, ask the other side to include it before you sign.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Why it matters */}
           {result.whyItMatters && (
@@ -335,18 +385,57 @@ export default function FounderReview() {
   }
 
   if (doc.status === "PROCESSING") {
+    const elapsedSec = (Date.now() - new Date(doc.uploadedAt).getTime()) / 1000;
+    const FOUNDER_STAGES = [
+      { label: "Reading your contract",           maxSec: 15  },
+      { label: "Removing personal details",        maxSec: 35  },
+      { label: "Identifying key clauses",          maxSec: 70  },
+      { label: "Comparing against your playbook",  maxSec: 130 },
+      { label: "Checking investment terms",        maxSec: 200 },
+      { label: "Preparing your risk report",       maxSec: Infinity },
+    ];
+    const activeIdx = FOUNDER_STAGES.findIndex((s) => elapsedSec < s.maxSec);
+    const stageIdx  = activeIdx === -1 ? FOUNDER_STAGES.length - 1 : activeIdx;
+
     return (
       <AppLayout>
         <div className="px-6 py-8 max-w-3xl mx-auto space-y-4">
           <button onClick={() => navigate(backPath)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft size={15} /> Back
           </button>
-          <div className="card p-12 text-center space-y-4">
-            <div className="w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto" />
-            <div className="font-semibold">MIKE is reading your contract…</div>
-            <div className="text-sm text-muted-foreground max-w-sm mx-auto">
-              Checking every clause. This usually takes 1–3 minutes.
+          <div className="card p-8 space-y-6 border-[#1C2A3A]" style={{ background: "#0D1B2A" }}>
+            <div className="flex items-center gap-3">
+              <Sparkles size={18} className="text-[#60A5FA]" />
+              <div>
+                <div className="font-semibold text-[#93C5FD]">Zane is reviewing your contract</div>
+                <div className="text-xs text-muted-foreground mt-0.5 truncate">{doc.originalName}</div>
+              </div>
             </div>
+            <div className="space-y-2.5 max-w-xs">
+              {FOUNDER_STAGES.map((stage, i) => {
+                const done    = i < stageIdx;
+                const active  = i === stageIdx;
+                const pending = i > stageIdx;
+                return (
+                  <div key={stage.label} className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all
+                      ${done    ? "bg-[#14532D] border-[#166534]" : ""}
+                      ${active  ? "bg-[#1C0F00] border-[#92400E] animate-pulse" : ""}
+                      ${pending ? "bg-transparent border-[#1E293B]" : ""}`}>
+                      {done   && <CheckCircle size={10} className="text-[#86EFAC]" />}
+                      {active && <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D]" />}
+                    </div>
+                    <span className={`text-sm leading-none transition-all
+                      ${done    ? "text-muted-foreground line-through" : ""}
+                      ${active  ? "text-[#FCD34D] font-medium" : ""}
+                      ${pending ? "text-muted-foreground/40" : ""}`}>
+                      {stage.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="text-xs text-muted-foreground">Usually takes 1–3 minutes. This page auto-refreshes.</div>
           </div>
         </div>
       </AppLayout>

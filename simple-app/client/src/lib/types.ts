@@ -5,6 +5,14 @@ export type ApprovalRole = "LEGAL" | "GC" | "CFO" | "BOARD";
 export type RagStatus = "RED" | "AMBER" | "GREEN" | "GREY";
 export type DocumentStatus = "UPLOADED" | "PROCESSING" | "COMPLETE" | "FAILED";
 export type FeedbackAction = "ACCEPTED" | "EDITED" | "ESCALATED" | "DISMISSED";
+export type FeedbackType = "STANDARD" | "TEACH_MIKE" | "FALSE_POSITIVE";
+export type ConfidenceLabel = "HIGH" | "MEDIUM" | "LOW";
+
+export interface RegulatoryCitation {
+  article: string;
+  regulation: string;
+  relevance: string;
+}
 
 export type ClauseCategory =
   | "LIABILITY_CAP"
@@ -532,7 +540,7 @@ export function getIndustryClauseCategories(industry: Industry): ClauseCategory[
   return map[industry] ?? [];
 }
 
-// Persona - determines onboarding flow and MIKE output framing
+// Persona - determines onboarding flow and Zane output framing
 export type Persona = "CORPORATE" | "FOUNDER";
 
 export const PERSONA_LABELS: Record<Persona, string> = {
@@ -642,6 +650,8 @@ export interface ReviewResult {
   ruleId?: string;
   clauseCategory: ClauseCategory;
   ragStatus: RagStatus;
+  /** Explicit comparison: "Your playbook says X, this clause says Y, missing: Z" */
+  comparisonStatement?: string;
   clauseSummary: string;
   whyItMatters: string;
   recommendedAction: string;
@@ -649,7 +659,10 @@ export interface ReviewResult {
   escalationRequired: boolean;
   escalationTrigger?: string;
   businessSummary: string;
-  confidence: number;
+  /** Qualitative confidence — LOW = mandatory lawyer review */
+  confidenceLabel?: ConfidenceLabel;
+  /** Parsed regulatory citations with article numbers */
+  regulatoryCitations?: RegulatoryCitation[];
   isAbsent: boolean;
   createdAt: string;
   feedback?: UserFeedback;
@@ -675,8 +688,10 @@ export interface UserFeedback {
   id: string;
   resultId: string;
   userAction: FeedbackAction;
+  feedbackType?: FeedbackType;
   editedOutput?: string;
   finalClauseText?: string;
+  correctOutput?: string;
   notes?: string;
   createdAt: string;
 }

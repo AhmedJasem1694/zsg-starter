@@ -13,7 +13,7 @@ export default function MikeNoticedPanel() {
   const { data, isLoading } = useQuery({
     queryKey: ["feedback-patterns"],
     queryFn: getFeedbackPatterns,
-    staleTime: 5 * 60 * 1000, // 5 min
+    staleTime: 5 * 60 * 1000,
   });
 
   if (isLoading) return null;
@@ -25,8 +25,11 @@ export default function MikeNoticedPanel() {
       <div className="card-body space-y-3">
         <div className="flex items-center gap-2">
           <Lightbulb size={14} className="text-primary" />
-          <span className="text-sm font-semibold">MIKE noticed</span>
+          <span className="text-sm font-semibold">Patterns detected</span>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Zane has identified recurring risk patterns across recent reviews.
+        </p>
         <div className="space-y-2.5">
           {patterns.map((p, i) => (
             <div key={i} className="flex items-start gap-2">

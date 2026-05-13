@@ -9,6 +9,7 @@ import { detectAndSaveRegulations } from "./services/regulatoryDetection.js";
 import { requireAuth, signToken } from "./middleware/auth.js";
 import { transcribeAudioFile } from "./services/transcription.js";
 import { chatComplete } from "./services/openrouter.js";
+import { audit } from "./services/auditLogger.js";
 
 // ── Express 4 async error helper ─────────────────────────────────────────────
 // Express 4 does NOT automatically forward rejected async handlers to next().
@@ -85,12 +86,20 @@ function mapDoc(d: PBRecord) {
 }
 
 function mapResult(r: PBRecord) {
+  let regulatoryCitations: unknown[] = [];
+  try {
+    if (r["regulatoryCitations"]) {
+      regulatoryCitations = JSON.parse(r["regulatoryCitations"] as string);
+    }
+  } catch { /* malformed JSON — return empty */ }
+
   return {
     ...r,
     documentId: r.document,
     clauseId: r.clause ?? null,
     ruleId: r.rule ?? null,
     createdAt: r.created,
+    regulatoryCitations,
   };
 }
 
@@ -154,6 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       const token = signToken({ userId: user.id, email: user["email"] as string });
       res.cookie("token", token, COOKIE_OPTS);
+      await audit({ action: "user_registered", userId: user.id, detail: { email: user["email"] } });
       res.json({ id: user.id, name: user["name"], email: user["email"] });
     } catch (err: unknown) {
       const pbErr = err as { status?: number; response?: { data?: Record<string, unknown> } };
@@ -185,6 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = authData.record;
       const token = signToken({ userId: user.id, email: user["email"] as string });
       res.cookie("token", token, COOKIE_OPTS);
+      await audit({ action: "user_login", userId: user.id, ipAddress: req.ip });
       res.json({ id: user.id, name: user["name"], email: user["email"] });
     } catch {
       sendError(res, 401, "Invalid email or password");
@@ -213,6 +224,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     await Promise.allSettled(existing.map((c) => pb.collection("companies").delete(c.id)));
 
     const company = await pb.collection("companies").create(parsed.data);
+
+    await audit({
+      action: "company_created",
+      entityType: "company",
+      entityId: company.id,
+      userId: req.user?.userId,
+      detail: { name: company["name"], sector: company["sector"], workflowType: company["workflowType"] },
+    });
 
     // Kick off regulatory detection async
     detectAndSaveRegulations(company.id).catch(console.error);
@@ -301,6 +320,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       )
     );
 
+    await audit({
+      action: "playbook_updated",
+      entityType: "company",
+      entityId: company.id,
+      userId: req.user?.userId,
+      detail: { rulesCount: created.length },
+    });
+
     res.json(created.map(mapRule));
   }));
 
@@ -317,7 +344,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       filter,
       sort: "+created",
     });
-    res.json(rules.map(mapRule));
+
+    // Derive playbook version from count of playbook_updated audit entries
+    let playbookVersion = 1;
+    try {
+      const versionResult = await pb.collection("audit_log").getList(1, 1, {
+        filter: `action = "playbook_updated" && companyId = "${company.id}"`,
+        sort: "-created",
+      });
+      playbookVersion = Math.max(1, versionResult.totalItems);
+    } catch { /* non-fatal */ }
+
+    res.json({ rules: rules.map(mapRule), playbookVersion });
   }));
 
   app.put("/api/playbook/rule/:id", requireAuth, ah(async (req: Request, res: Response) => {
@@ -325,12 +363,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!parsed.success) { sendError(res, 400, parsed.error.message); return; }
 
     const rule = await pb.collection("playbook_rules").update(req.params.id, parsed.data);
+
+    // Audit: playbook rule updated
+    const companyRec = await pb.collection("playbook_rules").getOne(rule.id);
+    await audit({
+      action: "playbook_updated",
+      entityType: "playbook_rule",
+      entityId: rule.id,
+      companyId: companyRec["company"] as string,
+      detail: { clauseCategory: rule["clauseCategory"], fields: Object.keys(parsed.data) },
+    });
+
     res.json(mapRule(rule));
+  }));
+
+  // Add a single new clause to the playbook
+  app.post("/api/playbook/rule", requireAuth, ah(async (req: Request, res: Response) => {
+    const { companyId, ...rest } = req.body as { companyId?: string } & Record<string, unknown>;
+
+    // Resolve company if not provided
+    let cId = companyId;
+    if (!cId) {
+      const companies = await pb.collection("companies").getFullList({ sort: "-created" });
+      if (!companies.length) { sendError(res, 400, "No company found"); return; }
+      cId = companies[0].id;
+    }
+
+    const rule = await pb.collection("playbook_rules").create({ ...rest, company: cId });
+
+    await audit({
+      action: "playbook_updated",
+      entityType: "playbook_rule",
+      entityId: rule.id,
+      companyId: cId,
+      detail: { clauseCategory: rule["clauseCategory"], action: "clause_added" },
+    });
+
+    res.status(201).json(mapRule(rule));
   }));
 
   app.delete("/api/playbook/rule/:id", requireAuth, ah(async (req: Request, res: Response) => {
     await pb.collection("playbook_rules").delete(req.params.id);
     res.json({ ok: true });
+  }));
+
+  // Feature 39 — Generate AI-suggested playbook position for a clause category
+  app.post("/api/playbook/generate-suggestion", requireAuth, ah(async (req: Request, res: Response) => {
+    const { clauseCategory, workflowType } = req.body as { clauseCategory?: string; workflowType?: string };
+    if (!clauseCategory) { res.status(400).json({ error: "clauseCategory required" }); return; }
+
+    const prompt = `You are a senior commercial lawyer. Generate a concise but precise playbook position for the "${clauseCategory.replace(/_/g, " ")}" clause type.
+Workflow context: ${workflowType ?? "COMMERCIAL_CONTRACT"}.
+
+Return ONLY valid JSON (no markdown, no explanation) in this exact format:
+{
+  "preferredPosition": "...",
+  "acceptableFallback": "...",
+  "hardRedLine": "..."
+}
+
+Each field should be 1-3 sentences of clear, practical legal language.
+- preferredPosition: what the company ideally wants
+- acceptableFallback: what the company can accept after negotiation
+- hardRedLine: what the company will never accept (deal-breaker)`;
+
+    const raw = await chatComplete([{ role: "user", content: prompt }], 600);
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) { res.status(500).json({ error: "Could not parse LLM response" }); return; }
+    const result = JSON.parse(match[0]) as { preferredPosition: string; acceptableFallback: string; hardRedLine: string };
+    res.json(result);
   }));
 
   // ── Approval Contacts ────────────────────────────────────────────────────────
@@ -393,6 +494,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         noticePeriodDays,
         renewalDate,
         contractTags: body.contractTags ?? "",
+      });
+
+      await audit({
+        action: "contract_uploaded",
+        entityType: "uploaded_document",
+        entityId: doc.id,
+        companyId: company.id,
+        userId: req.user?.userId,
+        ipAddress: req.ip,
+        detail: { contractType: doc["contractType"], originalName: doc["originalName"], contractValue },
       });
 
       res.json(mapDoc(doc));
@@ -587,13 +698,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     let feedback: PBRecord;
     if (existing.length > 0) {
-      feedback = await pb.collection("user_feedback").update(existing[0].id, parsed.data);
+      feedback = await pb.collection("user_feedback").update(existing[0].id, {
+        ...parsed.data,
+        feedbackType: "STANDARD",
+      });
     } else {
       feedback = await pb.collection("user_feedback").create({
         result: req.params.resultId,
+        feedbackType: "STANDARD",
         ...parsed.data,
       });
     }
+
+    const actionMap: Record<string, import("./services/auditLogger.js").AuditAction> = {
+      ACCEPTED:  "feedback_accepted",
+      EDITED:    "feedback_edited",
+      ESCALATED: "feedback_escalated",
+      DISMISSED: "feedback_dismissed",
+    };
+    await audit({
+      action: actionMap[parsed.data.userAction] ?? "feedback_accepted",
+      entityType: "review_result",
+      entityId: req.params.resultId,
+      userId: req.user?.userId,
+    });
+
+    res.json(mapFeedback(feedback));
+  }));
+
+  // ── Teach MIKE ────────────────────────────────────────────────────────────────
+  // Captures a lawyer correction: what MIKE got wrong + what the correct analysis is.
+  // Stored separately from standard feedback so it can train the knowledge layer.
+
+  app.post("/api/feedback/teach-mike/:resultId", requireAuth, ah(async (req: Request, res: Response) => {
+    const parsed = z.object({
+      incorrectOutput: z.string().min(1),
+      correctOutput:   z.string().min(1),
+      notes:           z.string().optional(),
+    }).safeParse(req.body);
+    if (!parsed.success) { sendError(res, 400, parsed.error.message); return; }
+
+    const existing = await pb.collection("user_feedback").getFullList({
+      filter: `result = "${req.params.resultId}"`,
+    });
+
+    let feedback: PBRecord;
+    if (existing.length > 0) {
+      feedback = await pb.collection("user_feedback").update(existing[0].id, {
+        feedbackType:  "TEACH_MIKE",
+        userAction:    "EDITED",
+        editedOutput:  parsed.data.incorrectOutput,
+        correctOutput: parsed.data.correctOutput,
+        notes:         parsed.data.notes ?? "",
+      });
+    } else {
+      feedback = await pb.collection("user_feedback").create({
+        result:        req.params.resultId,
+        feedbackType:  "TEACH_MIKE",
+        userAction:    "EDITED",
+        editedOutput:  parsed.data.incorrectOutput,
+        correctOutput: parsed.data.correctOutput,
+        notes:         parsed.data.notes ?? "",
+      });
+    }
+
+    await audit({
+      action: "teach_mike_correction",
+      entityType: "review_result",
+      entityId: req.params.resultId,
+      userId: req.user?.userId,
+      detail: { correctOutputLength: parsed.data.correctOutput.length },
+    });
+
+    res.json(mapFeedback(feedback));
+  }));
+
+  // ── False Positive ────────────────────────────────────────────────────────────
+  // Marks a clause extraction as incorrect — the clause wasn't really there or was
+  // misclassified. Logged separately to improve the classifier over time.
+
+  app.post("/api/feedback/false-positive/:resultId", requireAuth, ah(async (req: Request, res: Response) => {
+    const parsed = z.object({
+      notes: z.string().optional(),
+    }).safeParse(req.body);
+    if (!parsed.success) { sendError(res, 400, parsed.error.message); return; }
+
+    const existing = await pb.collection("user_feedback").getFullList({
+      filter: `result = "${req.params.resultId}"`,
+    });
+
+    let feedback: PBRecord;
+    if (existing.length > 0) {
+      feedback = await pb.collection("user_feedback").update(existing[0].id, {
+        feedbackType: "FALSE_POSITIVE",
+        userAction:   "DISMISSED",
+        notes:        parsed.data.notes ?? "Marked as false positive",
+      });
+    } else {
+      feedback = await pb.collection("user_feedback").create({
+        result:       req.params.resultId,
+        feedbackType: "FALSE_POSITIVE",
+        userAction:   "DISMISSED",
+        notes:        parsed.data.notes ?? "Marked as false positive",
+      });
+    }
+
+    await audit({
+      action: "false_positive_marked",
+      entityType: "review_result",
+      entityId: req.params.resultId,
+      userId: req.user?.userId,
+    });
 
     res.json(mapFeedback(feedback));
   }));
@@ -1103,6 +1318,35 @@ Write the negotiation email paragraph.`;
   app.delete("/api/ancillary/:ancillaryId", requireAuth, ah(async (req: Request, res: Response) => {
     await pb.collection("ancillary_documents").delete(req.params.ancillaryId);
     res.json({ ok: true });
+  }));
+
+  // ── Audit Trail ──────────────────────────────────────────────────────────────
+
+  app.get("/api/audit", requireAuth, ah(async (req: Request, res: Response) => {
+    const limit  = Math.min(parseInt((req.query.limit as string) ?? "50", 10), 200);
+    const page   = parseInt((req.query.page as string) ?? "1", 10);
+    const filter = req.query.action ? `action = "${req.query.action}"` : "";
+
+    const result = await pb.collection("audit_log").getList(page, limit, {
+      sort: "-created",
+      filter: filter || undefined,
+    });
+
+    res.json({
+      entries: result.items.map((r) => ({
+        id: r.id,
+        action: r["action"],
+        entityType: r["entityType"],
+        entityId: r["entityId"],
+        companyId: r["companyId"],
+        userId: r["userId"],
+        detail: r["detail"] ? (() => { try { return JSON.parse(r["detail"] as string); } catch { return {}; } })() : {},
+        createdAt: r.created,
+      })),
+      totalPages: result.totalPages,
+      totalItems: result.totalItems,
+      page: result.page,
+    });
   }));
 
   // ── Health ───────────────────────────────────────────────────────────────────

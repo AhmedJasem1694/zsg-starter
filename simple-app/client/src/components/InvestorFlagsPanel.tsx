@@ -22,13 +22,13 @@ const INVESTOR_UNFRIENDLY_CLAUSES = new Set([
 ]);
 
 const FOUNDER_FLAG_LABELS: Partial<Record<ClauseCategory, string>> = {
-  LIQUIDATION_PREFERENCE: "Liquidation preference — who gets paid first",
-  ANTI_DILUTION:          "Anti-dilution — how investors protect their %",
-  DRAG_ALONG:             "Drag-along — investors can force a sale",
-  REDEMPTION_RIGHTS:      "Redemption rights — investors can demand cash back",
-  PAY_TO_PLAY:            "Pay-to-play — penalties if you don't invest in next round",
-  BOARD_COMPOSITION:      "Board composition — who controls decisions",
-  OPTION_POOL_SHUFFLE:    "Option pool — dilution before investors come in",
+  LIQUIDATION_PREFERENCE: "Liquidation preference: who gets paid first",
+  ANTI_DILUTION:          "Anti-dilution: how investors protect their %",
+  DRAG_ALONG:             "Drag-along: investors can force a sale",
+  REDEMPTION_RIGHTS:      "Redemption rights: investors can demand cash back",
+  PAY_TO_PLAY:            "Pay-to-play: penalties if you don't invest in next round",
+  BOARD_COMPOSITION:      "Board composition: who controls decisions",
+  OPTION_POOL_SHUFFLE:    "Option pool: dilution before investors come in",
 };
 
 type DocWithResults = UploadedDocument;
@@ -70,7 +70,7 @@ export default function InvestorFlagsPanel() {
           <span className="text-sm font-semibold text-[#FCD34D]">Investor term flags</span>
         </div>
         <p className="text-xs text-[#FCD34D] opacity-80">
-          MIKE spotted these investor-unfriendly terms in your investment documents.
+          Zane spotted these investor-unfriendly terms in your investment documents.
         </p>
         <div className="space-y-2">
           {flags.slice(0, 5).map(({ docId, docName, result }) => (

@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { ArrowLeft, AlertTriangle, Clock, CheckCircle, Download, ChevronDown, ChevronUp, Mail, Copy, Loader2 } from "lucide-react";
-import { getReview, saveFeedback, generateReply } from "../lib/api";
+import { ArrowLeft, AlertTriangle, Clock, CheckCircle, Download, ChevronDown, ChevronUp, Mail, Copy, Loader2, GraduationCap, XCircle, BookOpen, Scale, Zap, Info } from "lucide-react";
+import { getReview, saveFeedback, generateReply, teachMike, markFalsePositive } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
-import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument } from "../lib/types";
+import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, ConfidenceLabel, RegulatoryCitation } from "../lib/types";
 import { CLAUSE_LABELS } from "../lib/types";
 
 const RAG_BADGE: Record<RagStatus, string> = {
@@ -72,17 +72,55 @@ export default function ReviewDetail() {
   }
 
   if (doc.status === "PROCESSING") {
+    const elapsedSec = (Date.now() - new Date(doc.uploadedAt).getTime()) / 1000;
+    const DETAIL_STAGES = [
+      { label: "Parsing document",              maxSec: 15  },
+      { label: "Anonymising sensitive data",    maxSec: 35  },
+      { label: "Identifying clause categories", maxSec: 70  },
+      { label: "Comparing against playbook",    maxSec: 130 },
+      { label: "Applying regulatory context",   maxSec: 200 },
+      { label: "Preparing review report",       maxSec: Infinity },
+    ];
+    const activeIdx = DETAIL_STAGES.findIndex((s) => elapsedSec < s.maxSec);
+    const stageIdx  = activeIdx === -1 ? DETAIL_STAGES.length - 1 : activeIdx;
+
     return (
       <AppLayout>
         <div className="px-6 py-8 max-w-5xl mx-auto space-y-4">
           <BackButton onClick={() => navigate("/app/legal/dashboard")} />
-          <div className="card p-12 text-center space-y-4">
-            <div className="w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto" />
-            <div className="font-semibold">MIKE is reviewing this contract</div>
-            <div className="text-sm text-muted-foreground max-w-sm mx-auto">
-              Classifying clauses, comparing against your playbook and regulatory frameworks.
-              Usually takes 1–3 minutes.
+          <div className="card p-8 space-y-6 border-[#1C2A3A]" style={{ background: "#0D1B2A" }}>
+            <div className="flex items-center gap-3">
+              <Zap size={18} className="text-[#60A5FA]" />
+              <div>
+                <div className="font-semibold text-[#93C5FD]">Zane is reviewing this contract</div>
+                <div className="text-xs text-muted-foreground mt-0.5 truncate">{doc.originalName}</div>
+              </div>
             </div>
+            <div className="space-y-2.5 max-w-sm">
+              {DETAIL_STAGES.map((stage, i) => {
+                const done    = i < stageIdx;
+                const active  = i === stageIdx;
+                const pending = i > stageIdx;
+                return (
+                  <div key={stage.label} className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all
+                      ${done    ? "bg-[#14532D] border-[#166534]" : ""}
+                      ${active  ? "bg-[#1C0F00] border-[#92400E] animate-pulse" : ""}
+                      ${pending ? "bg-transparent border-[#1E293B]" : ""}`}>
+                      {done && <CheckCircle size={10} className="text-[#86EFAC]" />}
+                      {active && <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D]" />}
+                    </div>
+                    <span className={`text-sm leading-none transition-all
+                      ${done    ? "text-muted-foreground line-through" : ""}
+                      ${active  ? "text-[#FCD34D] font-medium" : ""}
+                      ${pending ? "text-muted-foreground/40" : ""}`}>
+                      {stage.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="text-xs text-muted-foreground">Usually takes 1–3 minutes. This page auto-refreshes.</div>
           </div>
         </div>
       </AppLayout>
@@ -204,6 +242,13 @@ export default function ReviewDetail() {
 
 // ─── Clause Card ──────────────────────────────────────────────────────────────
 
+// Confidence badge config
+const CONFIDENCE_CONFIG: Record<ConfidenceLabel, { label: string; classes: string; icon?: string }> = {
+  HIGH:   { label: "High confidence",   classes: "bg-[#052E16] border-[#14532D] text-[#86EFAC]" },
+  MEDIUM: { label: "Medium confidence", classes: "bg-[#1C0F00] border-[#431407] text-[#FCD34D]" },
+  LOW:    { label: "Lawyer review required", classes: "bg-[#1F0A0A] border-[#450A0A] text-[#FCA5A5]" },
+};
+
 function ClauseCard({
   result,
   expanded,
@@ -220,6 +265,19 @@ function ClauseCard({
   const [copiedReply, setCopiedReply] = useState(false);
   const [showWhatAgreed, setShowWhatAgreed] = useState(false);
   const [agreedText, setAgreedText] = useState("");
+
+  // Teach Zane state
+  const [showTeachMike, setShowTeachMike] = useState(false);
+  const [incorrectOutput, setIncorrectOutput] = useState("");
+  const [correctOutput, setCorrectOutput] = useState("");
+  const [teachSubmitting, setTeachSubmitting] = useState(false);
+  const [teachDone, setTeachDone] = useState(false);
+
+  // False positive state
+  const [fpSubmitting, setFpSubmitting] = useState(false);
+  const [fpDone, setFpDone] = useState(
+    result.feedback?.feedbackType === "FALSE_POSITIVE"
+  );
 
   const feedback = result.feedback;
   const label = CLAUSE_LABELS[result.clauseCategory] ?? result.clauseCategory;
@@ -242,6 +300,28 @@ function ClauseCard({
     try { await onFeedback(action, finalClauseText); } finally { setSubmitting(null); }
   }
 
+  async function handleTeachMike() {
+    if (!incorrectOutput.trim() || !correctOutput.trim()) return;
+    setTeachSubmitting(true);
+    try {
+      await teachMike(result.id, { incorrectOutput, correctOutput });
+      setTeachDone(true);
+      setShowTeachMike(false);
+    } finally {
+      setTeachSubmitting(false);
+    }
+  }
+
+  async function handleFalsePositive() {
+    setFpSubmitting(true);
+    try {
+      await markFalsePositive(result.id);
+      setFpDone(true);
+    } finally {
+      setFpSubmitting(false);
+    }
+  }
+
   return (
     <div className={`card overflow-hidden ${expanded ? "shadow-md" : ""}`}>
       {/* Header row */}
@@ -255,7 +335,7 @@ function ClauseCard({
             <span className="text-sm font-semibold">{label}</span>
             {result.isAbsent && (
               <span className="text-[11px] bg-[#0F172A] text-[#94A3B8] border border-[#334155] rounded px-1.5 py-0.5">
-                Not found in contract
+                Clause absent
               </span>
             )}
             {result.escalationRequired && (
@@ -280,6 +360,54 @@ function ClauseCard({
       {/* Expanded */}
       {expanded && (
         <div className="border-t border-card-border px-5 py-5 space-y-5 bg-muted/10">
+
+          {/* ── Decision summary — FIRST ──────────────────────────────────── */}
+          <div className="rounded-xl border border-[#1E293B] bg-[#0F172A] p-4 space-y-3">
+            <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Decision summary</div>
+            {result.isAbsent && (
+              <div className="flex items-start gap-2 rounded-lg bg-[#0F172A] border border-[#334155] px-3 py-2">
+                <Info size={12} className="text-[#94A3B8] shrink-0 mt-0.5" />
+                <span className="text-xs text-[#94A3B8]">
+                  This clause was not identified in the contract. Review whether your playbook requires it to be present.
+                </span>
+              </div>
+            )}
+
+            {/* Recommended action — prominent */}
+            <div className="text-sm font-semibold text-foreground leading-snug">{result.recommendedAction}</div>
+
+            {/* Business summary */}
+            <div className="text-xs text-muted-foreground leading-relaxed">{result.businessSummary}</div>
+
+            {/* Escalation inline */}
+            {result.escalationRequired && result.escalationTrigger && (
+              <div className="flex items-start gap-2 rounded-lg bg-[#1F0A0A] border border-[#450A0A] px-3 py-2 mt-1">
+                <AlertTriangle size={12} className="shrink-0 mt-0.5 text-[#FCA5A5]" />
+                <span className="text-xs text-[#FCA5A5]">{result.escalationTrigger}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Confidence label */}
+          {result.confidenceLabel && (
+            <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border w-fit ${CONFIDENCE_CONFIG[result.confidenceLabel].classes}`}>
+              <Scale size={11} />
+              {CONFIDENCE_CONFIG[result.confidenceLabel].label}
+              {result.confidenceLabel === "LOW" && (
+                <span className="ml-1 font-semibold">Zane is uncertain. Have a lawyer verify this clause before relying on this analysis.</span>
+              )}
+            </div>
+          )}
+
+          {/* Playbook comparison — verification-first */}
+          {result.comparisonStatement && (
+            <Detail title="Playbook comparison">
+              <div className="bg-[#0F172A] border border-[#1E293B] rounded-lg px-4 py-3 text-sm leading-relaxed text-[#94A3B8] font-mono">
+                {result.comparisonStatement}
+              </div>
+            </Detail>
+          )}
+
           <Detail title="What this clause says">
             <p className="text-sm leading-relaxed">{result.clauseSummary}</p>
           </Detail>
@@ -288,34 +416,34 @@ function ClauseCard({
             <p className="text-sm leading-relaxed">{result.whyItMatters}</p>
           </Detail>
 
-          <Detail title="Recommended action">
-            <div className="text-sm font-semibold text-foreground bg-card border border-card-border rounded-lg px-4 py-3">
-              {result.recommendedAction}
-            </div>
-          </Detail>
+          {/* Regulatory citations */}
+          {result.regulatoryCitations && result.regulatoryCitations.length > 0 && (
+            <Detail title="Regulatory references">
+              <div className="space-y-2">
+                {result.regulatoryCitations.map((c: RegulatoryCitation, i: number) => (
+                  <div key={i} className="flex items-start gap-2.5 rounded-lg bg-[#1E1B4B] border border-[#312E81] px-3 py-2">
+                    <BookOpen size={11} className="text-[#A5B4FC] shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold text-[#A5B4FC]">{c.regulation} — {c.article}</div>
+                      <div className="text-[11px] text-[#A5B4FC] opacity-80 mt-0.5">{c.relevance}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Detail>
+          )}
 
+          {/* Suggested fallback with Copy button */}
           {result.suggestedFallback && (
             <Detail title="Suggested fallback language">
-              <div className="clause-block text-sm leading-relaxed">
-                {result.suggestedFallback}
+              <div className="space-y-2">
+                <div className="clause-block text-sm leading-relaxed">
+                  {result.suggestedFallback}
+                </div>
+                <FallbackCopyButton text={result.suggestedFallback} />
               </div>
             </Detail>
           )}
-
-          {result.escalationRequired && result.escalationTrigger && (
-            <Detail title="Escalation trigger">
-              <div className="bg-[#1F0A0A] border border-[#450A0A] rounded-lg px-4 py-3 text-sm text-[#FCA5A5] flex gap-2">
-                <AlertTriangle size={14} className="shrink-0 mt-0.5 text-[#FCA5A5]" />
-                {result.escalationTrigger}
-              </div>
-            </Detail>
-          )}
-
-          <Detail title="Plain English summary - for stakeholders">
-            <div className="bg-card border border-card-border rounded-lg px-4 py-3 text-sm leading-relaxed">
-              {result.businessSummary}
-            </div>
-          </Detail>
 
           {/* Generate reply (for RED/AMBER clauses) */}
           {(result.ragStatus === "RED" || result.ragStatus === "AMBER") && (
@@ -327,13 +455,13 @@ function ClauseCard({
                   disabled={replyMutation.isPending}
                 >
                   {replyMutation.isPending ? (
-                    <><Loader2 size={11} className="animate-spin" /> Drafting reply…</>
+                    <><Loader2 size={11} className="animate-spin" /> Drafting response…</>
                   ) : (
-                    <><Mail size={11} /> Draft negotiation reply</>
+                    <><Mail size={11} /> Draft negotiation response</>
                   )}
                 </button>
               ) : (
-                <Detail title="Negotiation reply — copy and send">
+                <Detail title="Negotiation reply">
                   <div className="space-y-2">
                     <p className="text-sm leading-relaxed whitespace-pre-wrap bg-card border border-card-border rounded-lg px-4 py-3">
                       {generatedReply}
@@ -361,61 +489,150 @@ function ClauseCard({
 
           {/* Feedback */}
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-card-border">
-            <span className="text-xs text-muted-foreground">Outcome:</span>
-            {(["ACCEPTED", "ESCALATED", "DISMISSED"] as FeedbackAction[]).map((action) => {
-              const icons: Record<string, React.ReactNode> = {
-                ACCEPTED: <CheckCircle size={12} />,
-                ESCALATED: <AlertTriangle size={12} />,
-                DISMISSED: <Clock size={12} />,
-              };
-              return (
-                <button
-                  key={action}
-                  disabled={!!submitting}
-                  onClick={() => {
-                    if (action === "ACCEPTED") { setShowWhatAgreed(true); return; }
-                    void handle(action);
-                  }}
-                  className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
-                    feedback?.userAction === action
-                      ? "bg-[#2563EB] text-white border-[#2563EB]"
-                      : "border-border hover:border-[#475569]"
-                  }`}
-                >
-                  {submitting === action ? "…" : <>{icons[action]} {action.charAt(0) + action.slice(1).toLowerCase()}</>}
-                </button>
-              );
-            })}
+            <span className="text-xs text-muted-foreground">Record outcome:</span>
+            {([
+              { action: "ACCEPTED",  label: "Accept result",      icon: <CheckCircle size={12} /> },
+              { action: "ESCALATED", label: "Escalate internally", icon: <AlertTriangle size={12} /> },
+              { action: "DISMISSED", label: "Dismiss",             icon: <Clock size={12} /> },
+            ] as { action: FeedbackAction; label: string; icon: React.ReactNode }[]).map(({ action, label, icon }) => (
+              <button
+                key={action}
+                disabled={!!submitting}
+                onClick={() => {
+                  if (action === "ACCEPTED") { setShowWhatAgreed(true); return; }
+                  void handle(action);
+                }}
+                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
+                  feedback?.userAction === action
+                    ? "bg-[#2563EB] text-white border-[#2563EB]"
+                    : "border-border hover:border-[#475569]"
+                }`}
+              >
+                {submitting === action ? "…" : <>{icon} {label}</>}
+              </button>
+            ))}
           </div>
 
-          {/* What was agreed capture */}
+          {/* Outcome capture modal — dedicated screen overlay */}
           {showWhatAgreed && (
-            <div className="rounded-lg border border-[#14532D] bg-[#052E16] p-3 space-y-2">
-              <div className="text-xs font-medium text-[#86EFAC]">
-                Optional: record the final agreed wording
-              </div>
-              <textarea
-                className="input text-xs min-h-[64px] resize-none w-full"
-                placeholder="Paste the final clause text as signed…"
-                value={agreedText}
-                onChange={(e) => setAgreedText(e.target.value)}
-              />
-              <div className="flex gap-2">
-                <button
-                  className="btn-primary text-xs px-3 py-1.5"
-                  onClick={() => { void handle("ACCEPTED", agreedText || undefined); setShowWhatAgreed(false); }}
-                >
-                  Save & accept
-                </button>
-                <button
-                  className="btn-ghost text-xs px-3 py-1.5"
-                  onClick={() => { void handle("ACCEPTED"); setShowWhatAgreed(false); }}
-                >
-                  Accept without recording
-                </button>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }}>
+              <div className="w-full max-w-md rounded-2xl border border-[#14532D] bg-[#030f08] shadow-2xl p-6 space-y-5">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle size={16} className="text-[#86EFAC]" />
+                    <span className="text-sm font-semibold text-[#86EFAC]">Capture signed outcome</span>
+                  </div>
+                  <div className="text-xs text-[#86EFAC]/60 leading-relaxed">
+                    Record the final agreed wording for <span className="font-medium">{label}</span>. This trains Zane on your actual negotiation outcomes.
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-semibold uppercase tracking-widest text-[#86EFAC]/50">Final agreed clause text (optional)</label>
+                  <textarea
+                    className="w-full rounded-xl border border-[#14532D] bg-[#052E16] px-3.5 py-2.5 text-sm text-[#86EFAC] placeholder:text-[#86EFAC]/25 focus:outline-none focus:border-[#166534] min-h-[96px] resize-y font-mono"
+                    placeholder="Paste the final clause text as executed…"
+                    value={agreedText}
+                    onChange={(e) => setAgreedText(e.target.value)}
+                    autoFocus
+                  />
+                  <p className="text-[10px] text-[#86EFAC]/40 leading-relaxed">
+                    Optional. Leave blank to record acceptance without clause text. Zane uses this to improve future recommendations for this clause type.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 pt-1">
+                  <button
+                    className="w-full px-4 py-2.5 bg-[#14532D] hover:bg-[#166534] text-[#86EFAC] text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+                    onClick={() => { void handle("ACCEPTED", agreedText || undefined); setShowWhatAgreed(false); }}
+                  >
+                    <CheckCircle size={14} /> Save & mark accepted
+                  </button>
+                  <button
+                    className="w-full px-4 py-2 text-xs text-[#86EFAC]/50 hover:text-[#86EFAC]/80 transition-colors"
+                    onClick={() => { void handle("ACCEPTED"); setShowWhatAgreed(false); setAgreedText(""); }}
+                  >
+                    Accept without recording clause text
+                  </button>
+                </div>
               </div>
             </div>
           )}
+
+          {/* ── Improve this analysis: Teach Zane + False Positive ── */}
+          <div className="pt-2 border-t border-card-border space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground">Improve this analysis:</span>
+
+              <button
+                onClick={() => setShowTeachMike(!showTeachMike)}
+                disabled={teachDone}
+                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors ${
+                  teachDone
+                    ? "bg-[#052E16] border-[#14532D] text-[#86EFAC]"
+                    : "border-border hover:border-[#475569]"
+                }`}
+              >
+                <GraduationCap size={11} />
+                {teachDone ? "Saved. Zane will apply this in future reviews." : "Mark as incorrect"}
+              </button>
+
+              {!result.isAbsent && (
+                <button
+                  onClick={() => void handleFalsePositive()}
+                  disabled={fpSubmitting || fpDone}
+                  className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
+                    fpDone
+                      ? "bg-[#1F0A0A] border-[#450A0A] text-[#FCA5A5]"
+                      : "border-border hover:border-[#475569]"
+                  }`}
+                >
+                  <XCircle size={11} />
+                  {fpDone ? "Marked false positive" : fpSubmitting ? "…" : "False positive"}
+                </button>
+              )}
+            </div>
+
+            {showTeachMike && (
+              <div className="rounded-lg border border-[#172B4D] bg-[#0B1020] p-4 space-y-3">
+                <div className="text-xs font-semibold text-[#60A5FA]">
+                  Correct this analysis
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground">What Zane said (incorrect part)</label>
+                  <textarea
+                    className="input text-xs min-h-[56px] resize-none w-full"
+                    placeholder="Paste or describe the part of Zane's analysis that was wrong…"
+                    value={incorrectOutput}
+                    onChange={(e) => setIncorrectOutput(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs text-muted-foreground">What the correct analysis should say</label>
+                  <textarea
+                    className="input text-xs min-h-[56px] resize-none w-full"
+                    placeholder="Describe the correct legal position or what Zane should have flagged…"
+                    value={correctOutput}
+                    onChange={(e) => setCorrectOutput(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1.5"
+                    onClick={() => void handleTeachMike()}
+                    disabled={teachSubmitting || !incorrectOutput.trim() || !correctOutput.trim()}
+                  >
+                    {teachSubmitting ? <Loader2 size={11} className="animate-spin" /> : <GraduationCap size={11} />}
+                    Save correction
+                  </button>
+                  <button
+                    className="btn-ghost text-xs px-3 py-1.5"
+                    onClick={() => setShowTeachMike(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -436,7 +653,7 @@ function exportReviewAsText(doc: UploadedDocument) {
   const date = new Date(doc.uploadedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
   const lines: string[] = [
-    "MIKE REVIEW SUMMARY",
+    "ZANE REVIEW SUMMARY",
     "===================",
     "",
     `Contract:    ${doc.originalName}`,
@@ -487,13 +704,13 @@ function exportReviewAsText(doc: UploadedDocument) {
     lines.push("");
   }
 
-  lines.push("", "Generated by MIKE - Legal Decision Engine", "https://usemike.co");
+  lines.push("", "Generated by Zane", "https://usezane.ai");
 
   const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href     = url;
-  a.download = `MIKE-Review-${doc.originalName.replace(/\.[^.]+$/, "")}.txt`;
+  a.download = `Zane-Review-${doc.originalName.replace(/\.[^.]+$/, "")}.txt`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -518,24 +735,24 @@ function getGovernanceTriggers(
 
   switch (counterpartyType) {
     case "RELATED_PARTY":
-      triggers.push({ label: "Related party / connected party — Board sign-off always required", approvers: ["Board"] });
+      triggers.push({ label: "Related party / connected party: Board sign-off required", approvers: ["Board"] });
       break;
     case "REGULATOR":
-      triggers.push({ label: "Regulator / government body — GC sign-off always required", approvers: ["GC"] });
+      triggers.push({ label: "Regulator / government body: GC sign-off required", approvers: ["GC"] });
       break;
     case "INVESTOR":
-      triggers.push({ label: "Investor / shareholder — GC and CFO always required", approvers: ["GC", "CFO"] });
+      triggers.push({ label: "Investor / shareholder: GC and CFO required", approvers: ["GC", "CFO"] });
       break;
     case "COMPETITOR":
-      triggers.push({ label: "Competitor — GC and CEO always required", approvers: ["GC", "CEO"] });
+      triggers.push({ label: "Competitor: GC and CEO required", approvers: ["GC", "CEO"] });
       break;
   }
 
   if (contractType === "JV_AGREEMENT") {
-    triggers.push({ label: "Joint venture — Board sign-off always required", approvers: ["Board"] });
+    triggers.push({ label: "Joint venture: Board sign-off required", approvers: ["Board"] });
   }
   if (contractType && (contractType.includes("EXCLUSIV") || contractType === "EXCLUSIVITY")) {
-    triggers.push({ label: "Exclusivity agreement — CEO minimum always required", approvers: ["CEO"] });
+    triggers.push({ label: "Exclusivity agreement: CEO minimum required", approvers: ["CEO"] });
   }
 
   return triggers;
@@ -581,7 +798,7 @@ function EscalationSummary({
       <div className="bg-[#1F0A0A] px-5 py-3 flex items-center gap-3 border-b border-[#450A0A]">
         <AlertTriangle size={16} className="text-[#FCA5A5] shrink-0" />
         <span className="text-sm font-semibold text-[#FCA5A5] flex-1">
-          Escalation required — {tiersActive} tier{tiersActive !== 1 ? "s" : ""} triggered
+          Escalation required: {tiersActive} tier{tiersActive !== 1 ? "s" : ""} triggered
         </span>
       </div>
 
@@ -590,7 +807,7 @@ function EscalationSummary({
         {tier1Clauses.length > 0 && (
           <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] p-4 space-y-2">
             <div className="text-xs font-semibold uppercase tracking-wider text-[#FCA5A5]">
-              Tier 1 — Clause Risk
+              Tier 1: Clause Risk
             </div>
             <ul className="space-y-1.5">
               {tier1Clauses.map((r) => (
@@ -599,7 +816,7 @@ function EscalationSummary({
                   <span>
                     <span className="font-semibold">{CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory}</span>
                     {r.escalationTrigger && (
-                      <span className="opacity-80"> — {r.escalationTrigger}</span>
+                      <span className="opacity-80">: {r.escalationTrigger}</span>
                     )}
                   </span>
                 </li>
@@ -612,13 +829,13 @@ function EscalationSummary({
         {valueTier && (
           <div className="rounded-lg bg-[#1C0F00] border border-[#431407] p-4 space-y-2">
             <div className="text-xs font-semibold uppercase tracking-wider text-[#FCD34D]">
-              Tier 2 — Contract Value
+              Tier 2: Contract Value
             </div>
             <div className="text-sm text-[#FCD34D]">
               <span className="font-semibold">
                 {doc.currency ?? "£"}{doc.contractValue!.toLocaleString("en-GB")}
               </span>{" "}
-              — {valueTier.label}
+              : {valueTier.label}
             </div>
           </div>
         )}
@@ -627,7 +844,7 @@ function EscalationSummary({
         {govTriggers.length > 0 && (
           <div className="rounded-lg bg-[#1E1B4B] border border-[#312E81] p-4 space-y-2">
             <div className="text-xs font-semibold uppercase tracking-wider text-[#A5B4FC]">
-              Tier 3 — Governance
+              Tier 3: Governance
             </div>
             <ul className="space-y-1.5">
               {govTriggers.map((t, i) => (
@@ -672,11 +889,11 @@ function EscalationSummary({
           </button>
           {showExplainer && (
             <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-              MIKE uses three escalation tiers. <strong>Tier 1</strong> fires when individual clauses
+              Zane uses three escalation tiers. <strong>Tier 1</strong> fires when individual clauses
               contain terms that exceed your playbook thresholds and require sign-off.{" "}
               <strong>Tier 2</strong> fires when the total contract value crosses an authority threshold
               set by your organisation. <strong>Tier 3</strong> fires based on the nature of the
-              counterparty or contract type — certain relationships (regulators, investors, related
+              counterparty or contract type. Certain relationships (regulators, investors, related
               parties) and structures (JVs, exclusivity) always require elevated sign-off regardless
               of clause content or value.
             </p>
@@ -684,6 +901,25 @@ function EscalationSummary({
         </div>
       </div>
     </div>
+  );
+}
+
+function FallbackCopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  function copy() {
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+  return (
+    <button
+      onClick={copy}
+      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border hover:border-[#475569] transition-colors"
+    >
+      <Copy size={11} />
+      {copied ? "Copied!" : "Copy fallback language"}
+    </button>
   );
 }
 

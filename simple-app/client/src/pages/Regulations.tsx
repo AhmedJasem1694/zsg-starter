@@ -80,9 +80,9 @@ export default function Regulations() {
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold">Regulatory environment</h1>
+            <h1 className="text-2xl font-semibold">Regulatory Profile</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Frameworks MIKE applies when reviewing your contracts. Detected from your company's sector and jurisdictions.
+              Regulatory context Zane applies when reviewing your contracts. Detected from your company sector and jurisdiction.
             </p>
           </div>
           <button
@@ -99,7 +99,7 @@ export default function Regulations() {
         <div className="card bg-accent border-accent-border p-4 flex gap-3">
           <Shield size={16} className="text-primary mt-0.5 shrink-0" />
           <p className="text-sm text-foreground/80">
-            MIKE injects these regulatory requirements into every contract review - flagging clauses that conflict with your
+            Zane injects these regulatory requirements into every contract review - flagging clauses that conflict with your
             obligations even if your playbook doesn't explicitly mention them.
           </p>
         </div>
@@ -112,7 +112,7 @@ export default function Regulations() {
             <div>
               <div className="text-sm font-medium">No regulatory frameworks detected yet</div>
               <div className="text-xs text-muted-foreground mt-1">
-                Click "Re-detect" above - MIKE will analyse your company sector and jurisdiction.
+                Click "Re-detect" above - Zane will analyse your company sector and jurisdiction.
               </div>
             </div>
             <button
