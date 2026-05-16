@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, Search, Loader2, Building2, ChevronDown } from "lucide-react";
+import { ZaneLogo } from "../components/ZaneLogo";
 import { createCompany, savePlaybookRules, saveContacts, detectRegulations, searchCompany, enrichCompanyData } from "../lib/api";
 import type { CompanyCandidate, EnrichedCompany } from "../lib/api";
 import {
@@ -353,15 +354,9 @@ export default function Onboarding() {
 
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-white/8 flex items-center gap-3 px-6 py-4 backdrop-blur-md"
-        style={{ background: "rgba(11,16,32,0.88)" }}>
-        <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-            <span className="text-white text-xs font-bold">M</span>
-          </div>
-          <div>
-            <span className="text-sm font-semibold text-white">Zane</span>
-            <span className="text-[10px] text-white/30 ml-2 tracking-widest uppercase hidden sm:block">Legal Decision Engine</span>
-          </div>
+        style={{ background: "rgba(11,17,24,0.92)" }}>
+        <Link to="/" className="hover:opacity-80 transition-opacity">
+          <ZaneLogo size="sm" light={true} />
         </Link>
         <div className="ml-auto flex items-center gap-4">
           <Link to="/" className="text-xs text-white/35 hover:text-white/70 transition-colors hidden sm:block">← Home</Link>

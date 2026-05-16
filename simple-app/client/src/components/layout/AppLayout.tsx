@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
+import { ZaneLogo } from "../ZaneLogo";
 import {
   LayoutDashboard, BookOpen, Settings, LogOut, Menu, Shield,
   Lock, HelpCircle, PieChart, CalendarClock, LayoutGrid, Activity, ClipboardList,
@@ -75,16 +76,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2.5 px-5 py-5 border-b border-sidebar-border hover:opacity-80 transition-opacity">
-          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shrink-0">
-            <span className="text-white text-xs font-bold">Z</span>
-          </div>
-          <div>
-            <div className="text-sm font-semibold text-sidebar-foreground leading-none">Zane</div>
-            <div className="text-[9px] text-sidebar-foreground/50 tracking-widest uppercase mt-1">
-              {isFounder ? "Founder Contract Review" : "Legal Intelligence Layer"}
-            </div>
-          </div>
+        <Link to="/" className="flex items-center px-5 py-4 border-b border-sidebar-border hover:opacity-80 transition-opacity">
+          <ZaneLogo size="sm" light={true} />
         </Link>
 
         {/* Company chip */}

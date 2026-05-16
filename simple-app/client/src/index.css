@@ -2,51 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── MIKE Design System ─────────────────────────────────────────────────────
-   Bloomberg Terminal × Linear Enterprise × Mercury trust language
-   Dark navy base · Cobalt accent · Muted RAG · JetBrains Mono for clauses
+/* ─── Zane Design System ─────────────────────────────────────────────────────
+   Brand: Refined Split-Path Symbol + Wordmark
+   Palette: #0B1118 base · #4A6CF7 accent · #E6E8EB text
+   Typography: Inter (UI) · JetBrains Mono (clauses)
    ─────────────────────────────────────────────────────────────────────────── */
 
 :root {
   /* ── Page background ─────────────────────────────────────────────────── */
-  --background:    226 43% 8%;         /* #0B1020 — deep navy, not black     */
-  --foreground:    213 27% 84%;        /* #CBD5E1 — slate primary text       */
+  --background:    214 34% 7%;         /* #0B1118 — brand deep dark          */
+  --foreground:    210 14% 91%;        /* #E6E8EB — brand light text         */
 
   /* ── Card & panel surfaces ───────────────────────────────────────────── */
-  --card:          222 47% 11%;        /* #0F172A                            */
-  --card-foreground: 213 27% 84%;
-  --card-border:   217 32% 17%;        /* #1E293B — subtle divider           */
+  --card:          214 38% 11%;        /* #111A24 — brand dark surface       */
+  --card-foreground: 210 14% 91%;
+  --card-border:   214 26% 18%;        /* #1B2533 — brand card border        */
 
   /* ── Sidebar ─────────────────────────────────────────────────────────── */
-  --sidebar:              222 47% 11%; /* #0F172A                            */
-  --sidebar-foreground:   215 20% 65%; /* #94A3B8                            */
-  --sidebar-border:       217 32% 17%; /* #1E293B                            */
-  --sidebar-primary:      221 83% 53%; /* #2563EB cobalt                     */
+  --sidebar:              214 34% 7%;  /* #0B1118 — same as background       */
+  --sidebar-foreground:   214 16% 60%; /* muted text                         */
+  --sidebar-border:       214 26% 15%; /* subtle divider                     */
+  --sidebar-primary:      232 91% 63%; /* #4A6CF7 brand blue                 */
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent:       218 54% 20%; /* #172B4D active bg                  */
-  --sidebar-accent-foreground: 213 94% 68%; /* #60A5FA                       */
-  --sidebar-ring:         221 83% 53%;
-  --sidebar-primary-border: #2563EB;
+  --sidebar-accent:       232 50% 18%; /* active bg — deep brand blue        */
+  --sidebar-accent-foreground: 232 91% 75%; /* lighter brand blue            */
+  --sidebar-ring:         232 91% 63%;
+  --sidebar-primary-border: #4A6CF7;
 
-  /* ── Primary action — muted cobalt blue ──────────────────────────────── */
-  --primary:       221 83% 53%;        /* #2563EB                            */
+  /* ── Primary action — brand blue ─────────────────────────────────────── */
+  --primary:       232 91% 63%;        /* #4A6CF7                            */
   --primary-foreground: 0 0% 100%;
-  --primary-border: #2563EB;
+  --primary-border: #4A6CF7;
 
   /* ── Secondary ───────────────────────────────────────────────────────── */
-  --secondary:     217 32% 17%;        /* #1E293B                            */
-  --secondary-foreground: 215 20% 65%;
-  --secondary-border: hsl(215 25% 27%);
+  --secondary:     214 26% 15%;        /* #1B2533                            */
+  --secondary-foreground: 214 16% 60%;
+  --secondary-border: hsl(214 26% 22%);
 
   /* ── Muted / elevated surface ────────────────────────────────────────── */
-  --muted:         221 39% 11%;        /* #111827                            */
-  --muted-foreground: 215 16% 47%;    /* #64748B                            */
-  --muted-border:  hsl(217 32% 17%);
+  --muted:         214 32% 10%;        /* #0F1820                            */
+  --muted-foreground: 214 14% 45%;    /* muted text                         */
+  --muted-border:  hsl(214 26% 15%);
 
-  /* ── Accent — cobalt ghost highlight ────────────────────────────────── */
-  --accent:        218 54% 20%;        /* #172B4D                            */
-  --accent-foreground: 213 94% 68%;   /* #60A5FA                            */
-  --accent-border: hsl(214 52% 25%);  /* #1E3A5F                            */
+  /* ── Accent — brand blue ghost highlight ─────────────────────────────── */
+  --accent:        232 50% 18%;        /* deep brand blue ghost              */
+  --accent-foreground: 232 91% 75%;   /* light brand blue                   */
+  --accent-border: hsl(232 50% 24%);
 
   /* ── Destructive ─────────────────────────────────────────────────────── */
   --destructive:   0 72% 41%;          /* #B91C1C                            */
@@ -54,15 +55,16 @@
   --destructive-border: hsl(0 80% 28%);
 
   /* ── Borders / inputs / ring ─────────────────────────────────────────── */
-  --border:        217 32% 17%;        /* #1E293B                            */
-  --input:         217 32% 17%;
-  --ring:          221 83% 53%;        /* #2563EB                            */
-  --popover:       222 47% 11%;
-  --popover-foreground: 213 27% 84%;
-  --popover-border: 217 32% 17%;
+  --border:        214 26% 15%;        /* #1B2533                            */
+  --input:         214 26% 15%;
+  --ring:          232 91% 63%;        /* #4A6CF7                            */
+  --popover:       214 38% 11%;
+  --popover-foreground: 210 14% 91%;
+  --popover-border: 214 26% 15%;
 
   /* ── Typography ──────────────────────────────────────────────────────── */
   --font-sans: 'Inter', sans-serif;
+  --font-display: 'Syncopate', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'JetBrains Mono', 'Roboto Mono', monospace;
   --radius: 0.5rem;
@@ -98,8 +100,8 @@
     color: #F1F5F9;
   }
   .input:focus {
-    border-color: #2563EB;
-    box-shadow: 0 0 0 3px #172B4D;
+    border-color: #4A6CF7;
+    box-shadow: 0 0 0 3px #0F1A3A;
   }
   .input:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -109,9 +111,9 @@
       px-4 py-2 text-sm font-semibold text-white
       transition-colors active:scale-[0.98]
       disabled:opacity-50 disabled:pointer-events-none;
-    background: #2563EB;
+    background: #4A6CF7;
   }
-  .btn-primary:hover:not(:disabled) { background: #3B82F6; }
+  .btn-primary:hover:not(:disabled) { background: #6B8EF9; }
 
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 rounded-lg
@@ -122,7 +124,7 @@
     border: 1px solid #334155;
   }
   .btn-secondary:hover:not(:disabled) {
-    background: #1A2540;
+    background: #111A24;
     border-color: #475569;
   }
 
@@ -193,18 +195,17 @@
     background: rgba(255,255,255,0.05);
   }
   .nav-item-active {
-    background: #172B4D;
-    color: #F1F5F9;
-    /* Inset left border — doesn't shift content or break border-radius */
-    box-shadow: inset 2px 0 0 #2563EB;
+    background: rgba(74, 108, 247, 0.12);
+    color: #E6E8EB;
+    box-shadow: inset 2px 0 0 #4A6CF7;
   }
 
   /* ── Clause / fallback language block (JetBrains Mono) ─────────────── */
   .clause-block {
     @apply rounded-lg p-4 text-sm leading-relaxed;
     font-family: 'JetBrains Mono', monospace;
-    background: #0B1020;
-    border: 1px solid #172B4D;
+    background: #0B1118;
+    border: 1px solid #0F1A3A;
     color: #94A3B8;
   }
 
@@ -212,15 +213,15 @@
   .copy-block {
     @apply rounded-lg p-4 text-sm leading-relaxed;
     font-family: 'JetBrains Mono', monospace;
-    background: #172B4D;
-    border: 1px solid #1E3A5F;
-    color: #60A5FA;
+    background: #0F1A3A;
+    border: 1px solid #1A2E5A;
+    color: #7B9BFA;
   }
 }
 
 /* ─── Scrollbars ─────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar           { width: 6px; height: 6px; }
-::-webkit-scrollbar-track     { background: #0B1020; }
+::-webkit-scrollbar-track     { background: #0B1118; }
 ::-webkit-scrollbar-thumb     { background: #334155; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
