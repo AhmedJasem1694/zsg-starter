@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle } from "lucide-react";
-import { createCompany, savePlaybookRules, saveContacts, detectRegulations } from "../lib/api";
+import { CheckCircle, Search, Loader2, Building2, ChevronDown } from "lucide-react";
+import { createCompany, savePlaybookRules, saveContacts, detectRegulations, searchCompany, enrichCompanyData } from "../lib/api";
+import type { CompanyCandidate, EnrichedCompany } from "../lib/api";
 import {
   CLAUSE_CATEGORIES,
   CLAUSE_LABELS,
@@ -689,6 +690,92 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
     ? Boolean(form.name.trim()) && Boolean(form.sector.trim()) && selectedJurisdictions.length > 0
     : Boolean(form.name.trim()) && selectedJurisdictions.length > 0 && selectedIndustries.length > 0;
 
+  // ── Company search state ────────────────────────────────────────────────────
+  const [searching, setSearching] = useState(false);
+  const [enriching, setEnriching] = useState(false);
+  const [candidates, setCandidates] = useState<CompanyCandidate[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [customIndustries, setCustomIndustries] = useState<string[]>([]);
+  const [enriched, setEnriched] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  async function handleSearch() {
+    const q = form.name.trim();
+    if (!q || q.length < 2) return;
+    setSearching(true);
+    setEnriched(false);
+    setCandidates([]);
+    setShowDropdown(false);
+    try {
+      const { candidates: results } = await searchCompany(q);
+      if (results.length === 0) {
+        setCandidates([]);
+        setShowDropdown(true);
+      } else if (results.length === 1) {
+        await applyCandidate(results[0]);
+      } else {
+        setCandidates(results);
+        setShowDropdown(true);
+      }
+    } catch {
+      setCandidates([]);
+      setShowDropdown(true);
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  async function applyCandidate(candidate: CompanyCandidate) {
+    setShowDropdown(false);
+    setEnriching(true);
+    setEnriched(false);
+    try {
+      const result: EnrichedCompany = await enrichCompanyData(candidate);
+
+      // Auto-fill company name + sector
+      onChange({ ...form, name: result.name, sector: result.sector || form.sector });
+
+      // Auto-tick mapped industries
+      const validIndustries = result.mappedIndustries.filter(
+        (i): i is Industry => i in INDUSTRY_LABELS
+      );
+      if (validIndustries.length > 0) {
+        onIndustriesChange(validIndustries);
+      }
+
+      // Store custom (unmapped) SIC descriptions as extra chips
+      setCustomIndustries(result.customIndustries ?? []);
+
+      // Auto-select jurisdiction if we can match it
+      if (result.jurisdiction) {
+        const jMatch = JURISDICTION_OPTIONS.find(
+          (j) => j.label.toLowerCase().includes(result.jurisdiction.toLowerCase()) ||
+                 result.jurisdiction.toLowerCase().includes(j.value.toLowerCase())
+        );
+        if (jMatch && !selectedJurisdictions.includes(jMatch.value)) {
+          onJurisdictionsChange([jMatch.value, ...selectedJurisdictions]);
+        }
+      }
+      setEnriched(true);
+    } catch {
+      // Non-fatal — just apply the name
+      onChange({ ...form, name: candidate.name });
+      setEnriched(true);
+    } finally {
+      setEnriching(false);
+    }
+  }
+
   function toggleJurisdiction(value: string) {
     onJurisdictionsChange(
       selectedJurisdictions.includes(value)
@@ -831,13 +918,95 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
 
       <div className="space-y-5">
 
-        {/* Company name */}
-        <DarkField label={persona === "FOUNDER" ? "Company name" : "Company name"} required>
-          <DarkInput
-            placeholder="Acme Ltd"
-            value={form.name}
-            onChange={(e) => onChange({ ...form, name: e.target.value })}
-          />
+        {/* Company name + search */}
+        <DarkField label="Company name" required hint="Type your company name then click Search to auto-fill industry and jurisdiction.">
+          <div className="relative" ref={dropdownRef}>
+            <div className="flex gap-2">
+              <DarkInput
+                placeholder={persona === "FOUNDER" ? "e.g. Acme Technologies Ltd" : "e.g. Acme Ltd"}
+                value={form.name}
+                onChange={(e) => onChange({ ...form, name: e.target.value })}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSearch(); } }}
+              />
+              <button
+                type="button"
+                onClick={handleSearch}
+                disabled={searching || enriching || form.name.trim().length < 2}
+                className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary text-white text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-40 disabled:pointer-events-none"
+              >
+                {searching ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
+                {searching ? "Searching..." : "Search"}
+              </button>
+            </div>
+
+            {/* Results dropdown */}
+            {showDropdown && (
+              <div className="absolute z-[200] top-full mt-1.5 left-0 right-0 rounded-xl border border-white/15 shadow-2xl"
+                style={{ background: "#0F172A" }}>
+                {candidates.length > 0 && (
+                  <>
+                    <div className="px-3 py-2 text-[10px] text-white/30 uppercase tracking-widest border-b border-white/8">
+                      Select your company
+                    </div>
+                    <div className="max-h-72 overflow-y-auto">
+                      {candidates.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => applyCandidate(c)}
+                          className="w-full flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-0"
+                        >
+                          <Building2 size={14} className="text-primary/70 mt-0.5 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm text-white font-medium leading-tight truncate">{c.name}</div>
+                            <div className="text-[10px] text-white/40 mt-0.5 flex items-center gap-2 flex-wrap">
+                              <span>{c.jurisdiction}</span>
+                              {c.number && <span>No. {c.number}</span>}
+                              {c.status && (
+                                <span className={c.status.toLowerCase() === "active" ? "text-emerald-400" : "text-white/30"}>
+                                  {c.status}
+                                </span>
+                              )}
+                            </div>
+                            {c.address && <div className="text-[10px] text-white/25 truncate mt-0.5">{c.address}</div>}
+                          </div>
+                          <ChevronDown size={12} className="text-white/30 shrink-0 mt-1 rotate-[-90deg]" />
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+                {candidates.length === 0 && (
+                  <div className="px-4 py-3 text-xs text-white/40">
+                    No registered companies found for "{form.name}".
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowDropdown(false)}
+                  className="w-full flex items-center gap-2 px-4 py-3 text-xs text-primary/80 hover:text-primary hover:bg-white/5 transition-colors border-t border-white/8 font-medium rounded-b-xl"
+                >
+                  Enter details manually
+                </button>
+              </div>
+            )}
+
+            {/* Enrichment loading indicator */}
+            {enriching && (
+              <div className="flex items-center gap-2 mt-2 text-xs text-white/50">
+                <Loader2 size={12} className="animate-spin text-primary" />
+                Looking up company details...
+              </div>
+            )}
+
+            {/* Success confirmation */}
+            {enriched && !enriching && (
+              <div className="flex items-center gap-2 mt-2 text-xs text-emerald-400">
+                <CheckCircle size={12} />
+                Company found. Industries and jurisdiction auto-filled below.
+              </div>
+            )}
+          </div>
         </DarkField>
 
         {/* Industry multi-select */}
@@ -861,6 +1030,19 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
             })}
           </div>
           {selectedIndustries.length === 0 && <p className="text-xs text-red-400 mt-1">Select at least one industry</p>}
+
+          {/* Custom industries from SIC codes not in our enum */}
+          {customIndustries.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {customIndustries.map((ci) => (
+                <span key={ci} className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-primary/30 bg-primary/10 text-xs text-primary/80 font-medium">
+                  {ci}
+                  <button type="button" onClick={() => setCustomIndustries((prev) => prev.filter((x) => x !== ci))}
+                    className="text-primary/50 hover:text-primary/90 transition-colors leading-none">&times;</button>
+                </span>
+              ))}
+            </div>
+          )}
         </DarkField>
 
         {/* Sector */}
@@ -1544,8 +1726,12 @@ function DarkField({ label, hint, required, children }: { label: string; hint?: 
   );
 }
 
-function DarkInput({ placeholder, value, onChange, type = "text" }: {
-  placeholder?: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; type?: string;
+function DarkInput({ placeholder, value, onChange, onKeyDown, type = "text" }: {
+  placeholder?: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  type?: string;
 }) {
   return (
     <input
@@ -1553,6 +1739,7 @@ function DarkInput({ placeholder, value, onChange, type = "text" }: {
       placeholder={placeholder}
       value={value}
       onChange={onChange}
+      onKeyDown={onKeyDown}
       className="w-full rounded-xl border border-white/10 px-3.5 py-2.5 text-sm text-white/80 placeholder:text-white/20 focus:outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition-colors"
       style={{ background: CARD }}
     />

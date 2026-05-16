@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, AlertTriangle, Zap, BookOpen, Scale, TrendingUp, X, LayoutGrid } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 // ─── Cycling phrases ──────────────────────────────────────────────────────────
-const PHRASES = ["always on.", "always current.", "never wrong.", "built for you."];
+const PHRASES = ["always on.", "always current.", "always auditable.", "built for you."];
 
 function CyclingPhrase() {
   const [index, setIndex] = useState(0);

@@ -9,6 +9,7 @@ import { detectAndSaveRegulations } from "./services/regulatoryDetection.js";
 import { requireAuth, signToken } from "./middleware/auth.js";
 import { transcribeAudioFile } from "./services/transcription.js";
 import { chatComplete } from "./services/openrouter.js";
+import { searchCompanies, enrichCompany } from "./services/companySearch.js";
 import { audit } from "./services/auditLogger.js";
 
 // ── Express 4 async error helper ─────────────────────────────────────────────
@@ -210,6 +211,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/me", requireAuth, (req: Request, res: Response) => {
     res.json(req.user);
   });
+
+  // ── Company search / enrichment ──────────────────────────────────────────────
+
+  app.get("/api/company/search", requireAuth, ah(async (req: Request, res: Response) => {
+    const q = String(req.query.q ?? "").trim();
+    if (q.length < 2) { res.json({ candidates: [] }); return; }
+    const candidates = await searchCompanies(q);
+    res.json({ candidates });
+  }));
+
+  app.post("/api/company/enrich", requireAuth, ah(async (req: Request, res: Response) => {
+    const candidate = req.body;
+    if (!candidate?.name) { sendError(res, 400, "candidate required"); return; }
+    const enriched = await enrichCompany(candidate);
+    res.json(enriched);
+  }));
 
   // ── Company ─────────────────────────────────────────────────────────────────
 

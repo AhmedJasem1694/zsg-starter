@@ -25,6 +25,37 @@ async function req<T>(
   return res.json() as Promise<T>;
 }
 
+// Company search
+export interface CompanyCandidate {
+  id: string;
+  source: "companies_house" | "opencorporates" | "llm";
+  name: string;
+  number?: string;
+  jurisdiction: string;
+  status?: string;
+  incorporatedOn?: string;
+  address?: string;
+  sicCodes?: string[];
+  sicDescriptions?: string[];
+}
+export interface EnrichedCompany {
+  name: string;
+  number?: string;
+  jurisdiction: string;
+  status?: string;
+  incorporatedOn?: string;
+  address?: string;
+  sicCodes: string[];
+  sicDescriptions: string[];
+  mappedIndustries: string[];
+  customIndustries: string[];
+  sector: string;
+}
+export const searchCompany = (q: string) =>
+  req<{ candidates: CompanyCandidate[] }>("GET", `/api/company/search?q=${encodeURIComponent(q)}`);
+export const enrichCompanyData = (candidate: CompanyCandidate) =>
+  req<EnrichedCompany>("POST", "/api/company/enrich", candidate);
+
 // Company
 export const getCompany = () => req<Company>("GET", "/api/company");
 export const createCompany = (data: {
