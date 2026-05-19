@@ -83,7 +83,11 @@ function mapCompany(c: PBRecord) {
 }
 
 function mapDoc(d: PBRecord) {
-  return { ...d, companyId: d.company, uploadedAt: d.created };
+  let contradictions: unknown[] = [];
+  try {
+    if (d["contradictions"]) contradictions = JSON.parse(d["contradictions"] as string);
+  } catch { /* malformed */ }
+  return { ...d, companyId: d.company, uploadedAt: d.created, contradictions };
 }
 
 function mapResult(r: PBRecord) {
@@ -307,6 +311,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(regs.map(mapRegulation));
   }));
 
+  // ── Regulatory synthesis ──────────────────────────────────────────────────────
+  // Synthesises an in-depth interpretation of a regulation for this company's
+  // context. Uses LLM; result cached in regulatory_synthesis_pages collection.
+
+  app.post("/api/regulatory/synthesise/:regulationId", requireAuth, ah(async (req: Request, res: Response) => {
+    const { regulationId } = req.params as { regulationId: string };
+    const company = await getCompany();
+    if (!company) { sendError(res, 404, "No company configured"); return; }
+
+    // Load the regulation
+    let reg: Record<string, unknown>;
+    try {
+      reg = await pb.collection("company_regulations").getOne(regulationId);
+    } catch {
+      sendError(res, 404, "Regulation not found"); return;
+    }
+
+    // Check for existing fresh synthesis (< 7 days old)
+    const existing = await pb.collection("regulatory_synthesis_pages").getFullList({
+      filter: `companyId = "${company.id}" && topic = "${regulationId}"`,
+      sort: "-created",
+    }).catch(() => []);
+    if (existing.length > 0) {
+      const age = Date.now() - new Date(existing[0]["created"] as string).getTime();
+      if (age < 7 * 24 * 60 * 60 * 1000) {
+        res.json({ synthesis: existing[0]["content"] as string, cached: true, createdAt: existing[0]["created"] });
+        return;
+      }
+    }
+
+    // Generate synthesis via LLM
+    const prompt = `You are a specialist legal intelligence analyst. Generate a concise but substantive synthesis (400–600 words) of how the regulation below applies specifically to this company's context.
+
+Regulation: ${reg["frameworkName"] as string} (${reg["jurisdiction"] as string})
+Regulator: ${reg["regulator"] as string}
+Description: ${reg["description"] as string}
+Applies to: ${reg["appliesTo"] as string || "general"}
+
+Company context:
+- Name: ${company.name as string}
+- Sector: ${company.sector as string}
+- Industry: ${(company as Record<string, unknown>)["industry"] as string || "not specified"}
+- Jurisdiction: ${(company as Record<string, unknown>)["jurisdiction"] as string || "not specified"}
+- Workflow: ${(company as Record<string, unknown>)["workflowType"] as string || "COMMERCIAL_CONTRACT"}
+
+Structure your synthesis as:
+1. **Key obligations** (2-3 bullet points of the most material requirements)
+2. **Contract clause implications** (how this regulation should shape their standard contract positions)
+3. **Practical risk areas** (specific risk watch-points for this company type)
+4. **Recommended next steps** (1-2 actionable steps)
+
+Be precise, practical, and legally accurate. This is advisory context, not legal advice.`;
+
+    let synthesis = "";
+    try {
+      const result = await chatComplete([{ role: "user", content: prompt }], 800);
+      synthesis = result.trim();
+    } catch (err) {
+      sendError(res, 500, "Failed to generate synthesis"); return;
+    }
+
+    // Cache the synthesis
+    await pb.collection("regulatory_synthesis_pages").create({
+      companyId: company.id,
+      topic: regulationId,
+      jurisdiction: reg["jurisdiction"] as string,
+      sector: company.sector as string,
+      content: synthesis,
+      version: 1,
+    }).catch(() => null);
+
+    await audit({ action: "regulatory_profile_updated", entityType: "regulation", entityId: regulationId, companyId: company.id, detail: { action: "synthesise", frameworkName: reg["frameworkName"] } });
+    res.json({ synthesis, cached: false, createdAt: new Date().toISOString() });
+  }));
+
+  // ── Regulatory updates digest ─────────────────────────────────────────────────
+  // Returns a digest of recent regulatory developments for the company's
+  // active frameworks. Uses LLM simulation (no live API key required).
+
+  app.get("/api/regulatory/updates", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json({ updates: [] }); return; }
+
+    const regs = await pb.collection("company_regulations").getFullList({
+      filter: `company = "${company.id}"`,
+    });
+    if (regs.length === 0) { res.json({ updates: [] }); return; }
+
+    // Check for cached digest (< 24h old)
+    const existing = await pb.collection("regulatory_synthesis_pages").getFullList({
+      filter: `companyId = "${company.id}" && topic = "DIGEST"`,
+      sort: "-created",
+    }).catch(() => []);
+    if (existing.length > 0) {
+      const age = Date.now() - new Date(existing[0]["created"] as string).getTime();
+      if (age < 24 * 60 * 60 * 1000) {
+        const updates = JSON.parse(existing[0]["content"] as string);
+        res.json({ updates, cached: true });
+        return;
+      }
+    }
+
+    const frameworkList = regs.slice(0, 6).map((r) => `${r["frameworkName"] as string} (${r["jurisdiction"] as string})`).join(", ");
+    const prompt = `You are a legal regulatory intelligence system. Generate a JSON array of 4-6 recent regulatory developments relevant to these frameworks: ${frameworkList}.
+
+Company context: ${company.sector as string} sector, ${(company as Record<string, unknown>)["jurisdiction"] as string || "GB"} jurisdiction.
+
+Return ONLY a valid JSON array. Each item must have:
+- "framework": framework name (string)
+- "jurisdiction": jurisdiction code (string, e.g. "GB")
+- "title": brief title of the update (string, max 80 chars)
+- "summary": 1-2 sentence plain-English summary (string)
+- "impact": "HIGH" | "MEDIUM" | "LOW"
+- "date": approximate date in YYYY-MM format (within the last 12 months)
+- "actionRequired": boolean
+
+Ensure updates are realistic, plausible, and specific (not generic).`;
+
+    let updates: unknown[] = [];
+    try {
+      const result = await chatComplete([{ role: "user", content: prompt }], 700);
+      const match = result.match(/\[[\s\S]*\]/);
+      if (match) updates = JSON.parse(match[0]) as unknown[];
+    } catch {
+      // Return empty — non-fatal
+    }
+
+    // Cache for 24h
+    if (updates.length > 0) {
+      await pb.collection("regulatory_synthesis_pages").create({
+        companyId: company.id,
+        topic: "DIGEST",
+        jurisdiction: "ALL",
+        sector: company.sector as string,
+        content: JSON.stringify(updates),
+        version: 1,
+      }).catch(() => null);
+    }
+
+    res.json({ updates, cached: false });
+  }));
+
   // ── Playbook Rules ───────────────────────────────────────────────────────────
 
   app.post("/api/playbook/rules", requireAuth, ah(async (req: Request, res: Response) => {
@@ -425,6 +571,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // Feature 39 — Generate AI-suggested playbook position for a clause category
+  // ── Playbook update suggestions based on outcome data ────────────────────────
+  // Returns clauses with high drift + an LLM-powered update suggestion for each.
+
+  app.get("/api/playbook/drift-suggestions", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json({ suggestions: [] }); return; }
+
+    // Load feedback and results
+    const [results, feedbacks, rules] = await Promise.all([
+      pb.collection("review_results").getFullList({
+        filter: `document.company = "${company.id}"`,
+        fields: "id,clauseCategory,ragStatus",
+      }),
+      pb.collection("user_feedback").getFullList({
+        filter: `result.document.company = "${company.id}"`,
+        fields: "result,userAction",
+      }),
+      pb.collection("playbook_rules").getFullList({
+        filter: `company = "${company.id}"`,
+        fields: "id,clauseCategory,preferredPosition,hardRedLine,workflowType",
+      }),
+    ]);
+
+    const fbMap = new Map<string, string>();
+    for (const f of feedbacks) fbMap.set(f["result"] as string, f["userAction"] as string);
+
+    // Per-category drift analysis
+    const catDrift: Record<string, { totalRed: number; acceptedRed: number }> = {};
+    for (const r of results) {
+      const cat = r["clauseCategory"] as string;
+      if (!catDrift[cat]) catDrift[cat] = { totalRed: 0, acceptedRed: 0 };
+      if (r["ragStatus"] === "RED") {
+        catDrift[cat].totalRed++;
+        if (fbMap.get(r.id) === "ACCEPTED") catDrift[cat].acceptedRed++;
+      }
+    }
+
+    // Only suggest for clauses with meaningful drift (>= 2 red accepted OR >= 50% of reds accepted with >= 2 total)
+    const driftCats = Object.entries(catDrift)
+      .filter(([, d]) => d.totalRed >= 2 && d.acceptedRed >= 1 && d.acceptedRed / d.totalRed >= 0.4)
+      .map(([cat, d]) => ({ cat, ...d, driftPct: Math.round((d.acceptedRed / d.totalRed) * 100) }))
+      .sort((a, b) => b.driftPct - a.driftPct)
+      .slice(0, 4);
+
+    if (driftCats.length === 0) { res.json({ suggestions: [] }); return; }
+
+    // Generate LLM-based suggestions for each drifting category
+    const suggestions = await Promise.all(driftCats.map(async (dc) => {
+      const rule = rules.find((r) => r["clauseCategory"] === dc.cat);
+      const currentPosition = rule?.["preferredPosition"] as string | undefined;
+      const currentRedLine  = rule?.["hardRedLine"] as string | undefined;
+
+      const prompt = `You are a senior commercial lawyer reviewing a legal team's playbook.
+
+Context: This team has accepted ${dc.acceptedRed} out of ${dc.totalRed} contracts where their "${dc.cat.replace(/_/g, " ")}" clause was flagged RED — a ${dc.driftPct}% acceptance rate below their red line.
+
+Current playbook positions:
+- Preferred position: ${currentPosition ?? "Not set"}
+- Hard red line: ${currentRedLine ?? "Not set"}
+
+Generate an updated playbook suggestion that is more realistic given the team's actual negotiation behaviour.
+Return ONLY valid JSON (no markdown):
+{
+  "reasoning": "Brief explanation of why the current position appears unrealistic (2-3 sentences)",
+  "updatedPreferredPosition": "...",
+  "updatedRedLine": "...",
+  "recommendation": "Either tighten enforcement of the current red line, or accept the drift and update positions"
+}`;
+
+      try {
+        const raw = await chatComplete([{ role: "user", content: prompt }], 500);
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (!match) return null;
+        const parsed = JSON.parse(match[0]) as {
+          reasoning: string;
+          updatedPreferredPosition: string;
+          updatedRedLine: string;
+          recommendation: string;
+        };
+        return {
+          clauseCategory: dc.cat,
+          ruleId: rule?.id ?? null,
+          driftPct: dc.driftPct,
+          totalRed: dc.totalRed,
+          acceptedRed: dc.acceptedRed,
+          ...parsed,
+        };
+      } catch {
+        return null;
+      }
+    }));
+
+    res.json({ suggestions: suggestions.filter(Boolean) });
+  }));
+
   app.post("/api/playbook/generate-suggestion", requireAuth, ah(async (req: Request, res: Response) => {
     const { clauseCategory, workflowType } = req.body as { clauseCategory?: string; workflowType?: string };
     if (!clauseCategory) { res.status(400).json({ error: "clauseCategory required" }); return; }
@@ -504,6 +745,8 @@ Each field should be 1-3 sentences of clear, practical legal language.
         counterpartyName: body.counterpartyName ?? "",
         counterpartyType: body.counterpartyType ?? "",
         reviewType: body.reviewType ?? "INBOUND",
+        governingLaw: body.governingLaw ?? "",
+        jurisdiction: body.jurisdiction ?? "",
         contractValue,
         currency: body.currency ?? "GBP",
         contractTermMonths,
@@ -836,16 +1079,29 @@ Each field should be 1-3 sentences of clear, practical legal language.
     const company = await getCompany();
     if (!company) { res.json({ patterns: [], clauseOutcomes: [], topCounterparties: [] }); return; }
 
-    const [results, feedbacks] = await Promise.all([
+    const [results, feedbacks, docs] = await Promise.all([
       pb.collection("review_results").getFullList({
         filter: `document.company = "${company.id}"`,
-        fields: "id,clauseCategory,ragStatus,clauseSummary,businessSummary,recommendedAction",
+        fields: "id,document,clauseCategory,ragStatus,clauseSummary,businessSummary,recommendedAction",
       }),
       pb.collection("user_feedback").getFullList({
         filter: `result.document.company = "${company.id}"`,
         fields: "result,userAction,finalClauseText,notes,created",
       }),
+      pb.collection("uploaded_documents").getFullList({
+        filter: `company = "${company.id}"`,
+        fields: "id,counterpartyName,contractType",
+      }),
     ]);
+
+    // Build doc → counterparty/type maps
+    const docMetaMap = new Map<string, { counterpartyName: string; contractType: string }>();
+    for (const d of docs) {
+      docMetaMap.set(d.id, {
+        counterpartyName: (d["counterpartyName"] as string) || "Unknown",
+        contractType: (d["contractType"] as string) || "UNKNOWN",
+      });
+    }
 
     const fbMap = new Map<string, PBRecord>();
     for (const f of feedbacks) fbMap.set(f["result"] as string, f);
@@ -937,7 +1193,82 @@ Each field should be 1-3 sentences of clear, practical legal language.
       }))
       .sort((a, b) => b.total - a.total);
 
-    res.json({ patterns: patterns.slice(0, 6), clauseOutcomes });
+    // ── Counterparty pattern analysis ────────────────────────────────────────
+    // Which counterparties consistently flag RED/AMBER on which clause types?
+    const cpCatMap: Record<string, Record<string, { red: number; amber: number; accepted: number }>> = {};
+    for (const r of results) {
+      const meta = docMetaMap.get(r["document"] as string);
+      if (!meta) continue;
+      const cp = meta.counterpartyName;
+      const cat = r["clauseCategory"] as string;
+      if (!cpCatMap[cp]) cpCatMap[cp] = {};
+      if (!cpCatMap[cp][cat]) cpCatMap[cp][cat] = { red: 0, amber: 0, accepted: 0 };
+      if (r["ragStatus"] === "RED")   cpCatMap[cp][cat].red++;
+      if (r["ragStatus"] === "AMBER") cpCatMap[cp][cat].amber++;
+      const fb = fbMap.get(r.id);
+      if (fb?.["userAction"] === "ACCEPTED") cpCatMap[cp][cat].accepted++;
+    }
+
+    interface CounterpartyPattern {
+      counterparty: string;
+      clauseCategory: string;
+      redCount: number;
+      amberCount: number;
+      acceptedRed: number;
+    }
+
+    const counterpartyPatterns: CounterpartyPattern[] = [];
+    for (const [cp, catData] of Object.entries(cpCatMap)) {
+      if (cp === "Unknown") continue;
+      for (const [cat, stats] of Object.entries(catData)) {
+        if (stats.red >= 2) {
+          counterpartyPatterns.push({
+            counterparty: cp,
+            clauseCategory: cat,
+            redCount: stats.red,
+            amberCount: stats.amber,
+            acceptedRed: stats.accepted,
+          });
+        }
+      }
+    }
+    counterpartyPatterns.sort((a, b) => b.redCount - a.redCount);
+
+    // ── Negotiation position drift ───────────────────────────────────────────
+    // Clauses where RED was frequently accepted (lawyer accepted below red line)
+    interface DriftEntry {
+      clauseCategory: string;
+      totalRed: number;
+      acceptedRed: number;
+      driftPct: number;
+    }
+    const driftEntries: DriftEntry[] = [];
+    for (const [cat, stats] of Object.entries(catStats)) {
+      const redTotal = stats.ragCounts["RED"] ?? 0;
+      if (redTotal < 2) continue;
+      // Count accepted feedbacks where the underlying result was RED
+      let acceptedRedCount = 0;
+      for (const r of results.filter((x) => x["clauseCategory"] === cat && x["ragStatus"] === "RED")) {
+        const fb = fbMap.get(r.id);
+        if (fb?.["userAction"] === "ACCEPTED") acceptedRedCount++;
+      }
+      if (acceptedRedCount >= 1) {
+        driftEntries.push({
+          clauseCategory: cat,
+          totalRed: redTotal,
+          acceptedRed: acceptedRedCount,
+          driftPct: Math.round((acceptedRedCount / redTotal) * 100),
+        });
+      }
+    }
+    driftEntries.sort((a, b) => b.driftPct - a.driftPct);
+
+    res.json({
+      patterns: patterns.slice(0, 8),
+      clauseOutcomes,
+      counterpartyPatterns: counterpartyPatterns.slice(0, 10),
+      negotiationDrift: driftEntries.slice(0, 6),
+    });
   }));
 
   // ── Generate negotiation reply ────────────────────────────────────────────────
@@ -1116,19 +1447,29 @@ Write the negotiation email paragraph.`;
     const company = await getCompany();
     if (!company) { res.json(null); return; }
 
-    const [results, completeDocs] = await Promise.all([
+    const [results, completeDocs, allEscalations] = await Promise.all([
       pb.collection("review_results").getFullList({
         filter: `document.company = "${company.id}" && document.status = "COMPLETE"`,
       }),
       pb.collection("uploaded_documents").getFullList({
         filter: `company = "${company.id}" && status = "COMPLETE"`,
-        fields: "id,contractType",
+        fields: "id,contractType,counterpartyName,contractValue,currency,outcome",
+      }),
+      pb.collection("review_results").getFullList({
+        filter: `document.company = "${company.id}" && escalationRequired = true`,
+        fields: "id,document",
       }),
     ]);
 
     if (results.length === 0) { res.json(null); return; }
 
-    const docMap = new Map(completeDocs.map((d) => [d.id, d["contractType"] as string]));
+    const docMeta = new Map(completeDocs.map((d) => [d.id, {
+      contractType: d["contractType"] as string,
+      counterpartyName: d["counterpartyName"] as string | null,
+      contractValue: d["contractValue"] as number | null,
+      currency: (d["currency"] as string) || "GBP",
+      outcome: d["outcome"] as string | null,
+    }]));
 
     const GROUPS = [
       { label: "Liability & Risk",      icon: "⚖️",  cats: ["LIABILITY_CAP","INDEMNITY","WARRANTIES","LIQUIDATED_DAMAGES","INSURANCE"] },
@@ -1149,6 +1490,10 @@ Write the negotiation email paragraph.`;
     });
 
     const totalDocs = new Set(results.map((r) => r["document"] as string)).size;
+    const totalRedResults = results.filter((r) => r["ragStatus"] === "RED").length;
+    const escalationsOpen = new Set(allEscalations.map((r) => r["document"] as string)).size;
+    const totalValue = completeDocs.reduce((acc, d) => acc + ((d["contractValue"] as number | null) ?? 0), 0);
+    const signedDocs = completeDocs.filter((d) => d["outcome"] === "SIGNED" || d["outcome"] === "EXECUTED").length;
 
     const categoryRed: Record<string, number> = {};
     const categoryTotal: Record<string, number> = {};
@@ -1165,7 +1510,7 @@ Write the negotiation email paragraph.`;
     const typeMap: Record<string, { red: number; amber: number; docIds: Set<string> }> = {};
     for (const r of results) {
       const docId = r["document"] as string;
-      const t = docMap.get(docId) ?? "UNKNOWN";
+      const t = docMeta.get(docId)?.contractType ?? "UNKNOWN";
       if (!typeMap[t]) typeMap[t] = { red: 0, amber: 0, docIds: new Set() };
       typeMap[t].docIds.add(docId);
       if (r["ragStatus"] === "RED")   typeMap[t].red++;
@@ -1175,12 +1520,63 @@ Write the negotiation email paragraph.`;
       .map(([type, v]) => ({ type: type.replace(/_/g, " "), red: v.red, amber: v.amber, total: v.docIds.size }))
       .sort((a, b) => b.red - a.red);
 
+    // Counterparty risk heat map — top 8 counterparties by red count
+    const cpMap: Record<string, { red: number; amber: number; green: number; docIds: Set<string>; value: number }> = {};
+    for (const r of results) {
+      const docId = r["document"] as string;
+      const meta = docMeta.get(docId);
+      const cp = meta?.counterpartyName || "Unknown";
+      if (!cpMap[cp]) cpMap[cp] = { red: 0, amber: 0, green: 0, docIds: new Set(), value: 0 };
+      cpMap[cp].docIds.add(docId);
+      if (r["ragStatus"] === "RED")   cpMap[cp].red++;
+      if (r["ragStatus"] === "AMBER") cpMap[cp].amber++;
+      if (r["ragStatus"] === "GREEN") cpMap[cp].green++;
+    }
+    for (const [, v] of Object.entries(cpMap)) {
+      Array.from(v.docIds).forEach((docId) => {
+        v.value += docMeta.get(docId)?.contractValue ?? 0;
+      });
+    }
+    const byCounterparty = Object.entries(cpMap)
+      .map(([name, v]) => ({
+        name,
+        red: v.red, amber: v.amber, green: v.green,
+        total: v.docIds.size,
+        value: v.value,
+      }))
+      .sort((a, b) => b.red - a.red)
+      .slice(0, 8);
+
+    // Value at risk by RAG band
+    // For each doc, determine its "worst" RAG: if any RED → RED, else if any AMBER → AMBER, else GREEN
+    const docRag: Record<string, "RED" | "AMBER" | "GREEN"> = {};
+    for (const r of results) {
+      const docId = r["document"] as string;
+      const rag = r["ragStatus"] as string;
+      const cur = docRag[docId];
+      if (!cur || (rag === "RED") || (rag === "AMBER" && cur === "GREEN")) {
+        docRag[docId] = rag as "RED" | "AMBER" | "GREEN";
+      }
+    }
+    const valueAtRisk = { RED: 0, AMBER: 0, GREEN: 0, total: 0 };
+    for (const [docId, rag] of Object.entries(docRag)) {
+      const v = docMeta.get(docId)?.contractValue ?? 0;
+      valueAtRisk[rag] += v;
+      valueAtRisk.total += v;
+    }
+
     const topCat = topRedCategories[0];
     const insight = topCat
       ? `${topCat.category.replace(/_/g, " ")} is your most common risk issue across ${totalDocs} reviewed contract${totalDocs !== 1 ? "s" : ""}. Check your playbook position and consider whether your red line is calibrated correctly.`
       : `${totalDocs} contract${totalDocs !== 1 ? "s" : ""} reviewed with no RED flags. Your playbook positions are holding well.`;
 
-    res.json({ groups, topRedCategories, byContractType, insight, totalDocuments: totalDocs, totalClauses: results.length });
+    res.json({
+      groups, topRedCategories, byContractType, insight,
+      totalDocuments: totalDocs, totalClauses: results.length,
+      // New panels
+      totalRedResults, escalationsOpen, totalValue, signedDocs,
+      byCounterparty, valueAtRisk,
+    });
   }));
 
   // ── Timings ───────────────────────────────────────────────────────────────────
@@ -1342,11 +1738,56 @@ Write the negotiation email paragraph.`;
   app.get("/api/audit", requireAuth, ah(async (req: Request, res: Response) => {
     const limit  = Math.min(parseInt((req.query.limit as string) ?? "50", 10), 200);
     const page   = parseInt((req.query.page as string) ?? "1", 10);
-    const filter = req.query.action ? `action = "${req.query.action}"` : "";
+    const format = req.query.format as string | undefined; // "csv" for export
+
+    // Build filter
+    const filters: string[] = [];
+    if (req.query.action)   filters.push(`action = "${req.query.action}"`);
+    if (req.query.from)     filters.push(`created >= "${req.query.from}"`);
+    if (req.query.to)       filters.push(`created <= "${req.query.to}"`);
+    if (req.query.entityId) filters.push(`entityId = "${req.query.entityId}"`);
+    const filterStr = filters.join(" && ");
+
+    if (format === "csv") {
+      // Full export — no pagination, max 5000 rows
+      const rows = await pb.collection("audit_log").getFullList({
+        sort: "-created",
+        filter: filterStr || undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+      const header = "id,action,entityType,entityId,companyId,userId,createdAt,detail\n";
+      const body = rows.map((r) => {
+        const cols = [
+          r.id,
+          r["action"],
+          r["entityType"] ?? "",
+          r["entityId"] ?? "",
+          r["companyId"] ?? "",
+          r["userId"] ?? "",
+          r.created,
+          JSON.stringify(r["detail"] ?? "{}").replace(/"/g, '""'),
+        ].map((v) => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",");
+        return cols;
+      }).join("\n");
+
+      // Audit the export itself
+      audit({
+        action: "audit_log_exported",
+        entityType: "audit_log",
+        companyId: req.user?.userId,
+        userId: req.user?.userId,
+        detail: { rows: rows.length, filters: filterStr },
+      }).catch(() => {});
+
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", `attachment; filename="audit-log-${new Date().toISOString().split("T")[0]}.csv"`);
+      res.send(header + body);
+      return;
+    }
 
     const result = await pb.collection("audit_log").getList(page, limit, {
       sort: "-created",
-      filter: filter || undefined,
+      filter: filterStr || undefined,
     });
 
     res.json({
@@ -1364,6 +1805,188 @@ Write the negotiation email paragraph.`;
       totalItems: result.totalItems,
       page: result.page,
     });
+  }));
+
+  // ── Contract library ──────────────────────────────────────────────────────────
+
+  // GET /api/library — documents grouped by folder, with version chain resolution
+  app.get("/api/library", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json({ folders: [] }); return; }
+
+    const { search } = req.query as Record<string, string>;
+    const docs = await pb.collection("uploaded_documents").getFullList({
+      sort: "-created",
+      filter: `company = "${company.id}"`,
+    });
+
+    let filtered = docs;
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = docs.filter((d) =>
+        (d["originalName"] as string)?.toLowerCase().includes(q) ||
+        (d["counterpartyName"] as string)?.toLowerCase().includes(q) ||
+        (d["contractTags"] as string)?.toLowerCase().includes(q) ||
+        (d["folder"] as string)?.toLowerCase().includes(q)
+      );
+    }
+
+    // Group by folder (default folder = contract type label for unassigned docs)
+    const groups: Record<string, typeof filtered> = {};
+    for (const d of filtered) {
+      const folder = (d["folder"] as string) || (d["contractType"] as string)?.replace(/_/g, " ") || "Ungrouped";
+      if (!groups[folder]) groups[folder] = [];
+      groups[folder].push(d);
+    }
+
+    const folders = Object.entries(groups).map(([name, items]) => ({
+      name,
+      count: items.length,
+      documents: items.map(mapDoc),
+    })).sort((a, b) => b.count - a.count);
+
+    res.json({ folders, total: filtered.length });
+  }));
+
+  // PATCH /api/documents/:id/folder — assign a folder
+  app.patch("/api/documents/:id/folder", requireAuth, ah(async (req: Request, res: Response) => {
+    const { folder } = req.body as { folder: string };
+    const updated = await pb.collection("uploaded_documents").update(req.params.id, { folder });
+    res.json(mapDoc(updated));
+  }));
+
+  // PATCH /api/documents/:id/version — link to parent document version
+  app.patch("/api/documents/:id/version", requireAuth, ah(async (req: Request, res: Response) => {
+    const { parentDocumentId } = req.body as { parentDocumentId: string };
+    const updated = await pb.collection("uploaded_documents").update(req.params.id, { parentDocumentId });
+    res.json(mapDoc(updated));
+  }));
+
+  // ── Outcome capture ───────────────────────────────────────────────────────────
+
+  app.post("/api/documents/:id/outcome", requireAuth, ah(async (req: Request, res: Response) => {
+    const { outcome = "SIGNED", outcomeNotes = "" } = req.body as { outcome?: string; outcomeNotes?: string };
+    const doc = await pb.collection("uploaded_documents").getOne(req.params.id);
+    const updated = await pb.collection("uploaded_documents").update(req.params.id, {
+      outcome,
+      signedAt: new Date().toISOString(),
+      outcomeNotes,
+    });
+
+    await audit({
+      action: "contract_outcome_captured",
+      entityType: "uploaded_document",
+      entityId: req.params.id,
+      companyId: doc["company"] as string,
+      userId: req.user?.userId,
+      detail: { outcome, originalName: doc["originalName"] },
+    });
+
+    // Re-run outcome pattern aggregation — fire-and-forget
+    const { persistOutcomePatterns } = await import("./services/outcomeCapture.js");
+    persistOutcomePatterns(doc["company"] as string).catch((err: unknown) =>
+      console.error("[outcome capture] pattern update failed:", err)
+    );
+
+    res.json(mapDoc(updated));
+  }));
+
+  // ── Approval thresholds ──────────────────────────────────────────────────────
+
+  app.get("/api/governance/thresholds", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json([]); return; }
+    const rows = await pb.collection("approval_thresholds").getFullList({
+      filter: `companyId = "${company.id}"`,
+      sort: "+minValue",
+    });
+    res.json(rows);
+  }));
+
+  app.post("/api/governance/thresholds", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { sendError(res, 400, "Company not found"); return; }
+    const thresholds = req.body as Array<{ minValue: number; maxValue: number | null; requiredApprover: string; label: string }>;
+    // Replace existing thresholds for this company
+    const existing = await pb.collection("approval_thresholds").getFullList({ filter: `companyId = "${company.id}"` });
+    await Promise.all(existing.map((r) => pb.collection("approval_thresholds").delete(r.id)));
+    const created = await Promise.all(thresholds.map((t) => pb.collection("approval_thresholds").create({ ...t, companyId: company.id })));
+    res.json(created);
+  }));
+
+  // ── Governance triggers ──────────────────────────────────────────────────────
+
+  app.get("/api/governance/triggers", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json([]); return; }
+    const rows = await pb.collection("governance_triggers").getFullList({
+      filter: `companyId = "${company.id}"`,
+      sort: "+clauseCategory",
+    });
+    res.json(rows);
+  }));
+
+  app.post("/api/governance/triggers", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { sendError(res, 400, "Company not found"); return; }
+    const triggers = req.body as Array<{ clauseCategory: string; escalateTo: string; reason: string }>;
+    const existing = await pb.collection("governance_triggers").getFullList({ filter: `companyId = "${company.id}"` });
+    await Promise.all(existing.map((r) => pb.collection("governance_triggers").delete(r.id)));
+    const created = await Promise.all(triggers.map((t) => pb.collection("governance_triggers").create({ ...t, companyId: company.id })));
+    res.json(created);
+  }));
+
+  // ── Team invites ──────────────────────────────────────────────────────────────
+
+  app.post("/api/team/invite", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { sendError(res, 400, "Company not found"); return; }
+    const { emails, role = "LEGAL" } = req.body as { emails: string[]; role?: string };
+    if (!Array.isArray(emails) || emails.length === 0) { sendError(res, 400, "No emails provided"); return; }
+    const created = await Promise.all(
+      emails.map((email) => pb.collection("team_invites").create({ companyId: company.id, email, role, status: "pending" }))
+    );
+    // Best-effort invite emails — import sendEscalationEmail-like mailer if SMTP configured
+    res.json({ invited: created.map((r) => r.id).length });
+  }));
+
+  app.get("/api/team/invites", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json([]); return; }
+    const rows = await pb.collection("team_invites").getFullList({
+      filter: `companyId = "${company.id}"`,
+      sort: "-created",
+    });
+    res.json(rows);
+  }));
+
+  app.delete("/api/team/invites/:id", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { sendError(res, 404, "Company not found"); return; }
+    const { id } = req.params as { id: string };
+    try {
+      const invite = await pb.collection("team_invites").getOne(id);
+      if (invite["companyId"] !== company.id) { sendError(res, 403, "Forbidden"); return; }
+      await pb.collection("team_invites").delete(id);
+      res.json({ ok: true });
+    } catch {
+      sendError(res, 404, "Invite not found");
+    }
+  }));
+
+  app.patch("/api/team/invites/:id", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { sendError(res, 404, "Company not found"); return; }
+    const { id } = req.params as { id: string };
+    const { status } = req.body as { status?: string };
+    try {
+      const invite = await pb.collection("team_invites").getOne(id);
+      if (invite["companyId"] !== company.id) { sendError(res, 403, "Forbidden"); return; }
+      const updated = await pb.collection("team_invites").update(id, { status: status ?? "pending" });
+      res.json(updated);
+    } catch {
+      sendError(res, 404, "Invite not found");
+    }
   }));
 
   // ── Health ───────────────────────────────────────────────────────────────────

@@ -1,10 +1,14 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, Save, BarChart2, BookOpen, Sparkles, Loader2, Plus, X } from "lucide-react";
-import { getPlaybookRules, updatePlaybookRule, getFeedbackPatterns, generatePlaybookSuggestion, createPlaybookRule } from "../lib/api";
+import { ChevronDown, ChevronUp, Save, BarChart2, BookOpen, Sparkles, Loader2, Plus, X, Star, TrendingUp, AlertOctagon, CheckCircle } from "lucide-react";
+import { getPlaybookRules, updatePlaybookRule, getFeedbackPatterns, generatePlaybookSuggestion, createPlaybookRule, getPlaybookDriftSuggestions } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import { CLAUSE_LABELS, type ClauseCategory, type PlaybookRule, type ApprovalRole } from "../lib/types";
-import type { ClauseOutcome } from "../lib/api";
+import type { ClauseOutcome, PlaybookDriftSuggestion } from "../lib/api";
+
+// ── Key clauses for demo highlight ───────────────────────────────────────────
+// These are the 3 clause types that matter most in the majority of commercial contracts
+const KEY_CLAUSE_CATEGORIES = ["LIABILITY_CAP", "INDEMNITY", "IP_OWNERSHIP"] as const;
 
 const APPROVAL_OPTIONS = [
   { value: "",      label: "No approval needed" },
@@ -465,11 +469,146 @@ function OutcomesView({ outcomes }: { outcomes: ClauseOutcome[] }) {
   );
 }
 
+// ── Drift suggestions tab ─────────────────────────────────────────────────────
+
+function DriftSuggestionsView({
+  suggestions,
+  isLoading,
+  onApply,
+}: {
+  suggestions: PlaybookDriftSuggestion[];
+  isLoading: boolean;
+  onApply: (ruleId: string, preferredPosition: string, hardRedLine: string) => void;
+}) {
+  const [applied, setApplied] = useState<Set<string>>(new Set());
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
+        <Loader2 size={14} className="animate-spin" />
+        Analysing your negotiation history…
+      </div>
+    );
+  }
+
+  if (suggestions.length === 0) {
+    return (
+      <div className="card p-10 text-center space-y-3">
+        <TrendingUp size={28} className="text-muted-foreground/30 mx-auto" />
+        <div className="text-sm font-medium">No updates needed</div>
+        <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+          Your playbook positions appear to match your actual negotiation outcomes. Keep reviewing contracts and Zane will
+          flag drift as it emerges.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="card border-[#431407] bg-[#1C0F00] p-4 flex gap-3">
+        <AlertOctagon size={15} className="text-[#FCD34D] shrink-0 mt-0.5" />
+        <div>
+          <div className="text-sm font-semibold text-[#FCD34D]">Playbook drift detected</div>
+          <p className="text-xs text-[#FCD34D]/80 mt-0.5">
+            Zane has detected {suggestions.length} clause{suggestions.length !== 1 ? "s" : ""} where your team consistently accepts below the playbook red line.
+            Review and apply the suggested updates below.
+          </p>
+        </div>
+      </div>
+
+      {suggestions.map((sug) => {
+        const isApplied = applied.has(sug.clauseCategory);
+        return (
+          <div
+            key={sug.clauseCategory}
+            className={`card overflow-hidden ${isApplied ? "border-green-500/30" : ""}`}
+          >
+            <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold">
+                  {CLAUSE_LABELS[sug.clauseCategory as ClauseCategory] ?? sug.clauseCategory.replace(/_/g, " ")}
+                </div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  {sug.acceptedRed} of {sug.totalRed} RED clauses accepted · {sug.driftPct}% drift rate
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                  sug.driftPct >= 75
+                    ? "text-red-400 bg-red-500/10 border-red-500/30"
+                    : "text-amber-400 bg-amber-500/10 border-amber-500/30"
+                }`}>
+                  {sug.driftPct}% drift
+                </span>
+              </div>
+            </div>
+
+            <div className="px-5 py-4 space-y-4">
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">Zane's analysis</div>
+                <p className="text-xs text-muted-foreground leading-relaxed">{sug.reasoning}</p>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <div className="text-[10px] font-semibold uppercase tracking-widest text-blue-400">Suggested preferred position</div>
+                  <div className="text-xs bg-card border border-border rounded-lg px-3 py-2 font-mono leading-relaxed text-foreground/80">
+                    {sug.updatedPreferredPosition}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[10px] font-semibold uppercase tracking-widest text-red-400">Suggested red line</div>
+                  <div className="text-xs bg-card border border-border rounded-lg px-3 py-2 font-mono leading-relaxed text-foreground/80">
+                    {sug.updatedRedLine}
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-amber-400 flex items-start gap-1.5">
+                <AlertOctagon size={11} className="shrink-0 mt-0.5" />
+                {sug.recommendation}
+              </div>
+
+              <div className="flex gap-2 pt-1 border-t border-border/50">
+                {isApplied ? (
+                  <div className="flex items-center gap-1.5 text-xs text-green-400">
+                    <CheckCircle size={12} />
+                    Applied — open the clause below to review and save.
+                  </div>
+                ) : (
+                  <>
+                    {sug.ruleId && (
+                      <button
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+                        onClick={() => {
+                          onApply(sug.ruleId!, sug.updatedPreferredPosition, sug.updatedRedLine);
+                          setApplied((prev) => { const n = new Set(Array.from(prev)); n.add(sug.clauseCategory); return n; });
+                        }}
+                      >
+                        <Sparkles size={11} />
+                        Apply suggestion
+                      </button>
+                    )}
+                    <button className="text-xs px-3 py-1.5 text-muted-foreground hover:text-foreground transition-colors">
+                      Dismiss
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function Playbook() {
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<"playbook" | "outcomes">("playbook");
+  const [tab, setTab] = useState<"playbook" | "outcomes" | "updates">("playbook");
 
   const { data: rulesData, isLoading } = useQuery({
     queryKey: ["playbook-rules"],
@@ -484,6 +623,13 @@ export default function Playbook() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: driftData, isLoading: driftLoading } = useQuery({
+    queryKey: ["playbook-drift-suggestions"],
+    queryFn: getPlaybookDriftSuggestions,
+    staleTime: 10 * 60 * 1000,
+    enabled: tab === "updates",
+  });
+
   // Get company for workflowType (for suggestion context)
   const { data: company } = useQuery({
     queryKey: ["company"],
@@ -495,6 +641,12 @@ export default function Playbook() {
   const outcomeMap = new Map<string, ClauseOutcome>(
     (patternsData?.clauseOutcomes ?? []).map((o) => [o.clauseCategory, o])
   );
+
+  // Apply a drift suggestion to a playbook rule in the local state
+  const applyDriftSuggestion = async (ruleId: string, preferredPosition: string, hardRedLine: string) => {
+    await updatePlaybookRule(ruleId, { preferredPosition, hardRedLine });
+    void queryClient.invalidateQueries({ queryKey: ["playbook-rules"] });
+  };
 
   return (
     <AppLayout>
@@ -536,6 +688,14 @@ export default function Playbook() {
               </span>
             )}
           </button>
+          <button
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors
+              ${tab === "updates" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setTab("updates")}
+          >
+            <Sparkles size={14} />
+            Suggested Updates
+          </button>
         </div>
 
         {tab === "playbook" ? (
@@ -550,6 +710,50 @@ export default function Playbook() {
             </div>
           ) : (
             <div className="space-y-3">
+              {/* Key positions callout — 3 most critical clauses for commercial contracts */}
+              {rules.some((r) => KEY_CLAUSE_CATEGORIES.includes(r.clauseCategory as typeof KEY_CLAUSE_CATEGORIES[number])) && (
+                <div className="rounded-xl border border-[#1B2D4A] p-4 space-y-3" style={{ background: "#0C1929" }}>
+                  <div className="flex items-center gap-2">
+                    <Star size={13} className="text-[#60A5FA]" />
+                    <span className="text-xs font-semibold text-[#60A5FA]">Key positions</span>
+                    <span className="text-xs text-muted-foreground ml-1">— the 3 clauses that matter most in commercial contracts</span>
+                  </div>
+                  <div className="grid sm:grid-cols-3 gap-3">
+                    {rules
+                      .filter((r) => KEY_CLAUSE_CATEGORIES.includes(r.clauseCategory as typeof KEY_CLAUSE_CATEGORIES[number]))
+                      .map((rule) => (
+                        <div key={rule.id} className="rounded-lg border border-[#1E3A5F] bg-[#0F1F35] px-3 py-3 space-y-2">
+                          <div className="text-xs font-semibold text-[#93C5FD]">
+                            {CLAUSE_LABELS[rule.clauseCategory as ClauseCategory] ?? rule.clauseCategory.replace(/_/g, " ")}
+                          </div>
+                          {rule.preferredPosition ? (
+                            <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-3 font-mono">
+                              {rule.preferredPosition}
+                            </p>
+                          ) : (
+                            <p className="text-[11px] text-muted-foreground/50 italic">No position set — click to configure</p>
+                          )}
+                          {rule.hardRedLine && (
+                            <div className="flex items-center gap-1 text-[10px] text-[#FCA5A5]">
+                              <div className="w-1 h-1 rounded-full bg-[#FCA5A5] shrink-0" />
+                              Red line set
+                            </div>
+                          )}
+                          {rule.approvalRequired && (
+                            <div className="text-[10px] text-muted-foreground/50">
+                              Escalates to {rule.approvalRequired}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/50">
+                    Open any clause below to review or update your full position, fallback language, and approval routing.
+                  </p>
+                </div>
+              )}
+
+              {/* Full clause list */}
               {rules.map((rule) => (
                 <RuleCard key={rule.id} rule={rule} outcome={outcomeMap.get(rule.clauseCategory)} />
               ))}
@@ -559,8 +763,14 @@ export default function Playbook() {
               />
             </div>
           )
-        ) : (
+        ) : tab === "outcomes" ? (
           <OutcomesView outcomes={patternsData?.clauseOutcomes ?? []} />
+        ) : (
+          <DriftSuggestionsView
+            suggestions={driftData?.suggestions ?? []}
+            isLoading={driftLoading}
+            onApply={(ruleId, pos, rl) => void applyDriftSuggestion(ruleId, pos, rl)}
+          />
         )}
       </div>
     </AppLayout>

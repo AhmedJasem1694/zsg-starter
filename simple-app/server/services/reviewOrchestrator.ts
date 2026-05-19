@@ -6,6 +6,7 @@ import {
   compareClauseToPlaybook,
   buildAbsentClauseResult,
 } from "./playbookComparison.js";
+import { detectContradictions } from "./contradictionDetector.js";
 import { getRegulationSummaryForLLM } from "./regulatoryDetection.js";
 import { getRegulatoryContext, formatRegulatoryContextForPrompt } from "./regulatoryEngine.js";
 import { sendEscalationEmail } from "./emailService.js";
@@ -27,6 +28,33 @@ export async function runReview(documentId: string): Promise<void> {
   const playbookRules = await pb.collection("playbook_rules").getFullList({
     filter: `company = "${company.id}"`,
   });
+
+  // ── Load governance configuration (Tier 2 + Tier 3) ────────────────────────
+  const [approvalThresholds, governanceTriggers] = await Promise.all([
+    pb.collection("approval_thresholds").getFullList({ filter: `companyId = "${company.id}"`, sort: "+minValue" }).catch(() => []),
+    pb.collection("governance_triggers").getFullList({ filter: `companyId = "${company.id}"` }).catch(() => []),
+  ]);
+  const contractValue = doc["contractValue"] as number | null;
+
+  // Helper: Tier 2 — check if contract value triggers an approver
+  function getValueTierApprover(): string | null {
+    if (!contractValue || approvalThresholds.length === 0) return null;
+    for (const band of approvalThresholds) {
+      const min = (band["minValue"] as number) ?? 0;
+      const max = band["maxValue"] as number | null;
+      if (contractValue >= min && (max === null || contractValue < max)) {
+        const approver = band["requiredApprover"] as string;
+        return approver === "NONE" ? null : approver;
+      }
+    }
+    return null;
+  }
+
+  // Helper: Tier 3 — check if a clause category is a governance trigger
+  function getGovernanceTriggerApprover(category: string): string | null {
+    const trigger = governanceTriggers.find((t) => t["clauseCategory"] === category);
+    return trigger ? (trigger["escalateTo"] as string) : null;
+  }
 
   await pb.collection("uploaded_documents").update(documentId, { status: "PROCESSING" });
 
@@ -115,6 +143,14 @@ export async function runReview(documentId: string): Promise<void> {
       isAbsent: boolean;
       clauseId: string | null;
       ruleId: string | null;
+      // Founder fields
+      founderStatus: string;
+      founderPlainEnglish: string;
+      founderBusinessImpact: string;
+      founderAskFor: string;
+      founderCopyPaste: string;
+      founderFundraisingRelevance: string;
+      founderIfIgnored: string;
     }> = [];
 
     for (const rule of playbookRules) {
@@ -137,6 +173,13 @@ export async function runReview(documentId: string): Promise<void> {
           isAbsent: true,
           clauseId: null,
           ruleId: rule.id,
+          founderStatus: absent.founderStatus,
+          founderPlainEnglish: absent.founderPlainEnglish,
+          founderBusinessImpact: absent.founderBusinessImpact,
+          founderAskFor: absent.founderAskFor,
+          founderCopyPaste: absent.founderCopyPaste,
+          founderFundraisingRelevance: absent.founderFundraisingRelevance,
+          founderIfIgnored: absent.founderIfIgnored,
         });
         continue;
       }
@@ -161,13 +204,18 @@ export async function runReview(documentId: string): Promise<void> {
       // Compare against playbook with regulatory context
       // Note: match.rawText is already anonymised — company/counterparty names
       // are placeholders. The comparison result text is de-anonymised below.
+      const docGoverningLaw = doc["governingLaw"] as string | undefined;
+      const docJurisdiction = doc["jurisdiction"] as string | undefined;
+      const govLawContext = docGoverningLaw
+        ? `\n\nContract governing law: ${docGoverningLaw}${docJurisdiction ? ` (jurisdiction: ${docJurisdiction})` : ""}. Apply the law of this jurisdiction when assessing the clause.`
+        : "";
       const comparison = await compareClauseToPlaybook(
         match.rawText,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         rule as any,
         company["name"] as string,
         company["sector"] as string,
-        combinedRegContext,
+        combinedRegContext + govLawContext,
         (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER"
       );
 
@@ -178,12 +226,18 @@ export async function runReview(documentId: string): Promise<void> {
 
       const deanonComparison = {
         ...comparison,
-        clauseSummary:      deAnon(comparison.clauseSummary),
-        whyItMatters:       deAnon(comparison.whyItMatters),
-        recommendedAction:  deAnon(comparison.recommendedAction),
-        suggestedFallback:  deAnon(comparison.suggestedFallback),
-        escalationTrigger:  deAnon(comparison.escalationTrigger),
-        businessSummary:    deAnon(comparison.businessSummary),
+        clauseSummary:              deAnon(comparison.clauseSummary),
+        whyItMatters:               deAnon(comparison.whyItMatters),
+        recommendedAction:          deAnon(comparison.recommendedAction),
+        suggestedFallback:          deAnon(comparison.suggestedFallback),
+        escalationTrigger:          deAnon(comparison.escalationTrigger),
+        businessSummary:            deAnon(comparison.businessSummary),
+        founderPlainEnglish:        deAnon(comparison.founderPlainEnglish),
+        founderBusinessImpact:      deAnon(comparison.founderBusinessImpact),
+        founderAskFor:              deAnon(comparison.founderAskFor),
+        founderCopyPaste:           deAnon(comparison.founderCopyPaste),
+        founderFundraisingRelevance: deAnon(comparison.founderFundraisingRelevance),
+        founderIfIgnored:           deAnon(comparison.founderIfIgnored),
       };
       // ───────────────────────────────────────────────────────────────────────
 
@@ -202,14 +256,80 @@ export async function runReview(documentId: string): Promise<void> {
         },
       });
 
+      // ── Three-tier governance escalation ───────────────────────────────────
+      // Tier 1: clause-level RAG (from LLM comparison — already in deanonComparison)
+      // Tier 2: contract value band (from approval_thresholds)
+      // Tier 3: governance triggers (from governance_triggers — always escalate)
+      const tier2Approver = getValueTierApprover();
+      const tier3Approver = getGovernanceTriggerApprover(category);
+
+      const tier2Escalation = !!tier2Approver;
+      const tier3Escalation = !!tier3Approver;
+      const combinedEscalation = deanonComparison.escalationRequired || tier2Escalation || tier3Escalation;
+
+      let combinedTrigger = deanonComparison.escalationTrigger || null;
+      const extraTriggers: string[] = [];
+      if (tier2Escalation && tier2Approver) extraTriggers.push(`Contract value threshold: ${tier2Approver} approval required.`);
+      if (tier3Escalation && tier3Approver) extraTriggers.push(`Governance trigger: ${category.replace(/_/g, " ")} always requires ${tier3Approver} sign-off.`);
+      if (extraTriggers.length > 0) {
+        combinedTrigger = [combinedTrigger, ...extraTriggers].filter(Boolean).join(" | ");
+      }
+
       results.push({
         clauseCategory: category,
         ...deanonComparison,
+        escalationRequired: combinedEscalation,
+        escalationTrigger: combinedTrigger,
         regulatoryCitations: JSON.stringify(deanonComparison.regulatoryCitations ?? []),
-        escalationTrigger: deanonComparison.escalationTrigger || null,
         isAbsent: false,
         clauseId: extractedClause.id,
         ruleId: rule.id,
+        founderStatus: deanonComparison.founderStatus,
+        founderPlainEnglish: deanonComparison.founderPlainEnglish,
+        founderBusinessImpact: deanonComparison.founderBusinessImpact,
+        founderAskFor: deanonComparison.founderAskFor,
+        founderCopyPaste: deanonComparison.founderCopyPaste,
+        founderFundraisingRelevance: deanonComparison.founderFundraisingRelevance,
+        founderIfIgnored: deanonComparison.founderIfIgnored,
+      });
+    }
+
+    // ── Contradiction detection (second LLM pass) ──────────────────────────────
+    // Build a map of category → de-anonymised clause text for the detector
+    const clauseTextMap = new Map<string, string>();
+    for (const r of results) {
+      if (!r.isAbsent && r.clauseSummary) {
+        clauseTextMap.set(r.clauseCategory, r.clauseSummary);
+      }
+    }
+
+    let contradictions: unknown[] = [];
+    if (clauseTextMap.size >= 2) {
+      try {
+        const findings = await detectContradictions(
+          clauseTextMap,
+          company["name"] as string,
+          company["workflowType"] as string
+        );
+        contradictions = findings;
+        if (findings.length > 0) {
+          await audit({
+            action: "contradiction_detected",
+            entityType: "uploaded_document",
+            entityId: documentId,
+            companyId: company.id,
+            detail: { count: findings.length, findings: findings.map((f) => f.title) },
+          });
+        }
+      } catch (err) {
+        console.error("[contradiction detection] failed (non-fatal):", err);
+      }
+    }
+
+    // Persist contradictions on the document record
+    if (contradictions.length > 0) {
+      await pb.collection("uploaded_documents").update(documentId, {
+        contradictions: JSON.stringify(contradictions),
       });
     }
 
@@ -233,6 +353,13 @@ export async function runReview(documentId: string): Promise<void> {
           confidenceLabel: r.confidenceLabel,
           regulatoryCitations: r.regulatoryCitations,
           isAbsent: r.isAbsent,
+          founderStatus: r.founderStatus,
+          founderPlainEnglish: r.founderPlainEnglish,
+          founderBusinessImpact: r.founderBusinessImpact,
+          founderAskFor: r.founderAskFor,
+          founderCopyPaste: r.founderCopyPaste,
+          founderFundraisingRelevance: r.founderFundraisingRelevance,
+          founderIfIgnored: r.founderIfIgnored,
         })
       )
     );

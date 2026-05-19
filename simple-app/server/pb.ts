@@ -8,7 +8,9 @@ const POCKETBASE_URL = process.env.POCKETBASE_URL ?? "http://localhost:8090";
  * overwrite the admin token stored on the shared `pb` singleton.
  */
 export function newPBClient(): PocketBase {
-  return new PocketBase(POCKETBASE_URL);
+  const client = new PocketBase(POCKETBASE_URL);
+  client.autoCancellation(false);
+  return client;
 }
 
 export const pb = new PocketBase(POCKETBASE_URL);

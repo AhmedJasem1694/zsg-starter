@@ -1,9 +1,44 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ClipboardList, ChevronLeft, ChevronRight } from "lucide-react";
+import { ClipboardList, ChevronLeft, ChevronRight, Download, Search, X } from "lucide-react";
 import AppLayout from "../components/layout/AppLayout";
-import { getAuditLog } from "../lib/api";
+import { getAuditLog, exportAuditLogCSV } from "../lib/api";
 import type { AuditEntry } from "../lib/api";
+
+const AUDIT_ACTION_OPTIONS = [
+  "contract_uploaded",
+  "review_started",
+  "review_completed",
+  "review_failed",
+  "rag_status_assigned",
+  "pii_anonymisation_started",
+  "pii_anonymisation_completed",
+  "escalation_triggered",
+  "escalation_email_sent",
+  "feedback_accepted",
+  "feedback_edited",
+  "feedback_escalated",
+  "feedback_dismissed",
+  "teach_mike_correction",
+  "false_positive_marked",
+  "playbook_updated",
+  "playbook_rule_created",
+  "playbook_rule_deleted",
+  "playbook_suggestion_generated",
+  "company_created",
+  "user_registered",
+  "user_login",
+  "user_logout",
+  "litigation_intake_started",
+  "litigation_intake_completed",
+  "governance_thresholds_saved",
+  "governance_triggers_saved",
+  "team_invite_sent",
+  "regulatory_profile_updated",
+  "contract_outcome_captured",
+  "contradiction_detected",
+  "audit_log_exported",
+];
 
 function actionLabel(action: string) {
   return action
@@ -16,6 +51,7 @@ function actionColor(action: string): string {
   if (action.includes("rag_status") || action.includes("review_completed")) return "text-[#86EFAC]";
   if (action.includes("escalat") || action.includes("feedback")) return "text-[#FCD34D]";
   if (action.includes("pii")) return "text-[#A5B4FC]";
+  if (action.includes("export") || action.includes("login") || action.includes("logout")) return "text-[#94A3B8]";
   return "text-foreground/70";
 }
 
@@ -63,24 +99,93 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
 
 export default function AuditTrail() {
   const [page, setPage] = useState(1);
+  const [actionFilter, setActionFilter] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const filters = {
+    action: actionFilter || undefined,
+    from: fromDate ? fromDate + " 00:00:00" : undefined,
+    to: toDate ? toDate + " 23:59:59" : undefined,
+  };
 
   const { data, isLoading } = useQuery({
-    queryKey: ["audit-log", page],
-    queryFn: () => getAuditLog(page, 50),
+    queryKey: ["audit-log", page, filters],
+    queryFn: () => getAuditLog(page, 50, filters),
   });
+
+  function clearFilters() {
+    setActionFilter("");
+    setFromDate("");
+    setToDate("");
+    setPage(1);
+  }
+
+  const hasFilters = actionFilter || fromDate || toDate;
 
   return (
     <AppLayout>
       <div className="px-6 py-8 max-w-5xl mx-auto space-y-6">
 
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <ClipboardList size={22} className="text-primary" />
-          <div>
-            <h1 className="text-2xl font-semibold">Audit Trail</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              Immutable log of all significant actions taken by Zane and your team.
-            </p>
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <ClipboardList size={22} className="text-primary" />
+            <div>
+              <h1 className="text-2xl font-semibold">Audit Trail</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Immutable log of all significant actions taken by Zane and your team.
+              </p>
+            </div>
+          </div>
+          <button
+            className="btn-secondary gap-2 text-sm shrink-0"
+            onClick={() => exportAuditLogCSV(filters)}
+          >
+            <Download size={14} />
+            Export CSV
+          </button>
+        </div>
+
+        {/* Filters */}
+        <div className="card p-4 space-y-3">
+          <div className="flex items-center gap-2 mb-1">
+            <Search size={13} className="text-muted-foreground/60" />
+            <span className="text-xs font-semibold text-muted-foreground">Filter</span>
+            {hasFilters && (
+              <button
+                onClick={clearFilters}
+                className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <X size={11} /> Clear
+              </button>
+            )}
+          </div>
+          <div className="grid sm:grid-cols-3 gap-3">
+            <select
+              className="input text-sm py-1.5"
+              value={actionFilter}
+              onChange={(e) => { setActionFilter(e.target.value); setPage(1); }}
+            >
+              <option value="">All actions</option>
+              {AUDIT_ACTION_OPTIONS.map((a) => (
+                <option key={a} value={a}>{actionLabel(a)}</option>
+              ))}
+            </select>
+            <input
+              type="date"
+              className="input text-sm py-1.5"
+              placeholder="From date"
+              value={fromDate}
+              onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
+            />
+            <input
+              type="date"
+              className="input text-sm py-1.5"
+              placeholder="To date"
+              value={toDate}
+              onChange={(e) => { setToDate(e.target.value); setPage(1); }}
+            />
           </div>
         </div>
 
@@ -91,9 +196,11 @@ export default function AuditTrail() {
         {!isLoading && (!data?.entries?.length) && (
           <div className="card p-12 text-center space-y-3">
             <ClipboardList size={32} className="text-muted-foreground/30 mx-auto" />
-            <div className="font-medium text-muted-foreground">No audit entries yet</div>
+            <div className="font-medium text-muted-foreground">
+              {hasFilters ? "No entries match the current filters" : "No audit entries yet"}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Entries are written as actions are taken — upload a contract to start.
+              {hasFilters ? "Try adjusting the date range or action type." : "Entries are written as actions are taken — upload a contract to start."}
             </p>
           </div>
         )}

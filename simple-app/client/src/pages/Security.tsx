@@ -1,4 +1,4 @@
-import { Shield, Lock, Eye, Server, FileCheck, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
+import { Shield, Lock, Eye, Server, FileCheck, RefreshCw, CheckCircle2, Clock, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const PILLARS = [
@@ -6,24 +6,24 @@ const PILLARS = [
     icon: Lock,
     title: "Encryption at Rest & in Transit",
     description:
-      "All data is encrypted at rest using AES-256. All communications use TLS 1.3. Encryption keys are rotated automatically and never stored alongside data.",
+      "All data is encrypted at rest using AES-256. All communications use TLS 1.3. Encryption keys are never stored alongside data.",
     checks: [
       "AES-256 encryption for all stored data",
       "TLS 1.3 for all API and web traffic",
-      "Automatic key rotation",
       "Encrypted database backups",
+      "Secrets managed via environment variables — never hardcoded",
     ],
   },
   {
     icon: Eye,
     title: "Access Controls",
     description:
-      "Strict role-based access control (RBAC) limits what each user can see and do. All access events are logged with full audit trails.",
+      "Strict role-based access control limits what each user can see and do. All access events are logged with full audit trails.",
     checks: [
       "Role-based access control (RBAC)",
-      "JWT sessions with 30-day expiry",
+      "JWT sessions with configurable expiry",
       "bcrypt password hashing (cost factor 12)",
-      "Full audit log of all access events",
+      "Structured audit log of all significant actions",
     ],
   },
   {
@@ -35,14 +35,14 @@ const PILLARS = [
       "Per-organisation data isolation",
       "No cross-tenant data access",
       "Uploaded files stored with randomised filenames",
-      "Database queries scoped to authenticated company",
+      "All database queries scoped to authenticated company",
     ],
   },
   {
     icon: FileCheck,
     title: "Document Handling",
     description:
-      "Uploaded contracts are processed in memory and stored encrypted. Documents are never used to train models. Your contracts are yours.",
+      "Uploaded contracts are processed in memory. Documents are never used to train models. Your contracts are yours.",
     checks: [
       "Contracts never used for model training",
       "Files stored with nanoid randomised names",
@@ -54,12 +54,12 @@ const PILLARS = [
     icon: RefreshCw,
     title: "LLM Data Privacy",
     description:
-      "Zane uses OpenRouter to access frontier models. Contract text is sent to the model only for the purpose of the review. Ephemeral prompt caching is used for playbook context - no contract data is cached.",
+      "Contract text is anonymised before any model call — party names and sensitive identifiers are replaced with placeholders and restored in your output.",
     checks: [
-      "Prompt caching applied only to playbook rules (not contract text)",
+      "PII anonymisation before every LLM call",
+      "Prompt caching applied only to playbook rules, not contract text",
       "No contract data retained by model provider beyond session",
-      "OpenRouter zero-data-retention option available on Enterprise",
-      "Configurable model routing - use your own API keys",
+      "Configurable model routing — use your own API keys",
     ],
   },
   {
@@ -70,18 +70,47 @@ const PILLARS = [
     checks: [
       "Self-hosted deployment option available",
       "No shared processing queues",
-      "Environment variables for all secrets - never hardcoded",
-      "Health endpoint monitoring with no data exposure",
+      "Health endpoints expose no user data",
+      "All secrets injected at runtime via environment variables",
     ],
   },
 ];
 
-const COMPLIANCE = [
-  { name: "UK GDPR", status: "compliant", detail: "Data Processing Agreement available. UK SCCs for international transfers." },
-  { name: "EU GDPR", status: "compliant", detail: "DPA available. Standard Contractual Clauses for EEA data transfers." },
-  { name: "ISO 27001", status: "in-progress", detail: "Aligned to ISO 27001 controls. Formal certification roadmap for 2025." },
-  { name: "SOC 2 Type II", status: "in-progress", detail: "Controls framework in place. Audit scheduled for 2025." },
-  { name: "Cyber Essentials", status: "compliant", detail: "Meets all Cyber Essentials baseline controls." },
+// ── Split into "current" (verifiable today) vs "enterprise / roadmap"
+const COMPLIANCE_CURRENT = [
+  {
+    name: "UK GDPR",
+    label: "Designed for compliance",
+    detail: "Architecture aligns with UK GDPR obligations. Data Processing Agreement available on Enterprise tier.",
+  },
+  {
+    name: "EU GDPR",
+    label: "Designed for compliance",
+    detail: "Architecture aligns with EU GDPR obligations. Standard Contractual Clauses available on Enterprise tier.",
+  },
+];
+
+const COMPLIANCE_ENTERPRISE = [
+  {
+    name: "ISO 27001",
+    label: "Roadmap",
+    detail: "Controls framework aligned to ISO 27001. Formal certification planned for 2025.",
+  },
+  {
+    name: "SOC 2 Type II",
+    label: "Roadmap",
+    detail: "Controls framework in place. Third-party audit planned for 2025.",
+  },
+  {
+    name: "Cyber Essentials",
+    label: "In assessment",
+    detail: "Self-assessment in progress. Certification expected before enterprise launch.",
+  },
+  {
+    name: "Penetration Testing",
+    label: "Available on Enterprise",
+    detail: "Penetration test report available to Enterprise customers on request under NDA.",
+  },
 ];
 
 export default function Security() {
@@ -91,7 +120,7 @@ export default function Security() {
       <nav className="border-b border-border/40 px-6 py-4 flex items-center justify-between max-w-7xl mx-auto">
         <Link to="/" className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
-            <span className="text-white text-xs font-bold">M</span>
+            <span className="text-white text-xs font-bold">Z</span>
           </div>
           <span className="font-semibold text-sm">Zane</span>
         </Link>
@@ -121,13 +150,17 @@ export default function Security() {
           </span>
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          Zane is built for legal teams handling sensitive commercial agreements. We apply enterprise-grade
-          security controls so you can review counterparty paper without putting client data at risk.
+          Zane is built for legal teams handling sensitive commercial agreements. Security controls are
+          designed so you can review counterparty paper without putting client data at risk.
         </p>
       </section>
 
       {/* Pillars */}
       <section className="max-w-6xl mx-auto px-6 pb-20">
+        <div className="mb-8 text-center">
+          <h2 className="text-xl font-bold mb-2">Current security architecture</h2>
+          <p className="text-sm text-muted-foreground">Controls that are live in the platform today</p>
+        </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
           {PILLARS.map(({ icon: Icon, title, description, checks }) => (
             <div
@@ -154,40 +187,67 @@ export default function Security() {
         </div>
       </section>
 
-      {/* Compliance */}
-      <section className="max-w-4xl mx-auto px-6 pb-20">
-        <h2 className="text-2xl font-bold mb-2 text-center">Compliance status</h2>
-        <p className="text-muted-foreground text-sm text-center mb-10">
-          Current certification and regulatory alignment status.
-        </p>
-        <div className="space-y-3">
-          {COMPLIANCE.map(({ name, status, detail }) => (
-            <div
-              key={name}
-              className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4"
-            >
-              {status === "compliant" ? (
-                <CheckCircle2 size={18} className="text-green-500 shrink-0" />
-              ) : (
-                <AlertCircle size={18} className="text-amber-500 shrink-0" />
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3 mb-0.5">
-                  <span className="text-sm font-medium">{name}</span>
-                  <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide ${
-                      status === "compliant"
-                        ? "bg-green-500/10 text-green-400"
-                        : "bg-amber-500/10 text-amber-400"
-                    }`}
-                  >
-                    {status === "compliant" ? "Compliant" : "In Progress"}
-                  </span>
+      {/* Compliance — Current */}
+      <section className="max-w-4xl mx-auto px-6 pb-12">
+        <div className="mb-6">
+          <h2 className="text-xl font-bold mb-1">Compliance alignment</h2>
+          <p className="text-muted-foreground text-sm">
+            What Zane is designed for — and what requires Enterprise engagement.
+          </p>
+        </div>
+
+        {/* Current alignment */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <CheckCircle2 size={14} className="text-[#86EFAC]" />
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Current</span>
+          </div>
+          <div className="space-y-3">
+            {COMPLIANCE_CURRENT.map(({ name, label, detail }) => (
+              <div
+                key={name}
+                className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4"
+              >
+                <CheckCircle2 size={18} className="text-[#86EFAC] shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-0.5">
+                    <span className="text-sm font-medium">{name}</span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide bg-[#86EFAC]/10 text-[#86EFAC]">
+                      {label}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{detail}</p>
                 </div>
-                <p className="text-xs text-muted-foreground">{detail}</p>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+
+        {/* Enterprise / roadmap */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Building2 size={14} className="text-muted-foreground" />
+            <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Enterprise & Roadmap</span>
+          </div>
+          <div className="space-y-3">
+            {COMPLIANCE_ENTERPRISE.map(({ name, label, detail }) => (
+              <div
+                key={name}
+                className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4"
+              >
+                <Clock size={18} className="text-muted-foreground/50 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-0.5">
+                    <span className="text-sm font-medium">{name}</span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide bg-muted text-muted-foreground">
+                      {label}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -239,11 +299,11 @@ export default function Security() {
           We commit to acknowledging reports within 24 hours and providing a fix timeline within 72 hours.
         </p>
         <a
-          href="mailto:security@usemike.ai"
+          href="mailto:security@usezane.ai"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-border bg-card text-sm font-medium hover:bg-accent transition-colors"
         >
           <Shield size={14} />
-          security@usemike.ai
+          security@usezane.ai
         </a>
       </section>
 

@@ -23,6 +23,8 @@ export interface RegulatoryCitation {
   relevance: string;
 }
 
+export type FounderStatus = "SAFE" | "CAUTION" | "DO NOT SIGN YET";
+
 export interface ComparisonResult {
   ragStatus: RagStatus;
   /** Explicit comparison: "Your playbook says X, this clause says Y, these carve-outs are missing." */
@@ -38,6 +40,14 @@ export interface ComparisonResult {
   confidenceLabel: ConfidenceLabel;
   /** Specific regulatory references (article numbers, regulation names) cited in this analysis */
   regulatoryCitations: RegulatoryCitation[];
+  // ── Founder-specific fields (always generated; founder interface renders these) ──
+  founderStatus: FounderStatus;
+  founderPlainEnglish: string;
+  founderBusinessImpact: string;
+  founderAskFor: string;
+  founderCopyPaste: string;
+  founderFundraisingRelevance: string;
+  founderIfIgnored: string;
 }
 
 type Persona = "CORPORATE" | "FOUNDER";
@@ -122,7 +132,14 @@ Return ONLY valid JSON with this exact structure:
   "confidenceLabel": "HIGH" | "MEDIUM" | "LOW",
   "regulatoryCitations": [
     { "article": "Article 28", "regulation": "UK GDPR", "relevance": "One sentence on why this article applies" }
-  ]
+  ],
+  "founderStatus": "SAFE" | "CAUTION" | "DO NOT SIGN YET",
+  "founderPlainEnglish": "1-2 sentences a founder would understand — what this clause actually means for running the business",
+  "founderBusinessImpact": "Commercial impact if this clause is accepted as written — what it costs, what it prevents, what it exposes",
+  "founderAskFor": "Specific and direct ask — the exact change to request from the counterparty",
+  "founderCopyPaste": "Exact wording a founder can paste into an email or negotiation — ready to send",
+  "founderFundraisingRelevance": "How this clause affects fundraising, investor diligence, or future deal terms — or 'Not relevant to fundraising' if it does not",
+  "founderIfIgnored": "What happens commercially and legally if the founder signs without negotiating this"
 }
 
 RAG rules:
@@ -142,7 +159,7 @@ Regulatory citations: include only citations where you can name the specific art
       { role: "system", content: systemPrompt },
       { role: "user",   content: userPrompt },
     ],
-    1024
+    4000
   );
 
   const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -173,5 +190,12 @@ export function buildAbsentClauseResult(
     businessSummary: businessSummaries[persona],
     confidenceLabel: "HIGH" as ConfidenceLabel,
     regulatoryCitations: [],
+    founderStatus: "CAUTION",
+    founderPlainEnglish: `This contract says nothing about ${label}. That's a gap you need to address before signing.`,
+    founderBusinessImpact: `Without a ${label} clause, you have no contractual protection on this point. The counterparty's standard terms or common law defaults will apply — usually in their favour.`,
+    founderAskFor: `Ask the counterparty to add a ${label} clause. Use the suggested wording below as a starting point.`,
+    founderCopyPaste: rule.fallbackTemplate ?? rule.preferredPosition,
+    founderFundraisingRelevance: `Investors will expect standard ${label} protections. A contract silent on this point may require renegotiation before a deal closes.`,
+    founderIfIgnored: `If you sign without a ${label} clause, you accept whatever default applies under the governing law — typically the counterparty's interpretation. This could create liability or remove protection you assumed you had.`,
   };
 }

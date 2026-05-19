@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, Search, Loader2, Building2, ChevronDown } from "lucide-react";
 import { ZaneLogo } from "../components/ZaneLogo";
-import { createCompany, savePlaybookRules, saveContacts, detectRegulations, searchCompany, enrichCompanyData } from "../lib/api";
+import { createCompany, savePlaybookRules, saveContacts, detectRegulations, searchCompany, enrichCompanyData, saveGovernanceThresholds, saveGovernanceTriggers, sendTeamInvites } from "../lib/api";
 import type { CompanyCandidate, EnrichedCompany } from "../lib/api";
 import {
   CLAUSE_CATEGORIES,
@@ -25,7 +25,7 @@ import {
   type CompanyRegulation,
 } from "../lib/types";
 
-type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 interface CompanyForm {
   name: string;
@@ -52,7 +52,7 @@ interface Contact {
   email: string;
 }
 
-const STEPS = ["Workflow", "Persona", "Company", "Contracts", "Playbook", "Approvers", "Regulations", "Done"];
+const STEPS = ["Workflow", "Persona", "Company", "Contracts", "Playbook", "Governance", "Team", "Regulations", "Done"];
 
 // ─── Industry config ──────────────────────────────────────────────────────────
 
@@ -203,6 +203,20 @@ export default function Onboarding() {
   const [saving, setSaving] = useState(false);
   const [finishError, setFinishError] = useState("");
 
+  // Governance thresholds (contract value bands)
+  const [thresholds, setThresholds] = useState([
+    { minValue: 0, maxValue: 25000, requiredApprover: "NONE", label: "Up to £25,000" },
+    { minValue: 25000, maxValue: 250000, requiredApprover: "CFO", label: "£25,001 – £250,000" },
+    { minValue: 250000, maxValue: null as number | null, requiredApprover: "BOARD", label: "Over £250,000" },
+  ]);
+  // Governance triggers (always-escalate clause categories)
+  const [governanceTriggers, setGovernanceTriggers] = useState<Array<{ clauseCategory: string; escalateTo: string; reason: string }>>([
+    { clauseCategory: "CHANGE_OF_CONTROL", escalateTo: "GC", reason: "Change of control always requires GC sign-off." },
+    { clauseCategory: "ASSIGNMENT", escalateTo: "GC", reason: "Assignment of contractual rights requires GC approval." },
+  ]);
+  // Team invite emails
+  const [teamInviteEmails, setTeamInviteEmails] = useState<string[]>([]);
+
   const companyMutation = useMutation({ mutationFn: createCompany });
 
   function initPlaybook(appetite: RiskAppetite, isProperty: boolean, isGaming: boolean, isInvestment: boolean, wfType: WorkflowType = "COMMERCIAL_CONTRACT", industries: Industry[] = []) {
@@ -236,6 +250,38 @@ export default function Onboarding() {
       .map((cat) => ({ clauseCategory: cat, ...defaults[cat], riskWeight: 3 }));
   }
 
+  async function handleQuickStart(companyName: string) {
+    if (!companyName.trim()) return;
+    setSaving(true);
+    setFinishError("");
+    try {
+      const defaults: CompanyForm = {
+        name: companyName.trim(),
+        sector: INDUSTRY_LABELS["TECHNOLOGY_SAAS"],
+        jurisdiction: "England & Wales",
+        role: "BUYER",
+        riskAppetite: "MODERATE",
+        industry: "TECHNOLOGY_SAAS",
+      };
+      const pb = initPlaybook("MODERATE", false, false, false, "COMMERCIAL_CONTRACT", ["TECHNOLOGY_SAAS"]);
+      await companyMutation.mutateAsync({ ...defaults, persona: "CORPORATE", workflowType: "COMMERCIAL_CONTRACT" });
+      const validRules = pb
+        .map(({ clauseCategory, preferredPosition, acceptableFallback, hardRedLine, fallbackTemplate, riskWeight }) => ({
+          clauseCategory, preferredPosition, acceptableFallback, hardRedLine, fallbackTemplate, riskWeight,
+        }))
+        .filter((r) => r.preferredPosition?.trim() && r.acceptableFallback?.trim() && r.hardRedLine?.trim());
+      await savePlaybookRules(validRules);
+      detectRegulations().catch(() => {});
+      await queryClient.invalidateQueries({ queryKey: ["company"] });
+      navigate("/dashboard");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Setup failed — please try again.";
+      setFinishError(msg);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function handleWorkflowNext(chosen: WorkflowType) {
     setWorkflowType(chosen);
     setStep(1);
@@ -263,7 +309,7 @@ export default function Onboarding() {
     // — auto-initialise investment playbook and jump straight to Launch
     if (persona === "FOUNDER") {
       setPlaybook(initPlaybook(companyForm.riskAppetite, false, false, true, workflowType, selectedIndustries));
-      setStep(7);
+      setStep(8);
     } else {
       setStep(3);
     }
@@ -327,7 +373,22 @@ export default function Onboarding() {
         }
       }
 
-      // Step 4: Detect regs — fire-and-forget, never blocks navigation
+      // Step 4: Save approval thresholds — fire-and-forget
+      if (thresholds.length > 0) {
+        saveGovernanceThresholds(thresholds).catch((e) => console.warn("[handleFinish] thresholds save:", e));
+      }
+
+      // Step 5: Save governance triggers — fire-and-forget
+      if (governanceTriggers.length > 0) {
+        saveGovernanceTriggers(governanceTriggers).catch((e) => console.warn("[handleFinish] triggers save:", e));
+      }
+
+      // Step 6: Send team invites — fire-and-forget
+      if (teamInviteEmails.length > 0) {
+        sendTeamInvites(teamInviteEmails).catch((e) => console.warn("[handleFinish] invites:", e));
+      }
+
+      // Step 7: Detect regs — fire-and-forget, never blocks navigation
       detectRegulations().catch(() => {});
 
       await queryClient.invalidateQueries({ queryKey: ["company"] });
@@ -341,11 +402,11 @@ export default function Onboarding() {
     }
   }
 
-  // Founder persona uses only 3 visible steps (0→1→2→7=launch)
+  // Founder persona uses only 3 visible steps (0→1→2→8=launch)
   const isFounderFlow = persona === "FOUNDER";
   const effectiveStepCount = isFounderFlow ? 3 : STEPS.length;
   // Map actual step index to display progress for founder flow
-  const founderDisplayStep = step === 7 ? 3 : step; // steps 0,1,2 stay same; step 7 = last
+  const founderDisplayStep = step === 8 ? 3 : step; // steps 0,1,2 stay same; step 8 = last
   const displayStep = isFounderFlow ? founderDisplayStep : step;
   const progressPct = (displayStep / (effectiveStepCount - 1)) * 100;
 
@@ -376,8 +437,8 @@ export default function Onboarding() {
       <div className="border-b border-white/8 px-6 py-3" style={{ background: "#0F172A" }}>
         <div className="flex items-center gap-0 max-w-2xl">
           {(isFounderFlow ? ["Workflow", "Persona", "About you", "Launch"] : STEPS).map((label, i) => {
-            // For founder flow, map display index to actual step: 0→0, 1→1, 2→2, 3→7
-            const actualStep = isFounderFlow && i === 3 ? 7 : i;
+            // For founder flow, map display index to actual step: 0→0, 1→1, 2→2, 3→8
+            const actualStep = isFounderFlow && i === 3 ? 8 : i;
             const done   = isFounderFlow ? displayStep > i : i < step;
             const active = isFounderFlow ? displayStep === i : i === step;
             void actualStep;
@@ -407,7 +468,7 @@ export default function Onboarding() {
       {/* Content */}
       <main className="flex-1 px-4 sm:px-6 py-10 max-w-2xl mx-auto w-full">
         {step === 0 && (
-          <Step0Workflow onNext={handleWorkflowNext} />
+          <Step0Workflow onNext={handleWorkflowNext} onQuickStart={handleQuickStart} saving={saving} finishError={finishError} />
         )}
         {step === 1 && (
           <Step1Persona workflowType={workflowType} onNext={handlePersonaNext} onBack={() => setStep(0)} />
@@ -431,9 +492,22 @@ export default function Onboarding() {
           />
         )}
         {step === 4 && <Step4Playbook playbook={playbook} onUpdate={updateRule} onBack={() => setStep(3)} onNext={() => setStep(5)} />}
-        {step === 5 && <Step5Approvers contacts={contacts} persona={persona} onChange={setContacts} onBack={() => setStep(4)} onNext={() => setStep(6)} />}
-        {step === 6 && <Step6Regulations companyForm={companyForm} detected={regulationsDetected} onDetected={() => setRegulationsDetected(true)} onBack={() => setStep(5)} onNext={() => setStep(7)} detectFn={runDetection} />}
-        {step === 7 && <Step7Done persona={persona} saving={saving} error={finishError} onBack={() => setStep(persona === "FOUNDER" ? 2 : 6)} onFinish={handleFinish} />}
+        {step === 5 && (
+          <Step5Governance
+            contacts={contacts} persona={persona} onContactsChange={setContacts}
+            thresholds={thresholds} onThresholdsChange={setThresholds}
+            triggers={governanceTriggers} onTriggersChange={setGovernanceTriggers}
+            onBack={() => setStep(4)} onNext={() => setStep(6)}
+          />
+        )}
+        {step === 6 && (
+          <Step6TeamInvite
+            emails={teamInviteEmails} onChange={setTeamInviteEmails}
+            onBack={() => setStep(5)} onNext={() => setStep(7)}
+          />
+        )}
+        {step === 7 && <Step7Regulations companyForm={companyForm} detected={regulationsDetected} onDetected={() => setRegulationsDetected(true)} onBack={() => setStep(6)} onNext={() => setStep(8)} detectFn={runDetection} />}
+        {step === 8 && <Step8Done persona={persona} saving={saving} error={finishError} onBack={() => setStep(persona === "FOUNDER" ? 2 : 7)} onFinish={handleFinish} />}
       </main>
     </div>
   );
@@ -454,15 +528,95 @@ const WORKFLOW_OPTIONS: { value: WorkflowType; label: string; description: strin
   },
 ];
 
-function Step0Workflow({ onNext }: { onNext: (w: WorkflowType) => void }) {
+function Step0Workflow({
+  onNext,
+  onQuickStart,
+  saving,
+  finishError,
+}: {
+  onNext: (w: WorkflowType) => void;
+  onQuickStart: (name: string) => void;
+  saving: boolean;
+  finishError: string;
+}) {
   const [selected, setSelected] = useState<WorkflowType>("COMMERCIAL_CONTRACT");
+  const [quickName, setQuickName] = useState("");
+  const [showQuick, setShowQuick] = useState(false);
 
   return (
     <div className="space-y-8">
+      {/* Quick Start panel */}
+      <div className="rounded-2xl border border-[#4A6CF7]/30 bg-[#0B1320] p-5 space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#4A6CF7]" />
+              <span className="text-xs font-semibold uppercase tracking-widest text-[#4A6CF7]">Quick Start</span>
+            </div>
+            <h3 className="text-sm font-semibold text-white mt-1">
+              Get started in 30 seconds
+            </h3>
+            <p className="text-xs text-white/40 mt-0.5 leading-relaxed">
+              Use sensible defaults — commercial contracts, England & Wales, moderate risk appetite. Fine-tune anytime from settings.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowQuick((v) => !v)}
+            className="text-xs text-[#4A6CF7] hover:text-[#7B9BFA] transition-colors font-medium shrink-0 pt-1"
+          >
+            {showQuick ? "Cancel" : "Use Quick Start →"}
+          </button>
+        </div>
+
+        {showQuick && (
+          <div className="space-y-3 pt-1 border-t border-white/8">
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+                Company name
+              </label>
+              <input
+                type="text"
+                className="w-full rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-primary transition-colors"
+                placeholder="e.g. Meridian Legal Partners LLP"
+                value={quickName}
+                onChange={(e) => setQuickName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && quickName.trim()) onQuickStart(quickName); }}
+                autoFocus
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onQuickStart(quickName)}
+                disabled={!quickName.trim() || saving}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {saving ? (
+                  <><Loader2 size={14} className="animate-spin" /> Setting up…</>
+                ) : (
+                  "Launch Zane →"
+                )}
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-white/25">
+              {["Commercial contracts", "England & Wales", "Moderate risk appetite", "Standard playbook"].map((d) => (
+                <span key={d} className="flex items-center gap-1">
+                  <CheckCircle size={9} className="text-primary/50" /> {d}
+                </span>
+              ))}
+            </div>
+            {finishError && (
+              <div className="text-xs text-[#FCA5A5] bg-[#1F0A0A] border border-[#450A0A] rounded-lg px-3 py-2">
+                {finishError}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       <div>
-        <h2 className="text-2xl font-bold text-white tracking-tight">Select your workflow</h2>
-        <p className="text-white/45 text-sm mt-2 leading-relaxed">
-          Zane adapts its clause library and output framing to your workflow type. You can change this later.
+        <h2 className="text-xl font-bold text-white tracking-tight">Or configure your workflow</h2>
+        <p className="text-white/40 text-sm mt-1.5 leading-relaxed">
+          Zane adapts its clause library and output framing to your workflow. You can change this later.
         </p>
       </div>
 
@@ -502,7 +656,7 @@ function Step0Workflow({ onNext }: { onNext: (w: WorkflowType) => void }) {
           onClick={() => onNext(selected)}
           className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/25"
         >
-          Continue →
+          Configure step by step →
         </button>
       </div>
     </div>
@@ -1386,7 +1540,262 @@ function Step5Approvers({ contacts, persona, onChange, onBack, onNext }: {
   );
 }
 
-// ─── Step 6: Regulations ──────────────────────────────────────────────────────
+// ─── Step 5: Governance (Approvers + Thresholds + Triggers) ──────────────────
+
+interface Threshold {
+  minValue: number;
+  maxValue: number | null;
+  requiredApprover: string;
+  label: string;
+}
+
+interface GovernanceTrigger {
+  clauseCategory: string;
+  escalateTo: string;
+  reason: string;
+}
+
+function Step5Governance({
+  contacts, persona, onContactsChange,
+  thresholds, onThresholdsChange,
+  triggers, onTriggersChange,
+  onBack, onNext,
+}: {
+  contacts: Contact[];
+  persona: Persona;
+  onContactsChange: (c: Contact[]) => void;
+  thresholds: Threshold[];
+  onThresholdsChange: (t: Threshold[]) => void;
+  triggers: GovernanceTrigger[];
+  onTriggersChange: (t: GovernanceTrigger[]) => void;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  const [newTriggerCat, setNewTriggerCat] = useState("");
+  const [newTriggerRole, setNewTriggerRole] = useState("GC");
+
+  function updateContact(i: number, field: keyof Contact, value: string) {
+    const updated = [...contacts];
+    updated[i] = { ...updated[i], [field]: value };
+    onContactsChange(updated);
+  }
+
+  function updateThreshold(i: number, field: keyof Threshold, value: string | number | null) {
+    const updated = [...thresholds];
+    updated[i] = { ...updated[i], [field]: value };
+    onThresholdsChange(updated);
+  }
+
+  function addTrigger() {
+    if (!newTriggerCat) return;
+    if (triggers.some((t) => t.clauseCategory === newTriggerCat)) return;
+    onTriggersChange([...triggers, { clauseCategory: newTriggerCat, escalateTo: newTriggerRole, reason: "" }]);
+    setNewTriggerCat("");
+  }
+
+  function removeTrigger(cat: string) {
+    onTriggersChange(triggers.filter((t) => t.clauseCategory !== cat));
+  }
+
+  const ROLE_LABELS: Record<ApprovalRole, { label: string; sub: string }> = {
+    LEGAL: { label: "Legal team",      sub: "Day-to-day clause review" },
+    GC:    { label: "General Counsel", sub: "High-risk decisions" },
+    CFO:   { label: "CFO",   sub: "Financial exposure thresholds" },
+    BOARD: { label: "Board", sub: "Material contracts" },
+  };
+
+  const APPROVER_OPTIONS = ["NONE", "LEGAL", "GC", "CFO", "BOARD"];
+
+  void persona;
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold text-white tracking-tight">Governance setup</h2>
+        <p className="text-white/45 text-sm mt-2">
+          Who approves what, and which clauses always require escalation.
+        </p>
+      </div>
+
+      {/* Approvers */}
+      <div className="space-y-3">
+        <div className="text-xs font-semibold uppercase tracking-widest text-white/30">Approval contacts</div>
+        {contacts.map((c, i) => (
+          <div key={c.role} className="rounded-xl border border-white/10 p-4 space-y-3" style={{ background: CARD }}>
+            <div>
+              <div className="text-sm font-semibold text-white">{ROLE_LABELS[c.role].label}</div>
+              <div className="text-xs text-white/35">{ROLE_LABELS[c.role].sub}</div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-widest text-white/30">Name</label>
+                <DarkInput placeholder="Jane Smith" value={c.name} onChange={(e) => updateContact(i, "name", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-widest text-white/30">Email</label>
+                <DarkInput type="email" placeholder="jane@company.com" value={c.email} onChange={(e) => updateContact(i, "email", e.target.value)} />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Approval thresholds */}
+      <div className="space-y-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-white/30 mb-0.5">Contract value thresholds</div>
+          <div className="text-xs text-white/35">Contracts above each threshold automatically flag the relevant approver.</div>
+        </div>
+        {thresholds.map((t, i) => (
+          <div key={i} className="flex items-center gap-3 rounded-xl border border-white/10 px-4 py-3" style={{ background: CARD }}>
+            <div className="flex-1 text-sm text-white/80">{t.label}</div>
+            <select
+              className="bg-[#1E293B] border border-white/15 text-white text-xs rounded-lg px-2 py-1.5"
+              value={t.requiredApprover}
+              onChange={(e) => updateThreshold(i, "requiredApprover", e.target.value)}
+            >
+              {APPROVER_OPTIONS.map((o) => (
+                <option key={o} value={o}>{o === "NONE" ? "Self-approval" : o}</option>
+              ))}
+            </select>
+          </div>
+        ))}
+      </div>
+
+      {/* Governance triggers */}
+      <div className="space-y-3">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-widest text-white/30 mb-0.5">Always-escalate clauses</div>
+          <div className="text-xs text-white/35">These clause categories always trigger escalation, regardless of how they are scored.</div>
+        </div>
+        <div className="space-y-1.5">
+          {triggers.map((t) => (
+            <div key={t.clauseCategory} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 px-3 py-2" style={{ background: CARD }}>
+              <div>
+                <span className="text-xs font-mono text-white/60">{t.clauseCategory.replace(/_/g, " ")}</span>
+                <span className="ml-2 text-[10px] text-white/35">→ {t.escalateTo}</span>
+              </div>
+              <button onClick={() => removeTrigger(t.clauseCategory)} className="text-white/25 hover:text-white/60 text-xs">✕</button>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <select
+            className="flex-1 bg-[#1E293B] border border-white/15 text-white/70 text-xs rounded-lg px-2 py-1.5"
+            value={newTriggerCat}
+            onChange={(e) => setNewTriggerCat(e.target.value)}
+          >
+            <option value="">Add a trigger clause…</option>
+            {CLAUSE_CATEGORIES.filter((c) => !triggers.some((t) => t.clauseCategory === c)).map((c) => (
+              <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
+            ))}
+          </select>
+          <select
+            className="bg-[#1E293B] border border-white/15 text-white/70 text-xs rounded-lg px-2 py-1.5"
+            value={newTriggerRole}
+            onChange={(e) => setNewTriggerRole(e.target.value)}
+          >
+            {["LEGAL", "GC", "CFO", "BOARD"].map((r) => <option key={r} value={r}>{r}</option>)}
+          </select>
+          <button
+            onClick={addTrigger}
+            disabled={!newTriggerCat}
+            className="px-3 py-1.5 text-xs bg-primary text-white rounded-lg disabled:opacity-40 hover:opacity-90"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+
+      <div className="flex justify-between pt-2">
+        <button onClick={onBack} className="px-4 py-2.5 text-sm text-white/40 hover:text-white/70 transition-colors">← Back</button>
+        <button onClick={onNext}
+          className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/25">
+          Next: Team →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 6: Team Invite ──────────────────────────────────────────────────────
+
+function Step6TeamInvite({
+  emails, onChange, onBack, onNext,
+}: {
+  emails: string[];
+  onChange: (emails: string[]) => void;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  const [input, setInput] = useState("");
+
+  function addEmail() {
+    const email = input.trim().toLowerCase();
+    if (!email || !email.includes("@") || emails.includes(email)) return;
+    onChange([...emails, email]);
+    setInput("");
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addEmail(); }
+  }
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold text-white tracking-tight">Invite your team</h2>
+        <p className="text-white/45 text-sm mt-2">
+          Add colleagues who should have access to Zane. They'll receive an invitation. Skip if you want to set this up later.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        <div className="text-xs font-semibold uppercase tracking-widest text-white/30">Team email addresses</div>
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <DarkInput
+              type="email"
+              placeholder="colleague@company.com"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+          </div>
+          <button
+            onClick={addEmail}
+            className="px-4 py-2.5 text-sm bg-primary text-white rounded-xl hover:opacity-90 transition-opacity"
+          >
+            Add
+          </button>
+        </div>
+        {emails.length > 0 && (
+          <div className="space-y-1.5">
+            {emails.map((email) => (
+              <div key={email} className="flex items-center justify-between rounded-lg border border-white/10 px-3 py-2" style={{ background: CARD }}>
+                <span className="text-sm text-white/70">{email}</span>
+                <button onClick={() => onChange(emails.filter((e) => e !== email))} className="text-white/25 hover:text-white/60 text-xs">✕</button>
+              </div>
+            ))}
+          </div>
+        )}
+        {emails.length === 0 && (
+          <p className="text-xs text-white/25 text-center py-4">No team members added yet. You can always invite from Settings.</p>
+        )}
+      </div>
+
+      <div className="flex justify-between pt-2">
+        <button onClick={onBack} className="px-4 py-2.5 text-sm text-white/40 hover:text-white/70 transition-colors">← Back</button>
+        <button onClick={onNext}
+          className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/25">
+          {emails.length > 0 ? `Invite ${emails.length} & continue →` : "Skip →"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step 7: Regulations ──────────────────────────────────────────────────────
 
 const JURISDICTION_LABELS: Record<string, string> = {
   GB:  "United Kingdom",
@@ -1425,7 +1834,7 @@ const JURISDICTION_CONTEXT: Record<string, string> = {
   BR:  "Brazilian law — LGPD privacy and BACEN regulations",
 };
 
-function Step6Regulations({ companyForm, detected, onDetected, onBack, onNext, detectFn }: {
+function Step7Regulations({ companyForm, detected, onDetected, onBack, onNext, detectFn }: {
   companyForm: CompanyForm;
   detected: boolean;
   onDetected: () => void;
@@ -1587,7 +1996,7 @@ function Step6Regulations({ companyForm, detected, onDetected, onBack, onNext, d
 
 // ─── Step 7: Done ─────────────────────────────────────────────────────────────
 
-function Step7Done({ persona, saving, error, onBack, onFinish }: {
+function Step8Done({ persona, saving, error, onBack, onFinish }: {
   persona: Persona;
   saving: boolean;
   error?: string;

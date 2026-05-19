@@ -632,6 +632,8 @@ export interface UploadedDocument {
   counterpartyName?: string;
   counterpartyType?: string;
   reviewType?: string;
+  governingLaw?: string;
+  jurisdiction?: string;
   contractValue?: number;
   currency?: string;
   contractTermMonths?: number;
@@ -639,8 +641,26 @@ export interface UploadedDocument {
   noticePeriodDays?: number;
   renewalDate?: string;
   contractTags?: string;
+  folder?: string;
+  parentDocumentId?: string;
+  outcome?: "DRAFT" | "SIGNED" | "EXECUTED";
+  signedAt?: string;
+  outcomeNotes?: string;
+  /** JSON array of contradiction findings from the second LLM pass */
+  contradictions?: ContradictionFinding[];
   uploadedAt: string;
   reviewResults?: ReviewResult[];
+}
+
+export type FounderStatus = "SAFE" | "CAUTION" | "DO NOT SIGN YET";
+
+export interface ContradictionFinding {
+  title: string;
+  clauseA: string;
+  clauseB: string;
+  explanation: string;
+  severity: "HIGH" | "MEDIUM" | "LOW";
+  recommendation: string;
 }
 
 export interface ReviewResult {
@@ -666,6 +686,14 @@ export interface ReviewResult {
   isAbsent: boolean;
   createdAt: string;
   feedback?: UserFeedback;
+  // ── Founder-specific fields ───────────────────────────────────────────────
+  founderStatus?: FounderStatus;
+  founderPlainEnglish?: string;
+  founderBusinessImpact?: string;
+  founderAskFor?: string;
+  founderCopyPaste?: string;
+  founderFundraisingRelevance?: string;
+  founderIfIgnored?: string;
 }
 
 export interface CompanyRegulation {

@@ -126,25 +126,43 @@ async function main() {
 
   console.log("Setting up collections...\n");
 
-  // ── 1. users (note: PocketBase may have created this as auth — skip if so) ──
+  // ── 1. users — must be an AUTH collection so authWithPassword works ──────────
+  // The routes use PocketBase native auth (authWithPassword / create with password+passwordConfirm).
+  // If users exists as a base collection (wrong type), delete it and recreate as auth.
+  let usersExists = false;
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const usersCol = await (pb.collections as any).getOne("users");
     if (usersCol.type === "auth") {
-      console.log("  ✓ 'users' is an auth collection — skipping (using built-in auth)");
+      console.log("  ✓ 'users' already an auth collection — adding 'name' field if missing");
+      // Ensure the custom 'name' field exists
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const existingFields: any[] = usersCol.fields ?? usersCol.schema ?? [];
+      const hasName = existingFields.some((f: { name: string }) => f.name === "name");
+      if (!hasName) {
+        await (pb.collections as any).update(usersCol.id, {
+          fields: [...existingFields, textField("name")],
+        });
+        console.log("    → added 'name' field");
+      }
+      usersExists = true;
     } else {
-      await setupCollection("users", [
-        { name: "email", type: "email", required: true },
-        textField("passwordHash", { required: true }),
-        textField("name", { required: true }),
-      ]);
+      console.log("  ⚠ 'users' is a base collection — deleting and recreating as auth");
+      await (pb.collections as any).delete(usersCol.id);
     }
   } catch {
-    await setupCollection("users", [
-      { name: "email", type: "email", required: true },
-      textField("passwordHash", { required: true }),
-      textField("name", { required: true }),
-    ]);
+    // collection doesn't exist — will create below
+  }
+
+  if (!usersExists) {
+    await (pb.collections as any).create({
+      name: "users",
+      type: "auth",
+      fields: [
+        textField("name"),
+      ],
+    });
+    console.log("  ✓ Created 'users' as auth collection");
   }
 
   // ── 2. companies ─────────────────────────────────────────────────────────────
@@ -200,6 +218,8 @@ async function main() {
     textField("counterpartyName"),
     textField("counterpartyType"),
     textField("reviewType"),
+    textField("governingLaw"),
+    textField("jurisdiction"),
     numberField("contractValue"),
     textField("currency"),
     numberField("contractTermMonths"),
@@ -207,6 +227,12 @@ async function main() {
     numberField("noticePeriodDays"),
     dateField("renewalDate"),
     textField("contractTags"),
+    textField("folder"),              // User-assigned folder label (e.g. "Suppliers", "Investors")
+    textField("parentDocumentId"),    // ID of prior version document (version chain)
+    textField("outcome"),        // DRAFT | SIGNED | EXECUTED — set via outcome capture
+    textField("signedAt"),       // ISO date when marked as signed/executed
+    textField("outcomeNotes"),   // free text: what was actually negotiated
+    textField("contradictions", { max: 50000 }),  // JSON array of ContradictionFinding
   ]);
 
   // ── 7. extracted_clauses ─────────────────────────────────────────────────────
@@ -238,6 +264,14 @@ async function main() {
     textField("escalationTrigger"),
     textField("businessSummary", { max: 10000 }),
     boolField("isAbsent"),
+    // Founder-specific fields
+    textField("founderStatus"),                          // SAFE | CAUTION | DO NOT SIGN YET
+    textField("founderPlainEnglish", { max: 5000 }),
+    textField("founderBusinessImpact", { max: 5000 }),
+    textField("founderAskFor", { max: 5000 }),
+    textField("founderCopyPaste", { max: 10000 }),
+    textField("founderFundraisingRelevance", { max: 5000 }),
+    textField("founderIfIgnored", { max: 5000 }),
   ]);
 
   // ── 9. litigation_intakes ────────────────────────────────────────────────────
@@ -336,7 +370,37 @@ async function main() {
     numberField("entitiesDetected"),
   ]);
 
-  // ── 17. audit_log ─────────────────────────────────────────────────────────────
+  // ── 17. approval_thresholds ───────────────────────────────────────────────────
+  // Contract value bands defining approval requirements.
+  // e.g. £0-25k = NONE, £25k-250k = CFO, £250k+ = BOARD
+  await setupCollection("approval_thresholds", [
+    textField("companyId", { required: true }),
+    numberField("minValue"),                     // lower bound (inclusive), null = 0
+    numberField("maxValue"),                     // upper bound (exclusive), null = unlimited
+    textField("requiredApprover"),               // ApprovalRole | "NONE"
+    textField("label"),                          // e.g. "Up to £25k"
+  ]);
+
+  // ── 18. governance_triggers ───────────────────────────────────────────────────
+  // Clause categories that always require escalation, regardless of individual
+  // clause-level RAG assessment. These are hard-wired governance rules.
+  await setupCollection("governance_triggers", [
+    textField("companyId", { required: true }),
+    textField("clauseCategory", { required: true }),
+    textField("escalateTo"),                    // ApprovalRole
+    textField("reason"),                         // Plain-English rationale
+  ]);
+
+  // ── 19. team_invites ──────────────────────────────────────────────────────────
+  // Pending team invitations sent during onboarding.
+  await setupCollection("team_invites", [
+    textField("companyId", { required: true }),
+    textField("email", { required: true }),
+    textField("role"),                           // e.g. LEGAL | GC | CFO
+    textField("status"),                         // pending | accepted
+  ]);
+
+  // ── 20. audit_log ─────────────────────────────────────────────────────────────
   // Immutable audit trail for all significant MIKE actions.
   // Intentionally not using strict relations so entries survive deletions.
   await setupCollection("audit_log", [

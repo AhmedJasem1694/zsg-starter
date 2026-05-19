@@ -1,11 +1,19 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { ArrowLeft, AlertTriangle, Clock, CheckCircle, Download, ChevronDown, ChevronUp, Mail, Copy, Loader2, GraduationCap, XCircle, BookOpen, Scale, Zap, Info } from "lucide-react";
-import { getReview, saveFeedback, generateReply, teachMike, markFalsePositive } from "../lib/api";
+import {
+  ArrowLeft, AlertTriangle, Clock, CheckCircle, Download, ChevronDown, ChevronUp,
+  Mail, Copy, Loader2, GraduationCap, XCircle, BookOpen, Scale, Zap, Info,
+  TrendingDown, Layers, CalendarClock, FileCheck, Users, BarChart2, ChevronRight,
+  MessageSquare, Shield,
+} from "lucide-react";
+import { getReview, saveFeedback, generateReply, teachMike, markFalsePositive, captureOutcome } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, ConfidenceLabel, RegulatoryCitation } from "../lib/types";
 import { CLAUSE_LABELS } from "../lib/types";
+import { MOCK_REVIEW_DETAIL } from "../lib/mockData";
+
+// ─── RAG styling ─────────────────────────────────────────────────────────────
 
 const RAG_BADGE: Record<RagStatus, string> = {
   RED:   "rag-red",
@@ -28,6 +36,23 @@ const RAG_LABEL: Record<RagStatus, string> = {
   GREY:  "Missing",
 };
 
+const RAG_BORDER_LEFT: Record<RagStatus, string> = {
+  RED:   "border-l-[#F87171]",
+  AMBER: "border-l-[#FBBF24]",
+  GREEN: "border-l-[#4ADE80]",
+  GREY:  "border-l-[#475569]",
+};
+
+// ─── Confidence badge config ──────────────────────────────────────────────────
+
+const CONFIDENCE_CONFIG: Record<ConfidenceLabel, { label: string; classes: string }> = {
+  HIGH:   { label: "High confidence",          classes: "bg-[#052E16] border-[#14532D] text-[#86EFAC]" },
+  MEDIUM: { label: "Medium confidence",        classes: "bg-[#1C0F00] border-[#431407] text-[#FCD34D]" },
+  LOW:    { label: "Lawyer review required",   classes: "bg-[#1F0A0A] border-[#450A0A] text-[#FCA5A5]" },
+};
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
 export default function ReviewDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -35,24 +60,34 @@ export default function ReviewDetail() {
   const [filter, setFilter] = useState<RagStatus | "ALL">("ALL");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const { data: doc, isLoading } = useQuery({
+  // Demo mode — mock-1 served from local data, no API call needed
+  const isMock = id === "mock-1";
+
+  const { data: realDoc, isLoading } = useQuery({
     queryKey: ["review", id],
     queryFn: () => getReview(id!),
+    enabled: !isMock,
     refetchInterval: (query) => {
       const d = query.state.data;
       return d?.status === "PROCESSING" ? 3000 : false;
     },
   });
 
+  const doc: UploadedDocument | undefined = isMock ? MOCK_REVIEW_DETAIL : realDoc;
+  const loading = isMock ? false : isLoading;
+
   async function handleFeedback(resultId: string, action: FeedbackAction, finalClauseText?: string) {
+    if (isMock) return; // no-op in demo
     await saveFeedback(resultId, { userAction: action, finalClauseText });
     await queryClient.invalidateQueries({ queryKey: ["review", id] });
   }
 
-  if (isLoading) {
+  // ── Loading / error states ─────────────────────────────────────────────────
+
+  if (loading) {
     return (
       <AppLayout>
-        <div className="px-6 py-8 max-w-5xl mx-auto">
+        <div className="px-6 py-8 max-w-6xl mx-auto">
           <BackButton onClick={() => navigate("/app/legal/dashboard")} />
           <div className="text-sm text-muted-foreground mt-8">Loading review…</div>
         </div>
@@ -63,13 +98,15 @@ export default function ReviewDetail() {
   if (!doc) {
     return (
       <AppLayout>
-        <div className="px-6 py-8 max-w-5xl mx-auto">
+        <div className="px-6 py-8 max-w-6xl mx-auto">
           <BackButton onClick={() => navigate("/app/legal/dashboard")} />
           <div className="text-sm text-destructive mt-8">Document not found.</div>
         </div>
       </AppLayout>
     );
   }
+
+  // ── Processing state ──────────────────────────────────────────────────────
 
   if (doc.status === "PROCESSING") {
     const elapsedSec = (Date.now() - new Date(doc.uploadedAt).getTime()) / 1000;
@@ -86,7 +123,7 @@ export default function ReviewDetail() {
 
     return (
       <AppLayout>
-        <div className="px-6 py-8 max-w-5xl mx-auto space-y-4">
+        <div className="px-6 py-8 max-w-6xl mx-auto space-y-4">
           <BackButton onClick={() => navigate("/app/legal/dashboard")} />
           <div className="card p-8 space-y-6 border-[#1C2A3A]" style={{ background: "#0D1B2A" }}>
             <div className="flex items-center gap-3">
@@ -96,14 +133,14 @@ export default function ReviewDetail() {
                 <div className="text-xs text-muted-foreground mt-0.5 truncate">{doc.originalName}</div>
               </div>
             </div>
-            <div className="space-y-2.5 max-w-sm">
+            <div className="space-y-3 max-w-sm">
               {DETAIL_STAGES.map((stage, i) => {
                 const done    = i < stageIdx;
                 const active  = i === stageIdx;
                 const pending = i > stageIdx;
                 return (
                   <div key={stage.label} className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all
+                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-500
                       ${done    ? "bg-[#14532D] border-[#166534]" : ""}
                       ${active  ? "bg-[#1C0F00] border-[#92400E] animate-pulse" : ""}
                       ${pending ? "bg-transparent border-[#1E293B]" : ""}`}>
@@ -130,7 +167,7 @@ export default function ReviewDetail() {
   if (doc.status === "FAILED") {
     return (
       <AppLayout>
-        <div className="px-6 py-8 max-w-5xl mx-auto space-y-4">
+        <div className="px-6 py-8 max-w-6xl mx-auto space-y-4">
           <BackButton onClick={() => navigate("/app/legal/dashboard")} />
           <div className="card p-12 text-center space-y-3">
             <AlertTriangle size={32} className="text-destructive mx-auto" />
@@ -142,9 +179,31 @@ export default function ReviewDetail() {
     );
   }
 
+  // ── Complete state ────────────────────────────────────────────────────────
+
   function handleExport() {
     if (doc) exportReviewAsText(doc);
   }
+
+  // Outcome capture state
+  const [outcomeDismissed, setOutcomeDismissed] = useState(false);
+  const [outcomeCaptured, setOutcomeCaptured] = useState(!!doc?.outcome);
+  const [outcomeNotes, setOutcomeNotes] = useState("");
+  const [showOutcomeNotes, setShowOutcomeNotes] = useState(false);
+
+  const outcomeMutation = useMutation({
+    mutationFn: (outcome: "SIGNED" | "EXECUTED") =>
+      captureOutcome(doc!.id, outcome, outcomeNotes),
+    onSuccess: () => {
+      setOutcomeCaptured(true);
+      void queryClient.invalidateQueries({ queryKey: ["review", id] });
+    },
+  });
+
+  // Auto-detect "final signed" from filename
+  const looksLikeSigned = !isMock && doc?.originalName
+    ? /\b(signed|executed|final|countersigned|esigned|e-signed)\b/i.test(doc.originalName)
+    : false;
 
   const results = doc.reviewResults ?? [];
   const counts = {
@@ -156,128 +215,596 @@ export default function ReviewDetail() {
   const overallRag: RagStatus = counts.RED > 0 ? "RED" : counts.AMBER > 0 ? "AMBER" : "GREEN";
   const filtered = filter === "ALL" ? results : results.filter((r) => r.ragStatus === filter);
 
+  const renewalDaysUntil = doc.renewalDate
+    ? Math.ceil((new Date(doc.renewalDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+
   return (
     <AppLayout>
-      <div className="px-6 py-8 max-w-5xl mx-auto space-y-6">
-        {/* Back + title */}
-        <div className="space-y-1">
-          <BackButton onClick={() => navigate("/app/legal/dashboard")} />
-          <h1 className="text-xl font-semibold truncate">{doc.originalName}</h1>
-          <div className="text-sm text-muted-foreground">
-            {doc.contractType.replace(/_/g, " ")} ·{" "}
-            {new Date(doc.uploadedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-          </div>
-        </div>
+      <div className="px-6 py-6 max-w-6xl mx-auto space-y-5">
 
-        {/* Summary bar */}
-        <div className="card p-5 flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${RAG_DOT[overallRag]}`} />
-            <span className="font-semibold text-sm">Overall: {RAG_LABEL[overallRag]}</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {(["RED", "AMBER", "GREEN", "GREY"] as RagStatus[]).map((s) =>
-              counts[s] > 0 ? (
-                <span key={s} className={RAG_BADGE[s]}>
-                  {counts[s]} {RAG_LABEL[s]}
-                </span>
-              ) : null
-            )}
-          </div>
-          <div className="ml-auto flex items-center gap-3">
-            <span className="text-xs text-muted-foreground">{results.length} clauses reviewed</span>
-            <button
-              onClick={handleExport}
-              className="btn-secondary flex items-center gap-1.5 text-xs px-3 py-1.5"
-            >
-              <Download size={12} /> Export
-            </button>
-          </div>
-        </div>
+        {/* Back */}
+        <BackButton onClick={() => navigate("/app/legal/dashboard")} />
 
-        {/* Three-tier escalation summary */}
-        <EscalationSummary doc={doc} results={results} />
+        {/* ── Contract Intelligence Header ─────────────────────────────── */}
+        <ContractHeader
+          doc={doc}
+          overallRag={overallRag}
+          counts={counts}
+          renewalDaysUntil={renewalDaysUntil}
+          onExport={handleExport}
+          isMock={isMock}
+        />
 
-        {/* Filter pills */}
-        <div className="flex flex-wrap gap-2">
-          {(["ALL", "RED", "AMBER", "GREEN", "GREY"] as const).map((f) => {
-            const count = f === "ALL" ? results.length : counts[f];
-            return (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                  filter === f
-                    ? "bg-[#2563EB] text-white border-[#2563EB]"
-                    : "border-border hover:border-[#475569] text-foreground"
-                }`}
-              >
-                {f === "ALL" ? `All (${count})` : `${RAG_LABEL[f as RagStatus]} (${count})`}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Clause cards */}
-        <div className="space-y-3">
-          {filtered.map((result) => (
-            <ClauseCard
-              key={result.id}
-              result={result}
-              expanded={expandedId === result.id}
-              onToggle={() => setExpandedId(expandedId === result.id ? null : result.id)}
-              onFeedback={(action, finalClauseText) => handleFeedback(result.id, action, finalClauseText)}
-            />
-          ))}
-          {filtered.length === 0 && (
-            <div className="text-sm text-muted-foreground py-10 text-center">
-              No clauses in this category.
+        {/* ── Urgency strip (RED only) ─────────────────────────────────── */}
+        {counts.RED > 0 && (
+          <div className="flex items-start gap-3 rounded-xl border border-[#450A0A] bg-[#1A0404] px-4 py-3">
+            <AlertTriangle size={14} className="text-[#FCA5A5] shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-semibold text-[#FCA5A5]">
+                {counts.RED} clause{counts.RED !== 1 ? "s" : ""} require immediate attention before signing.
+              </span>
+              <span className="text-xs text-[#FCA5A5]/60 ml-2">
+                {results.filter(r => r.ragStatus === "RED").map(r => CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory).join(" · ")}
+              </span>
             </div>
-          )}
+          </div>
+        )}
+
+        {/* ── Outcome capture banner ───────────────────────────────────── */}
+        {!outcomeDismissed && !outcomeCaptured && (looksLikeSigned || doc?.outcome === undefined) && !isMock && (
+          <div className="rounded-xl border border-[#14532D] bg-[#052E16] px-4 py-3 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <FileCheck size={14} className="text-[#86EFAC] shrink-0" />
+                <span className="text-sm font-semibold text-[#86EFAC]">
+                  {looksLikeSigned ? "Is this the final signed contract?" : "Mark this contract as signed"}
+                </span>
+              </div>
+              <button onClick={() => setOutcomeDismissed(true)} className="text-[#86EFAC]/40 hover:text-[#86EFAC]/80 text-xs">✕</button>
+            </div>
+            {looksLikeSigned && (
+              <p className="text-xs text-[#86EFAC]/70">
+                The filename suggests this may be an executed version. Marking it helps Zane track what was actually negotiated.
+              </p>
+            )}
+            {showOutcomeNotes && (
+              <textarea
+                className="w-full rounded-lg border border-[#14532D] bg-[#030f08] px-3 py-2 text-xs text-[#86EFAC] placeholder:text-[#86EFAC]/30 focus:outline-none min-h-[64px] resize-y"
+                placeholder="Optional: note what was negotiated or changed from the draft…"
+                value={outcomeNotes}
+                onChange={(e) => setOutcomeNotes(e.target.value)}
+              />
+            )}
+            <div className="flex flex-wrap gap-2">
+              <button
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#14532D] text-[#86EFAC] hover:bg-[#166534] transition-colors disabled:opacity-60"
+                disabled={outcomeMutation.isPending}
+                onClick={() => outcomeMutation.mutate("SIGNED")}
+              >
+                <CheckCircle size={11} /> Mark as signed
+              </button>
+              <button
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#14532D] text-[#86EFAC] hover:bg-[#166534] transition-colors disabled:opacity-60"
+                disabled={outcomeMutation.isPending}
+                onClick={() => outcomeMutation.mutate("EXECUTED")}
+              >
+                <CheckCircle size={11} /> Mark as executed
+              </button>
+              <button
+                className="text-xs px-2 py-1.5 text-[#86EFAC]/50 hover:text-[#86EFAC]/80"
+                onClick={() => setShowOutcomeNotes((v) => !v)}
+              >
+                {showOutcomeNotes ? "Hide notes" : "Add note"}
+              </button>
+            </div>
+          </div>
+        )}
+        {outcomeCaptured && !isMock && (
+          <div className="flex items-center gap-2 rounded-xl border border-[#14532D] bg-[#052E16] px-4 py-2.5">
+            <CheckCircle size={13} className="text-[#86EFAC] shrink-0" />
+            <span className="text-xs text-[#86EFAC]">
+              Marked as {doc?.outcome?.toLowerCase() ?? "signed"} — outcome captured for negotiation intelligence.
+            </span>
+          </div>
+        )}
+
+        {/* ── Two-column layout ────────────────────────────────────────── */}
+        <div className="grid lg:grid-cols-[1fr_300px] gap-5 items-start">
+
+          {/* Left — main content */}
+          <div className="space-y-4 min-w-0">
+
+            {/* Escalation summary */}
+            <EscalationSummary doc={doc} results={results} />
+
+            {/* Contradiction findings */}
+            {doc.contradictions && doc.contradictions.length > 0 && (
+              <div className="rounded-xl border border-[#431407] bg-[#1C0F00] px-4 py-3 space-y-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={13} className="text-[#FCD34D] shrink-0" />
+                  <span className="text-xs font-semibold text-[#FCD34D]">
+                    {doc.contradictions.length} internal contradiction{doc.contradictions.length !== 1 ? "s" : ""} detected
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {doc.contradictions.map((c, i) => {
+                    const finding = c as import("../lib/types").ContradictionFinding;
+                    const severityColor = finding.severity === "HIGH"
+                      ? "text-[#FCA5A5] bg-[#1F0A0A] border-[#450A0A]"
+                      : finding.severity === "MEDIUM"
+                      ? "text-[#FCD34D] bg-[#1C0F00] border-[#431407]"
+                      : "text-[#94A3B8] bg-[#0F172A] border-[#334155]";
+                    return (
+                      <div key={i} className={`rounded-lg border px-3 py-2 space-y-1 ${severityColor}`}>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${severityColor}`}>
+                            {finding.severity}
+                          </span>
+                          <span className="text-xs font-semibold">{finding.title}</span>
+                        </div>
+                        <p className="text-xs opacity-80">{finding.explanation}</p>
+                        <p className="text-xs font-medium opacity-90 pt-0.5">→ {finding.recommendation}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Filter pills */}
+            <div className="flex flex-wrap gap-2">
+              {(["ALL", "RED", "AMBER", "GREEN", "GREY"] as const).map((f) => {
+                const count = f === "ALL" ? results.length : counts[f as RagStatus];
+                return (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                      filter === f
+                        ? "bg-[#1E3A5F] text-[#93C5FD] border-[#2563EB]"
+                        : "border-border text-muted-foreground hover:border-[#475569] hover:text-foreground"
+                    }`}
+                  >
+                    {f === "ALL" ? `All (${count})` : `${RAG_LABEL[f as RagStatus]} (${count})`}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Clause cards */}
+            <div className="space-y-2 card-enter-stagger">
+              {filtered.map((result, i) => (
+                <ClauseCard
+                  key={result.id}
+                  result={result}
+                  index={i}
+                  expanded={expandedId === result.id}
+                  onToggle={() => setExpandedId(expandedId === result.id ? null : result.id)}
+                  onFeedback={(action, finalClauseText) => handleFeedback(result.id, action, finalClauseText)}
+                  isMock={isMock}
+                />
+              ))}
+              {filtered.length === 0 && (
+                <div className="text-sm text-muted-foreground py-10 text-center">
+                  No clauses in this category.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right — sticky sidebar */}
+          <div className="space-y-4 lg:sticky lg:top-4 slide-in-left">
+            <SignOffTracker doc={doc} results={results} />
+            <IntelligenceSignals doc={doc} results={results} isMock={isMock} />
+            <RiskDistribution counts={counts} total={results.length} />
+          </div>
         </div>
       </div>
     </AppLayout>
   );
 }
 
-// ─── Clause Card ──────────────────────────────────────────────────────────────
+// ─── Contract Intelligence Header ─────────────────────────────────────────────
 
-// Confidence badge config
-const CONFIDENCE_CONFIG: Record<ConfidenceLabel, { label: string; classes: string; icon?: string }> = {
-  HIGH:   { label: "High confidence",   classes: "bg-[#052E16] border-[#14532D] text-[#86EFAC]" },
-  MEDIUM: { label: "Medium confidence", classes: "bg-[#1C0F00] border-[#431407] text-[#FCD34D]" },
-  LOW:    { label: "Lawyer review required", classes: "bg-[#1F0A0A] border-[#450A0A] text-[#FCA5A5]" },
-};
+function ContractHeader({
+  doc,
+  overallRag,
+  counts,
+  renewalDaysUntil,
+  onExport,
+  isMock,
+}: {
+  doc: UploadedDocument;
+  overallRag: RagStatus;
+  counts: Record<RagStatus, number>;
+  renewalDaysUntil: number | null;
+  onExport: () => void;
+  isMock: boolean;
+}) {
+  const RISK_CONFIG = {
+    RED:   { label: "High Risk",      bg: "bg-[#1F0A0A] border-[#450A0A]", text: "text-[#FCA5A5]" },
+    AMBER: { label: "Moderate Risk",  bg: "bg-[#1C0F00] border-[#431407]", text: "text-[#FCD34D]" },
+    GREEN: { label: "Low Risk",       bg: "bg-[#052E16] border-[#14532D]", text: "text-[#86EFAC]" },
+    GREY:  { label: "Pending",        bg: "bg-muted border-border",         text: "text-muted-foreground" },
+  };
+  const riskCfg = RISK_CONFIG[overallRag];
+
+  const READINESS_CONFIG = {
+    "not-ready": { label: "Do not sign yet",   color: "text-[#FCA5A5]", bg: "bg-[#1F0A0A] border-[#450A0A]" },
+    "negotiate":  { label: "Negotiate first",   color: "text-[#FCD34D]", bg: "bg-[#1C0F00] border-[#431407]" },
+    "review":     { label: "Review needed",     color: "text-[#FCD34D]", bg: "bg-[#1C0F00] border-[#431407]" },
+    "ready":      { label: "Ready to sign",     color: "text-[#86EFAC]", bg: "bg-[#052E16] border-[#14532D]" },
+  };
+  const readiness: "not-ready" | "negotiate" | "review" | "ready" =
+    counts.RED >= 2 ? "not-ready" :
+    counts.RED === 1 ? "negotiate" :
+    counts.AMBER >= 2 ? "review" : "ready";
+  const readinessCfg = READINESS_CONFIG[readiness];
+
+  const date = new Date(doc.uploadedAt).toLocaleDateString("en-GB", {
+    day: "numeric", month: "short", year: "numeric",
+  });
+
+  return (
+    <div className="rounded-xl border border-[#1E293B] bg-[#0B1521] px-6 py-5 space-y-4">
+      {/* Top row: name + risk badge + actions */}
+      <div className="flex items-start gap-4 justify-between">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-semibold truncate">{doc.originalName}</h1>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1.5 text-sm text-muted-foreground">
+            {doc.counterpartyName && (
+              <span className="font-medium text-foreground/80">{doc.counterpartyName}</span>
+            )}
+            {doc.counterpartyName && <span className="text-muted-foreground/40">·</span>}
+            <span>{doc.contractType.replace(/_/g, " ")}</span>
+            <span className="text-muted-foreground/40">·</span>
+            <span>Reviewed {date}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border ${riskCfg.bg} ${riskCfg.text}`}>
+            <div className={`w-1.5 h-1.5 rounded-full ${RAG_DOT[overallRag]}`} />
+            {riskCfg.label}
+          </div>
+          <button
+            onClick={onExport}
+            className="btn-secondary flex items-center gap-1.5 text-xs px-3 py-1.5"
+            title={isMock ? "Demo — export disabled" : undefined}
+          >
+            <Download size={12} /> Export
+          </button>
+        </div>
+      </div>
+
+      {/* Bottom row: contract metadata pills */}
+      <div className="flex flex-wrap items-center gap-3 text-xs">
+        {doc.contractValue && (
+          <MetaPill icon={<BarChart2 size={11} />} label={`£${doc.contractValue.toLocaleString("en-GB")} contract value`} />
+        )}
+        {doc.contractTermMonths && (
+          <MetaPill icon={<Clock size={11} />} label={`${doc.contractTermMonths}-month term`} />
+        )}
+        {renewalDaysUntil !== null && renewalDaysUntil <= 90 && (
+          <MetaPill
+            icon={<CalendarClock size={11} />}
+            label={`Renewal notice in ${renewalDaysUntil} days`}
+            urgent={renewalDaysUntil <= 30}
+          />
+        )}
+        {doc.autoRenewal && (
+          <MetaPill icon={<ChevronRight size={11} />} label="Auto-renewal active" />
+        )}
+        <div className={`flex items-center gap-1.5 font-semibold px-2.5 py-1 rounded-md border ${readinessCfg.bg} ${readinessCfg.color}`}>
+          <FileCheck size={11} />
+          {readinessCfg.label}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MetaPill({
+  icon,
+  label,
+  urgent = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  urgent?: boolean;
+}) {
+  return (
+    <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium
+      ${urgent
+        ? "border-[#431407] bg-[#1C0F00] text-[#FCD34D]"
+        : "border-[#1E293B] bg-[#0D1521] text-muted-foreground"
+      }`}
+    >
+      {icon}
+      {label}
+    </div>
+  );
+}
+
+// ─── Sign-off Workflow Tracker ────────────────────────────────────────────────
+
+const APPROVER_ORDER = ["Handler", "Legal", "GC", "CFO", "CEO", "Board"] as const;
+
+function getValueTier(value: number): string[] {
+  if (value < 10_000)    return [];
+  if (value < 50_000)    return ["Legal"];
+  if (value < 250_000)   return ["Legal", "GC"];
+  if (value < 1_000_000) return ["Legal", "GC", "CFO"];
+  return                        ["Legal", "GC", "CFO", "Board"];
+}
+
+function SignOffTracker({ doc, results }: { doc: UploadedDocument; results: ReviewResult[] }) {
+  const escalationRequired = results.some((r) => r.escalationRequired);
+  const required = new Set<string>();
+
+  if (escalationRequired) required.add("Legal");
+  if (doc.contractValue) {
+    getValueTier(doc.contractValue).forEach((a) => required.add(a));
+  }
+  if (doc.counterpartyType === "RELATED_PARTY") { required.add("GC"); required.add("Board"); }
+  if (doc.counterpartyType === "INVESTOR")       { required.add("GC"); required.add("CFO"); }
+  if (doc.counterpartyType === "COMPETITOR")     { required.add("GC"); required.add("CEO"); }
+
+  type StepStatus = "done" | "required" | "skipped";
+
+  const steps: Array<{ label: string; status: StepStatus; detail?: string }> = [
+    {
+      label: "Zane analysis complete",
+      status: "done",
+      detail: `${results.length} clauses reviewed`,
+    },
+    {
+      label: "Legal review",
+      status: required.has("Legal") ? "required" : "skipped",
+      detail: required.has("Legal") ? "Required — clause risk flags raised" : undefined,
+    },
+    {
+      label: "GC sign-off",
+      status: required.has("GC") ? "required" : "skipped",
+      detail: required.has("GC") ? (doc.contractValue ? `Required — value threshold (£${doc.contractValue.toLocaleString("en-GB")})` : "Required") : undefined,
+    },
+    {
+      label: "CFO approval",
+      status: required.has("CFO") ? "required" : "skipped",
+    },
+    {
+      label: "Board approval",
+      status: required.has("Board") ? "required" : "skipped",
+    },
+  ];
+
+  const hasEscalation = steps.some((s) => s.status === "required");
+
+  return (
+    <div className="card p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Users size={13} className="text-muted-foreground/60 shrink-0" />
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+          Sign-off workflow
+        </span>
+      </div>
+      <div className="space-y-2.5">
+        {steps.map((step) => (
+          <div key={step.label} className="flex items-start gap-2.5">
+            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all
+              ${step.status === "done"     ? "bg-[#14532D] border-[#166534]" : ""}
+              ${step.status === "required" ? "bg-[#1C0F00] border-[#92400E]" : ""}
+              ${step.status === "skipped"  ? "bg-transparent border-[#1E293B]" : ""}`}
+            >
+              {step.status === "done"     && <CheckCircle size={9} className="text-[#86EFAC]" />}
+              {step.status === "required" && <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D]" />}
+            </div>
+            <div className="min-w-0">
+              <div className={`text-xs font-medium leading-none
+                ${step.status === "done"     ? "text-[#86EFAC]" : ""}
+                ${step.status === "required" ? "text-[#FCD34D]" : ""}
+                ${step.status === "skipped"  ? "text-muted-foreground/35" : ""}`}
+              >
+                {step.label}
+              </div>
+              {step.detail && (
+                <div className={`text-[10px] mt-1 leading-tight
+                  ${step.status === "done"     ? "text-muted-foreground/60" : ""}
+                  ${step.status === "required" ? "text-[#FCD34D]/55" : ""}
+                  ${step.status === "skipped"  ? "text-muted-foreground/25" : ""}`}
+                >
+                  {step.detail}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      {!hasEscalation && (
+        <div className="text-[10px] text-muted-foreground/40 pt-1 border-t border-border">
+          No sign-off required based on current flags and contract value.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Intelligence Signals ─────────────────────────────────────────────────────
+
+function IntelligenceSignals({
+  doc,
+  results,
+  isMock,
+}: {
+  doc: UploadedDocument;
+  results: ReviewResult[];
+  isMock: boolean;
+}) {
+  const signals: Array<{
+    icon: React.ElementType;
+    color: string;
+    bgColor: string;
+    borderColor: string;
+    text: string;
+  }> = [];
+
+  const redResults = results.filter((r) => r.ragStatus === "RED");
+  const renewalDaysUntil = doc.renewalDate
+    ? Math.ceil((new Date(doc.renewalDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  // Pattern signal from red clauses
+  if (redResults.length > 0) {
+    const cats = redResults.map((r) => CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory).join(" and ");
+    signals.push({
+      icon: TrendingDown,
+      color: "#FCA5A5",
+      bgColor: "#1A0404",
+      borderColor: "#450A0A",
+      text: isMock
+        ? `${cats} flagged RED across all prior Acme Corp reviews — consistent counterparty negotiation posture.`
+        : `${cats} flagged as high risk in this agreement.`,
+    });
+  }
+
+  // Renewal signal
+  if (renewalDaysUntil !== null && renewalDaysUntil <= 90) {
+    signals.push({
+      icon: CalendarClock,
+      color: "#FCD34D",
+      bgColor: "#130D00",
+      borderColor: "#431407",
+      text: `Auto-renewal notice window closes in ${renewalDaysUntil} days. ${
+        doc.contractValue ? `Failure to act locks £${doc.contractValue.toLocaleString("en-GB")} for another year.` : ""
+      }`,
+    });
+  }
+
+  // Memory / pattern signal
+  if (isMock) {
+    signals.push({
+      icon: Layers,
+      color: "#A5B4FC",
+      bgColor: "#0F0E1A",
+      borderColor: "#312E81",
+      text: "Zane has processed 2 prior agreements with this counterparty. Liability cap position unchanged across all 3 reviews — systemic pattern flagged.",
+    });
+  } else if (results.length > 0) {
+    const absentCount = results.filter((r) => r.isAbsent).length;
+    if (absentCount > 0) {
+      signals.push({
+        icon: Layers,
+        color: "#A5B4FC",
+        bgColor: "#0F0E1A",
+        borderColor: "#312E81",
+        text: `${absentCount} clause${absentCount !== 1 ? "s" : ""} absent from this contract. Your playbook requires ${absentCount !== 1 ? "them" : "it"} to be present — request insertion before signing.`,
+      });
+    }
+  }
+
+  if (signals.length === 0) return null;
+
+  return (
+    <div className="card p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <Layers size={13} className="text-muted-foreground/60 shrink-0" />
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+          Intelligence
+        </span>
+      </div>
+      <div className="space-y-2">
+        {signals.map((sig, i) => {
+          const Icon = sig.icon;
+          return (
+            <div
+              key={i}
+              className="flex items-start gap-2.5 rounded-lg border px-3 py-2.5"
+              style={{ background: sig.bgColor, borderColor: sig.borderColor }}
+            >
+              <Icon size={12} className="shrink-0 mt-0.5" style={{ color: sig.color }} />
+              <p className="text-[11px] leading-relaxed" style={{ color: sig.color, opacity: 0.85 }}>
+                {sig.text}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Risk Distribution ────────────────────────────────────────────────────────
+
+function RiskDistribution({ counts, total }: { counts: Record<RagStatus, number>; total: number }) {
+  if (total === 0) return null;
+
+  const bars: Array<{ label: string; count: number; color: string; bg: string }> = [
+    { label: "Red",     count: counts.RED,   color: "#FCA5A5", bg: "bg-[#FCA5A5]" },
+    { label: "Amber",   count: counts.AMBER, color: "#FCD34D", bg: "bg-[#FCD34D]" },
+    { label: "Green",   count: counts.GREEN, color: "#86EFAC", bg: "bg-[#86EFAC]" },
+    { label: "Missing", count: counts.GREY,  color: "#475569", bg: "bg-[#475569]" },
+  ].filter((b) => b.count > 0);
+
+  return (
+    <div className="card p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <BarChart2 size={13} className="text-muted-foreground/60 shrink-0" />
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+          Risk distribution
+        </span>
+      </div>
+      <div className="space-y-2">
+        {bars.map((bar) => (
+          <div key={bar.label} className="flex items-center gap-2.5">
+            <div className="w-14 text-[11px] text-muted-foreground/60 shrink-0">{bar.label}</div>
+            <div className="flex-1 h-1.5 bg-[#1E293B] rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full ${bar.bg} transition-all duration-700`}
+                style={{ width: `${(bar.count / total) * 100}%` }}
+              />
+            </div>
+            <div className="w-4 text-[11px] font-semibold text-right shrink-0" style={{ color: bar.color }}>
+              {bar.count}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="text-[10px] text-muted-foreground/40 pt-1 border-t border-border">
+        {total} clauses reviewed
+      </div>
+    </div>
+  );
+}
+
+// ─── Clause Card ──────────────────────────────────────────────────────────────
 
 function ClauseCard({
   result,
+  index,
   expanded,
   onToggle,
   onFeedback,
+  isMock,
 }: {
   result: ReviewResult;
+  index: number;
   expanded: boolean;
   onToggle: () => void;
   onFeedback: (action: FeedbackAction, finalClauseText?: string) => Promise<void>;
+  isMock: boolean;
 }) {
   const [submitting, setSubmitting] = useState<FeedbackAction | null>(null);
   const [generatedReply, setGeneratedReply] = useState<string | null>(null);
   const [copiedReply, setCopiedReply] = useState(false);
   const [showWhatAgreed, setShowWhatAgreed] = useState(false);
   const [agreedText, setAgreedText] = useState("");
-
-  // Teach Zane state
   const [showTeachMike, setShowTeachMike] = useState(false);
   const [incorrectOutput, setIncorrectOutput] = useState("");
   const [correctOutput, setCorrectOutput] = useState("");
   const [teachSubmitting, setTeachSubmitting] = useState(false);
   const [teachDone, setTeachDone] = useState(false);
-
-  // False positive state
   const [fpSubmitting, setFpSubmitting] = useState(false);
-  const [fpDone, setFpDone] = useState(
-    result.feedback?.feedbackType === "FALSE_POSITIVE"
-  );
+  const [fpDone, setFpDone] = useState(result.feedback?.feedbackType === "FALSE_POSITIVE");
 
   const feedback = result.feedback;
   const label = CLAUSE_LABELS[result.clauseCategory] ?? result.clauseCategory;
@@ -296,6 +823,7 @@ function ClauseCard({
   }
 
   async function handle(action: FeedbackAction, finalClauseText?: string) {
+    if (isMock) return;
     setSubmitting(action);
     try { await onFeedback(action, finalClauseText); } finally { setSubmitting(null); }
   }
@@ -323,24 +851,27 @@ function ClauseCard({
   }
 
   return (
-    <div className={`card overflow-hidden ${expanded ? "shadow-md" : ""}`}>
-      {/* Header row */}
+    <div
+      className={`overflow-hidden rounded-xl border border-[#1E293B] border-l-[3px] ${RAG_BORDER_LEFT[result.ragStatus]} bg-card transition-all duration-200 ${expanded ? "shadow-lg shadow-black/20" : ""}`}
+      style={{ animationDelay: `${index * 40}ms` }}
+    >
+      {/* ── Collapsed header ──────────────────────────────────────────── */}
       <button
-        className="w-full text-left px-5 py-4 flex items-center gap-3 hover:bg-muted/20 transition-colors"
+        className="w-full text-left px-5 py-4 flex items-start gap-3 hover:bg-muted/10 transition-colors"
         onClick={onToggle}
       >
-        <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${RAG_DOT[result.ragStatus]}`} />
+        <div className={`w-2 h-2 rounded-full shrink-0 mt-1.5 ${RAG_DOT[result.ragStatus]}`} />
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold">{label}</span>
             {result.isAbsent && (
               <span className="text-[11px] bg-[#0F172A] text-[#94A3B8] border border-[#334155] rounded px-1.5 py-0.5">
-                Clause absent
+                Absent
               </span>
             )}
             {result.escalationRequired && (
               <span className="text-[11px] bg-[#1F0A0A] text-[#FCA5A5] border border-[#450A0A] rounded px-1.5 py-0.5 flex items-center gap-1">
-                <AlertTriangle size={10} /> Escalate
+                <AlertTriangle size={9} /> Escalate
               </span>
             )}
             {feedback && (
@@ -349,23 +880,29 @@ function ClauseCard({
               </span>
             )}
           </div>
-          <div className="text-xs text-muted-foreground mt-1 line-clamp-1">
-            {result.clauseSummary}
+          {/* Business summary — always visible */}
+          <div className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+            {result.businessSummary || result.clauseSummary}
           </div>
         </div>
-        <span className={RAG_BADGE[result.ragStatus]}>{RAG_LABEL[result.ragStatus]}</span>
-        <span className="text-muted-foreground text-xs ml-1 shrink-0">{expanded ? "▲" : "▼"}</span>
+        <div className="flex items-center gap-2 shrink-0 pt-0.5">
+          <span className={RAG_BADGE[result.ragStatus]}>{RAG_LABEL[result.ragStatus]}</span>
+          <span className="text-muted-foreground/50 text-xs">{expanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}</span>
+        </div>
       </button>
 
-      {/* Expanded */}
+      {/* ── Expanded detail ───────────────────────────────────────────── */}
       {expanded && (
-        <div className="border-t border-card-border px-5 py-5 space-y-5 bg-muted/10">
+        <div className="border-t border-[#1E293B] px-5 py-5 space-y-5 bg-[#080F18]">
 
-          {/* ── Decision summary — FIRST ──────────────────────────────────── */}
-          <div className="rounded-xl border border-[#1E293B] bg-[#0F172A] p-4 space-y-3">
-            <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Decision summary</div>
+          {/* Decision summary */}
+          <div className="rounded-xl border border-[#1E293B] bg-[#0D1521] p-4 space-y-3">
+            <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+              Decision summary
+            </div>
+
             {result.isAbsent && (
-              <div className="flex items-start gap-2 rounded-lg bg-[#0F172A] border border-[#334155] px-3 py-2">
+              <div className="flex items-start gap-2 rounded-lg border border-[#334155] bg-[#0F172A] px-3 py-2">
                 <Info size={12} className="text-[#94A3B8] shrink-0 mt-0.5" />
                 <span className="text-xs text-[#94A3B8]">
                   This clause was not identified in the contract. Review whether your playbook requires it to be present.
@@ -373,36 +910,37 @@ function ClauseCard({
               </div>
             )}
 
-            {/* Recommended action — prominent */}
-            <div className="text-sm font-semibold text-foreground leading-snug">{result.recommendedAction}</div>
+            <div className="text-sm font-semibold text-foreground leading-snug">
+              {result.recommendedAction}
+            </div>
 
-            {/* Business summary */}
-            <div className="text-xs text-muted-foreground leading-relaxed">{result.businessSummary}</div>
+            <div className="text-xs text-muted-foreground leading-relaxed">
+              {result.businessSummary}
+            </div>
 
-            {/* Escalation inline */}
             {result.escalationRequired && result.escalationTrigger && (
-              <div className="flex items-start gap-2 rounded-lg bg-[#1F0A0A] border border-[#450A0A] px-3 py-2 mt-1">
+              <div className="flex items-start gap-2 rounded-lg border border-[#450A0A] bg-[#1F0A0A] px-3 py-2">
                 <AlertTriangle size={12} className="shrink-0 mt-0.5 text-[#FCA5A5]" />
                 <span className="text-xs text-[#FCA5A5]">{result.escalationTrigger}</span>
               </div>
             )}
           </div>
 
-          {/* Confidence label */}
+          {/* Confidence */}
           {result.confidenceLabel && (
             <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border w-fit ${CONFIDENCE_CONFIG[result.confidenceLabel].classes}`}>
               <Scale size={11} />
               {CONFIDENCE_CONFIG[result.confidenceLabel].label}
               {result.confidenceLabel === "LOW" && (
-                <span className="ml-1 font-semibold">Zane is uncertain. Have a lawyer verify this clause before relying on this analysis.</span>
+                <span className="ml-1 font-semibold">Zane is uncertain — have a lawyer verify before relying on this analysis.</span>
               )}
             </div>
           )}
 
-          {/* Playbook comparison — verification-first */}
+          {/* Playbook comparison */}
           {result.comparisonStatement && (
             <Detail title="Playbook comparison">
-              <div className="bg-[#0F172A] border border-[#1E293B] rounded-lg px-4 py-3 text-sm leading-relaxed text-[#94A3B8] font-mono">
+              <div className="rounded-lg border border-[#1E293B] bg-[#050A10] px-4 py-3 text-xs leading-relaxed text-[#94A3B8] font-mono whitespace-pre-line">
                 {result.comparisonStatement}
               </div>
             </Detail>
@@ -421,11 +959,11 @@ function ClauseCard({
             <Detail title="Regulatory references">
               <div className="space-y-2">
                 {result.regulatoryCitations.map((c: RegulatoryCitation, i: number) => (
-                  <div key={i} className="flex items-start gap-2.5 rounded-lg bg-[#1E1B4B] border border-[#312E81] px-3 py-2">
+                  <div key={i} className="flex items-start gap-2.5 rounded-lg border border-[#312E81] bg-[#1E1B4B] px-3 py-2">
                     <BookOpen size={11} className="text-[#A5B4FC] shrink-0 mt-0.5" />
                     <div className="min-w-0">
                       <div className="text-xs font-semibold text-[#A5B4FC]">{c.regulation} — {c.article}</div>
-                      <div className="text-[11px] text-[#A5B4FC] opacity-80 mt-0.5">{c.relevance}</div>
+                      <div className="text-[11px] text-[#A5B4FC]/70 mt-0.5">{c.relevance}</div>
                     </div>
                   </div>
                 ))}
@@ -433,7 +971,7 @@ function ClauseCard({
             </Detail>
           )}
 
-          {/* Suggested fallback with Copy button */}
+          {/* Suggested fallback */}
           {result.suggestedFallback && (
             <Detail title="Suggested fallback language">
               <div className="space-y-2">
@@ -445,8 +983,8 @@ function ClauseCard({
             </Detail>
           )}
 
-          {/* Generate reply (for RED/AMBER clauses) */}
-          {(result.ragStatus === "RED" || result.ragStatus === "AMBER") && (
+          {/* Generate reply */}
+          {!isMock && (result.ragStatus === "RED" || result.ragStatus === "AMBER") && (
             <div>
               {!generatedReply ? (
                 <button
@@ -457,27 +995,20 @@ function ClauseCard({
                   {replyMutation.isPending ? (
                     <><Loader2 size={11} className="animate-spin" /> Drafting response…</>
                   ) : (
-                    <><Mail size={11} /> Draft negotiation response</>
+                    <><MessageSquare size={11} /> Draft negotiation response</>
                   )}
                 </button>
               ) : (
                 <Detail title="Negotiation reply">
                   <div className="space-y-2">
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap bg-card border border-card-border rounded-lg px-4 py-3">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap rounded-lg border border-card-border bg-card px-4 py-3">
                       {generatedReply}
                     </p>
                     <div className="flex gap-2">
-                      <button
-                        className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"
-                        onClick={copyReply}
-                      >
-                        <Copy size={11} />
-                        {copiedReply ? "Copied!" : "Copy text"}
+                      <button className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1" onClick={copyReply}>
+                        <Copy size={11} />{copiedReply ? "Copied!" : "Copy text"}
                       </button>
-                      <button
-                        className="btn-ghost text-xs px-3 py-1.5 text-muted-foreground"
-                        onClick={() => setGeneratedReply(null)}
-                      >
+                      <button className="btn-ghost text-xs px-3 py-1.5 text-muted-foreground" onClick={() => setGeneratedReply(null)}>
                         Regenerate
                       </button>
                     </div>
@@ -487,17 +1018,17 @@ function ClauseCard({
             </div>
           )}
 
-          {/* Feedback */}
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-card-border">
+          {/* ── Record outcome ─────────────────────────────────────────── */}
+          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[#1E293B]">
             <span className="text-xs text-muted-foreground">Record outcome:</span>
             {([
-              { action: "ACCEPTED",  label: "Accept result",      icon: <CheckCircle size={12} /> },
+              { action: "ACCEPTED",  label: "Accept",           icon: <CheckCircle size={12} /> },
               { action: "ESCALATED", label: "Escalate internally", icon: <AlertTriangle size={12} /> },
-              { action: "DISMISSED", label: "Dismiss",             icon: <Clock size={12} /> },
-            ] as { action: FeedbackAction; label: string; icon: React.ReactNode }[]).map(({ action, label, icon }) => (
+              { action: "DISMISSED", label: "Dismiss",            icon: <Clock size={12} /> },
+            ] as { action: FeedbackAction; label: string; icon: React.ReactNode }[]).map(({ action, label: btnLabel, icon }) => (
               <button
                 key={action}
-                disabled={!!submitting}
+                disabled={!!submitting || isMock}
                 onClick={() => {
                   if (action === "ACCEPTED") { setShowWhatAgreed(true); return; }
                   void handle(action);
@@ -508,14 +1039,17 @@ function ClauseCard({
                     : "border-border hover:border-[#475569]"
                 }`}
               >
-                {submitting === action ? "…" : <>{icon} {label}</>}
+                {submitting === action ? "…" : <>{icon} {btnLabel}</>}
               </button>
             ))}
+            {isMock && (
+              <span className="text-[10px] text-muted-foreground/40">Demo — outcomes disabled</span>
+            )}
           </div>
 
-          {/* Outcome capture modal — dedicated screen overlay */}
+          {/* Accept + capture clause text */}
           {showWhatAgreed && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.75)" }}>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)" }}>
               <div className="w-full max-w-md rounded-2xl border border-[#14532D] bg-[#030f08] shadow-2xl p-6 space-y-5">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -527,7 +1061,9 @@ function ClauseCard({
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-widest text-[#86EFAC]/50">Final agreed clause text (optional)</label>
+                  <label className="text-[10px] font-semibold uppercase tracking-widest text-[#86EFAC]/50">
+                    Final agreed clause text (optional)
+                  </label>
                   <textarea
                     className="w-full rounded-xl border border-[#14532D] bg-[#052E16] px-3.5 py-2.5 text-sm text-[#86EFAC] placeholder:text-[#86EFAC]/25 focus:outline-none focus:border-[#166534] min-h-[96px] resize-y font-mono"
                     placeholder="Paste the final clause text as executed…"
@@ -535,11 +1071,8 @@ function ClauseCard({
                     onChange={(e) => setAgreedText(e.target.value)}
                     autoFocus
                   />
-                  <p className="text-[10px] text-[#86EFAC]/40 leading-relaxed">
-                    Optional. Leave blank to record acceptance without clause text. Zane uses this to improve future recommendations for this clause type.
-                  </p>
                 </div>
-                <div className="flex flex-col gap-2 pt-1">
+                <div className="flex flex-col gap-2">
                   <button
                     className="w-full px-4 py-2.5 bg-[#14532D] hover:bg-[#166534] text-[#86EFAC] text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
                     onClick={() => { void handle("ACCEPTED", agreedText || undefined); setShowWhatAgreed(false); }}
@@ -557,93 +1090,209 @@ function ClauseCard({
             </div>
           )}
 
-          {/* ── Improve this analysis: Teach Zane + False Positive ── */}
-          <div className="pt-2 border-t border-card-border space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs text-muted-foreground">Improve this analysis:</span>
-
-              <button
-                onClick={() => setShowTeachMike(!showTeachMike)}
-                disabled={teachDone}
-                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors ${
-                  teachDone
-                    ? "bg-[#052E16] border-[#14532D] text-[#86EFAC]"
-                    : "border-border hover:border-[#475569]"
-                }`}
-              >
-                <GraduationCap size={11} />
-                {teachDone ? "Saved. Zane will apply this in future reviews." : "Mark as incorrect"}
-              </button>
-
-              {!result.isAbsent && (
+          {/* ── Improve analysis ──────────────────────────────────────── */}
+          {!isMock && (
+            <div className="pt-2 border-t border-[#1E293B] space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground">Improve this analysis:</span>
                 <button
-                  onClick={() => void handleFalsePositive()}
-                  disabled={fpSubmitting || fpDone}
-                  className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
-                    fpDone
-                      ? "bg-[#1F0A0A] border-[#450A0A] text-[#FCA5A5]"
-                      : "border-border hover:border-[#475569]"
+                  onClick={() => setShowTeachMike(!showTeachMike)}
+                  disabled={teachDone}
+                  className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors ${
+                    teachDone ? "bg-[#052E16] border-[#14532D] text-[#86EFAC]" : "border-border hover:border-[#475569]"
                   }`}
                 >
-                  <XCircle size={11} />
-                  {fpDone ? "Marked false positive" : fpSubmitting ? "…" : "False positive"}
+                  <GraduationCap size={11} />
+                  {teachDone ? "Saved. Zane will apply this in future reviews." : "Mark as incorrect"}
                 </button>
+                {!result.isAbsent && (
+                  <button
+                    onClick={() => void handleFalsePositive()}
+                    disabled={fpSubmitting || fpDone}
+                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
+                      fpDone ? "bg-[#1F0A0A] border-[#450A0A] text-[#FCA5A5]" : "border-border hover:border-[#475569]"
+                    }`}
+                  >
+                    <XCircle size={11} />
+                    {fpDone ? "Marked false positive" : fpSubmitting ? "…" : "False positive"}
+                  </button>
+                )}
+              </div>
+
+              {showTeachMike && (
+                <div className="rounded-lg border border-[#172B4D] bg-[#0B1020] p-4 space-y-3">
+                  <div className="text-xs font-semibold text-[#60A5FA]">Correct this analysis</div>
+                  <div className="space-y-2">
+                    <label className="text-xs text-muted-foreground">What Zane said (incorrect part)</label>
+                    <textarea
+                      className="input text-xs min-h-[56px] resize-none w-full"
+                      placeholder="Paste or describe the part of Zane's analysis that was wrong…"
+                      value={incorrectOutput}
+                      onChange={(e) => setIncorrectOutput(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs text-muted-foreground">What the correct analysis should say</label>
+                    <textarea
+                      className="input text-xs min-h-[56px] resize-none w-full"
+                      placeholder="Describe the correct legal position…"
+                      value={correctOutput}
+                      onChange={(e) => setCorrectOutput(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1.5"
+                      onClick={() => void handleTeachMike()}
+                      disabled={teachSubmitting || !incorrectOutput.trim() || !correctOutput.trim()}
+                    >
+                      {teachSubmitting ? <Loader2 size={11} className="animate-spin" /> : <GraduationCap size={11} />}
+                      Save correction
+                    </button>
+                    <button className="btn-ghost text-xs px-3 py-1.5" onClick={() => setShowTeachMike(false)}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
-
-            {showTeachMike && (
-              <div className="rounded-lg border border-[#172B4D] bg-[#0B1020] p-4 space-y-3">
-                <div className="text-xs font-semibold text-[#60A5FA]">
-                  Correct this analysis
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground">What Zane said (incorrect part)</label>
-                  <textarea
-                    className="input text-xs min-h-[56px] resize-none w-full"
-                    placeholder="Paste or describe the part of Zane's analysis that was wrong…"
-                    value={incorrectOutput}
-                    onChange={(e) => setIncorrectOutput(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs text-muted-foreground">What the correct analysis should say</label>
-                  <textarea
-                    className="input text-xs min-h-[56px] resize-none w-full"
-                    placeholder="Describe the correct legal position or what Zane should have flagged…"
-                    value={correctOutput}
-                    onChange={(e) => setCorrectOutput(e.target.value)}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1.5"
-                    onClick={() => void handleTeachMike()}
-                    disabled={teachSubmitting || !incorrectOutput.trim() || !correctOutput.trim()}
-                  >
-                    {teachSubmitting ? <Loader2 size={11} className="animate-spin" /> : <GraduationCap size={11} />}
-                    Save correction
-                  </button>
-                  <button
-                    className="btn-ghost text-xs px-3 py-1.5"
-                    onClick={() => setShowTeachMike(false)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-// ── Export ────────────────────────────────────────────────────────────────────
+// ─── Three-tier Escalation Summary ───────────────────────────────────────────
+
+const APPROVER_ORDER_FULL = ["Handler", "Legal", "GC", "CFO", "CEO", "Board"] as const;
+
+function getValueTierFull(value: number): { label: string; approvers: string[] } | null {
+  if (value < 10_000)    return null;
+  if (value < 50_000)    return { label: "Legal sign-off required",  approvers: ["Legal"] };
+  if (value < 250_000)   return { label: "GC sign-off required",     approvers: ["GC"] };
+  if (value < 1_000_000) return { label: "CFO sign-off required",    approvers: ["CFO"] };
+  return                        { label: "Board approval required",   approvers: ["Board"] };
+}
+
+function getGovernanceTriggers(
+  counterpartyType?: string,
+  contractType?: string,
+): Array<{ label: string; approvers: string[] }> {
+  const triggers: Array<{ label: string; approvers: string[] }> = [];
+  switch (counterpartyType) {
+    case "RELATED_PARTY": triggers.push({ label: "Related party: Board sign-off required",          approvers: ["Board"] }); break;
+    case "REGULATOR":     triggers.push({ label: "Regulator / government body: GC sign-off required", approvers: ["GC"] }); break;
+    case "INVESTOR":      triggers.push({ label: "Investor / shareholder: GC and CFO required",     approvers: ["GC", "CFO"] }); break;
+    case "COMPETITOR":    triggers.push({ label: "Competitor: GC and CEO required",                 approvers: ["GC", "CEO"] }); break;
+  }
+  if (contractType === "JV_AGREEMENT") triggers.push({ label: "Joint venture: Board sign-off required", approvers: ["Board"] });
+  return triggers;
+}
+
+function EscalationSummary({ doc, results }: { doc: UploadedDocument; results: ReviewResult[] }) {
+  const [showExplainer, setShowExplainer] = useState(false);
+
+  const tier1Clauses = results.filter((r) => r.escalationRequired);
+  const valueTier    = doc.contractValue != null ? getValueTierFull(doc.contractValue) : null;
+  const govTriggers  = getGovernanceTriggers(doc.counterpartyType, doc.contractType);
+
+  const tiersActive = [tier1Clauses.length > 0, valueTier !== null, govTriggers.length > 0].filter(Boolean).length;
+  if (tiersActive === 0) return null;
+
+  const requiredApprovers = new Set<string>();
+  if (tier1Clauses.length > 0) requiredApprovers.add("Legal");
+  if (valueTier)   valueTier.approvers.forEach((a) => requiredApprovers.add(a));
+  govTriggers.forEach((t) => t.approvers.forEach((a) => requiredApprovers.add(a)));
+  const signOffSequence = APPROVER_ORDER_FULL.filter((a) => requiredApprovers.has(a));
+
+  return (
+    <div className="card overflow-hidden border border-[#450A0A]">
+      <div className="bg-[#1F0A0A] px-5 py-3 flex items-center gap-3 border-b border-[#450A0A]">
+        <AlertTriangle size={14} className="text-[#FCA5A5] shrink-0" />
+        <span className="text-sm font-semibold text-[#FCA5A5] flex-1">
+          Escalation required — {tiersActive} tier{tiersActive !== 1 ? "s" : ""} triggered
+        </span>
+      </div>
+      <div className="p-4 space-y-3">
+        {tier1Clauses.length > 0 && (
+          <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] p-4 space-y-2">
+            <div className="text-xs font-semibold uppercase tracking-wider text-[#FCA5A5]">Tier 1 — Clause Risk</div>
+            <ul className="space-y-1.5">
+              {tier1Clauses.map((r) => (
+                <li key={r.id} className="flex gap-2 text-sm text-[#FCA5A5]">
+                  <span className="shrink-0 mt-0.5">·</span>
+                  <span>
+                    <span className="font-semibold">{CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory}</span>
+                    {r.escalationTrigger && <span className="opacity-70">: {r.escalationTrigger}</span>}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {valueTier && (
+          <div className="rounded-lg bg-[#1C0F00] border border-[#431407] p-4 space-y-2">
+            <div className="text-xs font-semibold uppercase tracking-wider text-[#FCD34D]">Tier 2 — Contract Value</div>
+            <div className="text-sm text-[#FCD34D]">
+              <span className="font-semibold">£{doc.contractValue!.toLocaleString("en-GB")}</span> — {valueTier.label}
+            </div>
+          </div>
+        )}
+        {govTriggers.length > 0 && (
+          <div className="rounded-lg bg-[#1E1B4B] border border-[#312E81] p-4 space-y-2">
+            <div className="text-xs font-semibold uppercase tracking-wider text-[#A5B4FC]">Tier 3 — Governance</div>
+            <ul className="space-y-1.5">
+              {govTriggers.map((t, i) => (
+                <li key={i} className="flex gap-2 text-sm text-[#A5B4FC]">
+                  <span className="shrink-0 mt-0.5">·</span>
+                  <span>{t.label}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {signOffSequence.length > 0 && (
+          <div className="pt-1">
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              Sign-off sequence
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {signOffSequence.map((approver, i) => (
+                <span key={approver} className="flex items-center gap-1.5">
+                  <span className="inline-flex items-center bg-[#2563EB] text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+                    {approver}
+                  </span>
+                  {i < signOffSequence.length - 1 && <span className="text-muted-foreground text-xs">→</span>}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="pt-1 border-t border-border">
+          <button
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setShowExplainer((v) => !v)}
+          >
+            {showExplainer ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            What is this?
+          </button>
+          {showExplainer && (
+            <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+              Zane uses three escalation tiers. <strong>Tier 1</strong> fires when individual clauses exceed your playbook thresholds and require sign-off. <strong>Tier 2</strong> fires when total contract value crosses an authority threshold set by your organisation. <strong>Tier 3</strong> fires based on the nature of the counterparty or contract type.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Export ───────────────────────────────────────────────────────────────────
 
 function exportReviewAsText(doc: UploadedDocument) {
   const results = doc.reviewResults ?? [];
-  const counts = {
+  const counts  = {
     RED:   results.filter((r) => r.ragStatus === "RED").length,
     AMBER: results.filter((r) => r.ragStatus === "AMBER").length,
     GREEN: results.filter((r) => r.ragStatus === "GREEN").length,
@@ -657,12 +1306,14 @@ function exportReviewAsText(doc: UploadedDocument) {
     "===================",
     "",
     `Contract:    ${doc.originalName}`,
+    `Counterparty: ${doc.counterpartyName ?? "—"}`,
     `Type:        ${doc.contractType.replace(/_/g, " ")}`,
     `Reviewed:    ${date}`,
     `Overall RAG: ${overallRag}`,
+    doc.contractValue ? `Value:       £${doc.contractValue.toLocaleString("en-GB")}` : "",
     `Clauses:     ${results.length} reviewed  |  ${counts.RED} Red  |  ${counts.AMBER} Amber  |  ${counts.GREEN} Green  |  ${counts.GREY} Missing`,
     "",
-  ];
+  ].filter((l) => l !== "" || l === "");
 
   const escalations = results.filter((r) => r.escalationRequired);
   if (escalations.length > 0) {
@@ -673,33 +1324,19 @@ function exportReviewAsText(doc: UploadedDocument) {
     lines.push("");
   }
 
-  const order: RagStatus[] = ["RED", "AMBER", "GREEN", "GREY"];
-  for (const status of order) {
+  for (const status of ["RED", "AMBER", "GREEN", "GREY"] as RagStatus[]) {
     const group = results.filter((r) => r.ragStatus === status);
-    if (group.length === 0) continue;
+    if (!group.length) continue;
     lines.push(`${status} CLAUSES (${group.length})`, "-".repeat(40));
     for (const r of group) {
-      const label = CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory;
-      lines.push(
-        "",
-        `[${status}] ${label}${r.isAbsent ? " (NOT FOUND IN CONTRACT)" : ""}`,
-        "",
-        "What it says:",
-        r.clauseSummary,
-        "",
-        "Why it matters:",
-        r.whyItMatters,
-        "",
-        "Recommended action:",
-        r.recommendedAction,
-      );
-      if (r.suggestedFallback) {
-        lines.push("", "Suggested fallback:", r.suggestedFallback);
-      }
-      if (r.escalationRequired && r.escalationTrigger) {
-        lines.push("", "Escalation trigger:", r.escalationTrigger);
-      }
-      lines.push("", "Plain English summary:", r.businessSummary, "", "-".repeat(40));
+      const lbl = CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory;
+      lines.push("", `[${status}] ${lbl}${r.isAbsent ? " (ABSENT)" : ""}`, "",
+        "What it says:", r.clauseSummary, "",
+        "Why it matters:", r.whyItMatters, "",
+        "Recommended action:", r.recommendedAction);
+      if (r.suggestedFallback) lines.push("", "Suggested fallback:", r.suggestedFallback);
+      if (r.escalationRequired && r.escalationTrigger) lines.push("", "Escalation trigger:", r.escalationTrigger);
+      lines.push("", "Plain English:", r.businessSummary, "", "-".repeat(40));
     }
     lines.push("");
   }
@@ -715,194 +1352,7 @@ function exportReviewAsText(doc: UploadedDocument) {
   URL.revokeObjectURL(url);
 }
 
-// ─── Three-tier Escalation Summary ───────────────────────────────────────────
-
-const APPROVER_ORDER = ["Handler", "Legal", "GC", "CFO", "CEO", "Board"] as const;
-
-function getValueTier(value: number): { label: string; approvers: string[] } | null {
-  if (value < 10_000)   return null;
-  if (value < 50_000)   return { label: "Legal sign-off required",  approvers: ["Legal"] };
-  if (value < 250_000)  return { label: "GC sign-off required",     approvers: ["GC"] };
-  if (value < 1_000_000) return { label: "CFO sign-off required",   approvers: ["CFO"] };
-  return                        { label: "Board approval required",  approvers: ["Board"] };
-}
-
-function getGovernanceTriggers(
-  counterpartyType?: string,
-  contractType?: string,
-): Array<{ label: string; approvers: string[] }> {
-  const triggers: Array<{ label: string; approvers: string[] }> = [];
-
-  switch (counterpartyType) {
-    case "RELATED_PARTY":
-      triggers.push({ label: "Related party / connected party: Board sign-off required", approvers: ["Board"] });
-      break;
-    case "REGULATOR":
-      triggers.push({ label: "Regulator / government body: GC sign-off required", approvers: ["GC"] });
-      break;
-    case "INVESTOR":
-      triggers.push({ label: "Investor / shareholder: GC and CFO required", approvers: ["GC", "CFO"] });
-      break;
-    case "COMPETITOR":
-      triggers.push({ label: "Competitor: GC and CEO required", approvers: ["GC", "CEO"] });
-      break;
-  }
-
-  if (contractType === "JV_AGREEMENT") {
-    triggers.push({ label: "Joint venture: Board sign-off required", approvers: ["Board"] });
-  }
-  if (contractType && (contractType.includes("EXCLUSIV") || contractType === "EXCLUSIVITY")) {
-    triggers.push({ label: "Exclusivity agreement: CEO minimum required", approvers: ["CEO"] });
-  }
-
-  return triggers;
-}
-
-function EscalationSummary({
-  doc,
-  results,
-}: {
-  doc: UploadedDocument;
-  results: ReviewResult[];
-}) {
-  const [showExplainer, setShowExplainer] = useState(false);
-
-  // Tier 1 — clause risk
-  const tier1Clauses = results.filter((r) => r.escalationRequired);
-
-  // Tier 2 — contract value
-  const valueTier = doc.contractValue != null ? getValueTier(doc.contractValue) : null;
-
-  // Tier 3 — governance
-  const govTriggers = getGovernanceTriggers(doc.counterpartyType, doc.contractType);
-
-  const tiersActive = [
-    tier1Clauses.length > 0,
-    valueTier !== null,
-    govTriggers.length > 0,
-  ].filter(Boolean).length;
-
-  if (tiersActive === 0) return null;
-
-  // Build recommended sign-off sequence
-  const requiredApprovers = new Set<string>();
-  if (tier1Clauses.length > 0) requiredApprovers.add("Legal");
-  if (valueTier) valueTier.approvers.forEach((a) => requiredApprovers.add(a));
-  govTriggers.forEach((t) => t.approvers.forEach((a) => requiredApprovers.add(a)));
-
-  const signOffSequence = APPROVER_ORDER.filter((a) => requiredApprovers.has(a));
-
-  return (
-    <div className="card overflow-hidden border border-[#450A0A]">
-      {/* Header */}
-      <div className="bg-[#1F0A0A] px-5 py-3 flex items-center gap-3 border-b border-[#450A0A]">
-        <AlertTriangle size={16} className="text-[#FCA5A5] shrink-0" />
-        <span className="text-sm font-semibold text-[#FCA5A5] flex-1">
-          Escalation required: {tiersActive} tier{tiersActive !== 1 ? "s" : ""} triggered
-        </span>
-      </div>
-
-      <div className="p-4 space-y-3">
-        {/* Tier 1 — Clause Risk */}
-        {tier1Clauses.length > 0 && (
-          <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] p-4 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-[#FCA5A5]">
-              Tier 1: Clause Risk
-            </div>
-            <ul className="space-y-1.5">
-              {tier1Clauses.map((r) => (
-                <li key={r.id} className="flex gap-2 text-sm text-[#FCA5A5]">
-                  <span className="shrink-0 mt-0.5">•</span>
-                  <span>
-                    <span className="font-semibold">{CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory}</span>
-                    {r.escalationTrigger && (
-                      <span className="opacity-80">: {r.escalationTrigger}</span>
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Tier 2 — Contract Value */}
-        {valueTier && (
-          <div className="rounded-lg bg-[#1C0F00] border border-[#431407] p-4 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-[#FCD34D]">
-              Tier 2: Contract Value
-            </div>
-            <div className="text-sm text-[#FCD34D]">
-              <span className="font-semibold">
-                {doc.currency ?? "£"}{doc.contractValue!.toLocaleString("en-GB")}
-              </span>{" "}
-              : {valueTier.label}
-            </div>
-          </div>
-        )}
-
-        {/* Tier 3 — Governance */}
-        {govTriggers.length > 0 && (
-          <div className="rounded-lg bg-[#1E1B4B] border border-[#312E81] p-4 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-[#A5B4FC]">
-              Tier 3: Governance
-            </div>
-            <ul className="space-y-1.5">
-              {govTriggers.map((t, i) => (
-                <li key={i} className="flex gap-2 text-sm text-[#A5B4FC]">
-                  <span className="shrink-0 mt-0.5">•</span>
-                  <span>{t.label}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Recommended sign-off sequence */}
-        {signOffSequence.length > 0 && (
-          <div className="pt-1">
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-              Recommended sign-off sequence
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {signOffSequence.map((approver, i) => (
-                <span key={approver} className="flex items-center gap-1.5">
-                  <span className="inline-flex items-center bg-[#2563EB] text-white text-xs font-semibold px-2.5 py-1 rounded-full">
-                    {approver}
-                  </span>
-                  {i < signOffSequence.length - 1 && (
-                    <span className="text-muted-foreground text-xs">→</span>
-                  )}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* What is this? explainer */}
-        <div className="pt-1 border-t border-border">
-          <button
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => setShowExplainer((v) => !v)}
-          >
-            {showExplainer ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-            What is this?
-          </button>
-          {showExplainer && (
-            <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-              Zane uses three escalation tiers. <strong>Tier 1</strong> fires when individual clauses
-              contain terms that exceed your playbook thresholds and require sign-off.{" "}
-              <strong>Tier 2</strong> fires when the total contract value crosses an authority threshold
-              set by your organisation. <strong>Tier 3</strong> fires based on the nature of the
-              counterparty or contract type. Certain relationships (regulators, investors, related
-              parties) and structures (JVs, exclusivity) always require elevated sign-off regardless
-              of clause content or value.
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function FallbackCopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -926,7 +1376,7 @@ function FallbackCopyButton({ text }: { text: string }) {
 function Detail({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</div>
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">{title}</div>
       {children}
     </div>
   );

@@ -49,7 +49,22 @@ export type AuditAction =
   | "user_logout"
   // Litigation
   | "litigation_intake_started"
-  | "litigation_intake_completed";
+  | "litigation_intake_completed"
+  // Governance
+  | "governance_thresholds_saved"
+  | "governance_triggers_saved"
+  | "team_invite_sent"
+  // Regulatory profile
+  | "regulatory_profile_updated"
+  // Outcome capture
+  | "contract_outcome_captured"
+  // Contradiction detection
+  | "contradiction_detected"
+  // Pattern intelligence
+  | "playbook_suggestion_generated"
+  | "pattern_detected"
+  // Data export
+  | "audit_log_exported";
 
 // ── Core log function ─────────────────────────────────────────────────────────
 

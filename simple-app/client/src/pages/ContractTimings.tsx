@@ -1,4 +1,5 @@
-import { CalendarClock, AlertTriangle, Clock } from "lucide-react";
+import { CalendarClock, AlertTriangle, Clock, Upload } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getTimings } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
@@ -33,12 +34,25 @@ export default function ContractTimings() {
         )}
 
         {!isLoading && !data && (
-          <div className="card p-12 text-center space-y-3">
-            <CalendarClock size={32} className="mx-auto text-muted-foreground/40" />
-            <div className="font-semibold text-muted-foreground">No data yet</div>
-            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-              Upload and review contracts from the Dashboard to start tracking timing risks.
-            </p>
+          <div className="card p-14 text-center space-y-5">
+            <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center mx-auto">
+              <CalendarClock size={24} className="text-muted-foreground/50" />
+            </div>
+            <div className="space-y-2">
+              <div className="font-semibold">No renewal data yet</div>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                Zane extracts renewal dates, notice periods, and auto-renewal clauses from every reviewed contract.
+                Upload contracts with renewal terms to start your renewal calendar — and get alerted before notice
+                windows close.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+              <Link to="/app/legal/dashboard" className="btn-primary gap-2">
+                <Upload size={14} />
+                Upload a contract
+              </Link>
+              <p className="text-xs text-muted-foreground">Renewal dates are extracted automatically from contract text</p>
+            </div>
           </div>
         )}
 

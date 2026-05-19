@@ -15,6 +15,7 @@ async function req<T>(
 ): Promise<T> {
   const res = await fetch(url, {
     method,
+    credentials: "include",
     headers: body instanceof FormData ? undefined : { "Content-Type": "application/json" },
     body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
   });
@@ -100,6 +101,8 @@ export const uploadDocument = async (
     counterpartyName?: string;
     counterpartyType?: string;
     reviewType?: string;
+    governingLaw?: string;
+    jurisdiction?: string;
     contractValue?: number;
     currency?: string;
     contractTermMonths?: number;
@@ -116,6 +119,8 @@ export const uploadDocument = async (
     if (meta.counterpartyName !== undefined) form.append("counterpartyName", meta.counterpartyName);
     if (meta.counterpartyType !== undefined) form.append("counterpartyType", meta.counterpartyType);
     if (meta.reviewType !== undefined) form.append("reviewType", meta.reviewType);
+    if (meta.governingLaw !== undefined) form.append("governingLaw", meta.governingLaw);
+    if (meta.jurisdiction !== undefined) form.append("jurisdiction", meta.jurisdiction);
     if (meta.contractValue !== undefined) form.append("contractValue", String(meta.contractValue));
     if (meta.currency !== undefined) form.append("currency", meta.currency);
     if (meta.contractTermMonths !== undefined) form.append("contractTermMonths", String(meta.contractTermMonths));
@@ -169,9 +174,15 @@ export const getPortfolio = () => req<{
   groups: { label: string; icon: string; red: number; amber: number; green: number }[];
   topRedCategories: { category: string; count: number; pct: number }[];
   byContractType: { type: string; red: number; amber: number; total: number }[];
+  byCounterparty: { name: string; red: number; amber: number; green: number; total: number; value: number }[];
+  valueAtRisk: { RED: number; AMBER: number; GREEN: number; total: number };
   insight: string;
   totalDocuments: number;
   totalClauses: number;
+  totalRedResults: number;
+  escalationsOpen: number;
+  totalValue: number;
+  signedDocs: number;
 } | null>("GET", "/api/portfolio");
 
 // Timings
@@ -278,8 +289,28 @@ export interface MikePattern {
   severity: "info" | "warn" | "good";
 }
 
+export interface CounterpartyPattern {
+  counterparty: string;
+  clauseCategory: string;
+  redCount: number;
+  amberCount: number;
+  acceptedRed: number;
+}
+
+export interface NegotiationDrift {
+  clauseCategory: string;
+  totalRed: number;
+  acceptedRed: number;
+  driftPct: number;
+}
+
 export const getFeedbackPatterns = () =>
-  req<{ patterns: MikePattern[]; clauseOutcomes: ClauseOutcome[] }>(
+  req<{
+    patterns: MikePattern[];
+    clauseOutcomes: ClauseOutcome[];
+    counterpartyPatterns: CounterpartyPattern[];
+    negotiationDrift: NegotiationDrift[];
+  }>(
     "GET",
     "/api/feedback/patterns"
   );
@@ -310,11 +341,30 @@ export interface AuditEntry {
   createdAt: string;
 }
 
-export const getAuditLog = (page = 1, limit = 50) =>
-  req<{ entries: AuditEntry[]; totalPages: number; totalItems: number; page: number }>(
+export const getAuditLog = (
+  page = 1,
+  limit = 50,
+  filters?: { action?: string; from?: string; to?: string; entityId?: string }
+) => {
+  const qs = new URLSearchParams({ page: String(page), limit: String(limit) });
+  if (filters?.action)   qs.set("action", filters.action);
+  if (filters?.from)     qs.set("from", filters.from);
+  if (filters?.to)       qs.set("to", filters.to);
+  if (filters?.entityId) qs.set("entityId", filters.entityId);
+  return req<{ entries: AuditEntry[]; totalPages: number; totalItems: number; page: number }>(
     "GET",
-    `/api/audit?page=${page}&limit=${limit}`
+    `/api/audit?${qs.toString()}`
   );
+};
+
+export const exportAuditLogCSV = (filters?: { action?: string; from?: string; to?: string }) => {
+  const qs = new URLSearchParams({ format: "csv" });
+  if (filters?.action) qs.set("action", filters.action);
+  if (filters?.from)   qs.set("from", filters.from);
+  if (filters?.to)     qs.set("to", filters.to);
+  // Trigger browser download
+  window.location.href = `/api/audit?${qs.toString()}`;
+};
 
 export const createPlaybookRule = (data: {
   clauseCategory: string;
@@ -332,3 +382,98 @@ export const generatePlaybookSuggestion = (clauseCategory: string, workflowType?
     "/api/playbook/generate-suggestion",
     { clauseCategory, workflowType }
   );
+
+export interface PlaybookDriftSuggestion {
+  clauseCategory: string;
+  ruleId: string | null;
+  driftPct: number;
+  totalRed: number;
+  acceptedRed: number;
+  reasoning: string;
+  updatedPreferredPosition: string;
+  updatedRedLine: string;
+  recommendation: string;
+}
+
+export const getPlaybookDriftSuggestions = () =>
+  req<{ suggestions: PlaybookDriftSuggestion[] }>("GET", "/api/playbook/drift-suggestions");
+
+// ── Governance thresholds & triggers ─────────────────────────────────────────
+
+export const getGovernanceThresholds = () =>
+  req<Array<{ id: string; companyId: string; minValue: number; maxValue: number | null; requiredApprover: string; label: string }>>(
+    "GET", "/api/governance/thresholds"
+  );
+
+export const saveGovernanceThresholds = (thresholds: Array<{ minValue: number; maxValue: number | null; requiredApprover: string; label: string }>) =>
+  req("POST", "/api/governance/thresholds", thresholds);
+
+export const getGovernanceTriggers = () =>
+  req<Array<{ id: string; companyId: string; clauseCategory: string; escalateTo: string; reason: string }>>(
+    "GET", "/api/governance/triggers"
+  );
+
+export const saveGovernanceTriggers = (triggers: Array<{ clauseCategory: string; escalateTo: string; reason: string }>) =>
+  req("POST", "/api/governance/triggers", triggers);
+
+// ── Team invites ──────────────────────────────────────────────────────────────
+
+export const sendTeamInvites = (emails: string[], role?: string) =>
+  req<{ invited: number }>("POST", "/api/team/invite", { emails, role });
+
+export const getTeamInvites = () =>
+  req<Array<{ id: string; email: string; role: string; status: string; created: string }>>("GET", "/api/team/invites");
+
+export const cancelTeamInvite = (id: string) =>
+  req<{ ok: boolean }>("DELETE", `/api/team/invites/${id}`);
+
+export const updateTeamInviteStatus = (id: string, status: string) =>
+  req<{ id: string; status: string }>("PATCH", `/api/team/invites/${id}`, { status });
+
+// ── Outcome capture ────────────────────────────────────────────────────────────
+
+export const captureOutcome = (documentId: string, outcome: "SIGNED" | "EXECUTED", outcomeNotes?: string) =>
+  req<{ id: string }>("POST", `/api/documents/${documentId}/outcome`, { outcome, outcomeNotes });
+
+// ── Regulatory intelligence ───────────────────────────────────────────────────
+
+export interface RegulatoryUpdate {
+  framework: string;
+  jurisdiction: string;
+  title: string;
+  summary: string;
+  impact: "HIGH" | "MEDIUM" | "LOW";
+  date: string;
+  actionRequired: boolean;
+}
+
+export const getRegulatoryUpdates = () =>
+  req<{ updates: RegulatoryUpdate[]; cached?: boolean }>("GET", "/api/regulatory/updates");
+
+export const synthesiseRegulation = (regulationId: string) =>
+  req<{ synthesis: string; cached: boolean; createdAt: string }>(
+    "POST", `/api/regulatory/synthesise/${regulationId}`
+  );
+
+// ── Contract library ───────────────────────────────────────────────────────────
+
+export interface LibraryFolder {
+  name: string;
+  count: number;
+  documents: UploadedDocument[];
+}
+
+export const getLibrary = (search?: string) => {
+  const qs = new URLSearchParams();
+  if (search) qs.set("search", search);
+  return req<{ folders: LibraryFolder[]; total: number }>(
+    "GET",
+    `/api/library${qs.toString() ? `?${qs.toString()}` : ""}`
+  );
+};
+
+export const setDocumentFolder = (documentId: string, folder: string) =>
+  req<{ id: string }>("PATCH", `/api/documents/${documentId}/folder`, { folder });
+
+export const linkDocumentVersion = (documentId: string, parentDocumentId: string) =>
+  req<{ id: string }>("PATCH", `/api/documents/${documentId}/version`, { parentDocumentId });

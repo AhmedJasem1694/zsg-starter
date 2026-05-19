@@ -17,11 +17,13 @@
     "railway:setup": "tsx scripts/railway-setup.ts"
   },
   "dependencies": {
+    "@studio-freight/lenis": "^1.0.42",
     "@tanstack/react-query": "^5.100.5",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
+    "framer-motion": "^12.38.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.11.0",
     "mammoth": "^1.12.0",

@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { ZaneLogo } from "../ZaneLogo";
 import {
   LayoutDashboard, BookOpen, Settings, LogOut, Menu, Shield,
-  Lock, HelpCircle, PieChart, CalendarClock, LayoutGrid, Activity, ClipboardList,
+  Lock, PieChart, CalendarClock, LayoutGrid, Activity, ClipboardList, Library, Users,
 } from "lucide-react";
 import { useAuth, useLogout } from "../../hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -14,15 +14,21 @@ import type { Persona } from "../../lib/types";
 
 const LEGAL_NAV = [
   { to: "/app/legal/dashboard",   icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/app/legal/library",     icon: Library,          label: "Library" },
   { to: "/app/legal/playbook",    icon: BookOpen,         label: "Playbook" },
   { to: "/app/legal/portfolio",   icon: PieChart,         label: "Portfolio Risk" },
   { to: "/app/legal/regulations", icon: Shield,           label: "Regulatory Profile" },
-  { to: "/app/legal/timings",     icon: CalendarClock,    label: "Renewals" },
   { to: "/app/legal/bulk-review", icon: LayoutGrid,       label: "Bulk Review" },
-  { to: "/app/legal/patterns",    icon: Activity,         label: "Patterns" },
+];
+
+// Items that require populated data — shown dimmer in secondary section
+const LEGAL_NAV_DATA_DEPENDENT = [
+  { to: "/app/legal/timings",  icon: CalendarClock, label: "Renewals" },
+  { to: "/app/legal/patterns", icon: Activity,      label: "Patterns" },
 ];
 
 const LEGAL_NAV_SECONDARY = [
+  { to: "/app/legal/team",   icon: Users,         label: "Team" },
   { to: "/app/legal/audit",  icon: ClipboardList, label: "Audit Trail" },
   { to: "/security",         icon: Lock,          label: "Security" },
 ];
@@ -91,7 +97,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5">
+        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {nav.map(({ to, icon: Icon, label }) => {
             const active = location.pathname === to || location.pathname.startsWith(to + "/");
             return (
@@ -106,11 +112,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+
+          {/* Data-dependent items — slightly dimmer, with hint */}
+          {!isFounder && (
+            <div className="pt-3 pb-1 space-y-0.5">
+              <div className="px-3 pb-1 text-[10px] uppercase tracking-widest text-sidebar-foreground/20 font-medium">Analytics</div>
+              {LEGAL_NAV_DATA_DEPENDENT.map(({ to, icon: Icon, label }) => {
+                const active = location.pathname === to || location.pathname.startsWith(to + "/");
+                return (
+                  <Link
+                    key={to}
+                    to={to}
+                    onClick={() => setOpen(false)}
+                    className={`nav-item ${active ? "nav-item-active" : "opacity-60 hover:opacity-100"}`}
+                  >
+                    <Icon size={16} className="shrink-0" style={{ color: active ? "#60A5FA" : "#64748B" }} />
+                    {label}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </nav>
 
         {/* Secondary nav */}
         <div className="px-3 pb-2 space-y-0.5 border-t border-sidebar-border pt-3">
-          <div className="px-3 pb-1 text-[10px] uppercase tracking-widest text-sidebar-foreground/30 font-medium">More</div>
+          <div className="px-3 pb-1 text-[10px] uppercase tracking-widest text-sidebar-foreground/20 font-medium">System</div>
           {navSecondary.map(({ to, icon: Icon, label }) => {
             const active = location.pathname === to;
             return (
@@ -118,7 +145,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 key={to}
                 to={to}
                 onClick={() => setOpen(false)}
-                className={`nav-item ${active ? "nav-item-active" : ""}`}
+                className={`nav-item opacity-60 hover:opacity-100 ${active ? "nav-item-active !opacity-100" : ""}`}
               >
                 <Icon size={16} className="shrink-0" style={{ color: active ? "#60A5FA" : "#64748B" }} />
                 {label}

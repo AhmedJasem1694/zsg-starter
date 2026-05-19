@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { getReview, saveFeedback, generateReply } from "../../lib/api";
 import AppLayout from "../../components/layout/AppLayout";
-import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument } from "../../lib/types";
+import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, FounderStatus } from "../../lib/types";
 import { CLAUSE_LABELS } from "../../lib/types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -17,6 +17,12 @@ type Verdict = "safe" | "caution" | "danger";
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getVerdict(results: ReviewResult[]): Verdict {
+  // Prefer LLM-generated founderStatus — use worst across all results
+  const statuses = results.map((r) => r.founderStatus).filter(Boolean) as FounderStatus[];
+  if (statuses.includes("DO NOT SIGN YET")) return "danger";
+  if (statuses.includes("CAUTION"))         return "caution";
+  if (statuses.length > 0)                  return "safe";
+  // Fallback: derive from RAG counts
   const red   = results.filter((r) => r.ragStatus === "RED").length;
   const amber = results.filter((r) => r.ragStatus === "AMBER").length;
   if (red >= 1)   return "danger";
@@ -107,8 +113,12 @@ function FounderClauseCard({
   const label = CLAUSE_LABELS[result.clauseCategory] ?? result.clauseCategory.replace(/_/g, " ");
   const tagBg = founderRagBg(result.ragStatus);
   const tagColor = founderRagColor(result.ragStatus);
-  const fundraisingRelevance = FUNDRAISING_RELEVANCE[result.clauseCategory] as FundraisingRelevance | undefined;
+  // Use LLM fundraising relevance text if available; fall back to hardcoded map for legacy results
+  const fundraisingRelevance = (FUNDRAISING_RELEVANCE[result.clauseCategory] as FundraisingRelevance | undefined);
   const frColor = fundraisingRelevance ? FUNDRAISING_RELEVANCE_COLOR[fundraisingRelevance] : null;
+  // Prefer founder-specific copy if LLM produced it
+  const displaySummary = result.founderPlainEnglish || result.businessSummary || result.clauseSummary;
+  const copyPasteText  = result.founderCopyPaste || result.suggestedFallback;
 
   const replyMutation = useMutation({
     mutationFn: () => generateReply(result.id, "friendly but firm"),
@@ -116,8 +126,8 @@ function FounderClauseCard({
   });
 
   function copyFallback() {
-    if (!result.suggestedFallback) return;
-    void navigator.clipboard.writeText(result.suggestedFallback).then(() => {
+    if (!copyPasteText) return;
+    void navigator.clipboard.writeText(copyPasteText).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -151,7 +161,7 @@ function FounderClauseCard({
             )}
           </div>
           <p className="mt-1 text-sm text-foreground/80 line-clamp-2">
-            {result.businessSummary || result.clauseSummary}
+            {displaySummary}
           </p>
         </div>
         {expanded ? (
@@ -177,8 +187,18 @@ function FounderClauseCard({
             </div>
           )}
 
-          {/* Why it matters */}
-          {result.whyItMatters && (
+          {/* Business impact (founder-specific) */}
+          {result.founderBusinessImpact && (
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                What does this cost you?
+              </div>
+              <p className="text-sm text-foreground/90">{result.founderBusinessImpact}</p>
+            </div>
+          )}
+
+          {/* Why it matters — shown when no founder-specific impact text */}
+          {!result.founderBusinessImpact && result.whyItMatters && (
             <div>
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                 Why does this matter?
@@ -187,8 +207,18 @@ function FounderClauseCard({
             </div>
           )}
 
-          {/* What to do */}
-          {result.recommendedAction && (
+          {/* What to ask for (founder-specific) */}
+          {result.founderAskFor && result.ragStatus !== "GREEN" && (
+            <div>
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
+                What to ask for
+              </div>
+              <p className="text-sm text-foreground/90">{result.founderAskFor}</p>
+            </div>
+          )}
+
+          {/* What to do — shown when no founder-specific ask */}
+          {!result.founderAskFor && result.recommendedAction && (
             <div>
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
                 What should I do?
@@ -198,12 +228,14 @@ function FounderClauseCard({
           )}
 
           {/* Copy-paste wording */}
-          {result.suggestedFallback && result.ragStatus !== "GREEN" && (
+          {copyPasteText && result.ragStatus !== "GREEN" && (
             <div className="rounded-lg bg-background/60 border border-border p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <Sparkles size={12} className="text-primary" />
-                  <span className="text-xs font-semibold text-primary">Suggested wording</span>
+                  <span className="text-xs font-semibold text-primary">
+                    {result.founderCopyPaste ? "Paste this into your email" : "Suggested wording"}
+                  </span>
                 </div>
                 <button
                   className="btn-ghost text-xs px-2 py-1 gap-1 flex items-center"
@@ -214,8 +246,24 @@ function FounderClauseCard({
                 </button>
               </div>
               <p className="text-xs text-foreground/80 font-mono leading-relaxed">
-                {result.suggestedFallback}
+                {copyPasteText}
               </p>
+            </div>
+          )}
+
+          {/* Fundraising relevance — LLM text */}
+          {result.founderFundraisingRelevance && result.founderFundraisingRelevance !== "Not relevant to fundraising" && (
+            <div className="rounded-lg bg-[#0F172A] border border-[#334155] px-3 py-2.5">
+              <div className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wide mb-0.5">Fundraising note</div>
+              <p className="text-xs text-[#94A3B8]">{result.founderFundraisingRelevance}</p>
+            </div>
+          )}
+
+          {/* If ignored */}
+          {result.founderIfIgnored && result.ragStatus !== "GREEN" && (
+            <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] px-3 py-2.5">
+              <div className="text-[10px] font-semibold text-[#FCA5A5] uppercase tracking-wide mb-0.5">If you sign as-is</div>
+              <p className="text-xs text-[#FCA5A5]/90">{result.founderIfIgnored}</p>
             </div>
           )}
 
@@ -537,7 +585,7 @@ export default function FounderReview() {
                   </span>
                 </div>
                 <p className="text-sm text-foreground/80 pl-4">
-                  {result.businessSummary || result.clauseSummary}
+                  {result.founderPlainEnglish || result.businessSummary || result.clauseSummary}
                 </p>
               </div>
             ))}

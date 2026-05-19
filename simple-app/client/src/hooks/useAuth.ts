@@ -7,7 +7,7 @@ interface AuthUser {
 }
 
 async function fetchMe(): Promise<AuthUser> {
-  const res = await fetch("/api/auth/me");
+  const res = await fetch("/api/auth/me", { credentials: "include" });
   if (!res.ok) throw new Error("Not authenticated");
   return res.json() as Promise<AuthUser>;
 }
@@ -28,7 +28,7 @@ export function useLogout() {
   const navigate = useNavigate();
 
   return useMutation({
-    mutationFn: () => fetch("/api/auth/logout", { method: "POST" }).then((r) => r.json()),
+    mutationFn: () => fetch("/api/auth/logout", { method: "POST", credentials: "include" }).then((r) => r.json()),
     onSuccess: () => {
       navigate("/", { replace: true });
       queryClient.clear();

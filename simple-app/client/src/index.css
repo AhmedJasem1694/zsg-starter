@@ -225,6 +225,74 @@
 ::-webkit-scrollbar-thumb     { background: #334155; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
+/* ─── Enterprise workflow animations ────────────────────────────────────── */
+
+/* Card entry — used for review clauses, dashboard cards, sidebar panels */
+@keyframes cardEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Sweep shimmer — used on processing states and urgency indicators */
+@keyframes sweep {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Tick pulse — used on sign-off tracker pending steps */
+@keyframes tickPulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1; }
+}
+
+/* Slide in from left — used for sidebar panels */
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Bar grow — used for risk distribution bars */
+@keyframes barGrow {
+  from { width: 0; }
+}
+
+.card-enter {
+  animation: cardEnter 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.card-enter-stagger > * {
+  animation: cardEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.card-enter-stagger > *:nth-child(1) { animation-delay: 0ms;   }
+.card-enter-stagger > *:nth-child(2) { animation-delay: 40ms;  }
+.card-enter-stagger > *:nth-child(3) { animation-delay: 80ms;  }
+.card-enter-stagger > *:nth-child(4) { animation-delay: 120ms; }
+.card-enter-stagger > *:nth-child(5) { animation-delay: 160ms; }
+.card-enter-stagger > *:nth-child(6) { animation-delay: 200ms; }
+.card-enter-stagger > *:nth-child(7) { animation-delay: 240ms; }
+.card-enter-stagger > *:nth-child(8) { animation-delay: 280ms; }
+
+.slide-in-left {
+  animation: slideInLeft 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Processing shimmer — overlaid on loading states */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.03) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: sweep 2.4s linear infinite;
+}
+
+/* Tick indicator for workflow steps */
+.tick-pulse {
+  animation: tickPulse 2s ease-in-out infinite;
+}
+
 /* ─── Landing page animations ────────────────────────────────────────────── */
 
 @keyframes fadeUp {

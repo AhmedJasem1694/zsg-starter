@@ -97,10 +97,35 @@ const PII_PATTERNS: Array<{ type: string; pattern: RegExp }> = [
     pattern:
       /\bborn\s+(?:on\s+)?(?:\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4}|\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})\b/gi,
   },
-  // VAT registration numbers
+  // VAT registration numbers (GB + 9 or 12 digits; explicit GB prefix required to avoid ambiguity)
   {
     type: "VAT_NUMBER",
-    pattern: /\b(?:GB)?\s?\d{9}\s?(?:\d{3})?\b/g,
+    pattern: /\bGB\s?\d{3}\s?\d{3}\s?\d{3}(?:\s?\d{3})?\b/gi,
+  },
+  // NHS number (10 digits, optional spaces every 3 digits: 485 777 3456 or 4857773456)
+  {
+    type: "NHS_NUMBER",
+    pattern: /\b\d{3}\s?\d{3}\s?\d{4}\b/g,
+  },
+  // UK driving licence (DVLA format: 5 letters + 6 digits + 2 letters + 1 digit + 2 letters)
+  {
+    type: "DRIVING_LICENCE",
+    pattern: /\b[A-Z]{5}\d{6}[A-Z]{2}\d[A-Z]{2}\b/gi,
+  },
+  // Court case references: [YYYY] EWHC/EWCA/UKSC/EWCOP NNNN
+  {
+    type: "COURT_REF",
+    pattern: /\[\d{4}\]\s+(?:EWHC|EWCA|UKSC|UKHL|EWCOP|NICA)\s+\d+(?:\s*\([A-Za-z]+\))?/g,
+  },
+  // Case number patterns (e.g. BL-2022-001234, QB-2021-000456, Claim No. A12YJ123)
+  {
+    type: "CASE_NUMBER",
+    pattern: /\b(?:Case\s+No\.?\s*|Claim\s+No\.?\s*)[A-Z0-9\-\/]{4,20}\b/gi,
+  },
+  // Insurance/claim reference numbers (CLM-, POL-, REF-, INS- prefixed)
+  {
+    type: "CLAIM_REF",
+    pattern: /\b(?:CLM|POL|REF|INS|CLAIM|POLICY)[-\/]?[A-Z0-9]{4,20}\b/gi,
   },
 ];
 

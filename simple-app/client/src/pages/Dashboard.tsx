@@ -12,7 +12,7 @@ import MikeNoticedPanel from "../components/MikeNoticedPanel";
 import MissingDocsPanel from "../components/MissingDocsPanel";
 import { Link } from "react-router-dom";
 import type { DocumentStatus } from "../lib/types";
-import { MOCK_MODE, MOCK_DOCUMENTS } from "../lib/mockData";
+import { MOCK_MODE, MOCK_DOCUMENTS, MOCK_URGENCY_SIGNALS } from "../lib/mockData";
 import type { UploadedDocument } from "../lib/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -155,6 +155,182 @@ const LOGISTICS_COUNTERPARTY_TYPES = [
   { value: "OTHER",            label: "Other" },
 ];
 
+// ─── Urgency Panel ───────────────────────────────────────────────────────────
+
+type UrgencySignal = typeof MOCK_URGENCY_SIGNALS[number];
+
+function computeUrgencySignals(documents: DocWithRag[]): UrgencySignal[] {
+  const signals: UrgencySignal[] = [];
+  const completed = documents.filter((d) => d.status === "COMPLETE");
+
+  const escCount = completed.filter((d) =>
+    (d.reviewResults ?? []).some((r) => r.escalationRequired && r.feedback?.userAction !== "ESCALATED")
+  ).length;
+
+  if (escCount > 0) {
+    const names = completed
+      .filter((d) => (d.reviewResults ?? []).some((r) => r.escalationRequired && r.feedback?.userAction !== "ESCALATED"))
+      .slice(0, 3)
+      .map((d) => d.originalName.replace(/\.(pdf|docx?)$/i, ""))
+      .join(" · ");
+    signals.push({
+      id: "esc",
+      type: "escalation",
+      severity: "red",
+      message: `${escCount} unresolved escalation${escCount !== 1 ? "s" : ""} require sign-off`,
+      detail: names,
+      docId: "",
+    });
+  }
+
+  const redDocs = completed.filter((d) => (d.reviewResults ?? []).filter((r) => r.ragStatus === "RED").length >= 2);
+  if (redDocs.length > 0) {
+    signals.push({
+      id: "threshold",
+      type: "threshold",
+      severity: "red",
+      message: `${redDocs.length} contract${redDocs.length !== 1 ? "s" : ""} with multiple critical clause failures`,
+      detail: redDocs.slice(0, 2).map((d) => d.originalName.replace(/\.(pdf|docx?)$/i, "")).join(" · "),
+      docId: "",
+    });
+  }
+
+  const now = Date.now();
+  const renewalDocs = (documents as (DocWithRag & { renewalDate?: string })[]).filter((d) => {
+    if (!d.renewalDate) return false;
+    const diff = new Date(d.renewalDate).getTime() - now;
+    return diff > 0 && diff <= 30 * 24 * 60 * 60 * 1000;
+  });
+  if (renewalDocs.length > 0) {
+    const d = renewalDocs[0] as DocWithRag & { renewalDate: string; counterpartyName?: string };
+    const days = Math.ceil((new Date(d.renewalDate).getTime() - now) / (1000 * 60 * 60 * 24));
+    signals.push({
+      id: "renewal",
+      type: "renewal",
+      severity: "amber",
+      message: `Renewal notice due in ${days} days — ${d.counterpartyName ?? d.originalName.replace(/\.(pdf|docx?)$/i, "")}`,
+      detail: "Act before the notice window closes to avoid automatic renewal.",
+      docId: "",
+    });
+  }
+
+  return signals;
+}
+
+function UrgencyPanel({ signals }: { signals: UrgencySignal[] }) {
+  if (signals.length === 0) return null;
+
+  const SIGNAL_CONFIG = {
+    escalation: { icon: AlertTriangle,  color: "#FCA5A5", border: "#450A0A", bg: "#120303" },
+    threshold:  { icon: AlertTriangle,  color: "#FCA5A5", border: "#450A0A", bg: "#120303" },
+    renewal:    { icon: CalendarClock,  color: "#FCD34D", border: "#431407", bg: "#0D0800" },
+    pattern:    { icon: Activity,       color: "#A5B4FC", border: "#312E81", bg: "#0A0915" },
+  } as const;
+
+  return (
+    <div className="rounded-xl border border-[#2A1A0A] bg-[#0D0906] divide-y divide-[#1E1309]">
+      <div className="flex items-center gap-2.5 px-4 py-2.5">
+        <div className="w-1.5 h-1.5 rounded-full bg-[#FCA5A5] animate-pulse" />
+        <span className="text-xs font-semibold text-[#FCA5A5]/80 uppercase tracking-wider">
+          {signals.filter(s => s.severity === "red").length > 0 ? "Requires attention" : "Operational notice"}
+        </span>
+        <span className="ml-auto text-[10px] text-muted-foreground/40">{signals.length} active</span>
+      </div>
+      {signals.map((sig) => {
+        const cfg = SIGNAL_CONFIG[sig.type] ?? SIGNAL_CONFIG.pattern;
+        const Icon = cfg.icon;
+        return (
+          <div key={sig.id} className="flex items-start gap-3 px-4 py-3">
+            <Icon size={13} className="shrink-0 mt-0.5" style={{ color: cfg.color }} />
+            <div className="min-w-0 flex-1">
+              <div className="text-xs font-semibold" style={{ color: cfg.color }}>{sig.message}</div>
+              {sig.detail && (
+                <div className="text-[11px] text-muted-foreground/50 mt-0.5 truncate">{sig.detail}</div>
+              )}
+            </div>
+            {sig.docId && (
+              <a
+                href={`/app/legal/review/${sig.docId}`}
+                className="text-[10px] font-semibold text-muted-foreground/40 hover:text-muted-foreground transition-colors shrink-0"
+              >
+                View →
+              </a>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Next best action ─────────────────────────────────────────────────────────
+
+function NextBestAction({ documents, isMock }: { documents: DocWithRag[]; isMock: boolean }) {
+  if (isMock) {
+    return (
+      <a
+        href="/app/legal/review/mock-1"
+        className="flex items-center gap-4 px-5 py-3.5 rounded-xl border border-[#1B2D4A] hover:border-[#2A4570] transition-colors group"
+        style={{ background: "#0C1929" }}
+      >
+        <div className="w-8 h-8 rounded-lg bg-[#1B2D4A] flex items-center justify-center shrink-0">
+          <ArrowRight size={14} className="text-[#60A5FA]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] uppercase tracking-widest text-[#60A5FA]/60 font-semibold mb-0.5">Next action</div>
+          <div className="text-sm font-semibold text-foreground truncate">
+            Acme Corp MSA — 3 unresolved red clauses, GC sign-off required
+          </div>
+        </div>
+        <div className="text-xs font-semibold text-[#60A5FA] shrink-0 group-hover:translate-x-0.5 transition-transform">
+          Review now →
+        </div>
+      </a>
+    );
+  }
+
+  const completed = documents.filter((d) => d.status === "COMPLETE");
+
+  // Prioritise: escalation-pending > highest red count
+  const withEscalation = completed.filter((d) =>
+    (d.reviewResults ?? []).some((r) => r.escalationRequired && r.feedback?.userAction !== "ESCALATED")
+  );
+  const withRed = completed.filter((d) =>
+    (d.reviewResults ?? []).some((r) => r.ragStatus === "RED")
+  );
+
+  const priority = withEscalation[0] ?? withRed[0];
+  if (!priority) return null;
+
+  const redCount  = (priority.reviewResults ?? []).filter((r) => r.ragStatus === "RED").length;
+  const escCount  = (priority.reviewResults ?? []).filter((r) => r.escalationRequired && r.feedback?.userAction !== "ESCALATED").length;
+  const detail    = escCount > 0
+    ? `${escCount} clause${escCount !== 1 ? "s" : ""} pending escalation`
+    : `${redCount} red clause${redCount !== 1 ? "s" : ""} unresolved`;
+  const name      = (priority as DocWithRag & { counterpartyName?: string }).counterpartyName
+    ? `${(priority as DocWithRag & { counterpartyName?: string }).counterpartyName} — ${detail}`
+    : `${priority.originalName.replace(/\.(pdf|docx?)$/i, "")} — ${detail}`;
+
+  return (
+    <a
+      href={`/app/legal/review/${priority.id}`}
+      className="flex items-center gap-4 px-5 py-3.5 rounded-xl border border-[#1B2D4A] hover:border-[#2A4570] transition-colors group"
+      style={{ background: "#0C1929" }}
+    >
+      <div className="w-8 h-8 rounded-lg bg-[#1B2D4A] flex items-center justify-center shrink-0">
+        <ArrowRight size={14} className="text-[#60A5FA]" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-[10px] uppercase tracking-widest text-[#60A5FA]/60 font-semibold mb-0.5">Next action</div>
+        <div className="text-sm font-semibold text-foreground truncate">{name}</div>
+      </div>
+      <div className="text-xs font-semibold text-[#60A5FA] shrink-0 group-hover:translate-x-0.5 transition-transform">
+        Review now →
+      </div>
+    </a>
+  );
+}
+
 // ─── Processing stages ────────────────────────────────────────────────────────
 
 const PROCESSING_STAGES = [
@@ -172,8 +348,8 @@ function ReviewProcessingCard({ doc }: { doc: { id: string; originalName: string
   const stageIdx   = activeIdx === -1 ? PROCESSING_STAGES.length - 1 : activeIdx;
 
   return (
-    <div className="card border-[#1C2A3A]" style={{ background: "#0D1B2A" }}>
-      <div className="card-body space-y-3">
+    <div className="card border-[#1C2A3A] shimmer relative overflow-hidden" style={{ background: "#0D1B2A" }}>
+      <div className="card-body space-y-3 relative z-10">
         <div className="flex items-center justify-between gap-2">
           <div className="text-xs font-semibold text-[#93C5FD] truncate">{doc.originalName}</div>
           <span className="flex items-center gap-1 text-[10px] text-[#FCD34D] shrink-0">
@@ -393,6 +569,8 @@ export default function Dashboard() {
   const [noticePeriodDays, setNoticePeriodDays] = useState("");
   const [renewalDate, setRenewalDate] = useState("");
   const [contractTags, setContractTags] = useState("");
+  const [governingLaw, setGoverningLaw] = useState("");
+  const [jurisdiction, setJurisdiction] = useState("");
 
   // Search / filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -458,6 +636,8 @@ export default function Dashboard() {
         counterpartyName,
         counterpartyType,
         reviewType,
+        governingLaw: governingLaw || undefined,
+        jurisdiction: jurisdiction || undefined,
         contractValue: contractValue ? parseFloat(contractValue) : undefined,
         currency: "GBP",
         contractTermMonths: contractTermMonths ? parseInt(contractTermMonths) : undefined,
@@ -479,6 +659,7 @@ export default function Dashboard() {
       setCounterpartyName(""); setCounterpartyType(""); setReviewType("INBOUND");
       setContractValue(""); setContractTermMonths(""); setAutoRenewal(false);
       setNoticePeriodDays(""); setRenewalDate(""); setContractTags("");
+      setGoverningLaw(""); setJurisdiction("");
     } catch (e) {
       console.error(e);
     } finally {
@@ -512,6 +693,10 @@ export default function Dashboard() {
     return true;
   });
 
+  const urgencySignals = useMock
+    ? MOCK_URGENCY_SIGNALS
+    : computeUrgencySignals(filteredDocuments as DocWithRag[]);
+
   // Keep CONTRACT_TYPES for any fallback usage
   void CONTRACT_TYPES;
 
@@ -539,6 +724,16 @@ export default function Dashboard() {
             </span>
           )}
         </div>
+
+        {/* Next best action — single most important item */}
+        <NextBestAction documents={filteredDocuments as DocWithRag[]} isMock={useMock} />
+
+        {/* Urgency panel */}
+        {urgencySignals.length > 0 && (
+          <div className="card-enter">
+            <UrgencyPanel signals={urgencySignals} />
+          </div>
+        )}
 
         {/* Stats bar */}
         {stats && realDocuments.length > 0 && (
@@ -642,6 +837,32 @@ export default function Dashboard() {
                     value={renewalDate}
                     onChange={(e) => setRenewalDate(e.target.value)}
                   />
+                </div>
+                {/* Governing law + jurisdiction row */}
+                <div className="grid sm:grid-cols-2 gap-2">
+                  <input
+                    type="text"
+                    className="input text-sm py-1.5"
+                    placeholder="Governing law (e.g. English law)"
+                    value={governingLaw}
+                    onChange={(e) => setGoverningLaw(e.target.value)}
+                  />
+                  <select
+                    className="input text-sm py-1.5"
+                    value={jurisdiction}
+                    onChange={(e) => setJurisdiction(e.target.value)}
+                  >
+                    <option value="">Jurisdiction (optional)</option>
+                    <option value="GB">United Kingdom</option>
+                    <option value="EU">European Union</option>
+                    <option value="IE">Ireland</option>
+                    <option value="US">United States</option>
+                    <option value="CA">Canada</option>
+                    <option value="SG">Singapore</option>
+                    <option value="AE">United Arab Emirates</option>
+                    <option value="AU">Australia</option>
+                    <option value="NZ">New Zealand</option>
+                  </select>
                 </div>
               </div>
               <div className="card-body space-y-3">
@@ -747,7 +968,8 @@ export default function Dashboard() {
                     const results = (doc as DocWithRag).reviewResults ?? [];
                     const readiness = doc.status === "COMPLETE" ? getSignReadiness(results) : "pending";
                     const { label: readinessLabel, color: readinessColor, bg: readinessBg, icon: ReadinessIcon } = READINESS_CONFIG[readiness];
-                    const isClickable = doc.status === "COMPLETE" && !useMock;
+                    // mock-1 is always clickable — it has a full demo review
+                    const isClickable = doc.status === "COMPLETE" && (!useMock || doc.id === "mock-1");
                     const red   = results.filter((r) => r.ragStatus === "RED").length;
                     const amber = results.filter((r) => r.ragStatus === "AMBER").length;
                     const docWithMeta = doc as DocWithRag & { counterpartyName?: string; contractValue?: number };
