@@ -9,7 +9,7 @@ import {
   getDocuments, uploadDocument, startReview, getCompany,
 } from "../../lib/api";
 import AppLayout from "../../components/layout/AppLayout";
-import MikeNoticedPanel from "../../components/MikeNoticedPanel";
+import ZaneNoticedPanel from "../../components/ZaneNoticedPanel";
 import MissingDocsPanel from "../../components/MissingDocsPanel";
 import InvestorFlagsPanel from "../../components/InvestorFlagsPanel";
 import type { DocumentStatus, UploadedDocument } from "../../lib/types";
@@ -435,7 +435,7 @@ export default function FounderDashboard() {
             <MissingDocsPanel />
 
             {/* Zane noticed */}
-            <MikeNoticedPanel />
+            <ZaneNoticedPanel />
 
           </div>
         </div>

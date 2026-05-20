@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { getDocuments, uploadDocument, startReview, getCompany, getDocumentStats } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
-import MikeNoticedPanel from "../components/MikeNoticedPanel";
+import ZaneNoticedPanel from "../components/ZaneNoticedPanel";
 import MissingDocsPanel from "../components/MissingDocsPanel";
 import AccumulationCard from "../components/AccumulationCard";
 import { Link } from "react-router-dom";
@@ -1135,7 +1135,7 @@ export default function Dashboard() {
             <AccumulationCard />
 
             {/* Patterns detected (memory layer) */}
-            <MikeNoticedPanel />
+            <ZaneNoticedPanel />
 
             {/* Missing docs */}
             <MissingDocsPanel />

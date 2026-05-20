@@ -59,7 +59,7 @@ export default function CaseStudy() {
                 </p>
               </div>
 
-              {/* MIKE output mock */}
+              {/* Zane output mock */}
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 text-xs text-white/70 leading-relaxed font-mono space-y-1">
                 <span className="text-primary font-semibold block mb-2">Zane output - Liquidation Preference · RED</span>
                 <p>

@@ -283,7 +283,7 @@ export interface ClauseOutcome {
   greenCount: number;
 }
 
-export interface MikePattern {
+export interface ZanePattern {
   type: string;
   message: string;
   severity: "info" | "warn" | "good";
@@ -306,7 +306,7 @@ export interface NegotiationDrift {
 
 export const getFeedbackPatterns = () =>
   req<{
-    patterns: MikePattern[];
+    patterns: ZanePattern[];
     clauseOutcomes: ClauseOutcome[];
     counterpartyPatterns: CounterpartyPattern[];
     negotiationDrift: NegotiationDrift[];

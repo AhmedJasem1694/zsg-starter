@@ -183,7 +183,7 @@ export default function Resources() {
       <section className="max-w-4xl mx-auto px-6 pb-20">
         <h2 className="text-xl font-bold mb-2">Clause explainers</h2>
         <p className="text-muted-foreground text-sm mb-8">
-          Plain-English summaries of the clause categories MIKE reviews.
+          Plain-English summaries of the clause categories Zane reviews.
         </p>
         <div className="grid md:grid-cols-2 gap-3">
           {CLAUSE_EXPLAINERS.map(({ category, summary }) => (

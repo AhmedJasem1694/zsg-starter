@@ -1,15 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { Lightbulb, AlertTriangle, CheckCircle, Info } from "lucide-react";
 import { getFeedbackPatterns } from "../lib/api";
-import type { MikePattern } from "../lib/api";
+import type { ZanePattern } from "../lib/api";
 
-function PatternIcon({ severity }: { severity: MikePattern["severity"] }) {
+function PatternIcon({ severity }: { severity: ZanePattern["severity"] }) {
   if (severity === "good")  return <CheckCircle  size={13} className="text-[#86EFAC] shrink-0 mt-0.5" />;
   if (severity === "warn")  return <AlertTriangle size={13} className="text-[#FCD34D] shrink-0 mt-0.5" />;
   return                           <Info          size={13} className="text-[#60A5FA] shrink-0 mt-0.5" />;
 }
 
-export default function MikeNoticedPanel() {
+export default function ZaneNoticedPanel() {
   const { data, isLoading } = useQuery({
     queryKey: ["feedback-patterns"],
     queryFn: getFeedbackPatterns,

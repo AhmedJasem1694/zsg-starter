@@ -1099,7 +1099,7 @@ function ClauseCard({
   const [copiedReply, setCopiedReply] = useState(false);
   const [showWhatAgreed, setShowWhatAgreed] = useState(false);
   const [agreedText, setAgreedText] = useState("");
-  const [showTeachMike, setShowTeachMike] = useState(false);
+  const [showTeachZane, setShowTeachZane] = useState(false);
   const [incorrectOutput, setIncorrectOutput] = useState("");
   const [correctOutput, setCorrectOutput] = useState("");
   const [teachSubmitting, setTeachSubmitting] = useState(false);
@@ -1134,13 +1134,13 @@ function ClauseCard({
     try { await onFeedback(action, finalClauseText); } finally { setSubmitting(null); }
   }
 
-  async function handleTeachMike() {
+  async function handleTeachZane() {
     if (!incorrectOutput.trim() || !correctOutput.trim()) return;
     setTeachSubmitting(true);
     try {
       await teachZane(result.id, { incorrectOutput, correctOutput });
       setTeachDone(true);
-      setShowTeachMike(false);
+      setShowTeachZane(false);
     } finally {
       setTeachSubmitting(false);
     }
@@ -1450,7 +1450,7 @@ function ClauseCard({
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-muted-foreground">Improve this analysis:</span>
                 <button
-                  onClick={() => setShowTeachMike(!showTeachMike)}
+                  onClick={() => setShowTeachZane(!showTeachZane)}
                   disabled={teachDone}
                   className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors ${
                     teachDone ? "bg-[#052E16] border-[#14532D] text-[#86EFAC]" : "border-border hover:border-[#475569]"
@@ -1473,7 +1473,7 @@ function ClauseCard({
                 )}
               </div>
 
-              {showTeachMike && (
+              {showTeachZane && (
                 <div className="rounded-lg border border-[#172B4D] bg-[#0B1020] p-4 space-y-3">
                   <div className="text-xs font-semibold text-[#60A5FA]">Correct this analysis</div>
                   <div className="space-y-2">
@@ -1497,13 +1497,13 @@ function ClauseCard({
                   <div className="flex gap-2">
                     <button
                       className="btn-primary text-xs px-3 py-1.5 flex items-center gap-1.5"
-                      onClick={() => void handleTeachMike()}
+                      onClick={() => void handleTeachZane()}
                       disabled={teachSubmitting || !incorrectOutput.trim() || !correctOutput.trim()}
                     >
                       {teachSubmitting ? <Loader2 size={11} className="animate-spin" /> : <GraduationCap size={11} />}
                       Save correction
                     </button>
-                    <button className="btn-ghost text-xs px-3 py-1.5" onClick={() => setShowTeachMike(false)}>
+                    <button className="btn-ghost text-xs px-3 py-1.5" onClick={() => setShowTeachZane(false)}>
                       Cancel
                     </button>
                   </div>

@@ -6,17 +6,17 @@ import {
 import { Link } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import { getFeedbackPatterns, getOverrideTrend } from "../lib/api";
-import type { MikePattern, CounterpartyPattern, NegotiationDrift, OverrideTrendEntry } from "../lib/api";
+import type { ZanePattern, CounterpartyPattern, NegotiationDrift, OverrideTrendEntry } from "../lib/api";
 import { CLAUSE_LABELS } from "../lib/types";
 import type { ClauseCategory } from "../lib/types";
 
-function PatternIcon({ severity }: { severity: MikePattern["severity"] }) {
+function PatternIcon({ severity }: { severity: ZanePattern["severity"] }) {
   if (severity === "good") return <CheckCircle  size={15} className="text-[#86EFAC] shrink-0 mt-0.5" />;
   if (severity === "warn") return <AlertTriangle size={15} className="text-[#FCD34D] shrink-0 mt-0.5" />;
   return                          <Info          size={15} className="text-[#60A5FA] shrink-0 mt-0.5" />;
 }
 
-const SEVERITY_CONFIG: Record<MikePattern["severity"], { bg: string; border: string }> = {
+const SEVERITY_CONFIG: Record<ZanePattern["severity"], { bg: string; border: string }> = {
   good: { bg: "#052E16", border: "#14532D" },
   warn: { bg: "#1C0F00", border: "#431407" },
   info: { bg: "#172B4D", border: "#1E3A5F" },
