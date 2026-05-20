@@ -68,7 +68,7 @@ PocketBase runs as a **separate service** (Railway or local). The Express server
 | `ancillary_documents` | Supporting files (evidence, audio, etc.) |
 | `user_feedback` | User actions on review results |
 | `pii_sessions` | Reversible entity maps from PII anonymisation pipeline |
-| `audit_log` | Immutable audit trail for all significant MIKE actions |
+| `audit_log` | Immutable audit trail for all significant Zane actions |
 | `detected_patterns` | L2 outcome memory — persisted patterns from lawyer feedback |
 | `regulatory_synthesis_pages` | L3 synthesis schema — regulatory knowledge pages (schema-only v1) |
 | `company_knowledge_pages` | L3 synthesis schema — company negotiation knowledge (schema-only v1) |
@@ -92,7 +92,7 @@ Both calls expect the model to return JSON inside the response text; parsing use
 
 ```
 POCKETBASE_URL=http://localhost:8090          # or Railway URL in production
-POCKETBASE_ADMIN_EMAIL=admin@mike.local
+POCKETBASE_ADMIN_EMAIL=admin@zane.local
 POCKETBASE_ADMIN_PASSWORD=changeme1234
 OPENROUTER_API_KEY=sk-or-...
 ```

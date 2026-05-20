@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "mike-dev-secret-change-in-production";
+const JWT_SECRET = process.env.JWT_SECRET ?? "zane-dev-secret-change-in-production";
 
 export interface AuthPayload {
   userId: string;

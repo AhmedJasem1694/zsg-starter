@@ -4,7 +4,7 @@ const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = parseInt(process.env.SMTP_PORT ?? "587", 10);
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
-const SMTP_FROM = process.env.SMTP_FROM ?? "MIKE Legal <noreply@usemike.co>";
+const SMTP_FROM = process.env.SMTP_FROM ?? "Zane Legal <noreply@usezane.ai>";
 const APP_URL   = process.env.APP_URL   ?? "http://localhost:3000";
 
 function getTransporter() {
@@ -32,7 +32,7 @@ export interface EscalationEmailParams {
 export async function sendEscalationEmail(p: EscalationEmailParams): Promise<void> {
   const transporter = getTransporter();
   if (!transporter) {
-    console.warn(`[MIKE] SMTP not configured - skipping escalation email to ${p.to.email} (${p.clauseLabel})`);
+    console.warn(`[Zane] SMTP not configured - skipping escalation email to ${p.to.email} (${p.clauseLabel})`);
     return;
   }
 
@@ -52,7 +52,7 @@ export async function sendEscalationEmail(p: EscalationEmailParams): Promise<voi
     <div style="width:30px;height:30px;background:#0d9488;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;">
       <span style="color:#fff;font-weight:700;font-size:13px;">M</span>
     </div>
-    <span style="color:#fff;font-weight:600;font-size:15px;margin-left:2px;">MIKE</span>
+    <span style="color:#fff;font-weight:600;font-size:15px;margin-left:2px;">Zane</span>
     <span style="color:rgba(255,255,255,0.3);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;margin-left:6px;">Legal Decision Engine</span>
   </div>
 
@@ -66,7 +66,7 @@ export async function sendEscalationEmail(p: EscalationEmailParams): Promise<voi
   <div style="padding:28px 28px 24px;">
     <p style="margin:0 0 6px;font-size:14px;color:#64748b;">Hi ${p.to.name},</p>
     <p style="margin:0 0 24px;font-size:14px;color:#1e293b;line-height:1.65;">
-      MIKE has reviewed <strong>${p.contractName}</strong> and flagged a clause that requires your sign-off before the team can proceed.
+      Zane has reviewed <strong>${p.contractName}</strong> and flagged a clause that requires your sign-off before the team can proceed.
     </p>
 
     <!-- Clause detail card -->
@@ -95,15 +95,15 @@ export async function sendEscalationEmail(p: EscalationEmailParams): Promise<voi
     <!-- CTA -->
     <a href="${reviewUrl}"
        style="display:inline-block;background:#0d9488;color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:13px 26px;border-radius:8px;margin-bottom:28px;">
-      Review in MIKE &rarr;
+      Review in Zane &rarr;
     </a>
 
     <!-- Footer -->
     <div style="border-top:1px solid #f1f5f9;padding-top:18px;">
       <p style="margin:0;font-size:12px;color:#94a3b8;line-height:1.6;">
-        This notification was sent by MIKE on behalf of <strong>${p.companyName}</strong>.
+        This notification was sent by Zane on behalf of <strong>${p.companyName}</strong>.
         You are receiving it because you are listed as an approver in their escalation matrix.
-        To update your notification preferences, contact your MIKE administrator.
+        To update your notification preferences, contact your Zane administrator.
       </p>
     </div>
   </div>
@@ -113,12 +113,12 @@ export async function sendEscalationEmail(p: EscalationEmailParams): Promise<voi
 </html>`;
 
   const text = [
-    `MIKE: Escalation required - ${p.clauseLabel}`,
+    `Zane: Escalation required - ${p.clauseLabel}`,
     `Contract: ${p.contractName}`,
     "",
     `Hi ${p.to.name},`,
     "",
-    `MIKE has reviewed "${p.contractName}" and flagged a clause that requires your approval.`,
+    `Zane has reviewed "${p.contractName}" and flagged a clause that requires your approval.`,
     "",
     `Clause:                ${p.clauseLabel}`,
     `Status:                ${p.ragStatus}`,
@@ -129,16 +129,16 @@ export async function sendEscalationEmail(p: EscalationEmailParams): Promise<voi
     "",
     `View the full review: ${reviewUrl}`,
     "",
-    `Sent by MIKE on behalf of ${p.companyName}.`,
+    `Sent by Zane on behalf of ${p.companyName}.`,
   ].join("\n");
 
   await transporter.sendMail({
     from:    SMTP_FROM,
     to:      `${p.to.name} <${p.to.email}>`,
-    subject: `[MIKE] Approval needed: ${p.clauseLabel} - ${p.contractName}`,
+    subject: `[Zane] Approval needed: ${p.clauseLabel} - ${p.contractName}`,
     text,
     html,
   });
 
-  console.log(`[MIKE] Escalation email sent to ${p.to.email} for clause: ${p.clauseLabel}`);
+  console.log(`[Zane] Escalation email sent to ${p.to.email} for clause: ${p.clauseLabel}`);
 }

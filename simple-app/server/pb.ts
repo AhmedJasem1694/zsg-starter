@@ -24,7 +24,7 @@ let _adminEmail = "";
 let _adminPassword = "";
 
 export async function initPocketBase(): Promise<void> {
-  _adminEmail = process.env.POCKETBASE_ADMIN_EMAIL ?? "admin@mike.local";
+  _adminEmail = process.env.POCKETBASE_ADMIN_EMAIL ?? "admin@zane.local";
   _adminPassword = process.env.POCKETBASE_ADMIN_PASSWORD ?? "changeme1234";
 
   await pb.admins.authWithPassword(_adminEmail, _adminPassword);

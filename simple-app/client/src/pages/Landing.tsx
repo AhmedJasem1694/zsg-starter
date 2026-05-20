@@ -86,83 +86,93 @@ function CyclingPhrase() {
   );
 }
 
-// ─── Animated product preview ─────────────────────────────────────────────────
+// ─── Animated product preview — matches real dark dashboard ──────────────────
 const MOCK_CLAUSES = [
-  { label: "Limitation of Liability", status: "RED",   summary: "Cap below 3 months' fees — breaches red line" },
-  { label: "Data & Privacy",          status: "RED",   summary: "No DPA in place — GDPR exposure" },
-  { label: "Indemnity",               status: "AMBER", summary: "One-sided indemnity — negotiate scope" },
-  { label: "Auto-Renewal",            status: "AMBER", summary: "No notice provision — push back" },
-  { label: "Confidentiality",         status: "GREEN", summary: "Mutual 2-year — meets preferred position" },
-  { label: "Governing Law",           status: "GREEN", summary: "English law — acceptable" },
+  { label: "Limitation of Liability", status: "RED",   summary: "Cap below 3 months' fees — breaches red line",   action: "Negotiate" },
+  { label: "Data & Privacy",          status: "RED",   summary: "No DPA in place — GDPR exposure",                action: "Escalate"  },
+  { label: "Indemnity",               status: "AMBER", summary: "One-sided indemnity — negotiate scope",           action: "Review"    },
+  { label: "Auto-Renewal",            status: "AMBER", summary: "No notice provision — push back",                action: "Review"    },
+  { label: "Confidentiality",         status: "GREEN", summary: "Mutual 2-year — meets preferred position",       action: "Accept"    },
+  { label: "Governing Law",           status: "GREEN", summary: "English law — acceptable",                       action: "Accept"    },
 ];
 
+const STATUS_CFG = {
+  RED:   { bar: "#F87171", badge: "rgba(239,68,68,0.15)",   text: "#FCA5A5", border: "rgba(239,68,68,0.3)"   },
+  AMBER: { bar: "#FBBF24", badge: "rgba(251,191,36,0.12)",  text: "#FCD34D", border: "rgba(251,191,36,0.25)" },
+  GREEN: { bar: "#4ADE80", badge: "rgba(74,222,128,0.12)",  text: "#86EFAC", border: "rgba(74,222,128,0.25)" },
+};
+
 function ProductPreview() {
-  const clauseDelays = [0.6, 1.1, 1.6, 2.1, 2.6, 3.1];
+  const clauseDelays = [0.5, 0.9, 1.3, 1.7, 2.1, 2.5];
 
   return (
     <motion.div
-      className="relative w-full max-w-sm mx-auto"
+      className="relative w-full max-w-md mx-auto"
       initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.3 }}
+      viewport={{ once: true, amount: 0.25 }}
       transition={{ ...SPRING_SNAP, delay: 0.2 }}
     >
-      <div className="absolute inset-0 rounded-2xl bg-primary/10 blur-2xl scale-95 opacity-70" />
-      <div className="relative rounded-2xl border border-black/8 shadow-xl overflow-hidden bg-[#F2F1EE]">
-        {/* Title bar */}
+      {/* Glow */}
+      <div className="absolute inset-0 rounded-2xl blur-2xl scale-95 opacity-50" style={{ background: "radial-gradient(ellipse at 50% 60%, rgba(96,165,250,0.18), transparent 70%)" }} />
+
+      {/* Window chrome */}
+      <div className="relative rounded-2xl shadow-2xl overflow-hidden" style={{ background: "#0D1117", border: "1px solid rgba(255,255,255,0.08)" }}>
+
+        {/* Top bar — mimics the app header */}
         <motion.div
-          className="flex items-center gap-2 px-4 py-3 border-b border-black/6 bg-[#EEECEA]"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3, duration: 0.4 }}
+          className="flex items-center gap-3 px-4 py-3"
+          style={{ background: "#161B22", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25, duration: 0.35 }}
         >
           <div className="flex gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-400/80" />
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-400/80" />
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-400/70" />
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
           </div>
           <div className="flex-1 text-center">
-            <span className="text-[10px] text-gray-500">Acme Corp — Supplier MSA.pdf</span>
+            <span className="text-[10px] text-white/30">Acme Corp — Supplier MSA.pdf</span>
           </div>
+          <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
         </motion.div>
 
-        {/* Risk bar */}
+        {/* Risk summary bar */}
         <motion.div
-          className="px-4 py-3 border-b border-black/6 flex items-center gap-3 bg-[#EEECEA]"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45, duration: 0.4 }}
+          className="px-4 py-2.5 flex items-center gap-3"
+          style={{ background: "rgba(239,68,68,0.07)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.35 }}
         >
-          <div className="flex items-center gap-1.5">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-xs font-semibold text-gray-800">Overall: HIGH RISK</span>
-          </div>
-          <div className="ml-auto flex gap-2 text-[10px]">
-            <span className="bg-red-50 text-red-600 border border-red-200 rounded px-1.5 py-0.5 font-semibold">2 RED</span>
-            <span className="bg-amber-50 text-amber-600 border border-amber-200 rounded px-1.5 py-0.5 font-semibold">2 AMBER</span>
-            <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 rounded px-1.5 py-0.5 font-semibold">2 GREEN</span>
+          <span className="text-[11px] font-bold text-red-400 uppercase tracking-wide">HIGH RISK</span>
+          <div className="flex gap-1.5 ml-auto text-[10px] font-semibold">
+            <span className="px-1.5 py-0.5 rounded" style={{ background: "rgba(239,68,68,0.18)", color: "#FCA5A5" }}>2 RED</span>
+            <span className="px-1.5 py-0.5 rounded" style={{ background: "rgba(251,191,36,0.15)", color: "#FCD34D" }}>2 AMBER</span>
+            <span className="px-1.5 py-0.5 rounded" style={{ background: "rgba(74,222,128,0.15)", color: "#86EFAC" }}>2 GREEN</span>
           </div>
         </motion.div>
 
-        {/* Clause rows — stagger in like chat bubbles */}
-        <div className="px-4 py-1">
+        {/* Clause rows */}
+        <div className="divide-y divide-white/[0.05]">
           {MOCK_CLAUSES.map((c, i) => {
-            const cfg = {
-              RED:   { dot: "bg-red-500",     badge: "bg-red-50 text-red-600 border-red-200",       text: "RED" },
-              AMBER: { dot: "bg-amber-400",   badge: "bg-amber-50 text-amber-600 border-amber-200", text: "AMBER" },
-              GREEN: { dot: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 border-emerald-200", text: "GREEN" },
-            }[c.status] ?? { dot: "bg-slate-400", badge: "", text: "" };
+            const cfg = STATUS_CFG[c.status as keyof typeof STATUS_CFG];
             return (
               <motion.div
                 key={c.label}
-                className="flex items-center gap-3 py-2.5 border-b border-black/5 last:border-0"
-                initial={{ opacity: 0, x: -12 }}
+                className="flex items-center gap-3 px-4 py-3"
+                initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ type: "spring", bounce: 0.2, duration: 0.5, delay: clauseDelays[i] }}
+                transition={{ type: "spring", bounce: 0.15, duration: 0.45, delay: clauseDelays[i] }}
               >
-                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
+                {/* Status bar */}
+                <div className="w-0.5 h-8 rounded-full shrink-0" style={{ background: cfg.bar }} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-medium text-gray-800">{c.label}</div>
-                  <div className="text-[10px] text-gray-500 mt-0.5 truncate">{c.summary}</div>
+                  <div className="text-[11px] font-semibold text-white/80">{c.label}</div>
+                  <div className="text-[10px] text-white/35 mt-0.5 truncate">{c.summary}</div>
                 </div>
-                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${cfg.badge} shrink-0`}>
-                  {cfg.text}
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0"
+                  style={{ background: cfg.badge, color: cfg.text, border: `1px solid ${cfg.border}` }}
+                >
+                  {c.status}
                 </span>
               </motion.div>
             );
@@ -171,11 +181,12 @@ function ProductPreview() {
 
         {/* Footer */}
         <motion.div
-          className="px-4 py-3 border-t border-black/6 bg-[#EEECEA] flex items-center justify-between"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3.6, duration: 0.4 }}
+          className="px-4 py-2.5 flex items-center justify-between"
+          style={{ background: "#161B22", borderTop: "1px solid rgba(255,255,255,0.06)" }}
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3.0, duration: 0.35 }}
         >
-          <span className="text-[10px] text-gray-500">Reviewed in 1m 43s · UK GDPR flagged</span>
-          <span className="text-[10px] text-primary font-medium">Do not sign yet →</span>
+          <span className="text-[10px] text-white/25">Reviewed in 1m 43s · UK GDPR flagged</span>
+          <span className="text-[10px] font-medium" style={{ color: "#60A5FA" }}>Do not sign yet →</span>
         </motion.div>
       </div>
     </motion.div>
@@ -232,7 +243,7 @@ export default function Landing() {
       </header>
 
       {/* ─── HERO — dark ─────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden flex flex-col justify-center" style={{ minHeight: "calc(100vh - 57px)", background: "#0B1118" }}>
+      <section className="relative overflow-hidden flex flex-col justify-center" style={{ minHeight: "calc(100vh - 57px)", background: "#111827" }}>
         {/* Grid */}
         <div className="absolute inset-0 opacity-[0.04]" style={{
           backgroundImage: "linear-gradient(#4A6CF7 1px, transparent 1px), linear-gradient(90deg, #4A6CF7 1px, transparent 1px)",

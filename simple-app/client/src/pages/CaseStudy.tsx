@@ -16,7 +16,7 @@ export default function CaseStudy() {
             <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
               <span className="text-white text-xs font-bold">M</span>
             </div>
-            <span className="text-sm font-semibold text-white">MIKE</span>
+            <span className="text-sm font-semibold text-white">Zane</span>
           </div>
           <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-white/55 hover:text-white transition-colors">
             <ArrowLeft size={14} /> Back to home
@@ -33,7 +33,7 @@ export default function CaseStudy() {
             The founder who walked away<br />with almost nothing
           </h1>
           <p className="text-white/65 text-base leading-relaxed">
-            A founder raises capital over six years, accepts investor terms under pressure to close. Liquidation preferences stack up silently. A £150M exit arrives - and he walks away with almost nothing. This is exactly what MIKE prevents.
+            A founder raises capital over six years, accepts investor terms under pressure to close. Liquidation preferences stack up silently. A £150M exit arrives - and he walks away with almost nothing. This is exactly what Zane prevents.
           </p>
         </div>
 
@@ -61,7 +61,7 @@ export default function CaseStudy() {
 
               {/* MIKE output mock */}
               <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 text-xs text-white/70 leading-relaxed font-mono space-y-1">
-                <span className="text-primary font-semibold block mb-2">MIKE output - Liquidation Preference · RED</span>
+                <span className="text-primary font-semibold block mb-2">Zane output - Liquidation Preference · RED</span>
                 <p>
                   "The investor has included a 2x participating preferred. This means at exit they receive double their investment back before you see anything, and then participate in the remaining proceeds as if they had converted. On a £150M exit with £20M invested, the investor takes £40M off the top plus their pro-rata share of what remains."
                 </p>
@@ -71,7 +71,7 @@ export default function CaseStudy() {
 
             {/* Investment clauses */}
             <div className="lg:col-span-2 p-10 space-y-5">
-              <div className="text-xs font-bold text-white/40 uppercase tracking-widest">Investment document clauses MIKE reviews</div>
+              <div className="text-xs font-bold text-white/40 uppercase tracking-widest">Investment document clauses Zane reviews</div>
               <div className="space-y-2">
                 {[
                   ["Liquidation preference",      "1x non-participating vs participating"],
@@ -104,11 +104,11 @@ export default function CaseStudy() {
           <div className="grid sm:grid-cols-2 gap-8 text-sm text-white/65 leading-relaxed">
             <div className="space-y-2">
               <div className="text-xs font-bold text-primary uppercase tracking-widest mb-3">For founders</div>
-              <p>Before you sign a term sheet, MIKE tells you exactly what you're agreeing to - in plain English, with the exit waterfall modelled, and with a recommended action for every clause that deviates from market standard or your hard red lines.</p>
+              <p>Before you sign a term sheet, Zane tells you exactly what you're agreeing to - in plain English, with the exit waterfall modelled, and with a recommended action for every clause that deviates from market standard or your hard red lines.</p>
             </div>
             <div className="space-y-2">
               <div className="text-xs font-bold text-primary uppercase tracking-widest mb-3">For in-house legal teams</div>
-              <p>Before you sign a supplier or customer contract, MIKE checks every clause against your playbook, flags what deviates from your standard positions, and gives you the fallback language to push back with.</p>
+              <p>Before you sign a supplier or customer contract, Zane checks every clause against your playbook, flags what deviates from your standard positions, and gives you the fallback language to push back with.</p>
             </div>
           </div>
         </div>
@@ -127,7 +127,7 @@ export default function CaseStudy() {
 
       <footer className="border-t border-white/8">
         <div className="max-w-4xl mx-auto px-6 py-6 flex items-center justify-between">
-          <span className="text-xs text-white/30">MIKE - Legal Intelligence</span>
+          <span className="text-xs text-white/30">Zane - Legal Intelligence</span>
           <Link to="/" className="text-xs text-white/30 hover:text-white/60 transition-colors">Back to home</Link>
         </div>
       </footer>

@@ -7,14 +7,14 @@ const GUIDES = [
     category: "Getting started",
     title: "How to build your first playbook in 20 minutes",
     description:
-      "A step-by-step guide to calibrating MIKE's playbook for your risk appetite, sector, and jurisdiction. Covers all 22 clause categories.",
+      "A step-by-step guide to calibrating Zane's playbook for your risk appetite, sector, and jurisdiction. Covers all 22 clause categories.",
     readTime: "8 min read",
     tag: "Guide",
   },
   {
     icon: FileText,
     category: "Contract review",
-    title: "Reading a MIKE review: what each RAG status actually means",
+    title: "Reading a Zane review: what each RAG status actually means",
     description:
       "RED, AMBER, GREEN - and GREY for absent clauses. Understanding the difference between a negotiation risk and a legal stop.",
     readTime: "5 min read",
@@ -25,7 +25,7 @@ const GUIDES = [
     category: "Automation",
     title: "Reducing review time from 4 hours to 20 minutes",
     description:
-      "How lean in-house teams are using MIKE to handle supplier paper at scale. Includes real workflow examples.",
+      "How lean in-house teams are using Zane to handle supplier paper at scale. Includes real workflow examples.",
     readTime: "10 min read",
     tag: "Case study",
   },
@@ -50,9 +50,9 @@ const GUIDES = [
   {
     icon: Scale,
     category: "Legal",
-    title: "MIKE and the SRA Code of Conduct",
+    title: "Zane and the SRA Code of Conduct",
     description:
-      "How in-house teams should think about AI-assisted contract review under current SRA guidance. MIKE is a decision support tool, not a lawyer.",
+      "How in-house teams should think about AI-assisted contract review under current SRA guidance. Zane is a decision support tool, not a lawyer.",
     readTime: "7 min read",
     tag: "Legal",
   },
@@ -60,36 +60,36 @@ const GUIDES = [
 
 const FAQS = [
   {
-    q: "Is MIKE a law firm or providing legal advice?",
-    a: "No. MIKE is a decision support tool for in-house legal teams. It surfaces risks and suggests positions based on your playbook - but all decisions remain with your qualified lawyers. MIKE does not provide legal advice and should not be relied upon as a substitute for professional legal judgment.",
+    q: "Is Zane a law firm or providing legal advice?",
+    a: "No. Zane is a decision support tool for in-house legal teams. It surfaces risks and suggests positions based on your playbook - but all decisions remain with your qualified lawyers. Zane does not provide legal advice and should not be relied upon as a substitute for professional legal judgment.",
   },
   {
-    q: "What contract types does MIKE support?",
-    a: "MIKE reviews any commercial contract in PDF or DOCX format. It works best on supplier agreements, customer agreements, NDAs, SaaS/tech contracts, employment agreements, and commercial leases. The playbook covers 22 clause categories across commercial and property contracts.",
+    q: "What contract types does Zane support?",
+    a: "Zane reviews any commercial contract in PDF or DOCX format. It works best on supplier agreements, customer agreements, NDAs, SaaS/tech contracts, employment agreements, and commercial leases. The playbook covers 22 clause categories across commercial and property contracts.",
   },
   {
-    q: "How accurate is MIKE's clause classification?",
-    a: "MIKE uses frontier LLMs (Claude Sonnet via OpenRouter) to classify and compare clauses. In testing on commercial contracts, clause identification accuracy is above 90% for clearly-drafted English law contracts. Performance may vary on heavily negotiated bespoke documents.",
+    q: "How accurate is Zane's clause classification?",
+    a: "Zane uses frontier LLMs (Claude Sonnet via OpenRouter) to classify and compare clauses. In testing on commercial contracts, clause identification accuracy is above 90% for clearly-drafted English law contracts. Performance may vary on heavily negotiated bespoke documents.",
   },
   {
-    q: "What happens if MIKE doesn't find a clause?",
-    a: "Absent clauses are flagged as GREY - 'not found'. For high-risk categories like liability caps or data privacy, an absent clause is often itself a risk. MIKE will flag this and suggest whether absence is acceptable given your playbook.",
+    q: "What happens if Zane doesn't find a clause?",
+    a: "Absent clauses are flagged as GREY - 'not found'. For high-risk categories like liability caps or data privacy, an absent clause is often itself a risk. Zane will flag this and suggest whether absence is acceptable given your playbook.",
   },
   {
-    q: "Can MIKE handle non-English contracts?",
-    a: "MIKE is optimised for English-language contracts under English, Scots, US, Singapore, and UAE law. Non-English contracts may produce lower confidence results. Multi-language support is on the roadmap.",
+    q: "Can Zane handle non-English contracts?",
+    a: "Zane is optimised for English-language contracts under English, Scots, US, Singapore, and UAE law. Non-English contracts may produce lower confidence results. Multi-language support is on the roadmap.",
   },
   {
-    q: "Does MIKE replace my law firm?",
-    a: "MIKE is designed for the 80% of commercial contracts that don't need external counsel - the routine supplier paper that sits in inboxes for weeks. For high-value, heavily negotiated, or litigation-sensitive matters, you should always use qualified lawyers.",
+    q: "Does Zane replace my law firm?",
+    a: "Zane is designed for the 80% of commercial contracts that don't need external counsel - the routine supplier paper that sits in inboxes for weeks. For high-value, heavily negotiated, or litigation-sensitive matters, you should always use qualified lawyers.",
   },
   {
-    q: "What data does MIKE store?",
-    a: "MIKE stores your company profile, playbook rules, uploaded documents (encrypted), and review results. Your contract text is processed by the LLM API for the purpose of review only. See our Security page for full details.",
+    q: "What data does Zane store?",
+    a: "Zane stores your company profile, playbook rules, uploaded documents (encrypted), and review results. Your contract text is processed by the LLM API for the purpose of review only. See our Security page for full details.",
   },
   {
-    q: "Can I export MIKE's review output?",
-    a: "Export to PDF and Word is on the roadmap. Currently, review results are accessible in the MIKE interface. Enterprise customers can access results via API.",
+    q: "Can I export Zane's review output?",
+    a: "Export to PDF and Word is on the roadmap. Currently, review results are accessible in the Zane interface. Enterprise customers can access results via API.",
   },
 ];
 
@@ -113,7 +113,7 @@ export default function Resources() {
           <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
             <span className="text-white text-xs font-bold">M</span>
           </div>
-          <span className="font-semibold text-sm">MIKE</span>
+          <span className="font-semibold text-sm">Zane</span>
         </Link>
         <div className="flex items-center gap-6">
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Home</Link>
@@ -141,7 +141,7 @@ export default function Resources() {
           </span>
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-          Guides, explainers, and FAQs for in-house teams deploying MIKE for the first time.
+          Guides, explainers, and FAQs for in-house teams deploying Zane for the first time.
         </p>
       </section>
 
@@ -175,7 +175,7 @@ export default function Resources() {
           ))}
         </div>
         <p className="text-xs text-muted-foreground mt-6 text-center">
-          Full guide library coming soon. <a href="mailto:hello@usemike.ai" className="text-primary hover:underline">Email us</a> if you need help with a specific use case.
+          Full guide library coming soon. <a href="mailto:hello@usezane.ai" className="text-primary hover:underline">Email us</a> if you need help with a specific use case.
         </p>
       </section>
 
@@ -197,7 +197,7 @@ export default function Resources() {
           ))}
         </div>
         <p className="text-xs text-muted-foreground mt-5 text-center">
-          MIKE reviews 22 clause categories in total - 10 standard commercial + 4 property-specific + 8 general commercial.
+          Zane reviews 22 clause categories in total - 10 standard commercial + 4 property-specific + 8 general commercial.
         </p>
       </section>
 
@@ -234,7 +234,7 @@ export default function Resources() {
       {/* Footer */}
       <footer className="border-t border-border/40 py-8 px-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between text-xs text-muted-foreground">
-          <span>© 2025 MIKE Legal Decision Engine</span>
+          <span>© 2025 Zane Legal Decision Engine</span>
           <div className="flex gap-4">
             <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
             <Link to="/security" className="hover:text-foreground transition-colors">Security</Link>

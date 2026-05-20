@@ -183,14 +183,14 @@ export default function Onboarding() {
   const [workflowType, setWorkflowType] = useState<WorkflowType>("COMMERCIAL_CONTRACT");
   const [persona, setPersona] = useState<Persona>("CORPORATE");
   const [selectedJurisdictions, setSelectedJurisdictions] = useState<string[]>(["England & Wales"]);
-  const [selectedIndustries, setSelectedIndustries] = useState<Industry[]>(["TECHNOLOGY_SAAS"]);
+  const [selectedIndustries, setSelectedIndustries] = useState<Industry[]>([]);
   const [companyForm, setCompanyForm] = useState<CompanyForm>({
     name: "",
-    sector: INDUSTRY_LABELS["TECHNOLOGY_SAAS"],
+    sector: "",
     jurisdiction: "England & Wales",
     role: "BUYER",
     riskAppetite: "MODERATE",
-    industry: "TECHNOLOGY_SAAS",
+    industry: "OTHER",
   });
   const [selectedContractTypes, setSelectedContractTypes] = useState<string[]>([]);
   const [playbook, setPlaybook] = useState<PlaybookEntry[]>([]);
@@ -250,20 +250,23 @@ export default function Onboarding() {
       .map((cat) => ({ clauseCategory: cat, ...defaults[cat], riskWeight: 3 }));
   }
 
-  async function handleQuickStart(companyName: string) {
+  async function handleQuickStart(companyName: string, chosenIndustries: Industry[]) {
     if (!companyName.trim()) return;
     setSaving(true);
     setFinishError("");
     try {
+      const industries: Industry[] = chosenIndustries.length > 0 ? chosenIndustries : ["OTHER"];
+      const sector = industries.map((i) => INDUSTRY_LABELS[i]).join(", ");
+
       const defaults: CompanyForm = {
         name: companyName.trim(),
-        sector: INDUSTRY_LABELS["TECHNOLOGY_SAAS"],
+        sector,
         jurisdiction: "England & Wales",
         role: "BUYER",
         riskAppetite: "MODERATE",
-        industry: "TECHNOLOGY_SAAS",
+        industry: industries[0],
       };
-      const pb = initPlaybook("MODERATE", false, false, false, "COMMERCIAL_CONTRACT", ["TECHNOLOGY_SAAS"]);
+      const pb = initPlaybook("MODERATE", false, false, false, "COMMERCIAL_CONTRACT", industries);
       await companyMutation.mutateAsync({ ...defaults, persona: "CORPORATE", workflowType: "COMMERCIAL_CONTRACT" });
       const validRules = pb
         .map(({ clauseCategory, preferredPosition, acceptableFallback, hardRedLine, fallbackTemplate, riskWeight }) => ({
@@ -468,7 +471,7 @@ export default function Onboarding() {
       {/* Content */}
       <main className="flex-1 px-4 sm:px-6 py-10 max-w-2xl mx-auto w-full">
         {step === 0 && (
-          <Step0Workflow onNext={handleWorkflowNext} onQuickStart={handleQuickStart} saving={saving} finishError={finishError} />
+          <Step0Workflow onNext={handleWorkflowNext} onQuickStart={(name, industries) => handleQuickStart(name, industries)} saving={saving} finishError={finishError} />
         )}
         {step === 1 && (
           <Step1Persona workflowType={workflowType} onNext={handlePersonaNext} onBack={() => setStep(0)} />
@@ -535,13 +538,62 @@ function Step0Workflow({
   finishError,
 }: {
   onNext: (w: WorkflowType) => void;
-  onQuickStart: (name: string) => void;
+  onQuickStart: (name: string, industries: Industry[]) => void;
   saving: boolean;
   finishError: string;
 }) {
   const [selected, setSelected] = useState<WorkflowType>("COMMERCIAL_CONTRACT");
   const [quickName, setQuickName] = useState("");
   const [showQuick, setShowQuick] = useState(false);
+
+  // Industry detection state for Quick Start
+  const [detecting, setDetecting] = useState(false);
+  const [detectedIndustries, setDetectedIndustries] = useState<Industry[]>([]);
+  const [selectedQsIndustries, setSelectedQsIndustries] = useState<Industry[]>([]);
+  const [detected, setDetected] = useState(false);
+  const detectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const allIndustries = Object.entries(INDUSTRY_LABELS) as [Industry, string][];
+
+  // Auto-detect when name changes (debounced 700ms)
+  useEffect(() => {
+    if (detectTimerRef.current) clearTimeout(detectTimerRef.current);
+    if (quickName.trim().length < 3) {
+      setDetected(false);
+      setDetectedIndustries([]);
+      setSelectedQsIndustries([]);
+      return;
+    }
+    detectTimerRef.current = setTimeout(async () => {
+      setDetecting(true);
+      try {
+        const { candidates } = await searchCompany(quickName.trim());
+        if (candidates.length > 0) {
+          const enriched = await enrichCompanyData(candidates[0]);
+          const valid = (enriched.mappedIndustries ?? []).filter(
+            (i): i is Industry => i in INDUSTRY_LABELS
+          );
+          setDetectedIndustries(valid);
+          setSelectedQsIndustries(valid);
+          setDetected(true);
+        } else {
+          setDetected(false);
+          setDetectedIndustries([]);
+        }
+      } catch {
+        setDetected(false);
+      } finally {
+        setDetecting(false);
+      }
+    }, 700);
+    return () => { if (detectTimerRef.current) clearTimeout(detectTimerRef.current); };
+  }, [quickName]);
+
+  function toggleQsIndustry(v: Industry) {
+    setSelectedQsIndustries((prev) =>
+      prev.includes(v) ? prev.filter((i) => i !== v) : [...prev, v]
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -557,7 +609,7 @@ function Step0Workflow({
               Get started in 30 seconds
             </h3>
             <p className="text-xs text-white/40 mt-0.5 leading-relaxed">
-              Use sensible defaults — commercial contracts, England & Wales, moderate risk appetite. Fine-tune anytime from settings.
+              Enter your company name — Zane auto-detects your industry. Adjust, then launch.
             </p>
           </div>
           <button
@@ -569,41 +621,92 @@ function Step0Workflow({
         </div>
 
         {showQuick && (
-          <div className="space-y-3 pt-1 border-t border-white/8">
+          <div className="space-y-4 pt-1 border-t border-white/8">
+
+            {/* Company name */}
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
                 Company name
               </label>
-              <input
-                type="text"
-                className="w-full rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-primary transition-colors"
-                placeholder="e.g. Meridian Legal Partners LLP"
-                value={quickName}
-                onChange={(e) => setQuickName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && quickName.trim()) onQuickStart(quickName); }}
-                autoFocus
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => onQuickStart(quickName)}
-                disabled={!quickName.trim() || saving}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {saving ? (
-                  <><Loader2 size={14} className="animate-spin" /> Setting up…</>
-                ) : (
-                  "Launch Zane →"
+              <div className="relative">
+                <input
+                  type="text"
+                  className="w-full rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-primary transition-colors pr-10"
+                  placeholder="e.g. Collins River Enterprises Limited"
+                  value={quickName}
+                  onChange={(e) => setQuickName(e.target.value)}
+                  autoFocus
+                />
+                {detecting && (
+                  <Loader2 size={13} className="animate-spin text-primary/60 absolute right-3 top-1/2 -translate-y-1/2" />
                 )}
-              </button>
+              </div>
             </div>
+
+            {/* Industry — auto-detected + editable */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
+                  Industry
+                </label>
+                {detected && detectedIndustries.length > 0 && (
+                  <span className="text-[10px] text-emerald-400 flex items-center gap-1">
+                    <CheckCircle size={9} /> Auto-detected from Companies House — adjust as needed
+                  </span>
+                )}
+                {!detected && !detecting && quickName.trim().length >= 3 && (
+                  <span className="text-[10px] text-white/30">Not found — select manually</span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {allIndustries.map(([value, label]) => {
+                  const isDetected = detectedIndustries.includes(value);
+                  const isSel = selectedQsIndustries.includes(value);
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => toggleQsIndustry(value)}
+                      className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border text-left transition-all text-[11px] ${
+                        isSel
+                          ? "border-primary bg-primary/15 text-white"
+                          : "border-white/8 text-white/35 hover:border-white/20 hover:text-white/60"
+                      }`}
+                    >
+                      <div className={`w-3 h-3 rounded shrink-0 flex items-center justify-center transition-colors ${isSel ? "bg-primary" : "border border-white/20"}`}>
+                        {isSel && <span className="text-white text-[8px] font-bold">✓</span>}
+                      </div>
+                      <span className="leading-tight truncate flex-1">{label}</span>
+                      {isDetected && (
+                        <span className="text-[8px] text-primary/60 font-semibold uppercase shrink-0">CH</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Launch */}
+            <button
+              onClick={() => onQuickStart(quickName, selectedQsIndustries)}
+              disabled={!quickName.trim() || saving}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {saving ? (
+                <><Loader2 size={14} className="animate-spin" /> Setting up…</>
+              ) : (
+                "Launch Zane →"
+              )}
+            </button>
+
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-white/25">
-              {["Commercial contracts", "England & Wales", "Moderate risk appetite", "Standard playbook"].map((d) => (
+              {["Commercial contracts", "England & Wales", "Moderate risk appetite"].map((d) => (
                 <span key={d} className="flex items-center gap-1">
                   <CheckCircle size={9} className="text-primary/50" /> {d}
                 </span>
               ))}
             </div>
+
             {finishError && (
               <div className="text-xs text-[#FCA5A5] bg-[#1F0A0A] border border-[#450A0A] rounded-lg px-3 py-2">
                 {finishError}
@@ -1152,7 +1255,7 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
             {enriched && !enriching && (
               <div className="flex items-center gap-2 mt-2 text-xs text-emerald-400">
                 <CheckCircle size={12} />
-                Company found. Industries and jurisdiction auto-filled below.
+                Company found — industries pre-selected below. Add or remove as needed.
               </div>
             )}
           </div>
