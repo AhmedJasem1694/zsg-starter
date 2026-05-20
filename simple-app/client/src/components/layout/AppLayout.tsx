@@ -158,7 +158,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="px-3 py-4 border-t border-sidebar-border space-y-0.5">
           <button
             className="nav-item w-full"
-            onClick={() => { setOpen(false); navigate(settingsTarget); }}
+            onClick={() => { setOpen(false); navigate("/settings"); }}
           >
             <Settings size={16} className="shrink-0" />
             Settings

@@ -478,6 +478,41 @@ async function main() {
     textField("editedRuleText", { max: 50000 }),
   ]);
 
+  // ── 25. integration_configs ───────────────────────────────────────────────────
+  // OAuth tokens + watch folder config per provider (Google Drive, SharePoint).
+  await setupCollection("integration_configs", [
+    textField("companyId", { required: true }),
+    textField("provider", { required: true }),
+    textField("status", { required: true }),
+    textField("accessToken", { max: 5000 }),
+    textField("refreshToken", { max: 5000 }),
+    dateField("tokenExpiry"),
+    textField("tenantId"),
+    textField("driveId"),
+    textField("folderId"),
+    textField("folderName"),
+    textField("syncToken"),
+    textField("webhookChannelId"),
+    dateField("webhookExpiry"),
+    textField("webhookSecret"),
+    dateField("lastSyncAt"),
+    textField("errorMessage"),
+  ]);
+
+  // ── 26. integration_sync_log ──────────────────────────────────────────────────
+  // Per-file sync audit trail from watch integrations.
+  await setupCollection("integration_sync_log", [
+    textField("integrationId", { required: true }),
+    textField("documentId"),
+    textField("provider", { required: true }),
+    textField("externalFileId", { required: true }),
+    textField("externalFileName"),
+    textField("status", { required: true }),
+    textField("errorMessage"),
+    textField("matchedDocumentId"),
+    textField("matchSummary"),
+  ]);
+
   console.log("\n✅ All collections set up successfully.\n");
   console.log("Next steps:");
   console.log("  1. Ensure POCKETBASE_URL, POCKETBASE_ADMIN_EMAIL, POCKETBASE_ADMIN_PASSWORD are set on the app service");

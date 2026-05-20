@@ -36,6 +36,17 @@ This is a full-stack TypeScript monorepo — one `package.json`, one `tsconfig.j
 - `server/services/clauseClassifier.ts` — single LLM call to classify all chunks into up to 10 clause categories; returns one best chunk per category.
 - `server/services/playbookComparison.ts` — per-clause LLM call comparing extracted text against the company's playbook rule; returns structured RAG output.
 
+### Integration Layer (Google Drive + SharePoint)
+
+Watch folder integrations that auto-review contracts dropped into a connected folder.
+
+- `server/services/googleDriveService.ts` — Google Drive OAuth2, push channel registration (`drive.changes.watch`), folder listing, file download (including Google Docs export to DOCX).
+- `server/services/sharePointService.ts` — Microsoft Graph API OAuth2, Graph subscription (webhook) registration, SharePoint site/library listing, file download.
+- `server/services/integrationProcessor.ts` — Shared post-download logic: pattern match against prior contracts, update `integration_sync_log` at each stage, fire `runReview()`.
+- Routes under `/api/integrations/google-drive/*` and `/api/integrations/sharepoint/*` — OAuth callback routes (no auth required on callbacks/webhooks), CRUD for watching/disconnecting.
+- `client/src/pages/Settings.tsx` — Settings page with Integrations tab: connect, folder picker, disconnect, live sync log.
+- `client/src/components/IntegrationStatusBadge.tsx` — Reusable connected/disconnected/error badge.
+
 ### Client
 
 - `client/src/main.tsx` — React root, wraps app in `QueryClientProvider`
@@ -52,7 +63,7 @@ PocketBase runs as a **separate service** (Railway or local). The Express server
 
 **Single-company mode** — `POST /api/company` deletes all existing companies before creating a new one.
 
-**Collections** (17 total):
+**Collections** (26 total):
 
 | Collection | Purpose |
 |---|---|
@@ -73,6 +84,8 @@ PocketBase runs as a **separate service** (Railway or local). The Express server
 | `regulatory_synthesis_pages` | L3 synthesis schema — regulatory knowledge pages (schema-only v1) |
 | `company_knowledge_pages` | L3 synthesis schema — company negotiation knowledge (schema-only v1) |
 | `playbook_synthesis_pages` | L3 synthesis schema — per-clause trend synthesis (schema-only v1) |
+| `integration_configs` | OAuth tokens + watch folder config per provider (Google Drive, SharePoint) |
+| `integration_sync_log` | Per-file sync audit trail from watch integrations |
 
 **Field name conventions**: PocketBase auto-provides `id`, `created`, `updated`. API responses alias `created` → `uploadedAt`/`createdAt` and relation ID fields to `*Id` names (e.g. `company` → `companyId`) via the mapper functions in `routes.ts`.
 
@@ -102,6 +115,18 @@ Optional:
 OPENROUTER_MODEL=anthropic/claude-sonnet-4-5
 JWT_SECRET=<random string>
 SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_PORT, SMTP_FROM, APP_URL
+```
+
+Integration (required for Drive/SharePoint watch folders):
+```
+APP_URL=https://yourapp.railway.app
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GOOGLE_REDIRECT_URI=https://yourapp.railway.app/api/integrations/google-drive/callback
+MICROSOFT_CLIENT_ID=...
+MICROSOFT_CLIENT_SECRET=...
+MICROSOFT_TENANT_ID=...
+MICROSOFT_REDIRECT_URI=https://yourapp.railway.app/api/integrations/sharepoint/callback
 ```
 
 ### Railway Deployment

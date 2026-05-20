@@ -13,6 +13,20 @@ import { searchCompanies, enrichCompany } from "./services/companySearch.js";
 import { audit } from "./services/auditLogger.js";
 import { runDeltaComparison } from "./services/deltaComparison.js";
 import { runPatternDetection } from "./services/patternDetector.js";
+import {
+  getGoogleAuthUrl,
+  handleGoogleCallback,
+  listGoogleFolders,
+  watchGoogleFolder,
+  syncGoogleFolder,
+} from "./services/googleDriveService.js";
+import {
+  getMicrosoftAuthUrl,
+  handleMicrosoftCallback,
+  listSharePointFolders,
+  watchSharePointFolder,
+  syncSharePointFolder,
+} from "./services/sharePointService.js";
 
 // ── Express 4 async error helper ─────────────────────────────────────────────
 // Express 4 does NOT automatically forward rejected async handlers to next().
@@ -2545,6 +2559,273 @@ Write the negotiation email paragraph.`;
     }
 
     res.json(trend);
+  }));
+
+  // ── Integrations ─────────────────────────────────────────────────────────────
+
+  // Helper: get current company (same as the private getCompany helper above)
+  // Note: getCompany is already defined earlier in this file
+
+  // ── Google Drive ──────────────────────────────────────────────────────────────
+
+  app.get("/api/integrations/google-drive/auth", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { sendError(res, 400, "Complete onboarding first"); return; }
+    const authUrl = getGoogleAuthUrl(company.id);
+    res.json({ authUrl });
+  }));
+
+  app.get("/api/integrations/google-drive/callback", ah(async (req: Request, res: Response) => {
+    const { code, state: companyId, error } = req.query as Record<string, string>;
+    if (error) {
+      res.redirect(`/settings?tab=integrations&error=${encodeURIComponent(error)}`);
+      return;
+    }
+    if (!code || !companyId) { sendError(res, 400, "Missing code or state"); return; }
+    try {
+      await handleGoogleCallback(code, companyId);
+      res.redirect("/settings?tab=integrations&connected=google_drive");
+    } catch (err) {
+      console.error("[Google Drive callback]", err);
+      res.redirect(`/settings?tab=integrations&error=${encodeURIComponent((err as Error).message ?? "OAuth failed")}`);
+    }
+  }));
+
+  app.get("/api/integrations/google-drive/status", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json(null); return; }
+    const configs = await pb.collection("integration_configs").getFullList({
+      filter: `companyId = "${company.id}" && provider = "google_drive"`,
+    }).catch(() => []);
+    res.json(configs[0] ?? null);
+  }));
+
+  app.get("/api/integrations/google-drive/folders", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { sendError(res, 400, "No company"); return; }
+    const configs = await pb.collection("integration_configs").getFullList({
+      filter: `companyId = "${company.id}" && provider = "google_drive"`,
+    }).catch(() => []);
+    if (!configs[0]) { sendError(res, 404, "Google Drive not connected"); return; }
+    const folders = await listGoogleFolders(configs[0].id);
+    res.json({ folders });
+  }));
+
+  app.post("/api/integrations/google-drive/watch", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { sendError(res, 400, "No company"); return; }
+    const { folderId, folderName } = req.body as { folderId?: string; folderName?: string };
+    if (!folderId || !folderName) { sendError(res, 400, "folderId and folderName required"); return; }
+    const configs = await pb.collection("integration_configs").getFullList({
+      filter: `companyId = "${company.id}" && provider = "google_drive"`,
+    }).catch(() => []);
+    if (!configs[0]) { sendError(res, 404, "Google Drive not connected"); return; }
+    await watchGoogleFolder(configs[0].id, folderId, folderName);
+    res.json({ ok: true, folderName });
+  }));
+
+  // Google Drive webhook — no auth, external POST
+  app.post("/api/integrations/google-drive/webhook", ah(async (req: Request, res: Response) => {
+    // Respond immediately to avoid retry
+    res.status(200).end();
+
+    const channelId = req.headers["x-goog-channel-id"] as string | undefined;
+    const channelToken = req.headers["x-goog-channel-token"] as string | undefined;
+    const resourceState = req.headers["x-goog-resource-state"] as string | undefined;
+
+    if (resourceState === "sync") return; // Initial handshake, not a real change
+
+    if (!channelId) return;
+
+    // Find integration by channel ID
+    const configs = await pb.collection("integration_configs").getFullList({
+      filter: `webhookChannelId = "${channelId}"`,
+    }).catch(() => []);
+
+    if (!configs[0]) return;
+
+    // Verify webhook secret
+    if (channelToken && channelToken !== configs[0]["webhookSecret"]) {
+      console.warn("[Google Drive webhook] Invalid channel token");
+      return;
+    }
+
+    // Process asynchronously
+    syncGoogleFolder(configs[0].id).catch((err: unknown) => {
+      console.error("[Google Drive webhook] sync error:", err);
+    });
+  }));
+
+  app.post("/api/integrations/google-drive/disconnect", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { sendError(res, 400, "No company"); return; }
+    const configs = await pb.collection("integration_configs").getFullList({
+      filter: `companyId = "${company.id}" && provider = "google_drive"`,
+    }).catch(() => []);
+    if (configs[0]) {
+      await pb.collection("integration_configs").delete(configs[0].id);
+    }
+    res.json({ ok: true });
+  }));
+
+  // ── SharePoint ────────────────────────────────────────────────────────────────
+
+  app.get("/api/integrations/sharepoint/auth", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { sendError(res, 400, "Complete onboarding first"); return; }
+    const authUrl = getMicrosoftAuthUrl(company.id);
+    res.json({ authUrl });
+  }));
+
+  app.get("/api/integrations/sharepoint/callback", ah(async (req: Request, res: Response) => {
+    const { code, state: companyId, error } = req.query as Record<string, string>;
+    if (error) {
+      res.redirect(`/settings?tab=integrations&error=${encodeURIComponent(error)}`);
+      return;
+    }
+    if (!code || !companyId) { sendError(res, 400, "Missing code or state"); return; }
+    try {
+      await handleMicrosoftCallback(code, companyId);
+      res.redirect("/settings?tab=integrations&connected=sharepoint");
+    } catch (err) {
+      console.error("[SharePoint callback]", err);
+      res.redirect(`/settings?tab=integrations&error=${encodeURIComponent((err as Error).message ?? "OAuth failed")}`);
+    }
+  }));
+
+  app.get("/api/integrations/sharepoint/status", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json(null); return; }
+    const configs = await pb.collection("integration_configs").getFullList({
+      filter: `companyId = "${company.id}" && provider = "sharepoint"`,
+    }).catch(() => []);
+    res.json(configs[0] ?? null);
+  }));
+
+  app.get("/api/integrations/sharepoint/folders", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { sendError(res, 400, "No company"); return; }
+    const configs = await pb.collection("integration_configs").getFullList({
+      filter: `companyId = "${company.id}" && provider = "sharepoint"`,
+    }).catch(() => []);
+    if (!configs[0]) { sendError(res, 404, "SharePoint not connected"); return; }
+    const folders = await listSharePointFolders(configs[0].id);
+    res.json({ folders });
+  }));
+
+  app.post("/api/integrations/sharepoint/watch", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { sendError(res, 400, "No company"); return; }
+    const { driveId, folderId, folderName } = req.body as { driveId?: string; folderId?: string; folderName?: string };
+    if (!driveId || !folderId || !folderName) { sendError(res, 400, "driveId, folderId, and folderName required"); return; }
+    const configs = await pb.collection("integration_configs").getFullList({
+      filter: `companyId = "${company.id}" && provider = "sharepoint"`,
+    }).catch(() => []);
+    if (!configs[0]) { sendError(res, 404, "SharePoint not connected"); return; }
+    await watchSharePointFolder(configs[0].id, driveId, folderId, folderName);
+    res.json({ ok: true, folderName });
+  }));
+
+  // SharePoint webhook — no auth, external POST
+  // Graph validation: first request is GET with validationToken query param
+  app.get("/api/integrations/sharepoint/webhook", (req: Request, res: Response) => {
+    const validationToken = (req.query as Record<string, string>).validationToken;
+    if (validationToken) {
+      res.setHeader("Content-Type", "text/plain");
+      res.status(200).send(validationToken);
+    } else {
+      res.status(200).end();
+    }
+  });
+
+  app.post("/api/integrations/sharepoint/webhook", ah(async (req: Request, res: Response) => {
+    // Graph validation handshake
+    const validationToken = (req.query as Record<string, string>).validationToken;
+    if (validationToken) {
+      res.setHeader("Content-Type", "text/plain");
+      res.status(200).send(validationToken);
+      return;
+    }
+
+    // Respond 202 immediately
+    res.status(202).end();
+
+    const body = req.body as {
+      value?: Array<{
+        clientState?: string;
+        resource?: string;
+        resourceData?: { id?: string };
+      }>;
+    };
+
+    const notifications = body.value ?? [];
+
+    for (const notification of notifications) {
+      try {
+        const clientState = notification.clientState;
+        const driveItemId = notification.resourceData?.id;
+
+        // Find integration by webhook secret (clientState)
+        if (!clientState) continue;
+        const configs = await pb.collection("integration_configs").getFullList({
+          filter: `webhookSecret = "${clientState}"`,
+        }).catch(() => []);
+
+        if (!configs[0]) continue;
+
+        syncSharePointFolder(configs[0].id, driveItemId).catch((err: unknown) => {
+          console.error("[SharePoint webhook] sync error:", err);
+        });
+      } catch (err) {
+        console.error("[SharePoint webhook] notification processing error:", err);
+      }
+    }
+  }));
+
+  app.post("/api/integrations/sharepoint/disconnect", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { sendError(res, 400, "No company"); return; }
+    const configs = await pb.collection("integration_configs").getFullList({
+      filter: `companyId = "${company.id}" && provider = "sharepoint"`,
+    }).catch(() => []);
+    if (configs[0]) {
+      await pb.collection("integration_configs").delete(configs[0].id);
+    }
+    res.json({ ok: true });
+  }));
+
+  // ── Integration sync log ──────────────────────────────────────────────────────
+
+  app.get("/api/integrations/sync-log", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json({ entries: [] }); return; }
+
+    // Get all integration configs for this company
+    const configs = await pb.collection("integration_configs").getFullList({
+      filter: `companyId = "${company.id}"`,
+      fields: "id",
+    }).catch(() => []);
+
+    if (configs.length === 0) { res.json({ entries: [] }); return; }
+
+    const integrationIds = configs.map((c) => c.id).join('","');
+    const entries = await pb.collection("integration_sync_log").getFullList({
+      filter: `integrationId ?= "${integrationIds}"`,
+      sort: "-created",
+    }).catch(async () => {
+      // Fallback: fetch per-integration
+      const all = [];
+      for (const c of configs) {
+        const logs = await pb.collection("integration_sync_log").getFullList({
+          filter: `integrationId = "${c.id}"`,
+          sort: "-created",
+        }).catch(() => []);
+        all.push(...logs);
+      }
+      return all.sort((a, b) => new Date(b["created"] as string).getTime() - new Date(a["created"] as string).getTime()).slice(0, 50);
+    });
+
+    res.json({ entries: entries.slice(0, 50) });
   }));
 
   // ── Health ───────────────────────────────────────────────────────────────────
