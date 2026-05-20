@@ -255,9 +255,9 @@ export const saveFeedback = (
 
 /**
  * Teach Zane — lawyer provides what Zane got wrong and the correct analysis.
- * Stored as feedbackType: TEACH_MIKE and routed to the knowledge layer.
+ * Stored as feedbackType: TEACH_ZANE and routed to the knowledge layer.
  */
-export const teachMike = (
+export const teachZane = (
   resultId: string,
   data: { incorrectOutput: string; correctOutput: string; notes?: string }
 ) => req("POST", `/api/feedback/teach-zane/${resultId}`, data);

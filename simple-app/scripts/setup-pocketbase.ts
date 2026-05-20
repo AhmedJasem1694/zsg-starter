@@ -7,7 +7,7 @@
  *
  * Usage:
  *   POCKETBASE_URL=https://your-pb.railway.app \
- *   POCKETBASE_ADMIN_EMAIL=admin@mike.app \
+ *   POCKETBASE_ADMIN_EMAIL=admin@zane.app \
  *   POCKETBASE_ADMIN_PASSWORD=yourpassword \
  *   npx tsx scripts/setup-pocketbase.ts
  */
@@ -18,7 +18,7 @@ config();
 import PocketBase from "pocketbase";
 
 const POCKETBASE_URL = process.env.POCKETBASE_URL ?? "http://localhost:8090";
-const ADMIN_EMAIL = process.env.POCKETBASE_ADMIN_EMAIL ?? "admin@mike.local";
+const ADMIN_EMAIL = process.env.POCKETBASE_ADMIN_EMAIL ?? "admin@zane.local";
 const ADMIN_PASSWORD = process.env.POCKETBASE_ADMIN_PASSWORD ?? "changeme1234";
 
 const pb = new PocketBase(POCKETBASE_URL);
@@ -302,16 +302,16 @@ async function main() {
   await setupCollection("user_feedback", [
     relationField("result", reviewResultsId),
     textField("userAction", { required: true }),   // ACCEPTED | EDITED | ESCALATED | DISMISSED
-    textField("feedbackType"),                      // STANDARD | TEACH_MIKE | FALSE_POSITIVE
+    textField("feedbackType"),                      // STANDARD | TEACH_ZANE | FALSE_POSITIVE
     textField("editedOutput", { max: 10000 }),
     textField("finalClauseText", { max: 10000 }),
-    textField("correctOutput", { max: 10000 }),    // Teach MIKE: what the correct analysis should say
+    textField("correctOutput", { max: 10000 }),    // Teach Zane: what the correct analysis should say
     textField("notes", { max: 5000 }),
   ]);
 
   // ── 12. detected_patterns ────────────────────────────────────────────────────
   // L2 outcome memory: persisted patterns detected from lawyer feedback.
-  // Feeds the v3 synthesis layer and the "MIKE noticed" panel.
+  // Feeds the v3 synthesis layer and the "Zane noticed" panel.
   await setupCollection("detected_patterns", [
     textField("companyId", { required: true }),
     textField("clauseCategory", { required: true }),
@@ -335,7 +335,7 @@ async function main() {
   ]);
 
   // ── 14. company_knowledge_pages ───────────────────────────────────────────────
-  // L3 synthesis: MIKE's accumulated knowledge about how THIS company negotiates.
+  // L3 synthesis: Zane's accumulated knowledge about how THIS company negotiates.
   // Schema-only in v1 — populated as L2 patterns accumulate.
   await setupCollection("company_knowledge_pages", [
     textField("companyId", { required: true }),
@@ -401,7 +401,7 @@ async function main() {
   ]);
 
   // ── 20. audit_log ─────────────────────────────────────────────────────────────
-  // Immutable audit trail for all significant MIKE actions.
+  // Immutable audit trail for all significant Zane actions.
   // Intentionally not using strict relations so entries survive deletions.
   await setupCollection("audit_log", [
     textField("action", { required: true }),

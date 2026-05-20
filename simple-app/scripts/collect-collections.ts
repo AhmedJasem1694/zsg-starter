@@ -7,7 +7,7 @@
  *
  * Usage:
  *   POCKETBASE_URL=https://your-pb.railway.app \
- *   POCKETBASE_ADMIN_EMAIL=admin@mike.app \
+ *   POCKETBASE_ADMIN_EMAIL=admin@zane.app \
  *   POCKETBASE_ADMIN_PASSWORD=yourpassword \
  *   npx tsx scripts/collect-collections.ts
  *
@@ -21,7 +21,7 @@ config();
 import PocketBase from "pocketbase";
 
 const POCKETBASE_URL = process.env.POCKETBASE_URL ?? "http://localhost:8090";
-const ADMIN_EMAIL = process.env.POCKETBASE_ADMIN_EMAIL ?? "admin@mike.local";
+const ADMIN_EMAIL = process.env.POCKETBASE_ADMIN_EMAIL ?? "admin@zane.local";
 const ADMIN_PASSWORD = process.env.POCKETBASE_ADMIN_PASSWORD ?? "changeme1234";
 
 async function main() {

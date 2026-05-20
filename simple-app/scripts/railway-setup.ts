@@ -210,7 +210,7 @@ try {
 step("Create PocketBase superuser");
 log("These credentials will become the admin account for PocketBase.");
 
-const email = await prompt("Superuser email", "admin@mike.app");
+const email = await prompt("Superuser email", "admin@zane.app");
 let password = "";
 while (password.length < 10) {
   password = await promptSecret("Superuser password (min 10 chars)");

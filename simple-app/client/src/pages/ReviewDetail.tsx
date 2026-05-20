@@ -7,7 +7,7 @@ import {
   TrendingDown, Layers, CalendarClock, FileCheck, Users, BarChart2, ChevronRight,
   MessageSquare, Shield, Edit2, Flag, Upload, Brain, Dot,
 } from "lucide-react";
-import { getReview, saveFeedback, generateReply, teachMike, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary } from "../lib/api";
+import { getReview, saveFeedback, generateReply, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, ConfidenceLabel, RegulatoryCitation } from "../lib/types";
 import { CLAUSE_LABELS } from "../lib/types";
@@ -1138,7 +1138,7 @@ function ClauseCard({
     if (!incorrectOutput.trim() || !correctOutput.trim()) return;
     setTeachSubmitting(true);
     try {
-      await teachMike(result.id, { incorrectOutput, correctOutput });
+      await teachZane(result.id, { incorrectOutput, correctOutput });
       setTeachDone(true);
       setShowTeachMike(false);
     } finally {

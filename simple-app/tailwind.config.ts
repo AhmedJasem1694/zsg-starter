@@ -81,7 +81,7 @@ export default {
           busy: "rgb(239 68 68)",
           offline: "rgb(156 163 175)",
         },
-        // ── MIKE design system tokens ────────────────────────────────────
+        // ── Zane design system tokens ────────────────────────────────────
         // Navy backgrounds
         "navy-bg":       "#0B1020",
         "navy-card":     "#0F172A",

@@ -7,7 +7,7 @@ export type ApprovalRole = "LEGAL" | "GC" | "CFO" | "BOARD";
 export type RagStatus = "RED" | "AMBER" | "GREEN" | "GREY";
 export type DocumentStatus = "UPLOADED" | "PROCESSING" | "COMPLETE" | "FAILED";
 export type FeedbackAction = "ACCEPTED" | "EDITED" | "ESCALATED" | "DISMISSED";
-export type FeedbackType = "STANDARD" | "TEACH_MIKE" | "FALSE_POSITIVE";
+export type FeedbackType = "STANDARD" | "TEACH_ZANE" | "FALSE_POSITIVE";
 export type ConfidenceLabel = "HIGH" | "MEDIUM" | "LOW";
 
 export interface RegulatoryCitation {

@@ -1009,7 +1009,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
     let feedback: PBRecord;
     if (existing.length > 0) {
       feedback = await pb.collection("user_feedback").update(existing[0].id, {
-        feedbackType:  "TEACH_MIKE",
+        feedbackType:  "TEACH_ZANE",
         userAction:    "EDITED",
         editedOutput:  parsed.data.incorrectOutput,
         correctOutput: parsed.data.correctOutput,
@@ -1018,7 +1018,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
     } else {
       feedback = await pb.collection("user_feedback").create({
         result:        req.params.resultId,
-        feedbackType:  "TEACH_MIKE",
+        feedbackType:  "TEACH_ZANE",
         userAction:    "EDITED",
         editedOutput:  parsed.data.incorrectOutput,
         correctOutput: parsed.data.correctOutput,
@@ -1027,7 +1027,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
     }
 
     await audit({
-      action: "teach_mike_correction",
+      action: "teach_zane_correction",
       entityType: "review_result",
       entityId: req.params.resultId,
       userId: req.user?.userId,

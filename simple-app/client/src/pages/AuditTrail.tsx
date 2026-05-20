@@ -19,7 +19,7 @@ const AUDIT_ACTION_OPTIONS = [
   "feedback_edited",
   "feedback_escalated",
   "feedback_dismissed",
-  "teach_mike_correction",
+  "teach_zane_correction",
   "false_positive_marked",
   "playbook_updated",
   "playbook_rule_created",
