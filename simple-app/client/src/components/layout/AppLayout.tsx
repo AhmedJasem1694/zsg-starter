@@ -62,8 +62,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const nav           = isFounder ? FOUNDER_NAV         : LEGAL_NAV;
   const navSecondary  = isFounder ? FOUNDER_NAV_SECONDARY : LEGAL_NAV_SECONDARY;
-  const settingsTarget = isFounder ? "/onboarding" : "/onboarding";
-
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Mobile overlay */}
