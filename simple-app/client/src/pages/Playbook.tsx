@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, Save, BarChart2, BookOpen, Sparkles, Loader2, Plus, X, Star, TrendingUp, AlertOctagon, CheckCircle } from "lucide-react";
-import { getPlaybookRules, updatePlaybookRule, getFeedbackPatterns, generatePlaybookSuggestion, createPlaybookRule, getPlaybookDriftSuggestions } from "../lib/api";
+import { ChevronDown, ChevronUp, Save, BarChart2, BookOpen, Sparkles, Loader2, Plus, X, Star, TrendingUp, AlertOctagon, CheckCircle, Shield, AlertTriangle } from "lucide-react";
+import { getPlaybookRules, updatePlaybookRule, getFeedbackPatterns, generatePlaybookSuggestion, createPlaybookRule, getPlaybookDriftSuggestions, getCompanyRules, approveCompanyRule, rejectCompanyRule, updateCompanyRuleText, getClauseOutcomesExtended } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import { CLAUSE_LABELS, type ClauseCategory, type PlaybookRule, type ApprovalRole } from "../lib/types";
-import type { ClauseOutcome, PlaybookDriftSuggestion } from "../lib/api";
+import type { ClauseOutcome, PlaybookDriftSuggestion, CompanyRule, ExtendedClauseOutcome } from "../lib/api";
 
 // ── Key clauses for demo highlight ───────────────────────────────────────────
 // These are the 3 clause types that matter most in the majority of commercial contracts
@@ -606,9 +606,285 @@ function DriftSuggestionsView({
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
+// ── Pending Rules view ────────────────────────────────────────────────────────
+
+function PendingRulesView() {
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ["company-rules"],
+    queryFn: getCompanyRules,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const pendingRules = data?.PENDING ?? [];
+  const activeRules = data?.ACTIVE ?? [];
+
+  const approveMut = useMutation({
+    mutationFn: (id: string) => approveCompanyRule(id),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["company-rules"] }),
+  });
+  const rejectMut = useMutation({
+    mutationFn: (id: string) => rejectCompanyRule(id),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["company-rules"] }),
+  });
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+
+  function startEdit(rule: CompanyRule) {
+    setEditingId(rule.id);
+    setEditText(rule.editedRuleText || rule.ruleText);
+  }
+
+  async function saveEdit(ruleId: string) {
+    await updateCompanyRuleText(ruleId, editText);
+    setEditingId(null);
+    void queryClient.invalidateQueries({ queryKey: ["company-rules"] });
+  }
+
+  async function approveWithEdit(ruleId: string) {
+    if (editingId === ruleId) {
+      await updateCompanyRuleText(ruleId, editText);
+    }
+    approveMut.mutate(ruleId);
+    setEditingId(null);
+  }
+
+  if (isLoading) {
+    return <div className="text-sm text-muted-foreground py-8 text-center">Loading rules…</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Pending */}
+      {pendingRules.length === 0 && activeRules.length === 0 ? (
+        <div className="card p-8 text-center space-y-2">
+          <Shield size={24} className="mx-auto text-muted-foreground/40" />
+          <div className="text-sm font-medium text-muted-foreground">No pending rules</div>
+          <p className="text-xs text-muted-foreground/60 max-w-sm mx-auto">
+            As Zane detects patterns in your overrides and negotiated outcomes, it will suggest rules here for GC approval.
+          </p>
+        </div>
+      ) : (
+        <>
+          {pendingRules.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={13} className="text-[#FCD34D]" />
+                <span className="text-sm font-semibold">{pendingRules.length} pending rule{pendingRules.length !== 1 ? "s" : ""} — awaiting GC approval</span>
+              </div>
+              {pendingRules.map((rule) => (
+                <div key={rule.id} className="card overflow-hidden border-l-4 border-l-[#431407]">
+                  <div className="px-5 py-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold text-[#FCD34D] uppercase tracking-wide">
+                          {CLAUSE_LABELS[rule.clauseCategory as ClauseCategory] ?? rule.clauseCategory.replace(/_/g, " ")}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground/60 mt-0.5">
+                          {rule.generatedFrom === "OUTCOME_PATTERN"
+                            ? `${rule.evidenceCount} contract${rule.evidenceCount !== 1 ? "s" : ""} accepted below fallback`
+                            : `Same override ${rule.evidenceCount} time${rule.evidenceCount !== 1 ? "s" : ""}`}
+                        </div>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded border border-[#431407] bg-[#1C0F00] text-[#FCD34D] shrink-0">
+                        {rule.generatedFrom === "OUTCOME_PATTERN" ? "Outcome pattern" : "Override pattern"}
+                      </span>
+                    </div>
+
+                    {/* Rule text (editable) */}
+                    {editingId === rule.id ? (
+                      <textarea
+                        className="w-full rounded-lg border border-[#2563EB] bg-[#0B1118] px-3 py-2.5 text-sm text-foreground focus:outline-none min-h-[80px] resize-y"
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                      />
+                    ) : (
+                      <div
+                        className="text-sm text-foreground leading-relaxed px-3 py-2.5 rounded-lg border border-[#1E293B] bg-[#0B1118] cursor-pointer hover:border-[#2563EB] transition-colors"
+                        onClick={() => startEdit(rule)}
+                        title="Click to edit"
+                      >
+                        {rule.editedRuleText || rule.ruleText}
+                      </div>
+                    )}
+
+                    {/* Risk assessment */}
+                    {rule.riskAssessment && (
+                      <div className="text-xs text-muted-foreground/70 italic border-l-2 border-[#431407] pl-3">
+                        {rule.riskAssessment}
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      {editingId === rule.id ? (
+                        <>
+                          <button
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#052E16] border border-[#14532D] text-[#86EFAC] hover:bg-[#14532D] transition-colors"
+                            onClick={() => void approveWithEdit(rule.id)}
+                            disabled={approveMut.isPending}
+                          >
+                            <CheckCircle size={11} /> Approve with edits
+                          </button>
+                          <button
+                            className="text-xs px-3 py-1.5 rounded-md border border-[#1E293B] text-muted-foreground hover:border-[#475569] transition-colors"
+                            onClick={() => void saveEdit(rule.id)}
+                          >
+                            Save only
+                          </button>
+                          <button
+                            className="text-xs px-2 py-1.5 text-muted-foreground/50 hover:text-muted-foreground"
+                            onClick={() => setEditingId(null)}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#052E16] border border-[#14532D] text-[#86EFAC] hover:bg-[#14532D] transition-colors disabled:opacity-50"
+                            onClick={() => approveMut.mutate(rule.id)}
+                            disabled={approveMut.isPending}
+                          >
+                            <CheckCircle size={11} /> Approve
+                          </button>
+                          <button
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#1E293B] text-muted-foreground hover:border-[#2563EB] hover:text-[#60A5FA] transition-colors"
+                            onClick={() => startEdit(rule)}
+                          >
+                            Edit & approve
+                          </button>
+                          <button
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#450A0A] text-[#FCA5A5] hover:bg-[#1F0A0A] transition-colors disabled:opacity-50"
+                            onClick={() => rejectMut.mutate(rule.id)}
+                            disabled={rejectMut.isPending}
+                          >
+                            Reject
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Active rules */}
+          {activeRules.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Shield size={13} className="text-[#86EFAC]" />
+                <span className="text-sm font-semibold text-[#86EFAC]">{activeRules.length} active rule{activeRules.length !== 1 ? "s" : ""}</span>
+              </div>
+              {activeRules.map((rule) => (
+                <div key={rule.id} className="card px-4 py-3 border-l-4 border-l-[#14532D]">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle size={13} className="text-[#86EFAC] shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-semibold text-[#86EFAC]">
+                        {CLAUSE_LABELS[rule.clauseCategory as ClauseCategory] ?? rule.clauseCategory.replace(/_/g, " ")}
+                      </div>
+                      <p className="text-xs text-foreground/70 mt-0.5">{rule.editedRuleText || rule.ruleText}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Extended outcomes view ────────────────────────────────────────────────────
+
+function ExtendedOutcomesView({ outcomes, extendedOutcomes }: { outcomes: ClauseOutcome[]; extendedOutcomes: ExtendedClauseOutcome[] }) {
+  const extMap = new Map(extendedOutcomes.map((o) => [o.clauseCategory, o]));
+
+  if (outcomes.length === 0 && extendedOutcomes.length === 0) {
+    return (
+      <div className="text-sm text-muted-foreground/60 py-6 text-center">
+        No feedback data yet. Accept, escalate or dismiss clauses on your review pages to track outcomes here.
+      </div>
+    );
+  }
+
+  const merged = outcomes.length > 0 ? outcomes : extendedOutcomes.map((o) => ({
+    clauseCategory: o.clauseCategory,
+    total: o.total,
+    accepted: o.accepted,
+    escalated: o.escalated,
+    dismissed: 0,
+    redCount: o.redCount,
+    amberCount: 0,
+    greenCount: 0,
+  }));
+
+  return (
+    <div className="space-y-4">
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="border-b border-[#1E293B] text-left text-muted-foreground/60">
+              <th className="pb-2 pr-4 font-medium">Clause</th>
+              <th className="pb-2 px-3 font-medium text-center">Reviews</th>
+              <th className="pb-2 px-3 font-medium text-center">Red</th>
+              <th className="pb-2 px-3 font-medium text-center">Accepted</th>
+              <th className="pb-2 px-3 font-medium text-center">Avg signed</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#1E293B]/50">
+            {merged.map((o) => {
+              const ext = extMap.get(o.clauseCategory);
+              const avgSigned = ext?.avgSignedOutcome ?? "UNKNOWN";
+              const belowFallbackRate = ext?.belowFallbackRate ?? 0;
+
+              const avgColor =
+                avgSigned === "BELOW_FALLBACK" ? "text-[#FCA5A5]" :
+                avgSigned === "FALLBACK" ? "text-[#FCD34D]" :
+                avgSigned === "PREFERRED" ? "text-[#86EFAC]" :
+                "text-muted-foreground/50";
+
+              return (
+                <tr key={o.clauseCategory}>
+                  <td className="py-2.5 pr-4 font-medium">
+                    {CLAUSE_LABELS[o.clauseCategory as ClauseCategory] ?? o.clauseCategory.replace(/_/g, " ")}
+                  </td>
+                  <td className="py-2.5 px-3 text-center text-muted-foreground">{o.total}</td>
+                  <td className="py-2.5 px-3 text-center">
+                    {o.redCount > 0 ? <span className="text-[#FCA5A5]">{o.redCount}</span> : <span className="text-muted-foreground/40">—</span>}
+                  </td>
+                  <td className="py-2.5 px-3 text-center">
+                    {o.accepted > 0 ? <span className="text-[#FCD34D]">{o.accepted}</span> : <span className="text-muted-foreground/40">—</span>}
+                  </td>
+                  <td className="py-2.5 px-3 text-center">
+                    {avgSigned !== "UNKNOWN" ? (
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className={`font-medium ${avgColor}`}>{avgSigned.replace(/_/g, " ")}</span>
+                        {belowFallbackRate > 0 && (
+                          <span className="text-[10px] text-[#FCA5A5]/60">{belowFallbackRate}% below fallback</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground/40">—</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function Playbook() {
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState<"playbook" | "outcomes" | "updates">("playbook");
+  const [tab, setTab] = useState<"playbook" | "outcomes" | "updates" | "rules">("playbook");
 
   const { data: rulesData, isLoading } = useQuery({
     queryKey: ["playbook-rules"],
@@ -629,6 +905,22 @@ export default function Playbook() {
     staleTime: 10 * 60 * 1000,
     enabled: tab === "updates",
   });
+
+  const { data: companyRulesData } = useQuery({
+    queryKey: ["company-rules"],
+    queryFn: getCompanyRules,
+    staleTime: 2 * 60 * 1000,
+    enabled: tab === "rules",
+  });
+
+  const { data: extendedOutcomes } = useQuery({
+    queryKey: ["clause-outcomes-extended"],
+    queryFn: getClauseOutcomesExtended,
+    staleTime: 5 * 60 * 1000,
+    enabled: tab === "outcomes",
+  });
+
+  const pendingRulesCount = companyRulesData?.PENDING?.length ?? 0;
 
   // Get company for workflowType (for suggestion context)
   const { data: company } = useQuery({
@@ -695,6 +987,19 @@ export default function Playbook() {
           >
             <Sparkles size={14} />
             Suggested Updates
+          </button>
+          <button
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-colors
+              ${tab === "rules" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            onClick={() => setTab("rules")}
+          >
+            <Shield size={14} />
+            Pending Rules
+            {pendingRulesCount > 0 && (
+              <span className="ml-1 text-[10px] bg-[#431407] text-[#FCD34D] rounded-full px-1.5 py-0.5">
+                {pendingRulesCount}
+              </span>
+            )}
           </button>
         </div>
 
@@ -764,7 +1069,12 @@ export default function Playbook() {
             </div>
           )
         ) : tab === "outcomes" ? (
-          <OutcomesView outcomes={patternsData?.clauseOutcomes ?? []} />
+          <ExtendedOutcomesView
+            outcomes={patternsData?.clauseOutcomes ?? []}
+            extendedOutcomes={extendedOutcomes ?? []}
+          />
+        ) : tab === "rules" ? (
+          <PendingRulesView />
         ) : (
           <DriftSuggestionsView
             suggestions={driftData?.suggestions ?? []}

@@ -24,6 +24,7 @@ import FounderDashboard from "./pages/founder/FounderDashboard";
 import FounderReview from "./pages/founder/FounderReview";
 import ContractLibrary from "./pages/ContractLibrary";
 import TeamManagement from "./pages/TeamManagement";
+import OutcomeConfirmation from "./pages/OutcomeConfirmation";
 import type { Persona } from "./lib/types";
 
 // ── PersonaRouter — redirect /dashboard to the right persona path ─────────────
@@ -183,6 +184,10 @@ function AppRoutes() {
       <Route
         path="/app/legal/litigation-intake/:id"
         element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><LitigationIntake /></RequireAuth>}
+      />
+      <Route
+        path="/app/legal/:id/outcome"
+        element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><OutcomeConfirmation /></RequireAuth>}
       />
 
       {/* Legacy route aliases → redirect to /app/legal/* */}

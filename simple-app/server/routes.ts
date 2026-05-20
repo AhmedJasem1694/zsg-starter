@@ -11,6 +11,8 @@ import { transcribeAudioFile } from "./services/transcription.js";
 import { chatComplete } from "./services/openrouter.js";
 import { searchCompanies, enrichCompany } from "./services/companySearch.js";
 import { audit } from "./services/auditLogger.js";
+import { runDeltaComparison } from "./services/deltaComparison.js";
+import { runPatternDetection } from "./services/patternDetector.js";
 
 // ── Express 4 async error helper ─────────────────────────────────────────────
 // Express 4 does NOT automatically forward rejected async handlers to next().
@@ -218,14 +220,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ── Company search / enrichment ──────────────────────────────────────────────
 
-  app.get("/api/company/search", requireAuth, ah(async (req: Request, res: Response) => {
+  // No requireAuth — this searches public registry data and is needed during onboarding
+  app.get("/api/company/search", ah(async (req: Request, res: Response) => {
     const q = String(req.query.q ?? "").trim();
     if (q.length < 2) { res.json({ candidates: [] }); return; }
     const candidates = await searchCompanies(q);
     res.json({ candidates });
   }));
 
-  app.post("/api/company/enrich", requireAuth, ah(async (req: Request, res: Response) => {
+  // No requireAuth — enriches public company registry data, used during onboarding
+  app.post("/api/company/enrich", ah(async (req: Request, res: Response) => {
     const candidate = req.body;
     if (!candidate?.name) { sendError(res, 400, "candidate required"); return; }
     const enriched = await enrichCompany(candidate);
@@ -986,11 +990,11 @@ Each field should be 1-3 sentences of clear, practical legal language.
     res.json(mapFeedback(feedback));
   }));
 
-  // ── Teach MIKE ────────────────────────────────────────────────────────────────
-  // Captures a lawyer correction: what MIKE got wrong + what the correct analysis is.
+  // ── Teach Zane ────────────────────────────────────────────────────────────────
+  // Captures a lawyer correction: what Zane got wrong + what the correct analysis is.
   // Stored separately from standard feedback so it can train the knowledge layer.
 
-  app.post("/api/feedback/teach-mike/:resultId", requireAuth, ah(async (req: Request, res: Response) => {
+  app.post("/api/feedback/teach-zane/:resultId", requireAuth, ah(async (req: Request, res: Response) => {
     const parsed = z.object({
       incorrectOutput: z.string().min(1),
       correctOutput:   z.string().min(1),
@@ -1126,7 +1130,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
       }
     }
 
-    // Build MIKE NOTICED insights
+    // Build Zane NOTICED insights
     const patterns: { type: string; message: string; severity: "info" | "warn" | "good" }[] = [];
 
     for (const [cat, stats] of Object.entries(catStats)) {
@@ -1987,6 +1991,560 @@ Write the negotiation email paragraph.`;
     } catch {
       sendError(res, 404, "Invite not found");
     }
+  }));
+
+  // ── Section 18 — Behavioural Accumulation Engine ─────────────────────────────
+
+  // ── Step 1 — Outcome delta capture ───────────────────────────────────────────
+
+  // Upload the final signed version of a document
+  app.post(
+    "/api/documents/:id/upload-final",
+    requireAuth,
+    upload.single("contract"),
+    ah(async (req: Request, res: Response) => {
+      let originalDoc: PBRecord;
+      try {
+        originalDoc = await pb.collection("uploaded_documents").getOne(req.params.id);
+      } catch {
+        sendError(res, 404, "Document not found"); return;
+      }
+
+      const file = req.file;
+      if (!file) { sendError(res, 400, "No file uploaded"); return; }
+
+      // Create new uploaded_documents record for the final version
+      const finalDoc = await pb.collection("uploaded_documents").create({
+        company: originalDoc["company"],
+        filename: file.filename,
+        originalName: file.originalname,
+        contractType: originalDoc["contractType"],
+        status: "UPLOADED",
+        counterpartyName: originalDoc["counterpartyName"],
+        counterpartyType: originalDoc["counterpartyType"],
+        reviewType: "EXECUTION",
+        governingLaw: originalDoc["governingLaw"],
+        jurisdiction: originalDoc["jurisdiction"],
+        contractValue: originalDoc["contractValue"],
+        currency: originalDoc["currency"],
+        parentDocumentId: req.params.id,
+      });
+
+      // Fire-and-forget comparison
+      runDeltaComparison(req.params.id, finalDoc.id, originalDoc["company"] as string)
+        .catch(console.error);
+
+      res.json({ finalDocumentId: finalDoc.id, message: "Comparison running" });
+    })
+  );
+
+  // Get outcome deltas for a document
+  app.get("/api/documents/:id/outcome-delta", requireAuth, ah(async (req: Request, res: Response) => {
+    let doc: PBRecord;
+    try {
+      doc = await pb.collection("uploaded_documents").getOne(req.params.id);
+    } catch {
+      sendError(res, 404, "Document not found"); return;
+    }
+
+    const deltas = await pb.collection("outcome_deltas").getFullList({
+      filter: `document = "${req.params.id}"`,
+      sort: "+clauseCategory",
+    });
+
+    // Load playbook rules for context
+    const rules = await pb.collection("playbook_rules").getFullList({
+      filter: `company = "${doc["company"] as string}"`,
+    });
+    const ruleByCategory = new Map<string, PBRecord>();
+    for (const r of rules) ruleByCategory.set(r["clauseCategory"] as string, r);
+
+    const enrichedDeltas = deltas.map((d) => {
+      const rule = ruleByCategory.get(d["clauseCategory"] as string);
+      return {
+        ...d,
+        playbookPreferred: rule?.["preferredPosition"] ?? null,
+        playbookFallback: rule?.["acceptableFallback"] ?? null,
+        playbookRedLine: rule?.["hardRedLine"] ?? null,
+      };
+    });
+
+    const allConfirmed = deltas.length > 0 && deltas.every((d) => !!d["confirmedOutcome"]);
+    const hasUnconfirmed = deltas.some((d) => !d["confirmedOutcome"]);
+
+    res.json({ deltas: enrichedDeltas, allConfirmed, hasUnconfirmed });
+  }));
+
+  // Confirm outcome deltas (bulk)
+  app.post("/api/documents/:id/outcome-delta/confirm", requireAuth, ah(async (req: Request, res: Response) => {
+    const { confirmations } = req.body as {
+      confirmations: Array<{ deltaId: string; confirmedOutcome: string; notes?: string }>;
+    };
+
+    if (!Array.isArray(confirmations) || confirmations.length === 0) {
+      sendError(res, 400, "confirmations array required"); return;
+    }
+
+    let doc: PBRecord;
+    try {
+      doc = await pb.collection("uploaded_documents").getOne(req.params.id);
+    } catch {
+      sendError(res, 404, "Document not found"); return;
+    }
+
+    await Promise.all(
+      confirmations.map((c) =>
+        pb.collection("outcome_deltas").update(c.deltaId, {
+          confirmedOutcome: c.confirmedOutcome,
+          confirmedBy: req.user!.userId,
+          confirmedAt: new Date().toISOString(),
+          notes: c.notes ?? "",
+        })
+      )
+    );
+
+    // Fire-and-forget pattern detection
+    runPatternDetection(doc["company"] as string).catch(console.error);
+
+    res.json({ ok: true });
+  }));
+
+  // ── Step 2 — Override signal capture ─────────────────────────────────────────
+
+  app.post("/api/review/:resultId/override", requireAuth, ah(async (req: Request, res: Response) => {
+    const { correctedStatus, reason } = req.body as { correctedStatus: string; reason: string };
+
+    if (!reason || reason.trim() === "") {
+      sendError(res, 400, "reason is required"); return;
+    }
+    if (!correctedStatus) {
+      sendError(res, 400, "correctedStatus is required"); return;
+    }
+
+    let result: PBRecord;
+    try {
+      result = await pb.collection("review_results").getOne(req.params.resultId);
+    } catch {
+      sendError(res, 404, "Review result not found"); return;
+    }
+
+    const docId = result["document"] as string;
+    let doc: PBRecord;
+    try {
+      doc = await pb.collection("uploaded_documents").getOne(docId);
+    } catch {
+      sendError(res, 404, "Document not found"); return;
+    }
+
+    const companyRec = await pb.collection("companies").getOne(doc["company"] as string).catch(() => null);
+
+    // Determine contract value band
+    const contractValue = doc["contractValue"] as number | null;
+    let contractValueBand = "";
+    if (contractValue !== null && contractValue !== undefined) {
+      if (contractValue < 50000) contractValueBand = "<50k";
+      else if (contractValue < 250000) contractValueBand = "50k-250k";
+      else if (contractValue < 1000000) contractValueBand = "250k-1m";
+      else contractValueBand = ">1m";
+    }
+
+    await pb.collection("override_signals").create({
+      company: doc["company"],
+      result: req.params.resultId,
+      clauseCategory: result["clauseCategory"],
+      originalStatus: result["ragStatus"],
+      correctedStatus,
+      clauseText: result["clauseSummary"] ?? "",
+      counterpartyType: doc["counterpartyType"] ?? "",
+      contractType: doc["contractType"] ?? "",
+      contractValueBand,
+      userRole: "LEGAL",
+      reason: reason.trim(),
+      userId: req.user!.userId,
+    });
+
+    // Update the review result
+    await pb.collection("review_results").update(req.params.resultId, {
+      ragStatus: correctedStatus,
+    });
+
+    await audit({
+      action: "rag_status_assigned",
+      entityType: "review_result",
+      entityId: req.params.resultId,
+      companyId: doc["company"] as string,
+      userId: req.user!.userId,
+      detail: { overrideFrom: result["ragStatus"], overrideTo: correctedStatus, reason },
+    });
+
+    res.json({ ok: true });
+  }));
+
+  // ── Step 3 — False positive capture ──────────────────────────────────────────
+
+  app.post("/api/review/:resultId/false-positive", requireAuth, ah(async (req: Request, res: Response) => {
+    const { errorType, correctInterpretation } = req.body as {
+      errorType: string;
+      correctInterpretation?: string;
+    };
+
+    if (!errorType) {
+      sendError(res, 400, "errorType is required"); return;
+    }
+
+    let result: PBRecord;
+    try {
+      result = await pb.collection("review_results").getOne(req.params.resultId);
+    } catch {
+      sendError(res, 404, "Review result not found"); return;
+    }
+
+    const docId = result["document"] as string;
+    let doc: PBRecord;
+    try {
+      doc = await pb.collection("uploaded_documents").getOne(docId);
+    } catch {
+      sendError(res, 404, "Document not found"); return;
+    }
+
+    await pb.collection("false_positive_signals").create({
+      company: doc["company"],
+      result: req.params.resultId,
+      clauseCategory: result["clauseCategory"],
+      errorType,
+      originalExtractedText: result["clauseSummary"] ?? "",
+      correctInterpretation: correctInterpretation ?? "",
+      userId: req.user!.userId,
+    });
+
+    await audit({
+      action: "false_positive_marked",
+      entityType: "review_result",
+      entityId: req.params.resultId,
+      companyId: doc["company"] as string,
+      userId: req.user!.userId,
+      detail: { errorType, clauseCategory: result["clauseCategory"] },
+    });
+
+    res.json({ ok: true });
+  }));
+
+  // ── Step 5 — Company rules engine ────────────────────────────────────────────
+
+  app.get("/api/company-rules", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json({ PENDING: [], ACTIVE: [], REJECTED: [] }); return; }
+
+    const allRules = await pb.collection("company_rules").getFullList({
+      filter: `company = "${company.id}"`,
+      sort: "-created",
+    });
+
+    const grouped = {
+      PENDING:  allRules.filter((r) => r["status"] === "PENDING"),
+      ACTIVE:   allRules.filter((r) => r["status"] === "ACTIVE"),
+      REJECTED: allRules.filter((r) => r["status"] === "REJECTED"),
+    };
+
+    res.json(grouped);
+  }));
+
+  app.post("/api/company-rules/:id/approve", requireAuth, ah(async (req: Request, res: Response) => {
+    let rule: PBRecord;
+    try {
+      rule = await pb.collection("company_rules").getOne(req.params.id);
+    } catch {
+      sendError(res, 404, "Rule not found"); return;
+    }
+
+    const updated = await pb.collection("company_rules").update(req.params.id, {
+      status: "ACTIVE",
+      approvedBy: req.user!.userId,
+      approvedAt: new Date().toISOString(),
+      // If editedRuleText was set, it becomes the canonical rule text
+      ruleText: (rule["editedRuleText"] as string) || (rule["ruleText"] as string),
+    });
+
+    res.json(updated);
+  }));
+
+  app.post("/api/company-rules/:id/reject", requireAuth, ah(async (req: Request, res: Response) => {
+    try {
+      await pb.collection("company_rules").getOne(req.params.id);
+    } catch {
+      sendError(res, 404, "Rule not found"); return;
+    }
+
+    const updated = await pb.collection("company_rules").update(req.params.id, {
+      status: "REJECTED",
+    });
+
+    res.json(updated);
+  }));
+
+  app.patch("/api/company-rules/:id", requireAuth, ah(async (req: Request, res: Response) => {
+    const { editedRuleText } = req.body as { editedRuleText: string };
+
+    try {
+      await pb.collection("company_rules").getOne(req.params.id);
+    } catch {
+      sendError(res, 404, "Rule not found"); return;
+    }
+
+    const updated = await pb.collection("company_rules").update(req.params.id, {
+      editedRuleText: editedRuleText ?? "",
+    });
+
+    res.json(updated);
+  }));
+
+  // ── Step 7 — Visibility layer routes ──────────────────────────────────────────
+
+  // Signals summary per clause category
+  app.get("/api/accumulation/signals-summary", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json({ overrideCount: 0, outcomeCount: 0, ruleCount: 0, fpCount: 0 }); return; }
+
+    const clauseCategory = req.query.clauseCategory as string | undefined;
+    if (!clauseCategory) { sendError(res, 400, "clauseCategory required"); return; }
+
+    const [overrides, outcomes, rules, fps] = await Promise.all([
+      pb.collection("override_signals").getFullList({
+        filter: `company = "${company.id}" && clauseCategory = "${clauseCategory}"`,
+        fields: "id",
+      }).catch(() => []),
+      pb.collection("outcome_deltas").getFullList({
+        filter: `company = "${company.id}" && clauseCategory = "${clauseCategory}" && confirmedOutcome != ""`,
+        fields: "id",
+      }).catch(() => []),
+      pb.collection("company_rules").getFullList({
+        filter: `company = "${company.id}" && clauseCategory = "${clauseCategory}" && status = "ACTIVE"`,
+        fields: "id",
+      }).catch(() => []),
+      pb.collection("false_positive_signals").getFullList({
+        filter: `company = "${company.id}" && clauseCategory = "${clauseCategory}"`,
+        fields: "id",
+      }).catch(() => []),
+    ]);
+
+    res.json({
+      overrideCount: overrides.length,
+      outcomeCount: outcomes.length,
+      ruleCount: rules.length,
+      fpCount: fps.length,
+    });
+  }));
+
+  // Accumulation progress for dashboard card
+  app.get("/api/accumulation/progress", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) {
+      res.json({
+        contractsReviewed: 0, outcomesLogged: 0, patternsDetected: 0, rulesActive: 0,
+        overrideRate: 0, overrideRatePrev: 0, insight: "",
+      });
+      return;
+    }
+
+    const now = new Date();
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().replace("T", " ").split(".")[0];
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().replace("T", " ").split(".")[0];
+    const lastMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().replace("T", " ").split(".")[0];
+
+    const [
+      completeDocs,
+      confirmedOutcomes,
+      pendingRules,
+      activeRules,
+      allResults,
+      thisMonthOverrides,
+      lastMonthResults,
+      lastMonthOverrides,
+      belowFallbackDeltas,
+    ] = await Promise.all([
+      pb.collection("uploaded_documents").getFullList({
+        filter: `company = "${company.id}" && status = "COMPLETE"`,
+        fields: "id",
+      }).catch(() => []),
+      pb.collection("outcome_deltas").getFullList({
+        filter: `company = "${company.id}" && confirmedOutcome != ""`,
+        fields: "id",
+      }).catch(() => []),
+      pb.collection("company_rules").getFullList({
+        filter: `company = "${company.id}" && status = "PENDING"`,
+        fields: "id",
+      }).catch(() => []),
+      pb.collection("company_rules").getFullList({
+        filter: `company = "${company.id}" && status = "ACTIVE"`,
+        fields: "id",
+      }).catch(() => []),
+      pb.collection("review_results").getFullList({
+        filter: `document.company = "${company.id}" && created >= "${thisMonthStart}"`,
+        fields: "id",
+      }).catch(() => []),
+      pb.collection("override_signals").getFullList({
+        filter: `company = "${company.id}" && created >= "${thisMonthStart}"`,
+        fields: "id",
+      }).catch(() => []),
+      pb.collection("review_results").getFullList({
+        filter: `document.company = "${company.id}" && created >= "${lastMonthStart}" && created < "${lastMonthEnd}"`,
+        fields: "id",
+      }).catch(() => []),
+      pb.collection("override_signals").getFullList({
+        filter: `company = "${company.id}" && created >= "${lastMonthStart}" && created < "${lastMonthEnd}"`,
+        fields: "id",
+      }).catch(() => []),
+      pb.collection("outcome_deltas").getFullList({
+        filter: `company = "${company.id}" && confirmedOutcome = "BELOW_FALLBACK"`,
+        sort: "-confirmedAt",
+      }).catch(() => [] as PBRecord[]),
+    ]);
+
+    const overrideRate = allResults.length > 0
+      ? Math.round((thisMonthOverrides.length / allResults.length) * 100)
+      : 0;
+    const overrideRatePrev = lastMonthResults.length > 0
+      ? Math.round((lastMonthOverrides.length / lastMonthResults.length) * 100)
+      : 0;
+
+    // Generate insight from most frequent BELOW_FALLBACK pattern
+    let insight = "";
+    if (belowFallbackDeltas.length > 0) {
+      const catCounts: Record<string, number> = {};
+      for (const d of belowFallbackDeltas) {
+        const cat = d["clauseCategory"] as string;
+        catCounts[cat] = (catCounts[cat] ?? 0) + 1;
+      }
+      const topCat = Object.entries(catCounts).sort(([, a], [, b]) => b - a)[0];
+      if (topCat) {
+        insight = `Zane has learned that ${company.name as string} consistently accepts below-fallback positions on ${topCat[0].replace(/_/g, " ").toLowerCase()} clauses (${topCat[1]} confirmed).`;
+      }
+    }
+
+    res.json({
+      contractsReviewed: completeDocs.length,
+      outcomesLogged: confirmedOutcomes.length,
+      patternsDetected: pendingRules.length,
+      rulesActive: activeRules.length,
+      overrideRate,
+      overrideRatePrev,
+      insight,
+    });
+  }));
+
+  // Clause outcomes extended (for Playbook page "Outcomes" tab)
+  app.get("/api/accumulation/clause-outcomes-extended", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json([]); return; }
+
+    const [results, feedbacks, outcomes] = await Promise.all([
+      pb.collection("review_results").getFullList({
+        filter: `document.company = "${company.id}"`,
+        fields: "id,clauseCategory,ragStatus",
+      }).catch(() => [] as PBRecord[]),
+      pb.collection("user_feedback").getFullList({
+        filter: `result.document.company = "${company.id}"`,
+        fields: "result,userAction",
+      }).catch(() => [] as PBRecord[]),
+      pb.collection("outcome_deltas").getFullList({
+        filter: `company = "${company.id}" && confirmedOutcome != ""`,
+        fields: "clauseCategory,confirmedOutcome",
+      }).catch(() => [] as PBRecord[]),
+    ]);
+
+    const fbMap = new Map<string, string>();
+    for (const f of feedbacks) fbMap.set(f["result"] as string, f["userAction"] as string);
+
+    // Per-category stats
+    const catStats: Record<string, {
+      total: number; redCount: number; accepted: number; escalated: number;
+      outcomeCounts: Record<string, number>;
+    }> = {};
+
+    for (const r of results) {
+      const cat = r["clauseCategory"] as string;
+      if (!catStats[cat]) catStats[cat] = { total: 0, redCount: 0, accepted: 0, escalated: 0, outcomeCounts: {} };
+      catStats[cat].total++;
+      if (r["ragStatus"] === "RED") catStats[cat].redCount++;
+      const fb = fbMap.get(r.id as string);
+      if (fb === "ACCEPTED") catStats[cat].accepted++;
+      if (fb === "ESCALATED") catStats[cat].escalated++;
+    }
+
+    // Add outcome delta data
+    for (const o of outcomes) {
+      const cat = o["clauseCategory"] as string;
+      if (!catStats[cat]) catStats[cat] = { total: 0, redCount: 0, accepted: 0, escalated: 0, outcomeCounts: {} };
+      const confirmed = o["confirmedOutcome"] as string;
+      catStats[cat].outcomeCounts[confirmed] = (catStats[cat].outcomeCounts[confirmed] ?? 0) + 1;
+    }
+
+    const result = Object.entries(catStats)
+      .filter(([, s]) => s.total > 0)
+      .map(([cat, s]) => {
+        const totalOutcomes = Object.values(s.outcomeCounts).reduce((a, b) => a + b, 0);
+        const belowFallbackCount = s.outcomeCounts["BELOW_FALLBACK"] ?? 0;
+        const belowFallbackRate = totalOutcomes > 0 ? belowFallbackCount / totalOutcomes : 0;
+        const preferredCount = s.outcomeCounts["PREFERRED"] ?? 0;
+        const fallbackCount = s.outcomeCounts["FALLBACK"] ?? 0;
+        let avgSignedOutcome = "UNKNOWN";
+        if (totalOutcomes > 0) {
+          if (belowFallbackRate > 0.5) avgSignedOutcome = "BELOW_FALLBACK";
+          else if ((preferredCount + fallbackCount) / totalOutcomes > 0.5) avgSignedOutcome = "FALLBACK";
+          else avgSignedOutcome = "PREFERRED";
+        }
+        return {
+          clauseCategory: cat,
+          total: s.total,
+          redCount: s.redCount,
+          accepted: s.accepted,
+          escalated: s.escalated,
+          avgSignedOutcome,
+          belowFallbackRate: Math.round(belowFallbackRate * 100),
+          outcomeCounts: s.outcomeCounts,
+        };
+      })
+      .sort((a, b) => b.total - a.total);
+
+    res.json(result);
+  }));
+
+  // Override rate trend (last 6 months)
+  app.get("/api/accumulation/override-trend", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json([]); return; }
+
+    const trend: Array<{ month: string; overrideRate: number; totalResults: number; overrideCount: number }> = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(1);
+      d.setMonth(d.getMonth() - i);
+      const monthStart = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01 00:00:00`;
+      const d2 = new Date(d);
+      d2.setMonth(d2.getMonth() + 1);
+      const monthEnd = `${d2.getFullYear()}-${String(d2.getMonth() + 1).padStart(2, "0")}-01 00:00:00`;
+      const monthLabel = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+      const [results, overrides] = await Promise.all([
+        pb.collection("review_results").getFullList({
+          filter: `document.company = "${company.id}" && created >= "${monthStart}" && created < "${monthEnd}"`,
+          fields: "id",
+        }).catch(() => []),
+        pb.collection("override_signals").getFullList({
+          filter: `company = "${company.id}" && created >= "${monthStart}" && created < "${monthEnd}"`,
+          fields: "id",
+        }).catch(() => []),
+      ]);
+
+      const overrideRate = results.length > 0
+        ? Math.round((overrides.length / results.length) * 100)
+        : 0;
+
+      trend.push({ month: monthLabel, overrideRate, totalResults: results.length, overrideCount: overrides.length });
+    }
+
+    res.json(trend);
   }));
 
   // ── Health ───────────────────────────────────────────────────────────────────

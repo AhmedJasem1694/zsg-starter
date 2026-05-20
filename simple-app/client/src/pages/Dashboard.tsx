@@ -10,6 +10,7 @@ import { getDocuments, uploadDocument, startReview, getCompany, getDocumentStats
 import AppLayout from "../components/layout/AppLayout";
 import MikeNoticedPanel from "../components/MikeNoticedPanel";
 import MissingDocsPanel from "../components/MissingDocsPanel";
+import AccumulationCard from "../components/AccumulationCard";
 import { Link } from "react-router-dom";
 import type { DocumentStatus } from "../lib/types";
 import { MOCK_MODE, MOCK_DOCUMENTS, MOCK_URGENCY_SIGNALS } from "../lib/mockData";
@@ -1129,6 +1130,9 @@ export default function Dashboard() {
                 </Link>
               </div>
             </div>
+
+            {/* Zane learning (accumulation engine) */}
+            <AccumulationCard />
 
             {/* Patterns detected (memory layer) */}
             <MikeNoticedPanel />

@@ -1,4 +1,6 @@
 export type RiskAppetite = "CONSERVATIVE" | "MODERATE" | "COMMERCIAL";
+export type DeltaOutcome = "PREFERRED" | "FALLBACK" | "BELOW_FALLBACK" | "NO_CHANGE" | "REMOVED";
+export type CompanyRuleStatus = "PENDING" | "ACTIVE" | "REJECTED";
 export type WorkflowType = "COMMERCIAL_CONTRACT" | "INSURANCE_LITIGATION" | "LOGISTICS_CONTRACT";
 export type CompanyRole = "BUYER" | "SUPPLIER" | "BOTH" | "INSURER_INHOUSE" | "PANEL_FIRM" | "TPA" | "CLAIMANT_FIRM" | "DEFENDANT_FIRM";
 export type ApprovalRole = "LEGAL" | "GC" | "CFO" | "BOARD";

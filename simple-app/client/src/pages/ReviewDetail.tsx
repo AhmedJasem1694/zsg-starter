@@ -1,13 +1,13 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useRef } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   ArrowLeft, AlertTriangle, Clock, CheckCircle, Download, ChevronDown, ChevronUp,
   Mail, Copy, Loader2, GraduationCap, XCircle, BookOpen, Scale, Zap, Info,
   TrendingDown, Layers, CalendarClock, FileCheck, Users, BarChart2, ChevronRight,
-  MessageSquare, Shield,
+  MessageSquare, Shield, Edit2, Flag, Upload, Brain, Dot,
 } from "lucide-react";
-import { getReview, saveFeedback, generateReply, teachMike, markFalsePositive, captureOutcome } from "../lib/api";
+import { getReview, saveFeedback, generateReply, teachMike, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, ConfidenceLabel, RegulatoryCitation } from "../lib/types";
 import { CLAUSE_LABELS } from "../lib/types";
@@ -185,6 +185,33 @@ export default function ReviewDetail() {
     if (doc) exportReviewAsText(doc);
   }
 
+  // Upload final version state
+  const finalFileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingFinal, setUploadingFinal] = useState(false);
+
+  async function handleUploadFinalVersion(file: File) {
+    if (!id || isMock) return;
+    setUploadingFinal(true);
+    try {
+      const result = await uploadFinalVersion(id, file);
+      navigate(`/app/legal/${id}/outcome`);
+      void result;
+    } catch (err) {
+      console.error("Failed to upload final version:", err);
+    } finally {
+      setUploadingFinal(false);
+    }
+  }
+
+  // Check for unconfirmed outcome deltas
+  const { data: outcomeDeltaData } = useQuery({
+    queryKey: ["outcome-deltas-check", id],
+    queryFn: () => getOutcomeDeltas(id!),
+    enabled: !isMock && !!id,
+    staleTime: 60_000,
+  });
+  const hasUnconfirmedOutcomes = outcomeDeltaData?.hasUnconfirmed ?? false;
+
   // Outcome capture state
   const [outcomeDismissed, setOutcomeDismissed] = useState(false);
   const [outcomeCaptured, setOutcomeCaptured] = useState(!!doc?.outcome);
@@ -306,6 +333,56 @@ export default function ReviewDetail() {
             <span className="text-xs text-[#86EFAC]">
               Marked as {doc?.outcome?.toLowerCase() ?? "signed"} — outcome captured for negotiation intelligence.
             </span>
+          </div>
+        )}
+
+        {/* ── Unconfirmed outcomes banner ────────────────────────────────── */}
+        {hasUnconfirmedOutcomes && !isMock && (
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-[#1D4ED8] bg-[#0E1E3A] px-4 py-3">
+            <div className="flex items-center gap-2">
+              <Brain size={13} className="text-[#60A5FA] shrink-0" />
+              <span className="text-xs font-semibold text-[#93C5FD]">
+                Final version uploaded — confirm outcomes to update Zane's learning
+              </span>
+            </div>
+            <Link
+              to={`/app/legal/${id}/outcome`}
+              className="text-xs text-[#60A5FA] hover:text-[#93C5FD] whitespace-nowrap font-medium"
+            >
+              Confirm now →
+            </Link>
+          </div>
+        )}
+
+        {/* ── Upload final version banner (not yet uploaded) ────────────── */}
+        {!hasUnconfirmedOutcomes && !isMock && !outcomeDeltaData?.allConfirmed && (
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-[#1E293B] bg-[#0B1118] px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <Upload size={12} className="text-muted-foreground shrink-0" />
+              <span className="text-xs text-muted-foreground">
+                Have the final signed version? Upload it so Zane can learn from the negotiation.
+              </span>
+            </div>
+            <div>
+              <input
+                ref={finalFileInputRef}
+                type="file"
+                accept=".pdf,.docx,.doc"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleUploadFinalVersion(file);
+                }}
+              />
+              <button
+                className="text-xs text-[#60A5FA] hover:text-[#93C5FD] font-medium disabled:opacity-60 flex items-center gap-1"
+                disabled={uploadingFinal}
+                onClick={() => finalFileInputRef.current?.click()}
+              >
+                {uploadingFinal ? <Loader2 size={10} className="animate-spin" /> : null}
+                Upload signed version
+              </button>
+            </div>
           </div>
         )}
 
@@ -778,6 +855,229 @@ function RiskDistribution({ counts, total }: { counts: Record<RagStatus, number>
 
 // ─── Clause Card ──────────────────────────────────────────────────────────────
 
+// ── Learning indicator (per-clause) ──────────────────────────────────────────
+
+function LearningIndicator({ clauseCategory }: { clauseCategory: string }) {
+  const { data } = useQuery({
+    queryKey: ["signals-summary", clauseCategory],
+    queryFn: () => getSignalsSummary(clauseCategory),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const hasSignals = data && (data.overrideCount + data.outcomeCount + data.ruleCount + data.fpCount) > 0;
+
+  const tooltip = hasSignals && data
+    ? [
+        data.overrideCount > 0 ? `${data.overrideCount} override${data.overrideCount !== 1 ? "s" : ""}` : null,
+        data.ruleCount > 0     ? `${data.ruleCount} active rule${data.ruleCount !== 1 ? "s" : ""}` : null,
+        data.outcomeCount > 0  ? `${data.outcomeCount} outcome pattern${data.outcomeCount !== 1 ? "s" : ""}` : null,
+      ].filter(Boolean).join(" · ")
+    : "Standard analysis";
+
+  return (
+    <div className="group relative flex items-center gap-1" title={tooltip}>
+      <div className={`w-1.5 h-1.5 rounded-full ${hasSignals ? "bg-[#60A5FA]" : "bg-[#334155]"}`} />
+      <span className="text-[10px] text-foreground/30 group-hover:text-foreground/60 transition-colors">
+        {hasSignals ? "Personalised" : "Standard"}
+      </span>
+    </div>
+  );
+}
+
+// ── Override panel (inline) ───────────────────────────────────────────────────
+
+const OVERRIDE_REASON_CHIPS = [
+  "Strategic relationship",
+  "Below threshold",
+  "Contractual right exists",
+  "Market standard",
+  "Previous agreement",
+];
+
+function OverridePanel({
+  result,
+  onClose,
+  onDone,
+}: {
+  result: ReviewResult;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [correctedStatus, setCorrectedStatus] = useState<string>("");
+  const [reason, setReason] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit() {
+    if (!correctedStatus || !reason.trim()) { setError("Please select a status and provide a reason."); return; }
+    setSubmitting(true);
+    setError("");
+    try {
+      await overrideRagStatus(result.id, { correctedStatus, reason: reason.trim() });
+      onDone();
+    } catch {
+      setError("Failed to save override. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const statuses: Array<{ value: string; label: string; color: string; bg: string; border: string }> = [
+    { value: "RED",   label: "Red",   color: "#FCA5A5", bg: "#1F0A0A", border: "#450A0A" },
+    { value: "AMBER", label: "Amber", color: "#FCD34D", bg: "#1C0F00", border: "#431407" },
+    { value: "GREEN", label: "Green", color: "#86EFAC", bg: "#052E16", border: "#14532D" },
+  ];
+
+  return (
+    <div className="rounded-xl border border-[#1D4ED8] bg-[#0E1E3A] p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Edit2 size={12} className="text-[#60A5FA]" />
+          <span className="text-xs font-semibold text-[#93C5FD]">Override RAG status</span>
+        </div>
+        <button onClick={onClose} className="text-[#60A5FA]/40 hover:text-[#60A5FA] text-xs">✕</button>
+      </div>
+
+      {/* Status chips */}
+      <div className="flex gap-2">
+        {statuses.map((s) => (
+          <button
+            key={s.value}
+            onClick={() => setCorrectedStatus(s.value)}
+            className="flex-1 text-xs py-1.5 rounded-lg border font-medium transition-all"
+            style={{
+              background: correctedStatus === s.value ? s.bg : "transparent",
+              borderColor: correctedStatus === s.value ? s.border : "#1E293B",
+              color: correctedStatus === s.value ? s.color : "#64748B",
+            }}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Reason chips */}
+      <div>
+        <div className="text-[10px] text-muted-foreground/50 mb-1.5">Reason (required)</div>
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {OVERRIDE_REASON_CHIPS.map((chip) => (
+            <button
+              key={chip}
+              onClick={() => setReason(chip)}
+              className="text-[11px] px-2.5 py-1 rounded-md border transition-colors"
+              style={{
+                borderColor: reason === chip ? "#2563EB" : "#1E293B",
+                background: reason === chip ? "#1D4ED8" : "transparent",
+                color: reason === chip ? "#fff" : "#64748B",
+              }}
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+        <input
+          className="w-full rounded-lg border border-[#1E293B] bg-[#0B1118] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-[#2563EB]"
+          placeholder="Or type a reason…"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+      </div>
+
+      {error && <div className="text-xs text-destructive">{error}</div>}
+
+      <button
+        className="w-full text-xs py-2 rounded-lg bg-[#1D4ED8] text-white font-semibold disabled:opacity-50 transition-colors hover:bg-[#2563EB]"
+        disabled={!correctedStatus || !reason.trim() || submitting}
+        onClick={() => void handleSubmit()}
+      >
+        {submitting ? "Saving…" : "Save override"}
+      </button>
+    </div>
+  );
+}
+
+// ── False positive panel ──────────────────────────────────────────────────────
+
+const FP_ERROR_TYPES: Array<{ value: string; label: string; desc: string }> = [
+  { value: "extraction",     label: "Wrong extraction",            desc: "The clause wasn't really present or was truncated" },
+  { value: "classification", label: "Wrong classification",        desc: "Identified as the wrong clause category" },
+  { value: "regulatory",     label: "Wrong regulation applied",    desc: "Incorrect regulatory framework cited" },
+  { value: "fallback",       label: "Wrong fallback template",     desc: "Fallback suggestion doesn't apply here" },
+];
+
+function FalsePositivePanel({
+  result,
+  onClose,
+  onDone,
+}: {
+  result: ReviewResult;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [errorType, setErrorType] = useState("");
+  const [correctInterpretation, setCorrectInterpretation] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit() {
+    if (!errorType) return;
+    setSubmitting(true);
+    try {
+      await markFalsePositiveSignal(result.id, { errorType, correctInterpretation: correctInterpretation.trim() || undefined });
+      onDone();
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-[#431407] bg-[#1C0F00] p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Flag size={12} className="text-[#FCD34D]" />
+          <span className="text-xs font-semibold text-[#FCD34D]">Mark as false positive</span>
+        </div>
+        <button onClick={onClose} className="text-[#FCD34D]/40 hover:text-[#FCD34D] text-xs">✕</button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        {FP_ERROR_TYPES.map((t) => (
+          <button
+            key={t.value}
+            onClick={() => setErrorType(t.value)}
+            className="text-left p-3 rounded-lg border transition-all"
+            style={{
+              borderColor: errorType === t.value ? "#431407" : "#1E293B",
+              background: errorType === t.value ? "#1C0F00" : "transparent",
+            }}
+          >
+            <div className={`text-[11px] font-semibold ${errorType === t.value ? "text-[#FCD34D]" : "text-muted-foreground"}`}>
+              {t.label}
+            </div>
+            <div className="text-[10px] text-muted-foreground/50 mt-0.5">{t.desc}</div>
+          </button>
+        ))}
+      </div>
+
+      <textarea
+        className="w-full rounded-lg border border-[#1E293B] bg-[#0B1118] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none min-h-[60px] resize-y"
+        placeholder="Optional: what is the correct interpretation?"
+        value={correctInterpretation}
+        onChange={(e) => setCorrectInterpretation(e.target.value)}
+      />
+
+      <button
+        className="w-full text-xs py-2 rounded-lg bg-[#431407] text-[#FCD34D] font-semibold disabled:opacity-50 transition-colors hover:bg-[#7C2D12]"
+        disabled={!errorType || submitting}
+        onClick={() => void handleSubmit()}
+      >
+        {submitting ? "Submitting…" : "Submit false positive"}
+      </button>
+    </div>
+  );
+}
+
+// ── Main clause card ──────────────────────────────────────────────────────────
+
 function ClauseCard({
   result,
   index,
@@ -793,6 +1093,7 @@ function ClauseCard({
   onFeedback: (action: FeedbackAction, finalClauseText?: string) => Promise<void>;
   isMock: boolean;
 }) {
+  const queryClient = useQueryClient();
   const [submitting, setSubmitting] = useState<FeedbackAction | null>(null);
   const [generatedReply, setGeneratedReply] = useState<string | null>(null);
   const [copiedReply, setCopiedReply] = useState(false);
@@ -805,6 +1106,11 @@ function ClauseCard({
   const [teachDone, setTeachDone] = useState(false);
   const [fpSubmitting, setFpSubmitting] = useState(false);
   const [fpDone, setFpDone] = useState(result.feedback?.feedbackType === "FALSE_POSITIVE");
+  // Section 18 — override + FP signal panels
+  const [showOverridePanel, setShowOverridePanel] = useState(false);
+  const [showFpSignalPanel, setShowFpSignalPanel] = useState(false);
+  const [overrideDone, setOverrideDone] = useState(false);
+  const [fpSignalDone, setFpSignalDone] = useState(false);
 
   const feedback = result.feedback;
   const label = CLAUSE_LABELS[result.clauseCategory] ?? result.clauseCategory;
@@ -886,6 +1192,7 @@ function ClauseCard({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0 pt-0.5">
+          {!isMock && <LearningIndicator clauseCategory={result.clauseCategory} />}
           <span className={RAG_BADGE[result.ragStatus]}>{RAG_LABEL[result.ragStatus]}</span>
           <span className="text-muted-foreground/50 text-xs">{expanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}</span>
         </div>
@@ -1016,6 +1323,53 @@ function ClauseCard({
                 </Detail>
               )}
             </div>
+          )}
+
+          {/* ── Section 18: Override + FP signal capture ─────────────── */}
+          {!isMock && !showOverridePanel && !showFpSignalPanel && (
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              {!overrideDone ? (
+                <button
+                  onClick={() => { setShowOverridePanel(true); setShowFpSignalPanel(false); }}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#1E293B] hover:border-[#2563EB] hover:text-[#60A5FA] transition-colors"
+                >
+                  <Edit2 size={11} /> Override status
+                </button>
+              ) : (
+                <span className="text-xs text-[#60A5FA] flex items-center gap-1"><CheckCircle size={11} /> Status overridden</span>
+              )}
+              {!fpSignalDone ? (
+                <button
+                  onClick={() => { setShowFpSignalPanel(true); setShowOverridePanel(false); }}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#1E293B] hover:border-[#431407] hover:text-[#FCD34D] transition-colors"
+                >
+                  <Flag size={11} /> Flag as false positive
+                </button>
+              ) : (
+                <span className="text-xs text-[#FCD34D] flex items-center gap-1"><CheckCircle size={11} /> False positive flagged</span>
+              )}
+            </div>
+          )}
+          {showOverridePanel && !isMock && (
+            <OverridePanel
+              result={result}
+              onClose={() => setShowOverridePanel(false)}
+              onDone={() => {
+                setShowOverridePanel(false);
+                setOverrideDone(true);
+                void queryClient.invalidateQueries({ queryKey: ["review"] });
+              }}
+            />
+          )}
+          {showFpSignalPanel && !isMock && (
+            <FalsePositivePanel
+              result={result}
+              onClose={() => setShowFpSignalPanel(false)}
+              onDone={() => {
+                setShowFpSignalPanel(false);
+                setFpSignalDone(true);
+              }}
+            />
           )}
 
           {/* ── Record outcome ─────────────────────────────────────────── */}

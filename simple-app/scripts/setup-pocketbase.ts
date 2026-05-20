@@ -413,6 +413,71 @@ async function main() {
     textField("ipAddress"),
   ]);
 
+  // ── 21. outcome_deltas ────────────────────────────────────────────────────────
+  // Section 18 Step 1: captures how each flagged clause resolved in the signed doc
+  await setupCollection("outcome_deltas", [
+    relationField("company", companiesId),
+    relationField("document", uploadedDocumentsId, { cascadeDelete: false }),        // original doc
+    relationField("finalDocument", uploadedDocumentsId, { cascadeDelete: false }),  // final signed doc
+    textField("clauseCategory"),
+    textField("originalStatus"),           // RAG status from original review
+    textField("originalClauseText", { max: 50000 }),
+    textField("finalClauseText", { max: 50000 }),
+    textField("llmOutcome"),               // PREFERRED/FALLBACK/BELOW_FALLBACK/NO_CHANGE/REMOVED
+    textField("llmConfidence"),            // 0.0–1.0 as string
+    textField("confirmedOutcome"),         // set by user
+    textField("confirmedBy"),              // userId
+    dateField("confirmedAt"),
+    textField("notes", { max: 5000 }),
+  ]);
+
+  // ── 22. override_signals ─────────────────────────────────────────────────────
+  // Section 18 Step 2: captures RAG status overrides with mandatory reason
+  await setupCollection("override_signals", [
+    relationField("company", companiesId),
+    relationField("result", reviewResultsId, { cascadeDelete: false }),
+    textField("clauseCategory"),
+    textField("originalStatus"),
+    textField("correctedStatus"),
+    textField("clauseText", { max: 50000 }),
+    textField("counterpartyType"),
+    textField("contractType"),
+    textField("contractValueBand"),
+    textField("userRole"),
+    textField("reason", { required: true, max: 5000 }),
+    textField("userId"),
+  ]);
+
+  // ── 23. false_positive_signals ───────────────────────────────────────────────
+  // Section 18 Step 3: flags clause extractions that were incorrect
+  await setupCollection("false_positive_signals", [
+    relationField("company", companiesId),
+    relationField("result", reviewResultsId, { cascadeDelete: false }),
+    textField("clauseCategory"),
+    textField("errorType"),               // extraction/classification/regulatory/fallback
+    textField("originalExtractedText", { max: 50000 }),
+    textField("correctInterpretation", { max: 50000 }),
+    textField("userId"),
+  ]);
+
+  // ── 24. company_rules ────────────────────────────────────────────────────────
+  // Section 18 Steps 4+5: LLM-generated rules pending GC approval
+  await setupCollection("company_rules", [
+    relationField("company", companiesId),
+    textField("clauseCategory"),
+    textField("counterpartyType"),
+    textField("contractType"),
+    textField("ruleText", { max: 50000 }),
+    textField("status"),                  // PENDING/ACTIVE/REJECTED
+    textField("approvedBy"),              // userId
+    dateField("approvedAt"),
+    numberField("evidenceCount"),
+    textField("evidenceContracts", { max: 50000 }), // JSON array of document IDs
+    textField("riskAssessment", { max: 20000 }),
+    textField("generatedFrom"),           // OUTCOME_PATTERN/OVERRIDE_PATTERN
+    textField("editedRuleText", { max: 50000 }),
+  ]);
+
   console.log("\n✅ All collections set up successfully.\n");
   console.log("Next steps:");
   console.log("  1. Ensure POCKETBASE_URL, POCKETBASE_ADMIN_EMAIL, POCKETBASE_ADMIN_PASSWORD are set on the app service");

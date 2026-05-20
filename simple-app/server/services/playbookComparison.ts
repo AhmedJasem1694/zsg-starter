@@ -1,4 +1,5 @@
 import { chatComplete } from "./openrouter.js";
+import { buildContextBlock } from "./contextInjector.js";
 
 // Minimal shape of a playbook rule record needed by this module
 interface PlaybookRule {
@@ -57,14 +58,14 @@ function personaContext(persona: Persona, companyName: string, sector: string): 
   switch (persona) {
     case "FOUNDER":
       return {
-        role: `You are MIKE, a legal intelligence layer for ${companyName}, a ${sector} startup. You are helping the founder understand contract and investment document risk.`,
+        role: `You are Zane, a legal intelligence layer for ${companyName}, a ${sector} startup. You are helping the founder understand contract and investment document risk.`,
         audienceNote: "The reader is a commercially savvy founder, not a lawyer. Be direct and founder-focused: what does this mean for your equity, your control, your ability to run the company?",
         actionStyle: "Frame negotiation points as founder leverage. Flag investor-friendly traps plainly. If a clause is standard market practice, say so - founders should know what is and isn't worth fighting.",
       };
     case "CORPORATE":
     default:
       return {
-        role: `You are MIKE, a legal risk decision engine for ${companyName} (${sector}).`,
+        role: `You are Zane, a legal risk decision engine for ${companyName} (${sector}).`,
         audienceNote: "The reader is an in-house legal team or business stakeholder. Be direct, specific, and commercially pragmatic.",
         actionStyle: "Frame output as actionable instructions for a contract negotiation: what to accept, what to push back on, and who needs to approve exceptions.",
       };
@@ -75,13 +76,13 @@ function workflowContext(workflowType: WorkflowType): { role: string; audienceNo
   switch (workflowType) {
     case "INSURANCE_LITIGATION":
       return {
-        role: "You are MIKE, a legal intelligence layer for insurance litigation teams. You assess claims and coverage positions against regulatory obligations and settlement authority frameworks.",
+        role: "You are Zane, a legal intelligence layer for insurance litigation teams. You assess claims and coverage positions against regulatory obligations and settlement authority frameworks.",
         audienceNote: "The reader is in-house litigation counsel. Be precise on coverage analysis, quantum, and FCA regulatory obligations. Cite FCA Handbook (ICOBS, DISP) and FOS decisions where relevant.",
         actionStyle: "Frame output as litigation management instructions: coverage position, defence prospects, reserve adequacy, settlement authority level, and any regulatory flags requiring immediate action.",
       };
     case "LOGISTICS_CONTRACT":
       return {
-        role: "You are MIKE, a legal risk analyser for logistics and supply chain legal teams. You assess carrier, customer, and warehouse contracts against company positions and logistics-specific regulatory obligations including CMR Convention, BIFA standard trading conditions, and trade compliance requirements.",
+        role: "You are Zane, a legal risk analyser for logistics and supply chain legal teams. You assess carrier, customer, and warehouse contracts against company positions and logistics-specific regulatory obligations including CMR Convention, BIFA standard trading conditions, and trade compliance requirements.",
         audienceNote: "The reader is Head of Legal at a logistics business. Speak logistics language: cargo, consignments, hauliers, SLAs, CMR limits. Commercial and operational impact matters more than abstract legal risk.",
         actionStyle: "Frame output as contract negotiation instructions for a logistics business: what CMR limits apply, whether subcontracting rights are adequate, whether liability exposure exceeds insurance cover.",
       };
@@ -97,10 +98,32 @@ export async function compareClauseToPlaybook(
   sector: string,
   regulatoryContext: string = "",
   persona: Persona = "CORPORATE",
-  workflowType: string = "COMMERCIAL_CONTRACT"
+  workflowType: string = "COMMERCIAL_CONTRACT",
+  companyId: string = "",
+  counterpartyType: string = "",
+  contractType: string = ""
 ): Promise<ComparisonResult> {
   const wfCtx = workflowContext(workflowType as WorkflowType);
   const ctx = wfCtx ?? personaContext(persona, companyName, sector);
+
+  // ── Inject accumulated company signals ──────────────────────────────────────
+  let accumulatedSignals = "";
+  if (companyId) {
+    try {
+      accumulatedSignals = await buildContextBlock(
+        companyId,
+        rule.clauseCategory,
+        counterpartyType,
+        contractType
+      );
+    } catch {
+      // Non-fatal — proceed without signals
+    }
+  }
+
+  const signalsBlock = accumulatedSignals
+    ? `\n\n--- ACCUMULATED COMPANY SIGNALS ---\n${accumulatedSignals}\n--- END SIGNALS ---`
+    : "";
 
   const systemPrompt = `${ctx.role}
 ${ctx.audienceNote}
@@ -111,7 +134,7 @@ Playbook Rule for ${rule.clauseCategory}:
 - Acceptable fallback: ${rule.acceptableFallback}
 - Hard red line: ${rule.hardRedLine}
 - Approval required for exceptions: ${rule.approvalRequired ?? "None specified"}
-${rule.fallbackTemplate ? `- Preferred fallback wording: ${rule.fallbackTemplate}` : ""}${regulatoryContext}`;
+${rule.fallbackTemplate ? `- Preferred fallback wording: ${rule.fallbackTemplate}` : ""}${regulatoryContext}${signalsBlock}`;
 
   const userPrompt = `Review this clause and compare it against the playbook rule above.
 

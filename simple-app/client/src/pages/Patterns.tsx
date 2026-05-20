@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity, CheckCircle, AlertTriangle, Info, TrendingUp, ArrowRight,
-  Users, GitMerge, AlertOctagon,
+  Users, GitMerge, AlertOctagon, TrendingDown,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
-import { getFeedbackPatterns } from "../lib/api";
-import type { MikePattern, CounterpartyPattern, NegotiationDrift } from "../lib/api";
+import { getFeedbackPatterns, getOverrideTrend } from "../lib/api";
+import type { MikePattern, CounterpartyPattern, NegotiationDrift, OverrideTrendEntry } from "../lib/api";
 import { CLAUSE_LABELS } from "../lib/types";
 import type { ClauseCategory } from "../lib/types";
 
@@ -80,6 +80,63 @@ function DriftBar({ entry }: { entry: NegotiationDrift }) {
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
+
+// ── Override trend bar chart ──────────────────────────────────────────────────
+
+function OverrideTrendSection() {
+  const { data: trend, isLoading } = useQuery({
+    queryKey: ["override-trend"],
+    queryFn: getOverrideTrend,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (isLoading || !trend || trend.length === 0) return null;
+
+  const maxRate = Math.max(...trend.map((t) => t.overrideRate), 1);
+  const hasData = trend.some((t) => t.totalResults > 0);
+  if (!hasData) return null;
+
+  const first = trend.filter((t) => t.totalResults > 0)[0]?.overrideRate ?? 0;
+  const last  = trend.filter((t) => t.totalResults > 0).slice(-1)[0]?.overrideRate ?? 0;
+  const declining = last < first;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+          <Activity size={13} /> Override rate by month
+        </h2>
+        <div className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border ${
+          declining
+            ? "bg-[#052E16] border-[#14532D] text-[#86EFAC]"
+            : "bg-[#1C0F00] border-[#431407] text-[#FCD34D]"
+        }`}>
+          {declining ? <><TrendingDown size={11} /> Zane is learning</> : <><TrendingUp size={11} /> Calibration needed</>}
+        </div>
+      </div>
+      <div className="card p-4">
+        <div className="flex items-end gap-2 h-24">
+          {trend.map((entry: OverrideTrendEntry) => {
+            const height = maxRate > 0 ? (entry.overrideRate / maxRate) * 100 : 0;
+            return (
+              <div key={entry.month} className="flex-1 flex flex-col items-center gap-1 group relative">
+                <div
+                  className="w-full rounded-t-sm transition-all bg-[#2563EB]/60 group-hover:bg-[#2563EB]"
+                  style={{ height: `${Math.max(height, entry.totalResults > 0 ? 4 : 0)}%` }}
+                  title={`${entry.month}: ${entry.overrideRate}% override rate (${entry.overrideCount}/${entry.totalResults})`}
+                />
+                <div className="text-[9px] text-muted-foreground/50">{entry.month.slice(5)}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-2 text-[11px] text-muted-foreground/60">
+          A declining override rate means Zane's analysis is aligning more closely with your team's judgement.
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Patterns() {
   const { data, isLoading } = useQuery({
@@ -249,6 +306,9 @@ export default function Patterns() {
             )}
           </div>
         )}
+
+        {/* ── Override rate trend ────────────────────────────────────────────── */}
+        <OverrideTrendSection />
 
       </div>
     </AppLayout>

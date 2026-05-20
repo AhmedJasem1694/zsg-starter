@@ -216,7 +216,11 @@ export async function runReview(documentId: string): Promise<void> {
         company["name"] as string,
         company["sector"] as string,
         combinedRegContext + govLawContext,
-        (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER"
+        (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER",
+        doc["workflowType"] as string || "COMMERCIAL_CONTRACT",
+        company.id,
+        doc["counterpartyType"] as string || "",
+        doc["contractType"] as string || ""
       );
 
       // ── De-anonymise LLM output fields ─────────────────────────────────────
@@ -383,7 +387,7 @@ export async function runReview(documentId: string): Promise<void> {
 
     // Persist outcome patterns — fire-and-forget
     persistOutcomePatterns(company.id).catch((err: unknown) => {
-      console.error("[MIKE] Outcome pattern persistence failed:", err);
+      console.error("[Zane] Outcome pattern persistence failed:", err);
     });
 
     // Send escalation emails — fire-and-forget, never block or fail the review
@@ -411,7 +415,7 @@ export async function runReview(documentId: string): Promise<void> {
           businessSummary:   esc.businessSummary,
           companyName:       company["name"] as string,
         }).catch((err: unknown) => {
-          console.error(`[MIKE] Escalation email failed for ${esc.clauseCategory}:`, err);
+          console.error(`[Zane] Escalation email failed for ${esc.clauseCategory}:`, err);
         });
       }
     }

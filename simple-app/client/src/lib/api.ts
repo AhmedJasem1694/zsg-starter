@@ -260,7 +260,7 @@ export const saveFeedback = (
 export const teachMike = (
   resultId: string,
   data: { incorrectOutput: string; correctOutput: string; notes?: string }
-) => req("POST", `/api/feedback/teach-mike/${resultId}`, data);
+) => req("POST", `/api/feedback/teach-zane/${resultId}`, data);
 
 /**
  * False Positive — marks the clause extraction as incorrect (clause wasn't
@@ -477,3 +477,137 @@ export const setDocumentFolder = (documentId: string, folder: string) =>
 
 export const linkDocumentVersion = (documentId: string, parentDocumentId: string) =>
   req<{ id: string }>("PATCH", `/api/documents/${documentId}/version`, { parentDocumentId });
+
+// ── Section 18 — Behavioural Accumulation Engine ──────────────────────────────
+
+// Step 1 — Outcome delta capture
+export type DeltaOutcome = "PREFERRED" | "FALLBACK" | "BELOW_FALLBACK" | "NO_CHANGE" | "REMOVED";
+
+export interface OutcomeDelta {
+  id: string;
+  company: string;
+  document: string;
+  finalDocument: string;
+  clauseCategory: string;
+  originalStatus: string;
+  originalClauseText: string;
+  finalClauseText: string;
+  llmOutcome: DeltaOutcome;
+  llmConfidence: string;
+  confirmedOutcome: DeltaOutcome | "";
+  confirmedBy: string;
+  confirmedAt: string;
+  notes: string;
+  // enriched by server
+  playbookPreferred: string | null;
+  playbookFallback: string | null;
+  playbookRedLine: string | null;
+}
+
+export const uploadFinalVersion = async (documentId: string, file: File): Promise<{ finalDocumentId: string; message: string }> => {
+  const form = new FormData();
+  form.append("contract", file);
+  return req("POST", `/api/documents/${documentId}/upload-final`, form);
+};
+
+export const getOutcomeDeltas = (documentId: string) =>
+  req<{ deltas: OutcomeDelta[]; allConfirmed: boolean; hasUnconfirmed: boolean }>(
+    "GET",
+    `/api/documents/${documentId}/outcome-delta`
+  );
+
+export const confirmOutcomeDeltas = (
+  documentId: string,
+  confirmations: Array<{ deltaId: string; confirmedOutcome: DeltaOutcome; notes?: string }>
+) =>
+  req<{ ok: boolean }>(
+    "POST",
+    `/api/documents/${documentId}/outcome-delta/confirm`,
+    { confirmations }
+  );
+
+// Step 2 — Override signal capture
+export const overrideRagStatus = (
+  resultId: string,
+  data: { correctedStatus: string; reason: string }
+) => req<{ ok: boolean }>("POST", `/api/review/${resultId}/override`, data);
+
+// Step 3 — False positive capture
+export const markFalsePositiveSignal = (
+  resultId: string,
+  data: { errorType: string; correctInterpretation?: string }
+) => req<{ ok: boolean }>("POST", `/api/review/${resultId}/false-positive`, data);
+
+// Step 5 — Company rules engine
+export interface CompanyRule {
+  id: string;
+  company: string;
+  clauseCategory: string;
+  counterpartyType: string;
+  contractType: string;
+  ruleText: string;
+  status: "PENDING" | "ACTIVE" | "REJECTED";
+  approvedBy: string;
+  approvedAt: string;
+  evidenceCount: number;
+  evidenceContracts: string; // JSON array
+  riskAssessment: string;
+  generatedFrom: "OUTCOME_PATTERN" | "OVERRIDE_PATTERN";
+  editedRuleText: string;
+  created: string;
+}
+
+export const getCompanyRules = () =>
+  req<{ PENDING: CompanyRule[]; ACTIVE: CompanyRule[]; REJECTED: CompanyRule[] }>(
+    "GET", "/api/company-rules"
+  );
+
+export const approveCompanyRule = (id: string) =>
+  req<CompanyRule>("POST", `/api/company-rules/${id}/approve`);
+
+export const rejectCompanyRule = (id: string) =>
+  req<CompanyRule>("POST", `/api/company-rules/${id}/reject`);
+
+export const updateCompanyRuleText = (id: string, editedRuleText: string) =>
+  req<CompanyRule>("PATCH", `/api/company-rules/${id}`, { editedRuleText });
+
+// Step 7 — Visibility layer
+export const getSignalsSummary = (clauseCategory: string) =>
+  req<{ overrideCount: number; outcomeCount: number; ruleCount: number; fpCount: number }>(
+    "GET", `/api/accumulation/signals-summary?clauseCategory=${encodeURIComponent(clauseCategory)}`
+  );
+
+export const getAccumulationProgress = () =>
+  req<{
+    contractsReviewed: number;
+    outcomesLogged: number;
+    patternsDetected: number;
+    rulesActive: number;
+    overrideRate: number;
+    overrideRatePrev: number;
+    insight: string;
+  }>("GET", "/api/accumulation/progress");
+
+export interface ExtendedClauseOutcome {
+  clauseCategory: string;
+  total: number;
+  redCount: number;
+  accepted: number;
+  escalated: number;
+  avgSignedOutcome: string;
+  belowFallbackRate: number;
+  outcomeCounts: Record<string, number>;
+}
+
+export const getClauseOutcomesExtended = () =>
+  req<ExtendedClauseOutcome[]>("GET", "/api/accumulation/clause-outcomes-extended");
+
+export interface OverrideTrendEntry {
+  month: string;
+  overrideRate: number;
+  totalResults: number;
+  overrideCount: number;
+}
+
+export const getOverrideTrend = () =>
+  req<OverrideTrendEntry[]>("GET", "/api/accumulation/override-trend");
