@@ -35,7 +35,8 @@ export async function llmJsonCall<T>(opts: LLMJsonOptions): Promise<T> {
     },
   ];
 
-  const secondResponse = await chatComplete(retryMessages, maxTokens);
+  // Retry with a 30s timeout (shorter than the first attempt) to limit total wait
+  const secondResponse = await chatComplete(retryMessages, maxTokens, 30_000);
   const secondResult = tryParseJson<T>(secondResponse);
   if (secondResult !== null) return secondResult;
 

@@ -778,6 +778,10 @@ async function main() {
     textField("signedAt"),
     textField("outcomeNotes"),
     textField("contradictions"),
+    // Extraction metadata written by reviewOrchestrator after parsing
+    textField("extractionMethod"),
+    boolField("ocrUsed"),
+    numberField("textLength"),
   ]);
 
   // ── extracted_clauses ─────────────────────────────────────────────────────

@@ -170,39 +170,43 @@ export async function classifyClauses(
 
   type ClassifyItem = { chunkIndex: number; category: string; confidence: number };
 
-  try {
-    const parsed = await llmJsonCall<ClassifyItem[]>({
-      messages: [
-        {
-          role: "system",
-          content: `You are a legal clause classifier. Classify contract text chunks into these categories: ${categoriesDesc}.
+  // If there are no chunks (empty/unreadable document), return empty without an LLM call
+  if (chunks.length === 0) {
+    console.warn("[classifyClauses] No chunks to classify - document may be empty or unreadable");
+    return [];
+  }
+
+  // Propagate errors: callers must handle failure explicitly so the pipeline
+  // sets FAILED status rather than silently completing with empty results
+  const parsed = await llmJsonCall<ClassifyItem[]>({
+    messages: [
+      {
+        role: "system",
+        content: `You are a legal clause classifier. Classify contract text chunks into these categories: ${categoriesDesc}.
 Return ONLY a JSON array. Each element: {"chunkIndex": number, "category": string, "confidence": number (0-1)}.
 If a chunk clearly matches a category, set confidence >= 0.8. If uncertain, set confidence 0.5-0.79.
 If a chunk does not match any category, omit it from results.`,
-        },
-        {
-          role: "user",
-          content: `Classify these contract text chunks:\n\n${chunks
-            .map((c, i) => `[${i}] ${c}`)
-            .join("\n\n---\n\n")}`,
-        },
-      ],
-      maxTokens: 2048,
-      description: "clause classification",
-    });
+      },
+      {
+        role: "user",
+        content: `Classify these contract text chunks:\n\n${chunks
+          .map((c, i) => `[${i}] ${c}`)
+          .join("\n\n---\n\n")}`,
+      },
+    ],
+    maxTokens: 2048,
+    description: "clause classification",
+  });
 
-    return parsed
-      .filter(
-        (item) =>
-          item.chunkIndex < chunks.length &&
-          (activeCategories as readonly string[]).includes(item.category)
-      )
-      .map((item) => ({
-        category: item.category as ClauseCategory,
-        rawText: chunks[item.chunkIndex],
-        confidence: item.confidence,
-      }));
-  } catch {
-    return [];
-  }
+  return parsed
+    .filter(
+      (item) =>
+        item.chunkIndex < chunks.length &&
+        (activeCategories as readonly string[]).includes(item.category)
+    )
+    .map((item) => ({
+      category: item.category as ClauseCategory,
+      rawText: chunks[item.chunkIndex],
+      confidence: item.confidence,
+    }));
 }

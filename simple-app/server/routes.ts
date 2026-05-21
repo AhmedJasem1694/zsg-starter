@@ -820,7 +820,8 @@ Each field should be 1-3 sentences of clear, practical legal language.
         contractTags: body.contractTags ?? "",
       });
 
-      await audit({
+      // Fire-and-forget: audit must never block the upload response
+      void audit({
         action: "contract_uploaded",
         entityType: "uploaded_document",
         entityId: doc.id,
@@ -830,6 +831,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
         detail: { contractType: doc["contractType"], originalName: doc["originalName"], contractValue },
       });
 
+      console.log(`[upload] Document created: ${doc.id} (${doc["originalName"] as string}) for company ${company.id}`);
       res.json(mapDoc(doc));
     })
   );
@@ -1073,7 +1075,11 @@ Each field should be 1-3 sentences of clear, practical legal language.
 
     // Set PROCESSING synchronously before returning so the 409 guard works for concurrent requests
     await pb.collection("uploaded_documents").update(doc.id, { status: "PROCESSING" });
-    runReview(doc.id).catch(console.error);
+    // Fire-and-forget: ensure any uncaught error sets status to FAILED
+    runReview(doc.id).catch(async (err: unknown) => {
+      console.error(`[review] Unhandled error for ${doc.id}:`, (err as Error)?.message ?? err);
+      await pb.collection("uploaded_documents").update(doc.id, { status: "FAILED" }).catch(() => {/* ignore */});
+    });
     res.json({ status: "started", documentId: doc.id });
   }));
 

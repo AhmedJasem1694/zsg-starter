@@ -51,10 +51,19 @@ export async function parseDocument(filePath: string): Promise<ParseResult> {
     let nativeText = "";
     let pageCount = 0;
     try {
-      const result = await pdfParse(buffer);
+      // pdf-parse can hang indefinitely on certain PDFs (scanned, malformed, password-protected).
+      // Wrap with a 30s timeout so the pipeline never stalls here.
+      const parseWithTimeout = Promise.race([
+        pdfParse(buffer),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("pdf-parse timed out after 30s")), 30_000)
+        ),
+      ]);
+      const result = await parseWithTimeout;
       nativeText = result.text ?? "";
       pageCount = result.numpages ?? 0;
-    } catch {
+    } catch (err) {
+      console.warn(`[documentParser] pdf-parse failed/timed out: ${(err as Error)?.message ?? String(err)}`);
       // native parse failed - will fall through to OCR
     }
 

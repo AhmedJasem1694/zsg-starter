@@ -1,4 +1,5 @@
 import path from "path";
+import fs from "fs";
 import { pb } from "../pb.js";
 import { parseDocument, chunkText } from "./documentParser.js";
 import { classifyClauses } from "./clauseClassifier.js";
@@ -21,7 +22,19 @@ function toTitleCase(s: string) {
   return s.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+// Hard ceiling: if the entire review hasn't completed in 8 minutes, force FAILED.
+// This catches any unforeseen hang that slips past individual timeouts.
+const REVIEW_TIMEOUT_MS = 8 * 60 * 1000;
+
 export async function runReview(documentId: string): Promise<void> {
+  // Wrap the entire review in a hard timeout
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error(`Review pipeline timed out after ${REVIEW_TIMEOUT_MS / 60000} minutes`)), REVIEW_TIMEOUT_MS)
+  );
+  return Promise.race([_runReview(documentId), timeoutPromise]);
+}
+
+async function _runReview(documentId: string): Promise<void> {
   // Load document, company, and playbook rules
   const doc = await pb.collection("uploaded_documents").getOne(documentId);
   const company = await pb.collection("companies").getOne(doc["company"] as string);
@@ -56,9 +69,11 @@ export async function runReview(documentId: string): Promise<void> {
     return trigger ? (trigger["escalateTo"] as string) : null;
   }
 
+  console.log(`[review] START documentId=${documentId} file="${doc["filename"] as string}" company=${company.id}`);
+
   // Status is already set to PROCESSING by the route handler before runReview() is called.
-  // Audit: review started
-  await audit({
+  // Audit: fire-and-forget — never block the pipeline on audit writes
+  void audit({
     action: "review_started",
     entityType: "uploaded_document",
     entityId: documentId,
@@ -69,33 +84,47 @@ export async function runReview(documentId: string): Promise<void> {
   try {
     const filePath = path.join(process.cwd(), "uploads", doc["filename"] as string);
 
+    // Verify the file actually exists before attempting to parse
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`Uploaded file not found on disk: ${filePath}. The uploads directory may not be persisted.`);
+    }
+
     // Granular status: PARSING
     await pb.collection("uploaded_documents").update(documentId, { status: "PARSING" });
+    console.log(`[review] PARSING ${documentId} - reading ${filePath}`);
 
     const parseResult = await parseDocument(filePath);
     const rawText = parseResult.text;
     const ocrUsed = parseResult.ocrUsed;
     const extractionMethod = parseResult.extractionMethod;
 
-    // Store extraction metadata on the document
-    await pb.collection("uploaded_documents").update(documentId, {
+    console.log(`[review] PARSED ${documentId}: method=${extractionMethod} chars=${parseResult.textLength} ocrUsed=${ocrUsed}${parseResult.errorMessage ? ` warn="${parseResult.errorMessage}"` : ""}`);
+
+    // Store extraction metadata on the document (best-effort - fields may not exist in older schemas)
+    pb.collection("uploaded_documents").update(documentId, {
       extractionMethod,
       ocrUsed,
       textLength: parseResult.textLength,
-    });
+    }).catch((e: unknown) => console.warn("[review] Could not store extraction metadata:", (e as Error)?.message));
 
     // If extraction failed completely, throw to trigger FAILED status
     if (extractionMethod === "failed" && parseResult.textLength === 0) {
-      throw new Error(parseResult.errorMessage ?? "Document could not be parsed");
+      throw new Error(parseResult.errorMessage ?? "Document could not be parsed - ensure the PDF contains selectable text");
+    }
+
+    // If text is very sparse but non-zero, warn but continue
+    if (parseResult.textLength < 100) {
+      console.warn(`[review] Very sparse text (${parseResult.textLength} chars) for ${documentId} - review quality may be low`);
     }
 
     // Granular status: ANONYMISING
     await pb.collection("uploaded_documents").update(documentId, { status: "ANONYMISING" });
+    console.log(`[review] ANONYMISING ${documentId}`);
 
     // ── PII Anonymisation ────────────────────────────────────────────────────
     // Anonymise the raw contract text BEFORE it is sent to any external LLM.
     // We replace known party names first, then apply structural PII patterns.
-    await audit({
+    void audit({
       action: "pii_anonymisation_started",
       entityType: "uploaded_document",
       entityId: documentId,
@@ -113,7 +142,9 @@ export async function runReview(documentId: string): Promise<void> {
       documentId
     );
 
-    await audit({
+    console.log(`[review] ANONYMISED ${documentId}: session=${sessionId} entities=${entityMap.length}`);
+
+    void audit({
       action: "pii_anonymisation_completed",
       entityType: "uploaded_document",
       entityId: documentId,
@@ -131,6 +162,11 @@ export async function runReview(documentId: string): Promise<void> {
     // ────────────────────────────────────────────────────────────────────────
 
     const chunks = chunkText(anonymisedText);
+    console.log(`[review] CLASSIFYING ${documentId}: ${chunks.length} chunks, ${playbookRules.length} playbook rules`);
+
+    if (chunks.length === 0) {
+      console.warn(`[review] No text chunks produced for ${documentId}. Text length: ${rawText.length} chars. Document may be a scanned image or empty.`);
+    }
 
     // Granular status: CLASSIFYING
     await pb.collection("uploaded_documents").update(documentId, { status: "CLASSIFYING" });
@@ -138,6 +174,7 @@ export async function runReview(documentId: string): Promise<void> {
     // Derive active categories from the company's playbook rules
     const playbookCategories = Array.from(new Set(playbookRules.map((r) => r["clauseCategory"] as string)));
     const classified = await classifyClauses(chunks, company["workflowType"] as string, playbookCategories);
+    console.log(`[review] CLASSIFIED ${documentId}: ${classified.length} clauses matched out of ${playbookCategories.length} categories`);
 
     // Granular status: COMPARING
     await pb.collection("uploaded_documents").update(documentId, { status: "COMPARING" });
@@ -272,8 +309,8 @@ export async function runReview(documentId: string): Promise<void> {
       };
       // ───────────────────────────────────────────────────────────────────────
 
-      // Audit: RAG status assigned
-      await audit({
+      // Audit: fire-and-forget — never block the comparison loop on audit writes
+      void audit({
         action: "rag_status_assigned",
         entityType: "review_result",
         entityId: extractedClause.id,
@@ -344,7 +381,7 @@ export async function runReview(documentId: string): Promise<void> {
         );
         contradictions = findings;
         if (findings.length > 0) {
-          await audit({
+          void audit({
             action: "contradiction_detected",
             entityType: "uploaded_document",
             entityId: documentId,
@@ -397,7 +434,9 @@ export async function runReview(documentId: string): Promise<void> {
 
     await pb.collection("uploaded_documents").update(documentId, { status: "COMPLETE" });
 
-    await audit({
+    console.log(`[review] COMPLETE ${documentId}: ${results.length} clauses (RED=${results.filter((r) => r.ragStatus === "RED").length} AMBER=${results.filter((r) => r.ragStatus === "AMBER").length} GREEN=${results.filter((r) => r.ragStatus === "GREEN").length} GREY=${results.filter((r) => r.ragStatus === "GREY").length})`);
+
+    void audit({
       action: "review_completed",
       entityType: "uploaded_document",
       entityId: documentId,
@@ -447,13 +486,18 @@ export async function runReview(documentId: string): Promise<void> {
       }
     }
   } catch (err) {
-    await pb.collection("uploaded_documents").update(documentId, { status: "FAILED" });
-    await audit({
+    const errMsg = (err as Error)?.message ?? String(err);
+    console.error(`[review] FAILED ${documentId}: ${errMsg}`);
+    // Best-effort status update — if PB is down this also fails, but that's acceptable
+    await pb.collection("uploaded_documents").update(documentId, { status: "FAILED" }).catch((e: unknown) =>
+      console.error("[review] Could not set FAILED status:", (e as Error)?.message)
+    );
+    void audit({
       action: "review_failed",
       entityType: "uploaded_document",
       entityId: documentId,
       companyId: company.id,
-      detail: { error: (err as Error)?.message ?? String(err) },
+      detail: { error: errMsg },
     });
     throw err;
   }

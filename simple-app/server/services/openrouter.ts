@@ -24,7 +24,7 @@ interface ChatResponse {
 export async function chatComplete(
   messages: Message[],
   maxTokens = 1024,
-  timeoutMs = 120_000 // 2-minute hard cap — prevents hanging reviews
+  timeoutMs = 60_000 // 60s per attempt — llmJsonCall may retry once, so total max ~90s
 ): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
