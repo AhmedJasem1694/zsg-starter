@@ -683,9 +683,12 @@ export default function Landing() {
                 "Governance escalation routing",
                 "Regulatory citations",
                 "Outcome capture",
-                "One user",
+                "Includes one user seat",
               ],
-              cta: "Book a demo",
+              cta: "Get started",
+              // Relative path — resolves to production domain automatically
+              link: "/register",
+              external: false,
             },
             {
               tier: "Team",
@@ -701,7 +704,10 @@ export default function Landing() {
                 "Negotiating pattern intelligence",
                 "Contradiction detection across your contract library",
               ],
-              cta: "Book a demo",
+              cta: "Get started",
+              // Relative path — resolves to production domain automatically
+              link: "/register",
+              external: false,
             },
             {
               tier: "Growth",
@@ -717,8 +723,11 @@ export default function Landing() {
                 "Priority support",
               ],
               cta: "Book a demo",
+              // TODO: replace with dedicated demo-booking URL (e.g. Calendly) before launch
+              link: "mailto:hello@zanelegal.ai",
+              external: true,
             },
-          ].map(({ tier, price, period, highlight, description, features, cta }) => (
+          ].map(({ tier, price, period, highlight, description, features, cta, link, external }) => (
             <motion.div
               key={tier}
               className={`rounded-xl border p-6 space-y-5 ${highlight ? "border-primary/25 shadow-sm shadow-primary/10" : "border-black/8"} bg-[#F2F1EE]`}
@@ -742,12 +751,22 @@ export default function Landing() {
                   </li>
                 ))}
               </ul>
-              <Link to="/register"
-                className={`block text-center px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                  highlight ? "bg-primary text-white hover:opacity-90 shadow shadow-primary/20" : "border border-black/10 text-gray-600 hover:text-gray-800 hover:border-black/20"
-                }`}>
-                {cta} →
-              </Link>
+              {external ? (
+                <a
+                  href={link}
+                  className={`block text-center px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                    highlight ? "bg-primary text-white hover:opacity-90 shadow shadow-primary/20" : "border border-black/10 text-gray-600 hover:text-gray-800 hover:border-black/20"
+                  }`}>
+                  {cta} →
+                </a>
+              ) : (
+                <Link to={link}
+                  className={`block text-center px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                    highlight ? "bg-primary text-white hover:opacity-90 shadow shadow-primary/20" : "border border-black/10 text-gray-600 hover:text-gray-800 hover:border-black/20"
+                  }`}>
+                  {cta} →
+                </Link>
+              )}
             </motion.div>
           ))}
         </motion.div>
