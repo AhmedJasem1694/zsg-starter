@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import { z } from "zod";
 import { pb, newPBClient } from "./pb.js";
+import multer from "multer";
 import { upload, uploadAncillary, classifyFileType } from "./upload.js";
 import { runReview } from "./services/reviewOrchestrator.js";
 import { detectAndSaveRegulations } from "./services/regulatoryDetection.js";
@@ -753,7 +754,17 @@ Each field should be 1-3 sentences of clear, practical legal language.
   app.post(
     "/api/documents/upload",
     requireAuth,
-    upload.single("contract"),
+    // Wrap multer so file-type/size rejections return JSON (not HTML Express error page)
+    (req: Request, res: Response, next: NextFunction) => {
+      upload.single("contract")(req, res, (err) => {
+        if (err instanceof multer.MulterError) {
+          if (err.code === "LIMIT_FILE_SIZE") return sendError(res, 413, "File exceeds the 20 MB maximum. Please compress or split the document.");
+          return sendError(res, 400, `Upload error: ${err.message}`);
+        }
+        if (err) return sendError(res, 415, "Only PDF and DOCX files are supported.");
+        next();
+      });
+    },
     ah(async (req: Request, res: Response) => {
       const company = await getCompany();
       if (!company) { sendError(res, 400, "Complete onboarding before uploading"); return; }
@@ -773,7 +784,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
       const allowedMimes = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"];
       const allowedExts = [".pdf", ".docx", ".doc"];
       const uploadExt = path.extname(file.originalname).toLowerCase();
-      if (!allowedExts.includes(uploadExt) && !allowedMimes.includes(file.mimetype)) {
+      if (!allowedExts.includes(uploadExt) || !allowedMimes.includes(file.mimetype)) {
         try { fs.unlinkSync(file.path); } catch { /* ignore cleanup errors */ }
         sendError(res, 415, "Only PDF and DOCX files are supported.");
         return;
@@ -826,22 +837,36 @@ Each field should be 1-3 sentences of clear, practical legal language.
 
     const { search, ragStatus, contractType: typeFilter } = req.query as Record<string, string>;
 
-    const [docs, allResults] = await Promise.all([
+    const [docs, allResults, allFeedbacks] = await Promise.all([
       pb.collection("uploaded_documents").getFullList({
         filter: `company = "${company.id}"`,
         sort: "-created",
       }),
       pb.collection("review_results").getFullList({
         filter: `document.company = "${company.id}"`,
-        fields: "id,document,ragStatus",
+        fields: "id,document,ragStatus,escalationRequired",
       }),
+      pb.collection("user_feedback").getFullList({
+        filter: `result.document.company = "${company.id}"`,
+        fields: "id,result,userAction",
+      }).catch(() => [] as PBRecord[]),
     ]);
 
-    // Group results by documentId
-    const resultsByDoc = new Map<string, { ragStatus: string }[]>();
+    // Build feedback lookup by result ID
+    const feedbackByResult = new Map<string, { userAction: string }>();
+    for (const f of allFeedbacks) {
+      feedbackByResult.set(f["result"] as string, { userAction: f["userAction"] as string });
+    }
+
+    // Group results by documentId (including escalation + feedback)
+    const resultsByDoc = new Map<string, { ragStatus: string; escalationRequired: boolean; feedback?: { userAction: string } }[]>();
     for (const r of allResults) {
       const arr = resultsByDoc.get(r["document"] as string) ?? [];
-      arr.push({ ragStatus: r["ragStatus"] as string });
+      arr.push({
+        ragStatus: r["ragStatus"] as string,
+        escalationRequired: !!(r["escalationRequired"] as boolean),
+        feedback: feedbackByResult.get(r.id),
+      });
       resultsByDoc.set(r["document"] as string, arr);
     }
 
@@ -1014,6 +1039,19 @@ Each field should be 1-3 sentences of clear, practical legal language.
         ...existingResults.map((r) => pb.collection("review_results").delete(r.id)),
         ...existingClauses.map((c) => pb.collection("extracted_clauses").delete(c.id)),
       ]);
+    }
+
+    // Guard: refuse to start review if no playbook rules exist — would produce empty results
+    const company = await getCompany();
+    if (company) {
+      const rules = await pb.collection("playbook_rules").getFullList({
+        filter: `company = "${company.id}"`,
+        fields: "id",
+      });
+      if (rules.length === 0) {
+        sendError(res, 422, "No playbook rules configured. Please complete the onboarding playbook step before reviewing contracts.");
+        return;
+      }
     }
 
     // Set PROCESSING synchronously before returning so the 409 guard works for concurrent requests

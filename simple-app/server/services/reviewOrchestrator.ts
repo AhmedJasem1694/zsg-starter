@@ -56,8 +56,7 @@ export async function runReview(documentId: string): Promise<void> {
     return trigger ? (trigger["escalateTo"] as string) : null;
   }
 
-  await pb.collection("uploaded_documents").update(documentId, { status: "PROCESSING" });
-
+  // Status is already set to PROCESSING by the route handler before runReview() is called.
   // Audit: review started
   await audit({
     action: "review_started",

@@ -12,11 +12,12 @@ import { CLAUSE_LABELS } from "../../lib/types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Verdict = "safe" | "caution" | "danger";
+type Verdict = "safe" | "caution" | "danger" | "pending";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getVerdict(results: ReviewResult[]): Verdict {
+  if (results.length === 0) return "pending";
   // Prefer LLM-generated founderStatus - use worst across all results
   const statuses = results.map((r) => r.founderStatus).filter(Boolean) as FounderStatus[];
   if (statuses.includes("DO NOT SIGN YET")) return "danger";
@@ -390,12 +391,14 @@ export default function FounderReview() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<RagStatus | "ALL">("ALL");
 
+  const ACTIVE_STATUSES = ["PROCESSING", "PARSING", "ANONYMISING", "CLASSIFYING", "COMPARING"];
+
   const { data: doc, isLoading } = useQuery({
     queryKey: ["review", id],
     queryFn: () => getReview(id!),
     refetchInterval: (query) => {
       const d = query.state.data;
-      return d?.status === "PROCESSING" ? 3000 : false;
+      return d?.status && ACTIVE_STATUSES.includes(d.status) ? 3000 : false;
     },
   });
 
@@ -432,7 +435,7 @@ export default function FounderReview() {
     );
   }
 
-  if (doc.status === "PROCESSING") {
+  if (ACTIVE_STATUSES.includes(doc.status)) {
     const elapsedSec = (Date.now() - new Date(doc.uploadedAt).getTime()) / 1000;
     const FOUNDER_STAGES = [
       { label: "Reading your contract",           maxSec: 15  },
@@ -526,9 +529,10 @@ export default function FounderReview() {
   const filtered = filter === "ALL" ? results : results.filter((r) => r.ragStatus === filter);
 
   const VERDICT_BANNER = {
-    safe:    { label: "Looks good - you can proceed",         color: "text-[#86EFAC]", bg: "bg-[#052E16] border-[#14532D]", icon: CheckCircle },
-    caution: { label: "Worth a closer look before signing",   color: "text-[#FCD34D]", bg: "bg-[#1C0F00] border-[#431407]", icon: AlertCircle },
-    danger:  { label: "Don't sign yet - fix these first",     color: "text-[#FCA5A5]", bg: "bg-[#1F0A0A] border-[#450A0A]", icon: AlertTriangle },
+    safe:    { label: "Looks good - you can proceed",             color: "text-[#86EFAC]", bg: "bg-[#052E16] border-[#14532D]", icon: CheckCircle   },
+    caution: { label: "Worth a closer look before signing",       color: "text-[#FCD34D]", bg: "bg-[#1C0F00] border-[#431407]", icon: AlertCircle   },
+    danger:  { label: "Don't sign yet - fix these first",         color: "text-[#FCA5A5]", bg: "bg-[#1F0A0A] border-[#450A0A]", icon: AlertTriangle },
+    pending: { label: "No playbook clauses matched this contract", color: "text-[#94A3B8]", bg: "bg-[#0F172A] border-[#334155]", icon: AlertCircle   },
   } as const;
 
   const banner = VERDICT_BANNER[verdict];

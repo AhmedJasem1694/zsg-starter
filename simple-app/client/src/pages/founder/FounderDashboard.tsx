@@ -81,12 +81,14 @@ export default function FounderDashboard() {
 
   const { data: company } = useQuery({ queryKey: ["company"], queryFn: getCompany, retry: false });
 
+  const ACTIVE_STATUSES: DocumentStatus[] = ["PROCESSING", "PARSING", "ANONYMISING", "CLASSIFYING", "COMPARING"];
+
   const { data: documents = [] } = useQuery({
     queryKey: ["documents"],
     queryFn: () => getDocuments(),
     refetchInterval: (query) => {
       const docs = query.state.data as UploadedDocument[] | undefined;
-      return docs?.some((d) => d.status === "PROCESSING") ? 3000 : false;
+      return docs?.some((d) => ACTIVE_STATUSES.includes(d.status)) ? 3000 : false;
     },
   });
 
@@ -138,7 +140,6 @@ export default function FounderDashboard() {
     if (file) void handleUpload(file);
   }
 
-  const ACTIVE_STATUSES: DocumentStatus[] = ["PROCESSING", "PARSING", "ANONYMISING", "CLASSIFYING", "COMPARING"];
   const processing = documents.some((d) => ACTIVE_STATUSES.includes(d.status));
   const firstName = (company as { name?: string } | undefined)?.name?.split(" ")[0] ?? "there";
 
@@ -268,9 +269,9 @@ export default function FounderDashboard() {
               </div>
             </div>
 
-            {/* Processing stage cards - one per PROCESSING document */}
+            {/* Processing stage cards - shown for all active pipeline statuses */}
             {(documents as UploadedDocument[])
-              .filter((d) => d.status === "PROCESSING")
+              .filter((d) => ACTIVE_STATUSES.includes(d.status))
               .map((d) => {
                 const elapsedSec = (Date.now() - new Date(d.uploadedAt).getTime()) / 1000;
                 const STAGES = [

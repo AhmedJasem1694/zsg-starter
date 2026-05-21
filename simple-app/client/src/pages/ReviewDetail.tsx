@@ -63,13 +63,15 @@ export default function ReviewDetail() {
   // Demo mode - mock-1 served from local data, no API call needed
   const isMock = id === "mock-1";
 
+  const ACTIVE_STATUSES = ["PROCESSING", "PARSING", "ANONYMISING", "CLASSIFYING", "COMPARING"];
+
   const { data: realDoc, isLoading } = useQuery({
     queryKey: ["review", id],
     queryFn: () => getReview(id!),
     enabled: !isMock,
     refetchInterval: (query) => {
       const d = query.state.data;
-      return d?.status === "PROCESSING" ? 3000 : false;
+      return d?.status && ACTIVE_STATUSES.includes(d.status) ? 3000 : false;
     },
   });
 
@@ -108,7 +110,7 @@ export default function ReviewDetail() {
 
   // ── Processing state ──────────────────────────────────────────────────────
 
-  if (doc.status === "PROCESSING") {
+  if (ACTIVE_STATUSES.includes(doc.status)) {
     const elapsedSec = (Date.now() - new Date(doc.uploadedAt).getTime()) / 1000;
     const DETAIL_STAGES = [
       { label: "Parsing document",              maxSec: 15  },

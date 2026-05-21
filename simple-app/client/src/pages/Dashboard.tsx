@@ -53,22 +53,6 @@ interface DocWithRag {
 
 type SignReadiness = "ready" | "negotiate" | "review" | "not-ready" | "pending";
 
-const CONTRACT_TYPES = [
-  { value: "SUPPLIER_AGREEMENT",    label: "Supplier Agreement" },
-  { value: "CUSTOMER_AGREEMENT",    label: "Customer Agreement" },
-  { value: "MSA",                   label: "Master Services Agreement" },
-  { value: "NDA",                   label: "NDA" },
-  { value: "DPA",                   label: "Data Processing Agreement" },
-  { value: "SaaS_AGREEMENT",        label: "SaaS / Software Licence" },
-  { value: "PROFESSIONAL_SERVICES", label: "Professional Services" },
-  { value: "EMPLOYMENT",            label: "Employment Agreement" },
-  { value: "CONTRACTOR_AGREEMENT",  label: "Contractor Agreement" },
-  { value: "COMMERCIAL_LEASE",      label: "Commercial Lease" },
-  { value: "LICENSE_AGREEMENT",     label: "Licence to Occupy" },
-  { value: "JV_AGREEMENT",          label: "Joint Venture Agreement" },
-  { value: "SHARE_PURCHASE",        label: "Share Purchase Agreement" },
-];
-
 // ── Workflow-specific options ──────────────────────────────────────────────────
 
 const COMMERCIAL_CONTRACT_TYPES = [
@@ -86,6 +70,7 @@ const COMMERCIAL_CONTRACT_TYPES = [
   { value: "AGENCY_AGREEMENT",      label: "Agency Agreement" },
   { value: "DISTRIBUTION",          label: "Distribution Agreement" },
   { value: "LICENCE_AGREEMENT",     label: "Licence Agreement" },
+  { value: "OPTIONS_AGREEMENT",     label: "Options Agreement (EMI / CSOP)" },
   { value: "OTHER",                 label: "Other" },
 ];
 
@@ -593,6 +578,7 @@ export default function Dashboard() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState("SUPPLIER_AGREEMENT");
   const [dragOver, setDragOver] = useState(false);
 
@@ -670,6 +656,7 @@ export default function Dashboard() {
 
   async function handleUpload(file: File) {
     setUploading(true);
+    setUploadError(null);
     try {
       const meta = {
         counterpartyName,
@@ -701,6 +688,16 @@ export default function Dashboard() {
       setGoverningLaw(""); setJurisdiction("");
     } catch (e) {
       console.error(e);
+      const msg = e instanceof Error ? e.message : "Upload failed";
+      if (msg.includes("413") || msg.toLowerCase().includes("too large") || msg.toLowerCase().includes("20mb")) {
+        setUploadError("File is too large - maximum size is 20 MB.");
+      } else if (msg.includes("415") || msg.toLowerCase().includes("not supported")) {
+        setUploadError("Only PDF and Word (.docx) files are supported.");
+      } else if (msg.includes("400") || msg.toLowerCase().includes("onboarding")) {
+        setUploadError("Please complete onboarding before uploading.");
+      } else {
+        setUploadError("Upload failed - please check your connection and try again.");
+      }
     } finally {
       setUploading(false);
     }
@@ -725,8 +722,13 @@ export default function Dashboard() {
 
   // Client-side filtering
   const filteredDocuments = documents.filter((doc) => {
-    const d = doc as DocWithRag & { counterpartyName?: string };
-    if (searchQuery && !d.counterpartyName?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    const d = doc as DocWithRag & { counterpartyName?: string; originalName: string };
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const matchesCounterparty = d.counterpartyName?.toLowerCase().includes(q) ?? false;
+      const matchesName = d.originalName?.toLowerCase().includes(q) ?? false;
+      if (!matchesCounterparty && !matchesName) return false;
+    }
     if (filterRag && !d.reviewResults?.some((r) => r.ragStatus === filterRag)) return false;
     if (filterType && d.contractType !== filterType) return false;
     return true;
@@ -735,9 +737,6 @@ export default function Dashboard() {
   const urgencySignals = useMock
     ? MOCK_URGENCY_SIGNALS
     : computeUrgencySignals(filteredDocuments as DocWithRag[]);
-
-  // Keep CONTRACT_TYPES for any fallback usage
-  void CONTRACT_TYPES;
 
   return (
     <AppLayout>
@@ -940,6 +939,14 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
+
+                {/* Upload error */}
+                {uploadError && (
+                  <div className="mt-3 flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/8 px-3 py-2.5">
+                    <AlertCircle size={14} className="text-destructive shrink-0 mt-0.5" />
+                    <p className="text-xs text-destructive leading-snug">{uploadError}</p>
+                  </div>
+                )}
               </div>
             </div>
 
