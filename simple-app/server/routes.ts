@@ -784,7 +784,10 @@ Each field should be 1-3 sentences of clear, practical legal language.
       const allowedMimes = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"];
       const allowedExts = [".pdf", ".docx", ".doc"];
       const uploadExt = path.extname(file.originalname).toLowerCase();
-      if (!allowedExts.includes(uploadExt) || !allowedMimes.includes(file.mimetype)) {
+      // Use && so files with a valid extension but an unexpected MIME type
+      // (e.g. application/octet-stream when dragging a PDF from the desktop)
+      // are still accepted.  Reject only when BOTH extension and MIME are wrong.
+      if (!allowedExts.includes(uploadExt) && !allowedMimes.includes(file.mimetype)) {
         try { fs.unlinkSync(file.path); } catch { /* ignore cleanup errors */ }
         sendError(res, 415, "Only PDF and DOCX files are supported.");
         return;

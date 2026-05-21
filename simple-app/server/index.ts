@@ -3,6 +3,8 @@ import "./env";
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import fs from "fs";
+import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initPocketBase } from "./pb";
@@ -45,6 +47,9 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 (async () => {
+  // Ensure uploads directory exists (Railway ephemeral disk may not have it)
+  fs.mkdirSync(path.join(process.cwd(), "uploads"), { recursive: true });
+
   await initPocketBase();
 
   const server = await registerRoutes(app);
