@@ -260,16 +260,6 @@ export default function Landing() {
 
         <div className="relative max-w-4xl mx-auto px-6 py-10 text-center space-y-5">
 
-          {/* Pill */}
-          <motion.div
-            className="inline-flex items-center gap-2 border border-white/12 rounded-full px-4 py-1.5 text-xs text-white/55"
-            style={{ background: "#111A24" }}
-            {...(shouldReduce ? {} : fadeUpHero(0.1))}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse shrink-0" />
-            14 jurisdictions including UK · EU · UAE · US · KSA
-          </motion.div>
-
           {/* Headline */}
           <motion.h1
             className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] text-white"
