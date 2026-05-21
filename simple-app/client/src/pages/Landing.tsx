@@ -216,7 +216,9 @@ export default function Landing() {
       {/* ─── NAV ─────────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-20 border-b border-white/8 backdrop-blur-md" style={{ background: "rgba(11,17,24,0.97)" }}>
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <ZaneLogo size="sm" light={true} />
+          <Link to="/" className="hover:opacity-80 transition-opacity">
+            <ZaneLogo size="sm" light={true} />
+          </Link>
           <nav className="hidden md:flex items-center gap-6 text-xs">
             {["#why-zane:Why Zane","#how-it-works:How it works","#pricing:Pricing"].map(s => {
               const [href, label] = s.split(":");
@@ -805,7 +807,9 @@ export default function Landing() {
       {/* ─── FOOTER ──────────────────────────────────────────────────────────── */}
       <footer className="border-t border-black/6 mt-auto">
         <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
-          <ZaneLogo size="sm" light={false} />
+          <Link to="/" className="hover:opacity-80 transition-opacity">
+            <ZaneLogo size="sm" light={false} />
+          </Link>
           <div className="flex items-center gap-6 text-xs text-gray-500">
             <Link to="/case-study" className="hover:text-gray-600 transition-colors">Case study</Link>
             <Link to="/security" className="hover:text-gray-600 transition-colors">Security</Link>
