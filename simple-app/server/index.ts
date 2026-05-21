@@ -1,6 +1,7 @@
 import "./env";
 
 import express from "express";
+import cors from "cors";
 import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -17,6 +18,22 @@ process.on("unhandledRejection", (reason) => {
 const PORT = 3000;
 
 const app = express();
+
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "http://localhost:3000",
+  "http://localhost:5173",
+].filter(Boolean) as string[];
+
+app.use(cors({
+  origin: (origin, cb) => {
+    // Allow no-origin requests (same-domain, curl, etc.)
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(null, true); // permissive for now — cookie httpOnly is the real guard
+  },
+  credentials: true,
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());

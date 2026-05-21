@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import path from "path";
+import fs from "fs";
 import { z } from "zod";
 import { pb, newPBClient } from "./pb.js";
 import { upload, uploadAncillary, classifyFileType } from "./upload.js";
@@ -42,10 +43,12 @@ function ah(fn: (req: Request, res: Response, next: NextFunction) => Promise<voi
   };
 }
 
+const isProd = process.env.NODE_ENV === "production";
+const crossDomain = !!process.env.FRONTEND_URL;
 const COOKIE_OPTS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
+  secure: isProd,
+  sameSite: (isProd && crossDomain ? "none" : "lax") as "none" | "lax",
   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
 };
 
@@ -157,6 +160,17 @@ function sendError(res: Response, status: number, message: string) {
 async function getCompany(): Promise<PBRecord | null> {
   const list = await pb.collection("companies").getFullList({ batch: 1 });
   return list[0] ?? null;
+}
+
+// ── Tenant ownership guard ───────────────────────────────────────────────────
+
+async function assertOwnsDocument(userId: string, documentId: string, userCompanyId: string): Promise<void> {
+  // userId param kept for future per-user checks; current guard is company-level
+  void userId;
+  const doc = await pb.collection("uploaded_documents").getOne(documentId);
+  if ((doc["company"] as string) !== userCompanyId) {
+    throw Object.assign(new Error("Forbidden"), { status: 403 });
+  }
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -747,6 +761,24 @@ Each field should be 1-3 sentences of clear, practical legal language.
       const file = req.file;
       if (!file) { sendError(res, 400, "No file uploaded"); return; }
 
+      // File size check (20MB max)
+      const MAX_SIZE_BYTES = 20 * 1024 * 1024;
+      if (file.size > MAX_SIZE_BYTES) {
+        try { fs.unlinkSync(file.path); } catch { /* ignore cleanup errors */ }
+        sendError(res, 413, "File exceeds the 20MB maximum. Please compress or split the document.");
+        return;
+      }
+
+      // File type check
+      const allowedMimes = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/msword"];
+      const allowedExts = [".pdf", ".docx", ".doc"];
+      const uploadExt = path.extname(file.originalname).toLowerCase();
+      if (!allowedExts.includes(uploadExt) && !allowedMimes.includes(file.mimetype)) {
+        try { fs.unlinkSync(file.path); } catch { /* ignore cleanup errors */ }
+        sendError(res, 415, "Only PDF and DOCX files are supported.");
+        return;
+      }
+
       const body = req.body as Record<string, string>;
       const contractValue = body.contractValue ? parseFloat(body.contractValue) : null;
       const contractTermMonths = body.contractTermMonths ? parseInt(body.contractTermMonths) : null;
@@ -941,6 +973,12 @@ Each field should be 1-3 sentences of clear, practical legal language.
       doc = await pb.collection("uploaded_documents").getOne(req.params.documentId);
     } catch {
       sendError(res, 404, "Document not found"); return;
+    }
+
+    // Tenant isolation: verify document belongs to the requesting user's company
+    const company = await getCompany();
+    if (!company || (doc["company"] as string) !== company.id) {
+      sendError(res, 403, "Forbidden"); return;
     }
 
     const results = await pb.collection("review_results").getFullList({

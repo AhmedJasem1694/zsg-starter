@@ -1007,11 +1007,9 @@ export default function Playbook() {
           isLoading ? (
             <div className="text-sm text-muted-foreground py-8 text-center">Loading playbook…</div>
           ) : rules.length === 0 ? (
-            <div className="card p-8 text-center space-y-2">
-              <div className="text-sm font-medium text-muted-foreground">No playbook rules found</div>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                Add preferred positions, fallback language and approval triggers before running reviews.
-              </p>
+            <div className="text-center py-16 space-y-3">
+              <div className="text-sm font-medium">Your playbook is empty</div>
+              <div className="text-xs text-muted-foreground">Add your first clause position to start reviewing contracts against your standards.</div>
             </div>
           ) : (
             <div className="space-y-3">

@@ -12,7 +12,8 @@ export default function Register() {
   const mut = useMutation({
     mutationFn: () => register({ name: form.name, email: form.email, password: form.password }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["auth-me"] });
+      // Refetch auth so user is set before we navigate
+      await queryClient.refetchQueries({ queryKey: ["auth-me"] });
       navigate("/onboarding");
     },
     onError: (e: Error) => setError(e.message),
@@ -38,7 +39,7 @@ export default function Register() {
         {/* Logo */}
         <div className="text-center space-y-2">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center mx-auto">
-            <span className="text-white text-sm font-bold">M</span>
+            <span className="text-white text-sm font-bold">Z</span>
           </div>
           <div>
             <div className="font-semibold text-lg">Create your Zane account</div>

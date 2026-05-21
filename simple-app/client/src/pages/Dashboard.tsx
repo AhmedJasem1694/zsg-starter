@@ -1,10 +1,10 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Upload, FileText, AlertTriangle, CheckCircle, Clock,
   RotateCcw, Shield, ChevronRight, AlertCircle, LayoutGrid, ArrowRight,
-  CalendarClock, Bell, Lock, Activity,
+  CalendarClock, Bell, Lock, Activity, X,
 } from "lucide-react";
 import { getDocuments, uploadDocument, startReview, getCompany, getDocumentStats } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
@@ -15,6 +15,30 @@ import { Link } from "react-router-dom";
 import type { DocumentStatus } from "../lib/types";
 import { MOCK_MODE, MOCK_DOCUMENTS, MOCK_URGENCY_SIGNALS } from "../lib/mockData";
 import type { UploadedDocument } from "../lib/types";
+
+// ─── Pilot safety notice ──────────────────────────────────────────────────────
+
+function PilotNoticeBanner() {
+  const [dismissed, setDismissed] = React.useState(
+    () => localStorage.getItem("zane_pilot_notice_dismissed") === "true"
+  );
+  if (dismissed) return null;
+  return (
+    <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 flex items-start gap-3">
+      <AlertTriangle size={15} className="text-amber-400 shrink-0 mt-0.5" />
+      <p className="text-xs text-amber-200/80 leading-relaxed flex-1">
+        <span className="font-semibold text-amber-300">Pilot use only.</span>{" "}
+        Do not upload highly sensitive, privileged, or production-critical documents without prior agreement with Zane.
+      </p>
+      <button
+        onClick={() => { localStorage.setItem("zane_pilot_notice_dismissed", "true"); setDismissed(true); }}
+        className="text-amber-400/50 hover:text-amber-400 transition-colors shrink-0"
+      >
+        <X size={14} />
+      </button>
+    </div>
+  );
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -343,10 +367,22 @@ const PROCESSING_STAGES = [
   { label: "Preparing review report",       maxSec: Infinity },
 ];
 
-function ReviewProcessingCard({ doc }: { doc: { id: string; originalName: string; uploadedAt: string } }) {
+const STATUS_TO_STAGE: Record<string, number> = {
+  UPLOADED: 0,
+  PARSING: 0,
+  ANONYMISING: 1,
+  CLASSIFYING: 2,
+  COMPARING: 3,
+  PROCESSING: 2, // legacy
+};
+
+function ReviewProcessingCard({ doc }: { doc: UploadedDocument }) {
+  const statusStage = STATUS_TO_STAGE[doc.status] ?? 0;
   const elapsedSec = (Date.now() - new Date(doc.uploadedAt).getTime()) / 1000;
-  const activeIdx  = PROCESSING_STAGES.findIndex((s) => elapsedSec < s.maxSec);
-  const stageIdx   = activeIdx === -1 ? PROCESSING_STAGES.length - 1 : activeIdx;
+  const timeIdx = PROCESSING_STAGES.findIndex((s) => elapsedSec < s.maxSec);
+  const timeStage = timeIdx === -1 ? PROCESSING_STAGES.length - 1 : timeIdx;
+  // Use whichever is further along
+  const stageIdx = Math.max(statusStage, timeStage);
 
   return (
     <div className="card border-[#1C2A3A] shimmer relative overflow-hidden" style={{ background: "#0D1B2A" }}>
@@ -593,12 +629,14 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
+  const ACTIVE_STATUSES: DocumentStatus[] = ["PROCESSING", "PARSING", "ANONYMISING", "CLASSIFYING", "COMPARING"];
+
   const { data: realDocuments = [] } = useQuery({
     queryKey: ["documents"],
     queryFn: () => getDocuments(),
     refetchInterval: (query) => {
       const docs = query.state.data as UploadedDocument[] | undefined;
-      return docs?.some((d) => d.status === "PROCESSING") ? 3000 : false;
+      return docs?.some((d) => ACTIVE_STATUSES.includes(d.status)) ? 3000 : false;
     },
   });
 
@@ -683,7 +721,7 @@ export default function Dashboard() {
 
   const useMock = MOCK_MODE && realDocuments.length === 0;
   const documents = useMock ? MOCK_DOCUMENTS : realDocuments;
-  const processing = (realDocuments as UploadedDocument[]).some((d) => d.status === "PROCESSING");
+  const processing = (realDocuments as UploadedDocument[]).some((d) => ACTIVE_STATUSES.includes(d.status));
 
   // Client-side filtering
   const filteredDocuments = documents.filter((doc) => {
@@ -725,6 +763,9 @@ export default function Dashboard() {
             </span>
           )}
         </div>
+
+        {/* Pilot safety notice */}
+        <PilotNoticeBanner />
 
         {/* Next best action — single most important item */}
         <NextBestAction documents={filteredDocuments as DocWithRag[]} isMock={useMock} />
@@ -904,7 +945,7 @@ export default function Dashboard() {
 
             {/* Processing stage cards */}
             {(realDocuments as UploadedDocument[])
-              .filter((d) => d.status === "PROCESSING")
+              .filter((d) => ACTIVE_STATUSES.includes(d.status))
               .map((d) => (
                 <ReviewProcessingCard key={d.id} doc={d} />
               ))}
@@ -1028,7 +1069,7 @@ export default function Dashboard() {
                           {readinessLabel}
                         </div>
 
-                        {doc.status === "PROCESSING" && (
+                        {ACTIVE_STATUSES.includes(doc.status as DocumentStatus) && (
                           <span className="flex items-center gap-1 text-xs text-[#FCD34D] shrink-0">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D] animate-pulse" /> Reviewing
                           </span>

@@ -69,7 +69,29 @@ export async function runReview(documentId: string): Promise<void> {
 
   try {
     const filePath = path.join(process.cwd(), "uploads", doc["filename"] as string);
-    const rawText = await parseDocument(filePath);
+
+    // Granular status: PARSING
+    await pb.collection("uploaded_documents").update(documentId, { status: "PARSING" });
+
+    const parseResult = await parseDocument(filePath);
+    const rawText = parseResult.text;
+    const ocrUsed = parseResult.ocrUsed;
+    const extractionMethod = parseResult.extractionMethod;
+
+    // Store extraction metadata on the document
+    await pb.collection("uploaded_documents").update(documentId, {
+      extractionMethod,
+      ocrUsed,
+      textLength: parseResult.textLength,
+    });
+
+    // If extraction failed completely, throw to trigger FAILED status
+    if (extractionMethod === "failed" && parseResult.textLength === 0) {
+      throw new Error(parseResult.errorMessage ?? "Document could not be parsed");
+    }
+
+    // Granular status: ANONYMISING
+    await pb.collection("uploaded_documents").update(documentId, { status: "ANONYMISING" });
 
     // ── PII Anonymisation ────────────────────────────────────────────────────
     // Anonymise the raw contract text BEFORE it is sent to any external LLM.
@@ -111,9 +133,15 @@ export async function runReview(documentId: string): Promise<void> {
 
     const chunks = chunkText(anonymisedText);
 
+    // Granular status: CLASSIFYING
+    await pb.collection("uploaded_documents").update(documentId, { status: "CLASSIFYING" });
+
     // Derive active categories from the company's playbook rules
     const playbookCategories = Array.from(new Set(playbookRules.map((r) => r["clauseCategory"] as string)));
     const classified = await classifyClauses(chunks, company["workflowType"] as string, playbookCategories);
+
+    // Granular status: COMPARING
+    await pb.collection("uploaded_documents").update(documentId, { status: "COMPARING" });
 
     // Deduplicate — keep highest-confidence chunk per category
     const bestByCategory = new Map<string, (typeof classified)[0]>();

@@ -1,4 +1,4 @@
-import { chatComplete } from "./openrouter.js";
+import { llmJsonCall } from "./llmJsonParse.js";
 import { buildContextBlock } from "./contextInjector.js";
 
 // Minimal shape of a playbook rule record needed by this module
@@ -177,18 +177,14 @@ Confidence rules:
 
 Regulatory citations: include only citations where you can name the specific article or rule number. If none apply, return an empty array.`;
 
-  const text = await chatComplete(
-    [
+  return await llmJsonCall<ComparisonResult>({
+    messages: [
       { role: "system", content: systemPrompt },
       { role: "user",   content: userPrompt },
     ],
-    4000
-  );
-
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("No JSON in response");
-
-  return JSON.parse(jsonMatch[0]) as ComparisonResult;
+    maxTokens: 4000,
+    description: `playbook comparison for ${rule.clauseCategory}`,
+  });
 }
 
 export function buildAbsentClauseResult(

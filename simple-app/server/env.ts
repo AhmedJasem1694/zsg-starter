@@ -24,6 +24,18 @@ if (!process.env.COMPANIES_HOUSE_API_KEY) {
 // Required vars: SMTP_HOST, SMTP_USER, SMTP_PASS
 // Optional vars: SMTP_PORT (default 587), SMTP_FROM, APP_URL
 
+if (!process.env.JWT_SECRET) {
+  console.warn("Warning: JWT_SECRET not set — using insecure default. Set this in production.");
+}
+
+if (!process.env.FRONTEND_URL) {
+  console.info("Info: FRONTEND_URL not set — assuming same-origin deployment.");
+}
+
+if (process.env.NODE_ENV !== "production") {
+  console.info(`Info: NODE_ENV is "${process.env.NODE_ENV ?? "undefined"}" — not running in production mode.`);
+}
+
 if (!process.env.APP_URL) {
   console.warn("Warning: APP_URL is not set - webhook registration for integrations will fail");
 }

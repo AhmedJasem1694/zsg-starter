@@ -1,4 +1,4 @@
-import { chatComplete } from "./openrouter.js";
+import { llmJsonCall } from "./llmJsonParse.js";
 
 export const CLAUSE_CATEGORIES = [
   "LIABILITY_CAP",
@@ -168,33 +168,28 @@ export async function classifyClauses(
 
   const categoriesDesc = activeCategories.join(" | ");
 
-  const text = await chatComplete(
-    [
-      {
-        role: "system",
-        content: `You are a legal clause classifier. Classify contract text chunks into these categories: ${categoriesDesc}.
+  type ClassifyItem = { chunkIndex: number; category: string; confidence: number };
+
+  try {
+    const parsed = await llmJsonCall<ClassifyItem[]>({
+      messages: [
+        {
+          role: "system",
+          content: `You are a legal clause classifier. Classify contract text chunks into these categories: ${categoriesDesc}.
 Return ONLY a JSON array. Each element: {"chunkIndex": number, "category": string, "confidence": number (0-1)}.
 If a chunk clearly matches a category, set confidence >= 0.8. If uncertain, set confidence 0.5-0.79.
 If a chunk does not match any category, omit it from results.`,
-      },
-      {
-        role: "user",
-        content: `Classify these contract text chunks:\n\n${chunks
-          .map((c, i) => `[${i}] ${c}`)
-          .join("\n\n---\n\n")}`,
-      },
-    ],
-    2048
-  );
-
-  try {
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) return [];
-    const parsed = JSON.parse(jsonMatch[0]) as Array<{
-      chunkIndex: number;
-      category: string;
-      confidence: number;
-    }>;
+        },
+        {
+          role: "user",
+          content: `Classify these contract text chunks:\n\n${chunks
+            .map((c, i) => `[${i}] ${c}`)
+            .join("\n\n---\n\n")}`,
+        },
+      ],
+      maxTokens: 2048,
+      description: "clause classification",
+    });
 
     return parsed
       .filter(
