@@ -60,8 +60,10 @@ const CONTRACT_TYPES = [
   { value: "TERM_SHEET",            label: "Term Sheet / Investment" },
   { value: "SHA",                   label: "Shareholders' Agreement" },
   { value: "CONVERTIBLE_NOTE",      label: "Convertible Note / SAFE" },
+  { value: "OPTIONS_AGREEMENT",     label: "Options Agreement (EMI / CSOP)" },
   { value: "JV_AGREEMENT",          label: "Partnership / JV" },
   { value: "COMMERCIAL_LEASE",      label: "Office / property lease" },
+  { value: "IP_ASSIGNMENT",         label: "IP Assignment" },
   { value: "OTHER",                 label: "Something else" },
 ];
 
@@ -72,6 +74,7 @@ export default function FounderDashboard() {
   const queryClient    = useQueryClient();
   const fileInputRef   = useRef<HTMLInputElement>(null);
   const [uploading, setUploading]         = useState(false);
+  const [uploadError, setUploadError]     = useState<string | null>(null);
   const [selectedType, setSelectedType]   = useState("SUPPLIER_AGREEMENT");
   const [counterpartyName, setCpName]     = useState("");
   const [dragOver, setDragOver]           = useState(false);
@@ -94,6 +97,7 @@ export default function FounderDashboard() {
 
   async function handleUpload(file: File) {
     setUploading(true);
+    setUploadError(null);
     try {
       const doc = await uploadDocument(file, selectedType, {
         counterpartyName: counterpartyName || undefined,
@@ -105,6 +109,17 @@ export default function FounderDashboard() {
       setCpName("");
     } catch (e) {
       console.error(e);
+      const msg = e instanceof Error ? e.message : "Upload failed";
+      // Surface common errors clearly
+      if (msg.includes("413") || msg.toLowerCase().includes("too large") || msg.toLowerCase().includes("20mb")) {
+        setUploadError("File is too large - maximum size is 20 MB.");
+      } else if (msg.includes("415") || msg.toLowerCase().includes("not supported") || msg.toLowerCase().includes("pdf")) {
+        setUploadError("Only PDF and Word (.docx) files are supported.");
+      } else if (msg.includes("400") || msg.toLowerCase().includes("onboarding")) {
+        setUploadError("Please complete onboarding before uploading a contract.");
+      } else {
+        setUploadError("Upload failed. Please check your connection and try again.");
+      }
     } finally {
       setUploading(false);
     }
@@ -123,7 +138,8 @@ export default function FounderDashboard() {
     if (file) void handleUpload(file);
   }
 
-  const processing = documents.some((d) => d.status === "PROCESSING");
+  const ACTIVE_STATUSES: DocumentStatus[] = ["PROCESSING", "PARSING", "ANONYMISING", "CLASSIFYING", "COMPARING"];
+  const processing = documents.some((d) => ACTIVE_STATUSES.includes(d.status));
   const firstName = (company as { name?: string } | undefined)?.name?.split(" ")[0] ?? "there";
 
   // Counts for summary bar
@@ -241,6 +257,14 @@ export default function FounderDashboard() {
                     </div>
                   )}
                 </div>
+
+                {/* Upload error */}
+                {uploadError && (
+                  <div className="mt-3 flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/8 px-3 py-2.5">
+                    <AlertCircle size={14} className="text-destructive shrink-0 mt-0.5" />
+                    <p className="text-xs text-destructive leading-snug">{uploadError}</p>
+                  </div>
+                )}
               </div>
             </div>
 
