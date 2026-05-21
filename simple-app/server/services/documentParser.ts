@@ -71,28 +71,25 @@ export async function parseDocument(filePath: string): Promise<ParseResult> {
     }
 
     // ── OCR fallback ─────────────────────────────────────────────────────
-    try {
-      console.log(`[documentParser] Scanned PDF detected (${nativeText.length} chars). Running OCR on ${filePath}`);
-      const ocrText = await runOcrOnPdf(filePath, buffer);
-      const cleaned = cleanOcrText(ocrText);
-      return {
-        text: cleaned,
-        extractionMethod: "ocr",
-        ocrUsed: true,
-        pageCount,
-        textLength: cleaned.length,
-        errorMessage: cleaned.length < 100 ? "OCR returned minimal text" : null,
-      };
-    } catch (err) {
-      return {
-        text: nativeText, // use whatever we got
-        extractionMethod: "failed",
-        ocrUsed: true,
-        pageCount,
-        textLength: nativeText.length,
-        errorMessage: `OCR failed: ${(err as Error).message}`,
-      };
-    }
+    // NOTE: Tesseract.js expects image data (PNG/JPEG), not a raw PDF buffer.
+    // Passing a PDF buffer will throw or return garbage. Until a pdf-to-image
+    // converter (e.g. pdf2pic / pdftoppm) is wired in, we return what native
+    // parsing produced and log the limitation so it's visible in server logs.
+    console.warn(
+      `[documentParser] Scanned PDF detected (${nativeText.length} chars native text) — ` +
+      `OCR skipped: pass PDF pages through an image converter before Tesseract. ` +
+      `Returning native text as-is for ${filePath}`
+    );
+    return {
+      text: nativeText,
+      extractionMethod: nativeText.length > 0 ? "native_pdf" : "failed",
+      ocrUsed: false,
+      pageCount,
+      textLength: nativeText.length,
+      errorMessage: nativeText.length < OCR_THRESHOLD
+        ? "Scanned PDF: native text below threshold, OCR not yet implemented — consider providing a text-based PDF"
+        : null,
+    };
   }
 
   return {

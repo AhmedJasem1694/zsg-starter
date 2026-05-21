@@ -27,9 +27,15 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, cb) => {
-    // Allow no-origin requests (same-domain, curl, etc.)
+    // Allow no-origin requests (same-domain, curl, mobile apps, etc.)
     if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    cb(null, true); // permissive for now — cookie httpOnly is the real guard
+    // In production with FRONTEND_URL set, only listed origins are allowed.
+    // Without FRONTEND_URL (local dev / same-origin Railway), we allow all —
+    // httpOnly cookies are the real auth boundary in that case.
+    if (process.env.NODE_ENV === "production" && process.env.FRONTEND_URL) {
+      return cb(new Error(`CORS: origin ${origin} not allowed`));
+    }
+    cb(null, true);
   },
   credentials: true,
 }));

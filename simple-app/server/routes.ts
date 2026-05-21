@@ -199,7 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = signToken({ userId: user.id, email: user["email"] as string });
       res.cookie("token", token, COOKIE_OPTS);
       await audit({ action: "user_registered", userId: user.id, detail: { email: user["email"] } });
-      res.json({ id: user.id, name: user["name"], email: user["email"] });
+      res.json({ userId: user.id, name: user["name"], email: user["email"] });
     } catch (err: unknown) {
       const pbErr = err as { status?: number; response?: { data?: Record<string, unknown> } };
       if (pbErr.status === 400) {
@@ -231,7 +231,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const token = signToken({ userId: user.id, email: user["email"] as string });
       res.cookie("token", token, COOKIE_OPTS);
       await audit({ action: "user_login", userId: user.id, ipAddress: req.ip });
-      res.json({ id: user.id, name: user["name"], email: user["email"] });
+      res.json({ userId: user.id, name: user["name"], email: user["email"] });
     } catch {
       sendError(res, 401, "Invalid email or password");
     }
@@ -906,12 +906,64 @@ Each field should be 1-3 sentences of clear, practical legal language.
     res.json({ totalContracts, totalValue, redContracts, renewalsDue });
   }));
 
+  // ── Missing document check ────────────────────────────────────────────────────
+  // MUST be registered before GET /api/documents/:id or Express routes "missing" as id="missing"
+
+  app.get("/api/documents/missing", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json({ missing: [] }); return; }
+
+    const docs = await pb.collection("uploaded_documents").getFullList({
+      filter: `company = "${company.id}"`,
+      fields: "contractType,status",
+    });
+
+    const persona   = (company["persona"] as string) ?? "CORPORATE";
+    const workflow  = (company["workflowType"] as string) ?? "COMMERCIAL_CONTRACT";
+    const uploaded  = new Set(docs.map((d) => d["contractType"] as string));
+
+    const recommendations: { contractType: string; label: string; reason: string; priority: "high" | "medium" }[] = [];
+
+    if (persona === "FOUNDER") {
+      if (!uploaded.has("SHA") && !uploaded.has("SUBSCRIPTION_AGREEMENT")) {
+        recommendations.push({ contractType: "SHA", label: "Shareholders' Agreement", reason: "Every funded company needs a SHA to govern investor rights, board seats, and exit mechanics.", priority: "high" });
+      }
+      if (!uploaded.has("TERM_SHEET")) {
+        recommendations.push({ contractType: "TERM_SHEET", label: "Term Sheet", reason: "If you're fundraising, review your term sheet before signing — it sets the economic terms.", priority: "high" });
+      }
+      if (!uploaded.has("NDA")) {
+        recommendations.push({ contractType: "NDA", label: "NDA / Confidentiality Agreement", reason: "Share sensitive information with investors and partners under a signed NDA.", priority: "medium" });
+      }
+      if (!uploaded.has("EMPLOYMENT") && !uploaded.has("CONTRACTOR_AGREEMENT")) {
+        recommendations.push({ contractType: "EMPLOYMENT", label: "Founder / Employee Agreements", reason: "IP assignment and vesting need to be in writing before you hire or take investment.", priority: "high" });
+      }
+    } else if (workflow === "COMMERCIAL_CONTRACT") {
+      if (!uploaded.has("NDA") && !uploaded.has("CONFIDENTIALITY_AGREEMENT")) {
+        recommendations.push({ contractType: "NDA", label: "NDA", reason: "Protect confidential information before starting commercial conversations.", priority: "medium" });
+      }
+      if (!uploaded.has("DPA")) {
+        recommendations.push({ contractType: "DPA", label: "Data Processing Agreement", reason: "Required under UK GDPR if any supplier handles personal data on your behalf.", priority: "high" });
+      }
+      if (!uploaded.has("MSA") && !uploaded.has("SUPPLIER_AGREEMENT")) {
+        recommendations.push({ contractType: "SUPPLIER_AGREEMENT", label: "Supplier / Master Services Agreement", reason: "A framework MSA avoids re-negotiating terms on every order.", priority: "medium" });
+      }
+    }
+
+    res.json({ missing: recommendations });
+  }));
+
   app.get("/api/documents/:id", requireAuth, ah(async (req: Request, res: Response) => {
     let doc: PBRecord;
     try {
       doc = await pb.collection("uploaded_documents").getOne(req.params.id);
     } catch {
       sendError(res, 404, "Document not found"); return;
+    }
+
+    // Tenant guard: ensure document belongs to the active company
+    const ownerCompany = await getCompany();
+    if (ownerCompany && (doc["company"] as string) !== ownerCompany.id) {
+      sendError(res, 403, "Forbidden"); return;
     }
 
     const results = await pb.collection("review_results").getFullList({
@@ -944,7 +996,8 @@ Each field should be 1-3 sentences of clear, practical legal language.
       sendError(res, 404, "Document not found"); return;
     }
 
-    if (doc["status"] === "PROCESSING") { sendError(res, 409, "Review already in progress"); return; }
+    const ACTIVE_STATUSES = ["PROCESSING", "PARSING", "ANONYMISING", "CLASSIFYING", "COMPARING"];
+    if (ACTIVE_STATUSES.includes(doc["status"] as string)) { sendError(res, 409, "Review already in progress"); return; }
 
     if (doc["status"] === "COMPLETE") {
       const [existingResults, existingClauses] = await Promise.all([
@@ -963,6 +1016,8 @@ Each field should be 1-3 sentences of clear, practical legal language.
       ]);
     }
 
+    // Set PROCESSING synchronously before returning so the 409 guard works for concurrent requests
+    await pb.collection("uploaded_documents").update(doc.id, { status: "PROCESSING" });
     runReview(doc.id).catch(console.error);
     res.json({ status: "started", documentId: doc.id });
   }));
@@ -1133,7 +1188,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
 
   app.get("/api/feedback/patterns", requireAuth, ah(async (_req: Request, res: Response) => {
     const company = await getCompany();
-    if (!company) { res.json({ patterns: [], clauseOutcomes: [], topCounterparties: [] }); return; }
+    if (!company) { res.json({ patterns: [], clauseOutcomes: [], counterpartyPatterns: [], negotiationDrift: [] }); return; }
 
     const [results, feedbacks, docs] = await Promise.all([
       pb.collection("review_results").getFullList({
@@ -1333,8 +1388,12 @@ Each field should be 1-3 sentences of clear, practical legal language.
     const { resultId } = req.params;
     const { tone = "professional" } = req.body as { tone?: string };
 
-    const result = await pb.collection("review_results").getOne(resultId);
-    if (!result) { res.status(404).json({ error: "Result not found" }); return; }
+    let result: PBRecord;
+    try {
+      result = await pb.collection("review_results").getOne(resultId);
+    } catch {
+      sendError(res, 404, "Result not found"); return;
+    }
 
     // Get the document for context (counterparty name, contract type)
     const doc = await pb.collection("uploaded_documents").getOne(result["document"] as string).catch(() => null);
@@ -1378,51 +1437,6 @@ Write the negotiation email paragraph.`;
     ], 300);
 
     res.json({ reply: reply.trim() });
-  }));
-
-  // ── Missing document check ────────────────────────────────────────────────────
-
-  app.get("/api/documents/missing", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
-    if (!company) { res.json({ missing: [] }); return; }
-
-    const docs = await pb.collection("uploaded_documents").getFullList({
-      filter: `company = "${company.id}"`,
-      fields: "contractType,status",
-    });
-
-    const persona   = (company["persona"] as string) ?? "CORPORATE";
-    const workflow  = (company["workflowType"] as string) ?? "COMMERCIAL_CONTRACT";
-    const uploaded  = new Set(docs.map((d) => d["contractType"] as string));
-
-    const recommendations: { contractType: string; label: string; reason: string; priority: "high" | "medium" }[] = [];
-
-    if (persona === "FOUNDER") {
-      if (!uploaded.has("SHA") && !uploaded.has("SUBSCRIPTION_AGREEMENT")) {
-        recommendations.push({ contractType: "SHA", label: "Shareholders' Agreement", reason: "Every funded company needs a SHA to govern investor rights, board seats, and exit mechanics.", priority: "high" });
-      }
-      if (!uploaded.has("TERM_SHEET")) {
-        recommendations.push({ contractType: "TERM_SHEET", label: "Term Sheet", reason: "If you're fundraising, review your term sheet before signing — it sets the economic terms.", priority: "high" });
-      }
-      if (!uploaded.has("NDA")) {
-        recommendations.push({ contractType: "NDA", label: "NDA / Confidentiality Agreement", reason: "Share sensitive information with investors and partners under a signed NDA.", priority: "medium" });
-      }
-      if (!uploaded.has("EMPLOYMENT") && !uploaded.has("CONTRACTOR_AGREEMENT")) {
-        recommendations.push({ contractType: "EMPLOYMENT", label: "Founder / Employee Agreements", reason: "IP assignment and vesting need to be in writing before you hire or take investment.", priority: "high" });
-      }
-    } else if (workflow === "COMMERCIAL_CONTRACT") {
-      if (!uploaded.has("NDA") && !uploaded.has("CONFIDENTIALITY_AGREEMENT")) {
-        recommendations.push({ contractType: "NDA", label: "NDA", reason: "Protect confidential information before starting commercial conversations.", priority: "medium" });
-      }
-      if (!uploaded.has("DPA")) {
-        recommendations.push({ contractType: "DPA", label: "Data Processing Agreement", reason: "Required under UK GDPR if any supplier handles personal data on your behalf.", priority: "high" });
-      }
-      if (!uploaded.has("MSA") && !uploaded.has("SUPPLIER_AGREEMENT")) {
-        recommendations.push({ contractType: "SUPPLIER_AGREEMENT", label: "Supplier / Master Services Agreement", reason: "A framework MSA avoids re-negotiating terms on every order.", priority: "medium" });
-      }
-    }
-
-    res.json({ missing: recommendations });
   }));
 
   // ── Stats ────────────────────────────────────────────────────────────────────

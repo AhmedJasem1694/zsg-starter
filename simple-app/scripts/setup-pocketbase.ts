@@ -276,26 +276,22 @@ async function main() {
   ]);
 
   // ── 9. governance_triggers ───────────────────────────────────────────────
+  // Fields match routes.ts POST /api/governance/triggers usage (camelCase, companyId text)
   await ensureCollection("governance_triggers", [
-    relationField("company", companiesId, { required: true }),
-    textField("trigger_type", { required: true }),
-    textField("trigger_condition", { required: true }),
-    textField("trigger_description"),
-    jsonField("escalation_roles"),
-    boolField("active"),
+    textField("companyId", { required: true }),
+    textField("clauseCategory", { required: true }),
+    textField("escalateTo", { required: true }),
+    textField("reason"),
   ]);
 
   // ── 10. approval_thresholds ──────────────────────────────────────────────
+  // Fields match routes.ts POST /api/governance/thresholds usage (camelCase, companyId text)
   await ensureCollection("approval_thresholds", [
-    relationField("company", companiesId, { required: true }),
-    textField("threshold_name", { required: true }),
-    numberField("min_value"),
-    numberField("max_value"),
-    textField("currency"),
-    textField("approver_role", { required: true }),
-    textField("approver_name", { required: true }),
-    emailField("approver_email"),
-    textField("workflow_type"),
+    textField("companyId", { required: true }),
+    numberField("minValue"),
+    numberField("maxValue"),
+    textField("requiredApprover", { required: true }),
+    textField("label"),
   ]);
 
   // ── 11. integration_connections ──────────────────────────────────────────
@@ -626,15 +622,16 @@ async function main() {
 
   // ── 26. pii_sessions ─────────────────────────────────────────────────────
   await ensureCollection("pii_sessions", [
-    textField("session_id", { required: true }),
-    relationField("contract", contractsId, { required: true }),
-    relationField("company", companiesId, { required: true }),
-    relationField("user", usersId, { required: true }),
+    textField("session_id"),
+    // Relation fields are optional — piiAnonymiser.ts uses compat text fields below
+    relationField("contract", contractsId),
+    relationField("company", companiesId),
+    relationField("user", usersId),
     jsonField("entity_count_by_type"),
-    dateField("created_at", { required: true }),
-    dateField("expires_at", { required: true }),
+    dateField("created_at"),
+    dateField("expires_at"),
     boolField("archived"),
-    // compat fields from old schema
+    // compat fields written by piiAnonymiser.ts
     textField("sessionId"),
     textField("documentId"),
     textField("entityMap"),
