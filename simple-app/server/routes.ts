@@ -840,20 +840,33 @@ Each field should be 1-3 sentences of clear, practical legal language.
 
     const { search, ragStatus, contractType: typeFilter } = req.query as Record<string, string>;
 
-    const [docs, allResults, allFeedbacks] = await Promise.all([
-      pb.collection("uploaded_documents").getFullList({
-        filter: `company = "${company.id}"`,
-        sort: "-created",
-      }),
-      pb.collection("review_results").getFullList({
-        filter: `document.company = "${company.id}"`,
-        fields: "id,document,ragStatus,escalationRequired",
-      }),
-      pb.collection("user_feedback").getFullList({
-        filter: `result.document.company = "${company.id}"`,
-        fields: "id,result,userAction",
-      }).catch(() => [] as PBRecord[]),
-    ]);
+    // Fetch documents first so we can filter review_results by document ID,
+    // then user_feedback by result ID — avoids chained relation filters like
+    // document.company which are unreliable across PocketBase versions.
+    const docs = await pb.collection("uploaded_documents").getFullList({
+      filter: `company = "${company.id}"`,
+      sort: "-created",
+    });
+
+    const docIds = docs.map((d) => d.id);
+    const docIdFilter = docIds.length > 0
+      ? docIds.map((id) => `document = "${id}"`).join(" || ")
+      : `id = "none"`; // no documents → no results
+
+    const allResults: PBRecord[] = await pb.collection("review_results").getFullList({
+      filter: docIdFilter,
+      fields: "id,document,ragStatus,escalationRequired",
+    }).catch(() => [] as PBRecord[]);
+
+    const resultIds = allResults.map((r) => r.id);
+    const resultIdFilter = resultIds.length > 0
+      ? resultIds.map((id) => `result = "${id}"`).join(" || ")
+      : `id = "none"`;
+
+    const allFeedbacks: PBRecord[] = await pb.collection("user_feedback").getFullList({
+      filter: resultIdFilter,
+      fields: "id,result,userAction",
+    }).catch(() => [] as PBRecord[]);
 
     // Build feedback lookup by result ID
     const feedbackByResult = new Map<string, { userAction: string }>();
@@ -900,15 +913,16 @@ Each field should be 1-3 sentences of clear, practical legal language.
       return;
     }
 
-    const [docs, allResults] = await Promise.all([
-      pb.collection("uploaded_documents").getFullList({
-        filter: `company = "${company.id}"`,
-      }),
-      pb.collection("review_results").getFullList({
-        filter: `document.company = "${company.id}"`,
-        fields: "document,ragStatus",
-      }),
-    ]);
+    const docs = await pb.collection("uploaded_documents").getFullList({
+      filter: `company = "${company.id}"`,
+    });
+    const statsDocFilter = docs.length > 0
+      ? docs.map((d) => `document = "${d.id}"`).join(" || ")
+      : `id = "none"`;
+    const allResults = await pb.collection("review_results").getFullList({
+      filter: statsDocFilter,
+      fields: "document,ragStatus",
+    }).catch(() => [] as PBRecord[]);
 
     const resultsByDoc = new Map<string, { ragStatus: string }[]>();
     for (const r of allResults) {

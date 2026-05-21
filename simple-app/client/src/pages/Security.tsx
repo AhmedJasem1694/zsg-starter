@@ -1,5 +1,6 @@
 import { Shield, Lock, Eye, Server, FileCheck, RefreshCw, CheckCircle2, Clock, Building2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ZaneLogo } from "@/components/ZaneLogo";
 
 const PILLARS = [
   {
@@ -57,7 +58,7 @@ const PILLARS = [
       "Contract text is anonymised before any model call - party names and sensitive identifiers are replaced with placeholders and restored in your output.",
     checks: [
       "PII anonymisation before every LLM call",
-      "Prompt caching applied only to playbook rules, not contract text",
+      "Contract text sent as ephemeral user message, not cached system prompt",
       "No contract data retained by model provider beyond session",
       "Configurable model routing - use your own API keys",
     ],
@@ -94,17 +95,17 @@ const COMPLIANCE_ENTERPRISE = [
   {
     name: "ISO 27001",
     label: "Roadmap",
-    detail: "Controls framework aligned to ISO 27001. Formal certification planned for 2025.",
+    detail: "Controls framework aligned to ISO 27001. Formal certification is on our enterprise roadmap.",
   },
   {
     name: "SOC 2 Type II",
     label: "Roadmap",
-    detail: "Controls framework in place. Third-party audit planned for 2025.",
+    detail: "Controls framework in place. Third-party audit is on our enterprise roadmap.",
   },
   {
     name: "Cyber Essentials",
     label: "In assessment",
-    detail: "Self-assessment in progress. Certification expected before enterprise launch.",
+    detail: "Self-assessment in progress. Certification targeted ahead of enterprise general availability.",
   },
   {
     name: "Penetration Testing",
@@ -118,11 +119,8 @@ export default function Security() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
       <nav className="border-b border-border/40 px-6 py-4 flex items-center justify-between max-w-7xl mx-auto">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
-            <span className="text-white text-xs font-bold">Z</span>
-          </div>
-          <span className="font-semibold text-sm">Zane</span>
+        <Link to="/" className="hover:opacity-80 transition-opacity">
+          <ZaneLogo size="sm" />
         </Link>
         <div className="flex items-center gap-6">
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Home</Link>
@@ -310,7 +308,7 @@ export default function Security() {
       {/* Footer */}
       <footer className="border-t border-border/40 py-8 px-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between text-xs text-muted-foreground">
-          <span>© 2025 Zane Legal Decision Engine</span>
+          <span>© 2026 Zane Legal Decision Engine</span>
           <div className="flex gap-4">
             <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
             <Link to="/resources" className="hover:text-foreground transition-colors">Resources</Link>

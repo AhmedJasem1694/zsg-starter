@@ -23,23 +23,38 @@ interface ChatResponse {
 
 export async function chatComplete(
   messages: Message[],
-  maxTokens = 1024
+  maxTokens = 1024,
+  timeoutMs = 120_000 // 2-minute hard cap — prevents hanging reviews
 ): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
 
-  const res = await fetch(`${BASE_URL}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: maxTokens,
-      messages,
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/chat/completions`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: maxTokens,
+        messages,
+      }),
+    });
+  } catch (err) {
+    if ((err as Error)?.name === "AbortError") {
+      throw new Error(`OpenRouter request timed out after ${timeoutMs / 1000}s`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
     const body = await res.text();
