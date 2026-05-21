@@ -259,11 +259,20 @@ export default function Landing() {
           style={{ background: "radial-gradient(ellipse 70% 50% at 50% -10%, rgba(74,108,247,0.22), transparent 65%)" }}
         />
 
-        <div className="relative max-w-4xl mx-auto px-6 py-10 text-center space-y-6">
+        <div className="relative max-w-4xl mx-auto px-6 py-6 text-center space-y-4">
+
+          {/* Cycling badge */}
+          <motion.div
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/4 text-xs text-white/50"
+            {...(shouldReduce ? {} : fadeUpHero(0.1))}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse inline-block" />
+            Legal intelligence that's{" "}<CyclingPhrase />
+          </motion.div>
 
           {/* Headline */}
           <motion.h1
-            className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] text-white"
+            className="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.08] text-white"
             {...(shouldReduce ? {} : fadeUpHero(0.25))}
           >
             Your legal team already has a playbook.{" "}
@@ -276,24 +285,16 @@ export default function Landing() {
 
           {/* Subheadline */}
           <motion.p
-            className="text-lg sm:text-xl text-white/55 leading-relaxed max-w-2xl mx-auto"
+            className="text-base sm:text-lg text-white/55 leading-relaxed max-w-2xl mx-auto"
             {...(shouldReduce ? {} : fadeUpHero(0.4))}
           >
             Review contracts against your real negotiation history, escalation thresholds, and commercial risk positions. Not generic market standard. Yours.
           </motion.p>
 
-          {/* Memory statement */}
-          <motion.p
-            className="text-sm text-white/40 max-w-xl mx-auto"
-            {...(shouldReduce ? {} : fadeUpHero(0.52))}
-          >
-            Zane remembers every legal decision your company makes so your team stops renegotiating risk from scratch.
-          </motion.p>
-
           {/* CTA */}
           <motion.div
-            className="flex flex-col items-center gap-3 pt-2"
-            {...(shouldReduce ? {} : fadeUpHero(0.64))}
+            className="flex flex-col items-center gap-2.5 pt-1"
+            {...(shouldReduce ? {} : fadeUpHero(0.52))}
           >
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Link to="/register"
@@ -306,8 +307,8 @@ export default function Landing() {
 
           {/* Stats */}
           <motion.div
-            className="pt-2 grid grid-cols-4 gap-4 max-w-lg mx-auto border-t border-white/8 mt-2"
-            {...(shouldReduce ? {} : fadeUpHero(0.78))}
+            className="pt-2 grid grid-cols-4 gap-4 max-w-lg mx-auto border-t border-white/8"
+            {...(shouldReduce ? {} : fadeUpHero(0.64))}
           >
             {[
               { value: "50+",     label: "Clause types" },
@@ -324,10 +325,10 @@ export default function Landing() {
 
           {/* Scroll hint */}
           <motion.div
-            className="pt-2 flex flex-col items-center gap-1.5 opacity-25"
-            {...(shouldReduce ? {} : fadeUpHero(0.95))}
+            className="pt-1 flex flex-col items-center gap-1.5 opacity-25"
+            {...(shouldReduce ? {} : fadeUpHero(0.82))}
           >
-            <div className="w-px h-6 bg-white/40 rounded-full" />
+            <div className="w-px h-5 bg-white/40 rounded-full" />
             <span className="text-[10px] text-white/50 tracking-widest uppercase">scroll</span>
           </motion.div>
         </div>
