@@ -37,7 +37,7 @@ export interface ComparisonResult {
   escalationRequired: boolean;
   escalationTrigger: string;
   businessSummary: string;
-  /** Qualitative confidence — LOW triggers mandatory lawyer review flag in the UI */
+  /** Qualitative confidence - LOW triggers mandatory lawyer review flag in the UI */
   confidenceLabel: ConfidenceLabel;
   /** Specific regulatory references (article numbers, regulation names) cited in this analysis */
   regulatoryCitations: RegulatoryCitation[];
@@ -117,7 +117,7 @@ export async function compareClauseToPlaybook(
         contractType
       );
     } catch {
-      // Non-fatal — proceed without signals
+      // Non-fatal - proceed without signals
     }
   }
 
@@ -144,9 +144,9 @@ ${clauseText}
 Return ONLY valid JSON with this exact structure:
 {
   "ragStatus": "RED" | "AMBER" | "GREEN",
-  "comparisonStatement": "EXACT format: 'Your playbook requires [X]. This clause provides [Y]. The following protections are missing: [Z].' Be specific — name the actual words, caps, carve-outs, or conditions that differ.",
+  "comparisonStatement": "EXACT format: 'Your playbook requires [X]. This clause provides [Y]. The following protections are missing: [Z].' Be specific - name the actual words, caps, carve-outs, or conditions that differ.",
   "clauseSummary": "1-2 sentence plain English summary of what the clause actually says",
-  "whyItMatters": "Why this matters for ${companyName} specifically — tied to the playbook and any applicable regulations",
+  "whyItMatters": "Why this matters for ${companyName} specifically - tied to the playbook and any applicable regulations",
   "recommendedAction": "Specific action: accept / push back / push back strongly / escalate",
   "suggestedFallback": "Specific redraft or negotiation talking point",
   "escalationRequired": true | false,
@@ -157,11 +157,11 @@ Return ONLY valid JSON with this exact structure:
     { "article": "Article 28", "regulation": "UK GDPR", "relevance": "One sentence on why this article applies" }
   ],
   "founderStatus": "SAFE" | "CAUTION" | "DO NOT SIGN YET",
-  "founderPlainEnglish": "1-2 sentences a founder would understand — what this clause actually means for running the business",
-  "founderBusinessImpact": "Commercial impact if this clause is accepted as written — what it costs, what it prevents, what it exposes",
-  "founderAskFor": "Specific and direct ask — the exact change to request from the counterparty",
-  "founderCopyPaste": "Exact wording a founder can paste into an email or negotiation — ready to send",
-  "founderFundraisingRelevance": "How this clause affects fundraising, investor diligence, or future deal terms — or 'Not relevant to fundraising' if it does not",
+  "founderPlainEnglish": "1-2 sentences a founder would understand - what this clause actually means for running the business",
+  "founderBusinessImpact": "Commercial impact if this clause is accepted as written - what it costs, what it prevents, what it exposes",
+  "founderAskFor": "Specific and direct ask - the exact change to request from the counterparty",
+  "founderCopyPaste": "Exact wording a founder can paste into an email or negotiation - ready to send",
+  "founderFundraisingRelevance": "How this clause affects fundraising, investor diligence, or future deal terms - or 'Not relevant to fundraising' if it does not",
   "founderIfIgnored": "What happens commercially and legally if the founder signs without negotiating this"
 }
 
@@ -172,7 +172,7 @@ RAG rules:
 
 Confidence rules:
 - HIGH: clause text is clear and your comparison is definitive
-- MEDIUM: clause is ambiguous or partially overlapping — some interpretation required
+- MEDIUM: clause is ambiguous or partially overlapping - some interpretation required
 - LOW: clause is unclear, heavily cross-referenced, or you cannot confirm the position from the text alone; flag for mandatory lawyer review
 
 Regulatory citations: include only citations where you can name the specific article or rule number. If none apply, return an empty array.`;
@@ -211,10 +211,10 @@ export function buildAbsentClauseResult(
     regulatoryCitations: [],
     founderStatus: "CAUTION",
     founderPlainEnglish: `This contract says nothing about ${label}. That's a gap you need to address before signing.`,
-    founderBusinessImpact: `Without a ${label} clause, you have no contractual protection on this point. The counterparty's standard terms or common law defaults will apply — usually in their favour.`,
+    founderBusinessImpact: `Without a ${label} clause, you have no contractual protection on this point. The counterparty's standard terms or common law defaults will apply - usually in their favour.`,
     founderAskFor: `Ask the counterparty to add a ${label} clause. Use the suggested wording below as a starting point.`,
     founderCopyPaste: rule.fallbackTemplate ?? rule.preferredPosition,
     founderFundraisingRelevance: `Investors will expect standard ${label} protections. A contract silent on this point may require renegotiation before a deal closes.`,
-    founderIfIgnored: `If you sign without a ${label} clause, you accept whatever default applies under the governing law — typically the counterparty's interpretation. This could create liability or remove protection you assumed you had.`,
+    founderIfIgnored: `If you sign without a ${label} clause, you accept whatever default applies under the governing law - typically the counterparty's interpretation. This could create liability or remove protection you assumed you had.`,
   };
 }

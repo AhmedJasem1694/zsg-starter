@@ -2,9 +2,9 @@
  * Company search + enrichment service.
  *
  * Priority order:
- *  1. Companies House (UK — structured SIC codes, free with API key)
+ *  1. Companies House (UK - structured SIC codes, free with API key)
  *  2. OpenCorporates  (130+ jurisdictions, no API key required)
- *  3. LLM fallback    (OpenRouter — best-effort from training data)
+ *  3. LLM fallback    (OpenRouter - best-effort from training data)
  */
 
 import { chatComplete } from "./openrouter.js";
@@ -61,7 +61,7 @@ const SIC_TO_INDUSTRY: [RegExp, AppIndustry][] = [
   // Technology & SaaS (IT, software, telecom)
   [/^6[123]/, "TECHNOLOGY_SAAS"],
   [/^582/, "TECHNOLOGY_SAAS"], // software publishing
-  // Gaming — detect before generic media
+  // Gaming - detect before generic media
   [/^58211|^58212|^58219|^77221|^59113/, "GAMING_INTERACTIVE"],
   // Media & Entertainment
   [/^59|^60|^90|^91|^92/, "MEDIA_ENTERTAINMENT"],
@@ -385,7 +385,7 @@ const SIC_DESCRIPTIONS: Record<string, string> = {
 async function searchCompaniesHouse(q: string): Promise<CompanyCandidate[]> {
   const apiKey = process.env.COMPANIES_HOUSE_API_KEY;
   if (!apiKey) {
-    console.warn("[CompanySearch] COMPANIES_HOUSE_API_KEY not set — skipping Companies House lookup");
+    console.warn("[CompanySearch] COMPANIES_HOUSE_API_KEY not set - skipping Companies House lookup");
     return [];
   }
 
@@ -656,7 +656,7 @@ const INDUSTRY_LABELS: Record<AppIndustry, string> = {
  * Search for a company.
  * Primary: Companies House (UK, requires COMPANIES_HOUSE_API_KEY).
  * Fallback: LLM best-effort (for non-UK companies or when API key is absent).
- * OpenCorporates is no longer used — their free unauthenticated tier was removed.
+ * OpenCorporates is no longer used - their free unauthenticated tier was removed.
  */
 export async function searchCompanies(q: string): Promise<CompanyCandidate[]> {
   const trimmed = q.trim();
@@ -666,7 +666,7 @@ export async function searchCompanies(q: string): Promise<CompanyCandidate[]> {
   const ch = await searchCompaniesHouse(trimmed);
   if (ch.length > 0) return ch.slice(0, 8);
 
-  // No CH results — either no API key or a non-UK company. Try LLM.
+  // No CH results - either no API key or a non-UK company. Try LLM.
   const llm = await searchLLM(trimmed);
   return llm;
 }
@@ -685,7 +685,7 @@ export async function enrichCompany(candidate: CompanyCandidate): Promise<Enrich
     const jCode = parts.length >= 3 ? parts.slice(1, -1).join("_") : "gb";
     partial = await enrichOpenCorporates(candidate.number, jCode);
   } else if (candidate.source === "llm") {
-    // LLM candidate already has sic descriptions — just map them
+    // LLM candidate already has sic descriptions - just map them
     const sicCodes = candidate.sicCodes ?? [];
     const sicDescs = candidate.sicDescriptions ?? [];
     const { mappedIndustries, customIndustries } = mapSicCodesToIndustries(sicCodes, sicDescs);

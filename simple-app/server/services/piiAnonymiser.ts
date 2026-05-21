@@ -32,7 +32,7 @@ export interface PiiEntity {
 export interface AnonymisationResult {
   anonymisedText: string;
   entityMap: PiiEntity[];
-  /** UUID for this anonymisation session — stored in PocketBase */
+  /** UUID for this anonymisation session - stored in PocketBase */
   sessionId: string;
 }
 
@@ -173,7 +173,7 @@ export async function anonymise(
   }
 
   function replaceEntity(original: string, type: string): string {
-    // Dedup — if the same value was already mapped, return the existing placeholder
+    // Dedup - if the same value was already mapped, return the existing placeholder
     const existing = entityMap.find(
       (e) => e.original.toLowerCase() === original.toLowerCase()
     );
@@ -210,7 +210,7 @@ export async function anonymise(
       entitiesDetected: entityMap.length,
     });
   } catch (err) {
-    // Non-fatal — if PB write fails, we still proceed with anonymisation in memory.
+    // Non-fatal - if PB write fails, we still proceed with anonymisation in memory.
     // The entity map is returned and held in the calling scope.
     console.warn("[PII] Failed to persist pii_session to PocketBase:", err);
   }

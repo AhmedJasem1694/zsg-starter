@@ -87,7 +87,7 @@ export default function Portfolio() {
             <div className="space-y-2">
               <div className="font-semibold">No portfolio data yet</div>
               <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                Upload 3 or more contracts to see recurring risk across your estate — which clause types consistently
+                Upload 3 or more contracts to see recurring risk across your estate - which clause types consistently
                 flag red, which counterparties deviate most from your playbook, and where contract value is concentrated.
               </p>
             </div>
@@ -145,7 +145,7 @@ function PortfolioContent({ data }: { data: PortfolioData }) {
         />
         <KpiCard
           label="Total contract value"
-          value={data.totalValue > 0 ? fmt(data.totalValue) : "—"}
+          value={data.totalValue > 0 ? fmt(data.totalValue) : "-"}
           sub={`${data.signedDocs} signed/executed`}
           icon={DollarSign}
           color="text-blue-400"
@@ -247,7 +247,7 @@ function PortfolioContent({ data }: { data: PortfolioData }) {
                     <StackedBar red={red} amber={amber} green={green} height="h-3" />
                   </div>
                   <div className="text-[10px] text-muted-foreground w-16 text-right shrink-0">
-                    {tot > 0 ? `${Math.round((red / tot) * 100)}% red` : "—"}
+                    {tot > 0 ? `${Math.round((red / tot) * 100)}% red` : "-"}
                   </div>
                 </div>
               );
@@ -263,7 +263,7 @@ function PortfolioContent({ data }: { data: PortfolioData }) {
 
       {/* ── Panel 6: Value at risk ──────────────────────────────────────────────── */}
       {data.valueAtRisk.total > 0 && (
-        <Panel title="Contract value at risk" subtitle="Total contract value segmented by overall risk RAG — contracts with any RED clause are counted as RED">
+        <Panel title="Contract value at risk" subtitle="Total contract value segmented by overall risk RAG - contracts with any RED clause are counted as RED">
           <div className="grid grid-cols-3 gap-4 mb-4">
             {[
               { band: "RED",   label: "High risk value",   cls: "text-red-400",   bg: "bg-red-400" },
@@ -308,7 +308,7 @@ function PortfolioContent({ data }: { data: PortfolioData }) {
             {data.escalationsOpen > 0 && (
               <p className="text-xs text-amber-400 mt-2 flex items-center gap-1.5">
                 <AlertTriangle size={11} />
-                {data.escalationsOpen} contract{data.escalationsOpen !== 1 ? "s" : ""} pending senior approval — check your escalation queue.
+                {data.escalationsOpen} contract{data.escalationsOpen !== 1 ? "s" : ""} pending senior approval - check your escalation queue.
               </p>
             )}
             {data.signedDocs > 0 && (

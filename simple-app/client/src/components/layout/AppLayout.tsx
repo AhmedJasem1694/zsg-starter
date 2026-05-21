@@ -21,7 +21,7 @@ const LEGAL_NAV = [
   { to: "/app/legal/bulk-review", icon: LayoutGrid,       label: "Bulk Review" },
 ];
 
-// Items that require populated data — shown dimmer in secondary section
+// Items that require populated data - shown dimmer in secondary section
 const LEGAL_NAV_DATA_DEPENDENT = [
   { to: "/app/legal/timings",  icon: CalendarClock, label: "Renewals" },
   { to: "/app/legal/patterns", icon: Activity,      label: "Patterns" },
@@ -111,7 +111,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             );
           })}
 
-          {/* Data-dependent items — slightly dimmer, with hint */}
+          {/* Data-dependent items - slightly dimmer, with hint */}
           {!isFounder && (
             <div className="pt-3 pb-1 space-y-0.5">
               <div className="px-3 pb-1 text-[10px] uppercase tracking-widest text-sidebar-foreground/20 font-medium">Analytics</div>

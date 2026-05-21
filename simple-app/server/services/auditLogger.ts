@@ -2,7 +2,7 @@
  * Audit Logger
  *
  * Writes structured audit events to the `audit_log` PocketBase collection.
- * All calls are fire-and-forget — a logging failure never breaks the main flow.
+ * All calls are fire-and-forget - a logging failure never breaks the main flow.
  *
  * Action types follow the pattern: <entity>_<event>
  * e.g. "contract_uploaded", "clause_extracted", "rag_status_assigned"
@@ -74,14 +74,14 @@ export interface AuditEntry {
   entityId?: string;
   companyId?: string;
   userId?: string;
-  /** Arbitrary structured detail — will be JSON-serialised */
+  /** Arbitrary structured detail - will be JSON-serialised */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   detail?: Record<string, any>;
   ipAddress?: string;
 }
 
 /**
- * Write an audit log entry. Never throws — failures are logged to console only.
+ * Write an audit log entry. Never throws - failures are logged to console only.
  */
 export async function audit(entry: AuditEntry): Promise<void> {
   try {

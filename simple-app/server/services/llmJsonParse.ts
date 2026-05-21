@@ -22,7 +22,7 @@ export async function llmJsonCall<T>(opts: LLMJsonOptions): Promise<T> {
 
   console.warn(`[llmJsonParse] ${description}: first attempt returned invalid JSON, retrying...`);
 
-  // Second attempt — append explicit JSON instruction
+  // Second attempt - append explicit JSON instruction
   const retryMessages: Message[] = [
     ...messages,
     {

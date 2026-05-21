@@ -168,7 +168,7 @@ function DocumentRow({
         <ExternalLink size={12} className="shrink-0 text-foreground/20 group-hover:text-foreground/50 transition-colors" />
       </Link>
 
-      {/* Version link button — show on hover */}
+      {/* Version link button - show on hover */}
       {!doc.parentDocumentId && (
         <button
           className="absolute right-8 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 text-[10px] text-foreground/40 hover:text-blue-400 transition-colors"
@@ -328,7 +328,7 @@ export default function ContractLibrary() {
               <h1 className="text-2xl font-bold text-foreground">Contract Library</h1>
             </div>
             <p className="text-sm text-foreground/50">
-              All contracts organised by folder — search, link versions, and track outcomes
+              All contracts organised by folder - search, link versions, and track outcomes
             </p>
           </div>
 

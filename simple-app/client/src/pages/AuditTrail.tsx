@@ -200,7 +200,7 @@ export default function AuditTrail() {
               {hasFilters ? "No entries match the current filters" : "No audit entries yet"}
             </div>
             <p className="text-xs text-muted-foreground">
-              {hasFilters ? "Try adjusting the date range or action type." : "Entries are written as actions are taken — upload a contract to start."}
+              {hasFilters ? "Try adjusting the date range or action type." : "Entries are written as actions are taken - upload a contract to start."}
             </p>
           </div>
         )}

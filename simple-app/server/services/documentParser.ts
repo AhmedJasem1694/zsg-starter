@@ -46,7 +46,7 @@ export async function parseDocument(filePath: string): Promise<ParseResult> {
     }
   }
 
-  // ── PDF — native first ────────────────────────────────────────────────────
+  // ── PDF - native first ────────────────────────────────────────────────────
   if (ext === ".pdf") {
     let nativeText = "";
     let pageCount = 0;
@@ -55,7 +55,7 @@ export async function parseDocument(filePath: string): Promise<ParseResult> {
       nativeText = result.text ?? "";
       pageCount = result.numpages ?? 0;
     } catch {
-      // native parse failed — will fall through to OCR
+      // native parse failed - will fall through to OCR
     }
 
     // If we got enough text, return it
@@ -76,7 +76,7 @@ export async function parseDocument(filePath: string): Promise<ParseResult> {
     // converter (e.g. pdf2pic / pdftoppm) is wired in, we return what native
     // parsing produced and log the limitation so it's visible in server logs.
     console.warn(
-      `[documentParser] Scanned PDF detected (${nativeText.length} chars native text) — ` +
+      `[documentParser] Scanned PDF detected (${nativeText.length} chars native text) - ` +
       `OCR skipped: pass PDF pages through an image converter before Tesseract. ` +
       `Returning native text as-is for ${filePath}`
     );
@@ -87,7 +87,7 @@ export async function parseDocument(filePath: string): Promise<ParseResult> {
       pageCount,
       textLength: nativeText.length,
       errorMessage: nativeText.length < OCR_THRESHOLD
-        ? "Scanned PDF: native text below threshold, OCR not yet implemented — consider providing a text-based PDF"
+        ? "Scanned PDF: native text below threshold, OCR not yet implemented - consider providing a text-based PDF"
         : null,
     };
   }
@@ -102,11 +102,11 @@ export async function parseDocument(filePath: string): Promise<ParseResult> {
   };
 }
 
-// OCR using Tesseract.js — works on image-based PDFs by treating each page
+// OCR using Tesseract.js - works on image-based PDFs by treating each page
 // as rendered. We use Tesseract directly on the PDF buffer (tesseract.js
 // can process PDFs directly in Node.js).
 async function runOcrOnPdf(_filePath: string, buffer: Buffer): Promise<string> {
-  // @ts-ignore — tesseract.js types may vary by version
+  // @ts-ignore - tesseract.js types may vary by version
   const worker = await createWorker("eng");
   try {
     // Tesseract.js can OCR a Buffer directly
@@ -126,7 +126,7 @@ function cleanOcrText(text: string): string {
     .trim();
 }
 
-// Keep old signature for compatibility — returns just the text string
+// Keep old signature for compatibility - returns just the text string
 export async function parseDocumentText(filePath: string): Promise<string> {
   const result = await parseDocument(filePath);
   return result.text;

@@ -253,7 +253,7 @@ export default function Regulations() {
         <div className="card bg-accent border-accent-border p-4 flex gap-3">
           <Shield size={16} className="text-primary mt-0.5 shrink-0" />
           <p className="text-sm text-foreground/80">
-            Zane uses these frameworks as review context — flagging where clauses may intersect with material
+            Zane uses these frameworks as review context - flagging where clauses may intersect with material
             obligations, even when your playbook doesn't explicitly address them. This is not legal advice.
           </p>
         </div>
@@ -266,7 +266,7 @@ export default function Regulations() {
             <div>
               <div className="text-sm font-medium">No regulatory frameworks detected yet</div>
               <div className="text-xs text-muted-foreground mt-1">
-                Click "Re-detect" above — Zane will analyse your company sector and jurisdiction.
+                Click "Re-detect" above - Zane will analyse your company sector and jurisdiction.
               </div>
             </div>
             <button
@@ -335,7 +335,7 @@ export default function Regulations() {
                     <AlertTriangle size={14} className="text-amber-400 mt-0.5 shrink-0" />
                     <div className="text-xs text-amber-300">
                       <span className="font-semibold">{highImpactUpdates.length} high-priority update{highImpactUpdates.length !== 1 ? "s" : ""}</span>
-                      {" "}require your attention — see below.
+                      {" "}require your attention - see below.
                     </div>
                   </div>
                 )}
@@ -355,7 +355,7 @@ export default function Regulations() {
                 {!updatesLoading && updatesData && updatesData.updates.some((u) => u.actionRequired) && (
                   <div className="flex items-center gap-1.5 text-[11px] text-green-400">
                     <CheckCircle size={11} />
-                    Action-required items flagged — review and update your playbook positions where relevant.
+                    Action-required items flagged - review and update your playbook positions where relevant.
                   </div>
                 )}
               </div>

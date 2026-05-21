@@ -1,5 +1,5 @@
 /**
- * Zane brand assets — symbol + wordmark
+ * Zane brand assets - symbol + wordmark
  *
  * Symbol: Refined split-path routing icon.
  *   Three horizontal paths enter from the left.
@@ -8,7 +8,7 @@
  *   The bottom path holds steady, producing the "base rail".
  *   Together they form the escalation / routing / split-decision motif.
  *
- * Wordmark: "ZANE" rendered in Syncopate 700 — geometric, no crossbar on A,
+ * Wordmark: "ZANE" rendered in Syncopate 700 - geometric, no crossbar on A,
  *   clean authority. For pixel-perfect brand use, replace with Söhne.
  */
 
@@ -17,7 +17,7 @@ interface SymbolProps {
   color?: string;
 }
 
-/** The routing/split-path symbol only — use in tight spaces, favicons, app icons. */
+/** The routing/split-path symbol only - use in tight spaces, favicons, app icons. */
 export function ZaneSymbol({ className = "w-8 h-6", color = "#4A6CF7" }: SymbolProps) {
   return (
     <svg
@@ -26,7 +26,7 @@ export function ZaneSymbol({ className = "w-8 h-6", color = "#4A6CF7" }: SymbolP
       className={className}
       aria-hidden="true"
     >
-      {/* Path 1 — enters top-left, routes DOWN, exits bottom-right */}
+      {/* Path 1 - enters top-left, routes DOWN, exits bottom-right */}
       <path
         d="M2 6 L18 6 C26 6 30 19 38 19 C44 19 48 32 54 32"
         stroke={color}
@@ -34,7 +34,7 @@ export function ZaneSymbol({ className = "w-8 h-6", color = "#4A6CF7" }: SymbolP
         strokeLinecap="round"
         fill="none"
       />
-      {/* Path 2 — enters middle-left, routes UP, crosses Path 1, exits top-right */}
+      {/* Path 2 - enters middle-left, routes UP, crosses Path 1, exits top-right */}
       <path
         d="M2 19 L18 19 C26 19 30 6 38 6 L54 6"
         stroke={color}
@@ -42,7 +42,7 @@ export function ZaneSymbol({ className = "w-8 h-6", color = "#4A6CF7" }: SymbolP
         strokeLinecap="round"
         fill="none"
       />
-      {/* Path 3 — bottom rail, holds position */}
+      {/* Path 3 - bottom rail, holds position */}
       <path
         d="M2 32 L18 32 L54 32"
         stroke={color}
@@ -137,7 +137,7 @@ export function ZaneLogo({
     );
   }
 
-  // "full" — horizontal lockup
+  // "full" - horizontal lockup
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
       {symbol}

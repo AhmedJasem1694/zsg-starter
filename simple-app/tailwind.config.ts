@@ -94,22 +94,22 @@ export default {
         "cobalt-pressed": "#1D4ED8",
         "cobalt-subtle":  "#1E3A5F",
         "cobalt-ghost":   "#172B4D",
-        // Risk — RED (muted dark)
+        // Risk - RED (muted dark)
         "risk-red":        "#B91C1C",
         "risk-red-bg":     "#1F0A0A",
         "risk-red-border": "#450A0A",
         "risk-red-text":   "#FCA5A5",
-        // Risk — AMBER (muted dark)
+        // Risk - AMBER (muted dark)
         "risk-amber":        "#B45309",
         "risk-amber-bg":     "#1C0F00",
         "risk-amber-border": "#431407",
         "risk-amber-text":   "#FCD34D",
-        // Risk — GREEN (muted dark)
+        // Risk - GREEN (muted dark)
         "risk-green":        "#15803D",
         "risk-green-bg":     "#052E16",
         "risk-green-border": "#14532D",
         "risk-green-text":   "#86EFAC",
-        // Risk — GREY
+        // Risk - GREY
         "risk-grey":        "#475569",
         "risk-grey-bg":     "#0F172A",
         "risk-grey-text":   "#94A3B8",

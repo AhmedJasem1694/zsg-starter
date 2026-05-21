@@ -254,7 +254,7 @@ export const saveFeedback = (
 ) => req("POST", `/api/feedback/${resultId}`, data);
 
 /**
- * Teach Zane — lawyer provides what Zane got wrong and the correct analysis.
+ * Teach Zane - lawyer provides what Zane got wrong and the correct analysis.
  * Stored as feedbackType: TEACH_ZANE and routed to the knowledge layer.
  */
 export const teachZane = (
@@ -263,7 +263,7 @@ export const teachZane = (
 ) => req("POST", `/api/feedback/teach-zane/${resultId}`, data);
 
 /**
- * False Positive — marks the clause extraction as incorrect (clause wasn't
+ * False Positive - marks the clause extraction as incorrect (clause wasn't
  * really present or was misclassified). Logged to improve the classifier.
  */
 export const markFalsePositive = (
@@ -478,9 +478,9 @@ export const setDocumentFolder = (documentId: string, folder: string) =>
 export const linkDocumentVersion = (documentId: string, parentDocumentId: string) =>
   req<{ id: string }>("PATCH", `/api/documents/${documentId}/version`, { parentDocumentId });
 
-// ── Section 18 — Behavioural Accumulation Engine ──────────────────────────────
+// ── Section 18 - Behavioural Accumulation Engine ──────────────────────────────
 
-// Step 1 — Outcome delta capture
+// Step 1 - Outcome delta capture
 export type DeltaOutcome = "PREFERRED" | "FALLBACK" | "BELOW_FALLBACK" | "NO_CHANGE" | "REMOVED";
 
 export interface OutcomeDelta {
@@ -526,19 +526,19 @@ export const confirmOutcomeDeltas = (
     { confirmations }
   );
 
-// Step 2 — Override signal capture
+// Step 2 - Override signal capture
 export const overrideRagStatus = (
   resultId: string,
   data: { correctedStatus: string; reason: string }
 ) => req<{ ok: boolean }>("POST", `/api/review/${resultId}/override`, data);
 
-// Step 3 — False positive capture
+// Step 3 - False positive capture
 export const markFalsePositiveSignal = (
   resultId: string,
   data: { errorType: string; correctInterpretation?: string }
 ) => req<{ ok: boolean }>("POST", `/api/review/${resultId}/false-positive`, data);
 
-// Step 5 — Company rules engine
+// Step 5 - Company rules engine
 export interface CompanyRule {
   id: string;
   company: string;
@@ -571,7 +571,7 @@ export const rejectCompanyRule = (id: string) =>
 export const updateCompanyRuleText = (id: string, editedRuleText: string) =>
   req<CompanyRule>("PATCH", `/api/company-rules/${id}`, { editedRuleText });
 
-// Step 7 — Visibility layer
+// Step 7 - Visibility layer
 export const getSignalsSummary = (clauseCategory: string) =>
   req<{ overrideCount: number; outcomeCount: number; ruleCount: number; fpCount: number }>(
     "GET", `/api/accumulation/signals-summary?clauseCategory=${encodeURIComponent(clauseCategory)}`

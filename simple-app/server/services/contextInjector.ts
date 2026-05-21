@@ -1,5 +1,5 @@
 /**
- * Context Injector — Section 18, Step 6
+ * Context Injector - Section 18, Step 6
  *
  * Assembles a contextual block from 4 signal sources:
  * 1. Override signals
@@ -56,7 +56,7 @@ export async function buildContextBlock(
       rules.length === 0 &&
       falsePositives.length === 0
     ) {
-      return ""; // No signals — don't inject empty context
+      return ""; // No signals - don't inject empty context
     }
 
     const parts: string[] = [];
@@ -124,7 +124,7 @@ export async function buildContextBlock(
         .filter(Boolean);
       const uniqueTypes = Array.from(new Set(errorTypes));
       parts.push(
-        `Note: ${falsePositives.length} previous false positive${falsePositives.length !== 1 ? "s" : ""} flagged on this clause type — error types: ${uniqueTypes.join(", ")}.`
+        `Note: ${falsePositives.length} previous false positive${falsePositives.length !== 1 ? "s" : ""} flagged on this clause type - error types: ${uniqueTypes.join(", ")}.`
       );
     }
 

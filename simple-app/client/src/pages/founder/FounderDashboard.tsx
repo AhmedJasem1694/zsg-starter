@@ -177,7 +177,7 @@ export default function FounderDashboard() {
 
         <div className="grid lg:grid-cols-3 gap-6">
 
-          {/* Left — upload + contracts */}
+          {/* Left - upload + contracts */}
           <div className="lg:col-span-2 space-y-5">
 
             {/* Upload card */}
@@ -244,7 +244,7 @@ export default function FounderDashboard() {
               </div>
             </div>
 
-            {/* Processing stage cards — one per PROCESSING document */}
+            {/* Processing stage cards - one per PROCESSING document */}
             {(documents as UploadedDocument[])
               .filter((d) => d.status === "PROCESSING")
               .map((d) => {
@@ -305,7 +305,7 @@ export default function FounderDashboard() {
                 <div className="card-body text-center py-12">
                   <FileText size={32} className="text-muted-foreground/30 mx-auto mb-3" />
                   <div className="text-sm font-medium text-muted-foreground">No contracts yet</div>
-                  <div className="text-xs text-muted-foreground mt-1">Upload one above — you'll get a plain-English verdict in about 2 minutes</div>
+                  <div className="text-xs text-muted-foreground mt-1">Upload one above - you'll get a plain-English verdict in about 2 minutes</div>
                 </div>
               ) : (
                 <div className="divide-y divide-card-border">
@@ -378,7 +378,7 @@ export default function FounderDashboard() {
             </div>
           </div>
 
-          {/* Right — guide */}
+          {/* Right - guide */}
           <div className="space-y-5">
 
             {/* What Zane does */}
@@ -412,7 +412,7 @@ export default function FounderDashboard() {
                 <div className="text-sm font-semibold">How to read your verdict</div>
                 <div className="space-y-3 text-xs text-muted-foreground">
                   {[
-                    { icon: CheckCircle,   color: "text-[#86EFAC]", label: "Looks good",           desc: "No red flags — you can proceed" },
+                    { icon: CheckCircle,   color: "text-[#86EFAC]", label: "Looks good",           desc: "No red flags - you can proceed" },
                     { icon: AlertCircle,   color: "text-[#FCD34D]", label: "Worth a closer look",  desc: "A few things worth negotiating" },
                     { icon: AlertTriangle, color: "text-[#FCA5A5]", label: "Don't sign yet",        desc: "Fix these issues before signing" },
                   ].map(({ icon: Icon, color, label, desc }) => (

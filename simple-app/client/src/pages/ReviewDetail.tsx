@@ -60,7 +60,7 @@ export default function ReviewDetail() {
   const [filter, setFilter] = useState<RagStatus | "ALL">("ALL");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Demo mode — mock-1 served from local data, no API call needed
+  // Demo mode - mock-1 served from local data, no API call needed
   const isMock = id === "mock-1";
 
   const { data: realDoc, isLoading } = useQuery({
@@ -331,7 +331,7 @@ export default function ReviewDetail() {
           <div className="flex items-center gap-2 rounded-xl border border-[#14532D] bg-[#052E16] px-4 py-2.5">
             <CheckCircle size={13} className="text-[#86EFAC] shrink-0" />
             <span className="text-xs text-[#86EFAC]">
-              Marked as {doc?.outcome?.toLowerCase() ?? "signed"} — outcome captured for negotiation intelligence.
+              Marked as {doc?.outcome?.toLowerCase() ?? "signed"} - outcome captured for negotiation intelligence.
             </span>
           </div>
         )}
@@ -342,7 +342,7 @@ export default function ReviewDetail() {
             <div className="flex items-center gap-2">
               <Brain size={13} className="text-[#60A5FA] shrink-0" />
               <span className="text-xs font-semibold text-[#93C5FD]">
-                Final version uploaded — confirm outcomes to update Zane's learning
+                Final version uploaded - confirm outcomes to update Zane's learning
               </span>
             </div>
             <Link
@@ -389,7 +389,7 @@ export default function ReviewDetail() {
         {/* ── Two-column layout ────────────────────────────────────────── */}
         <div className="grid lg:grid-cols-[1fr_300px] gap-5 items-start">
 
-          {/* Left — main content */}
+          {/* Left - main content */}
           <div className="space-y-4 min-w-0">
 
             {/* Escalation summary */}
@@ -470,7 +470,7 @@ export default function ReviewDetail() {
             </div>
           </div>
 
-          {/* Right — sticky sidebar */}
+          {/* Right - sticky sidebar */}
           <div className="space-y-4 lg:sticky lg:top-4 slide-in-left">
             <SignOffTracker doc={doc} results={results} />
             <IntelligenceSignals doc={doc} results={results} isMock={isMock} />
@@ -547,7 +547,7 @@ function ContractHeader({
           <button
             onClick={onExport}
             className="btn-secondary flex items-center gap-1.5 text-xs px-3 py-1.5"
-            title={isMock ? "Demo — export disabled" : undefined}
+            title={isMock ? "Demo - export disabled" : undefined}
           >
             <Download size={12} /> Export
           </button>
@@ -638,12 +638,12 @@ function SignOffTracker({ doc, results }: { doc: UploadedDocument; results: Revi
     {
       label: "Legal review",
       status: required.has("Legal") ? "required" : "skipped",
-      detail: required.has("Legal") ? "Required — clause risk flags raised" : undefined,
+      detail: required.has("Legal") ? "Required - clause risk flags raised" : undefined,
     },
     {
       label: "GC sign-off",
       status: required.has("GC") ? "required" : "skipped",
-      detail: required.has("GC") ? (doc.contractValue ? `Required — value threshold (£${doc.contractValue.toLocaleString("en-GB")})` : "Required") : undefined,
+      detail: required.has("GC") ? (doc.contractValue ? `Required - value threshold (£${doc.contractValue.toLocaleString("en-GB")})` : "Required") : undefined,
     },
     {
       label: "CFO approval",
@@ -739,7 +739,7 @@ function IntelligenceSignals({
       bgColor: "#1A0404",
       borderColor: "#450A0A",
       text: isMock
-        ? `${cats} flagged RED across all prior Acme Corp reviews — consistent counterparty negotiation posture.`
+        ? `${cats} flagged RED across all prior Acme Corp reviews - consistent counterparty negotiation posture.`
         : `${cats} flagged as high risk in this agreement.`,
     });
   }
@@ -764,7 +764,7 @@ function IntelligenceSignals({
       color: "#A5B4FC",
       bgColor: "#0F0E1A",
       borderColor: "#312E81",
-      text: "Zane has processed 2 prior agreements with this counterparty. Liability cap position unchanged across all 3 reviews — systemic pattern flagged.",
+      text: "Zane has processed 2 prior agreements with this counterparty. Liability cap position unchanged across all 3 reviews - systemic pattern flagged.",
     });
   } else if (results.length > 0) {
     const absentCount = results.filter((r) => r.isAbsent).length;
@@ -774,7 +774,7 @@ function IntelligenceSignals({
         color: "#A5B4FC",
         bgColor: "#0F0E1A",
         borderColor: "#312E81",
-        text: `${absentCount} clause${absentCount !== 1 ? "s" : ""} absent from this contract. Your playbook requires ${absentCount !== 1 ? "them" : "it"} to be present — request insertion before signing.`,
+        text: `${absentCount} clause${absentCount !== 1 ? "s" : ""} absent from this contract. Your playbook requires ${absentCount !== 1 ? "them" : "it"} to be present - request insertion before signing.`,
       });
     }
   }
@@ -1106,7 +1106,7 @@ function ClauseCard({
   const [teachDone, setTeachDone] = useState(false);
   const [fpSubmitting, setFpSubmitting] = useState(false);
   const [fpDone, setFpDone] = useState(result.feedback?.feedbackType === "FALSE_POSITIVE");
-  // Section 18 — override + FP signal panels
+  // Section 18 - override + FP signal panels
   const [showOverridePanel, setShowOverridePanel] = useState(false);
   const [showFpSignalPanel, setShowFpSignalPanel] = useState(false);
   const [overrideDone, setOverrideDone] = useState(false);
@@ -1186,7 +1186,7 @@ function ClauseCard({
               </span>
             )}
           </div>
-          {/* Business summary — always visible */}
+          {/* Business summary - always visible */}
           <div className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
             {result.businessSummary || result.clauseSummary}
           </div>
@@ -1239,7 +1239,7 @@ function ClauseCard({
               <Scale size={11} />
               {CONFIDENCE_CONFIG[result.confidenceLabel].label}
               {result.confidenceLabel === "LOW" && (
-                <span className="ml-1 font-semibold">Zane is uncertain — have a lawyer verify before relying on this analysis.</span>
+                <span className="ml-1 font-semibold">Zane is uncertain - have a lawyer verify before relying on this analysis.</span>
               )}
             </div>
           )}
@@ -1269,7 +1269,7 @@ function ClauseCard({
                   <div key={i} className="flex items-start gap-2.5 rounded-lg border border-[#312E81] bg-[#1E1B4B] px-3 py-2">
                     <BookOpen size={11} className="text-[#A5B4FC] shrink-0 mt-0.5" />
                     <div className="min-w-0">
-                      <div className="text-xs font-semibold text-[#A5B4FC]">{c.regulation} — {c.article}</div>
+                      <div className="text-xs font-semibold text-[#A5B4FC]">{c.regulation} - {c.article}</div>
                       <div className="text-[11px] text-[#A5B4FC]/70 mt-0.5">{c.relevance}</div>
                     </div>
                   </div>
@@ -1397,7 +1397,7 @@ function ClauseCard({
               </button>
             ))}
             {isMock && (
-              <span className="text-[10px] text-muted-foreground/40">Demo — outcomes disabled</span>
+              <span className="text-[10px] text-muted-foreground/40">Demo - outcomes disabled</span>
             )}
           </div>
 
@@ -1565,13 +1565,13 @@ function EscalationSummary({ doc, results }: { doc: UploadedDocument; results: R
       <div className="bg-[#1F0A0A] px-5 py-3 flex items-center gap-3 border-b border-[#450A0A]">
         <AlertTriangle size={14} className="text-[#FCA5A5] shrink-0" />
         <span className="text-sm font-semibold text-[#FCA5A5] flex-1">
-          Escalation required — {tiersActive} tier{tiersActive !== 1 ? "s" : ""} triggered
+          Escalation required - {tiersActive} tier{tiersActive !== 1 ? "s" : ""} triggered
         </span>
       </div>
       <div className="p-4 space-y-3">
         {tier1Clauses.length > 0 && (
           <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] p-4 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-[#FCA5A5]">Tier 1 — Clause Risk</div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-[#FCA5A5]">Tier 1 - Clause Risk</div>
             <ul className="space-y-1.5">
               {tier1Clauses.map((r) => (
                 <li key={r.id} className="flex gap-2 text-sm text-[#FCA5A5]">
@@ -1587,15 +1587,15 @@ function EscalationSummary({ doc, results }: { doc: UploadedDocument; results: R
         )}
         {valueTier && (
           <div className="rounded-lg bg-[#1C0F00] border border-[#431407] p-4 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-[#FCD34D]">Tier 2 — Contract Value</div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-[#FCD34D]">Tier 2 - Contract Value</div>
             <div className="text-sm text-[#FCD34D]">
-              <span className="font-semibold">£{doc.contractValue!.toLocaleString("en-GB")}</span> — {valueTier.label}
+              <span className="font-semibold">£{doc.contractValue!.toLocaleString("en-GB")}</span> - {valueTier.label}
             </div>
           </div>
         )}
         {govTriggers.length > 0 && (
           <div className="rounded-lg bg-[#1E1B4B] border border-[#312E81] p-4 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-[#A5B4FC]">Tier 3 — Governance</div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-[#A5B4FC]">Tier 3 - Governance</div>
             <ul className="space-y-1.5">
               {govTriggers.map((t, i) => (
                 <li key={i} className="flex gap-2 text-sm text-[#A5B4FC]">
@@ -1660,7 +1660,7 @@ function exportReviewAsText(doc: UploadedDocument) {
     "===================",
     "",
     `Contract:    ${doc.originalName}`,
-    `Counterparty: ${doc.counterpartyName ?? "—"}`,
+    `Counterparty: ${doc.counterpartyName ?? "-"}`,
     `Type:        ${doc.contractType.replace(/_/g, " ")}`,
     `Reviewed:    ${date}`,
     `Overall RAG: ${overallRag}`,

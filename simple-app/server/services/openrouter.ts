@@ -1,5 +1,5 @@
 /**
- * Shared OpenRouter client — native fetch, no OpenAI SDK.
+ * Shared OpenRouter client - native fetch, no OpenAI SDK.
  *
  * All LLM calls in the app go through here.
  * Set OPENROUTER_API_KEY in your environment.
@@ -58,7 +58,7 @@ export async function chatComplete(
 export async function transcribeAudio(filePath: string): Promise<string | null> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    console.warn("[transcription] OPENROUTER_API_KEY not set — skipping transcription");
+    console.warn("[transcription] OPENROUTER_API_KEY not set - skipping transcription");
     return null;
   }
 

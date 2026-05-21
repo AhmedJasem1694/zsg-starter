@@ -345,7 +345,7 @@ export async function downloadAndQueueDriveFile(
   const savedPath = path.join(uploadDir, savedFilename);
 
   if (downloadMime) {
-    // Google Docs — export as DOCX
+    // Google Docs - export as DOCX
     const res = await drive.files.export(
       { fileId, mimeType: downloadMime },
       { responseType: "stream" }
@@ -358,7 +358,7 @@ export async function downloadAndQueueDriveFile(
       dest.on("error", reject);
     });
   } else {
-    // Binary file — download as media
+    // Binary file - download as media
     const res = await drive.files.get(
       { fileId, alt: "media" },
       { responseType: "stream" }

@@ -1,5 +1,5 @@
 /**
- * OutcomeConfirmation — Section 18, Step 1 (frontend)
+ * OutcomeConfirmation - Section 18, Step 1 (frontend)
  * Route: /app/legal/:id/outcome
  *
  * Quick triage screen for confirming how each negotiated clause resolved.
@@ -247,7 +247,7 @@ export default function OutcomeConfirmation() {
         <div>
           <h1 className="text-xl font-bold">Confirm negotiation outcomes</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Confirm how each flagged clause resolved in the final signed version. Zane has pre-filled its best guess — correct any mistakes.
+            Confirm how each flagged clause resolved in the final signed version. Zane has pre-filled its best guess - correct any mistakes.
           </p>
         </div>
 

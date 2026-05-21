@@ -110,7 +110,7 @@ try {
 } catch { /* not linked */ }
 
 if (!alreadyLinked) {
-  log("Running `railway link` — choose your project in the prompt below.\n");
+  log("Running `railway link` - choose your project in the prompt below.\n");
   const exitCode = railwayInteractive("link");
   if (exitCode !== 0) {
     fail("railway link failed or was cancelled.");
@@ -251,7 +251,7 @@ async function tryCreateSuperuser(baseUrl: string, em: string, pw: string): Prom
         continue; // try next endpoint
       }
     } catch (e) {
-      // network error on this endpoint — try next
+      // network error on this endpoint - try next
       if (endpoint.includes("_superusers")) continue;
       throw e;
     }

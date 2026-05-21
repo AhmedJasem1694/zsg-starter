@@ -1,5 +1,5 @@
 /**
- * Outcome Capture Service  (Priority 4 — v1)
+ * Outcome Capture Service  (Priority 4 - v1)
  *
  * After each review completes, aggregates lawyer feedback outcomes and persists
  * them to the `detected_patterns` collection in PocketBase.
@@ -7,7 +7,7 @@
  * This is the first step toward the v3 synthesis layer:
  *   - L1: raw review results (already stored)
  *   - L2: outcome patterns captured here (what lawyers accept / escalate)
- *   - L3: synthesis pages (future — built from L2 data)
+ *   - L3: synthesis pages (future - built from L2 data)
  *
  * Patterns are UPSERTED (update existing row for same company+category+type, or
  * insert a new one) so re-running after multiple reviews stays idempotent.
@@ -83,7 +83,7 @@ export async function persistOutcomePatterns(companyId: string): Promise<void> {
         companyId,
         clauseCategory: cat,
         patternType: "repeated_acceptance",
-        message: `${stats.accepted} red-flagged ${cat.replace(/_/g, " ")} clauses accepted — consider updating your playbook.`,
+        message: `${stats.accepted} red-flagged ${cat.replace(/_/g, " ")} clauses accepted - consider updating your playbook.`,
         severity: "warn",
         count: stats.accepted,
       });
@@ -95,7 +95,7 @@ export async function persistOutcomePatterns(companyId: string): Promise<void> {
         companyId,
         clauseCategory: cat,
         patternType: "repeated_escalation",
-        message: `${cat.replace(/_/g, " ")} has been escalated ${stats.escalated} times — consistently requires legal review.`,
+        message: `${cat.replace(/_/g, " ")} has been escalated ${stats.escalated} times - consistently requires legal review.`,
         severity: "info",
         count: stats.escalated,
       });
@@ -108,7 +108,7 @@ export async function persistOutcomePatterns(companyId: string): Promise<void> {
         companyId,
         clauseCategory: cat,
         patternType: "frequently_absent",
-        message: `${cat.replace(/_/g, " ")} absent in ${greyCount} contracts — request this clause proactively.`,
+        message: `${cat.replace(/_/g, " ")} absent in ${greyCount} contracts - request this clause proactively.`,
         severity: "warn",
         count: greyCount,
       });
@@ -121,7 +121,7 @@ export async function persistOutcomePatterns(companyId: string): Promise<void> {
         companyId,
         clauseCategory: cat,
         patternType: "consistently_green",
-        message: `${cat.replace(/_/g, " ")} has been GREEN ${greenCount} times — your playbook position is holding well.`,
+        message: `${cat.replace(/_/g, " ")} has been GREEN ${greenCount} times - your playbook position is holding well.`,
         severity: "good",
         count: greenCount,
       });

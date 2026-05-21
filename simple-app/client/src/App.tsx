@@ -28,7 +28,7 @@ import OutcomeConfirmation from "./pages/OutcomeConfirmation";
 import Settings from "./pages/Settings";
 import type { Persona } from "./lib/types";
 
-// ── PersonaRouter — redirect /dashboard to the right persona path ─────────────
+// ── PersonaRouter - redirect /dashboard to the right persona path ─────────────
 
 function PersonaRouter() {
   const { data: company, isPending } = useQuery({
@@ -131,7 +131,7 @@ function AppRoutes() {
         path="/app/founder/review/:id"
         element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><FounderReview /></RequireAuth>}
       />
-      {/* Documents list — same as founder dashboard for now */}
+      {/* Documents list - same as founder dashboard for now */}
       <Route
         path="/app/founder/documents"
         element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><FounderDashboard /></RequireAuth>}

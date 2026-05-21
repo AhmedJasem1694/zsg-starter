@@ -86,14 +86,14 @@ function CyclingPhrase() {
   );
 }
 
-// ─── Animated product preview — matches real dark dashboard ──────────────────
+// ─── Animated product preview - matches real dark dashboard ──────────────────
 const MOCK_CLAUSES = [
-  { label: "Limitation of Liability", status: "RED",   summary: "Cap below 3 months' fees — breaches red line",   action: "Negotiate" },
-  { label: "Data & Privacy",          status: "RED",   summary: "No DPA in place — GDPR exposure",                action: "Escalate"  },
-  { label: "Indemnity",               status: "AMBER", summary: "One-sided indemnity — negotiate scope",           action: "Review"    },
-  { label: "Auto-Renewal",            status: "AMBER", summary: "No notice provision — push back",                action: "Review"    },
-  { label: "Confidentiality",         status: "GREEN", summary: "Mutual 2-year — meets preferred position",       action: "Accept"    },
-  { label: "Governing Law",           status: "GREEN", summary: "English law — acceptable",                       action: "Accept"    },
+  { label: "Limitation of Liability", status: "RED",   summary: "Cap below 3 months' fees - breaches red line",   action: "Negotiate" },
+  { label: "Data & Privacy",          status: "RED",   summary: "No DPA in place - GDPR exposure",                action: "Escalate"  },
+  { label: "Indemnity",               status: "AMBER", summary: "One-sided indemnity - negotiate scope",           action: "Review"    },
+  { label: "Auto-Renewal",            status: "AMBER", summary: "No notice provision - push back",                action: "Review"    },
+  { label: "Confidentiality",         status: "GREEN", summary: "Mutual 2-year - meets preferred position",       action: "Accept"    },
+  { label: "Governing Law",           status: "GREEN", summary: "English law - acceptable",                       action: "Accept"    },
 ];
 
 const STATUS_CFG = {
@@ -131,7 +131,7 @@ function ProductPreview() {
             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
           </div>
           <div className="flex-1 text-center">
-            <span className="text-[10px] text-white/30">Acme Corp — Supplier MSA.pdf</span>
+            <span className="text-[10px] text-white/30">Acme Corp - Supplier MSA.pdf</span>
           </div>
           <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
         </motion.div>
@@ -241,7 +241,7 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* ─── HERO — dark ─────────────────────────────────────────────────────── */}
+      {/* ─── HERO - dark ─────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden flex flex-col justify-center" style={{ minHeight: "calc(100vh - 57px)", background: "#111827" }}>
         {/* Grid */}
         <div className="absolute inset-0 opacity-[0.04]" style={{
@@ -296,7 +296,7 @@ export default function Landing() {
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <Link to="/register"
                 className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 text-sm">
-                See it in action — book a 30 minute demo <ArrowRight size={15} />
+                See it in action - book a 30 minute demo <ArrowRight size={15} />
               </Link>
             </motion.div>
             <p className="text-xs text-white/25">No implementation. No enterprise contract. Working in 30 minutes.</p>
@@ -363,7 +363,7 @@ export default function Landing() {
                   Zane does not just review contracts. It builds institutional legal memory.
                 </h2>
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  Every contract your team reviews, every position accepted or pushed back on, every exception approved, every override made — it all feeds into Zane's memory. Over time Zane learns how your company actually negotiates. Not how it thinks it does.
+                  Every contract your team reviews, every position accepted or pushed back on, every exception approved, every override made - it all feeds into Zane's memory. Over time Zane learns how your company actually negotiates. Not how it thinks it does.
                 </p>
                 <Link to="/register" className="inline-flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity font-medium self-start">
                   See it in action <ArrowRight size={13} />
@@ -433,7 +433,7 @@ export default function Landing() {
               variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true }}
             >
               {[
-                { label: "Risk status",              sub: "Red, Amber, or Green against your specific positions — not generic market standard" },
+                { label: "Risk status",              sub: "Red, Amber, or Green against your specific positions - not generic market standard" },
                 { label: "Plain English explanation", sub: "What the clause actually says and why it matters commercially" },
                 { label: "Exact fallback language",   sub: "The wording to send back, ready to paste" },
                 { label: "Escalation routing",        sub: "Who needs to approve this, by name, based on your approval matrix" },
@@ -464,7 +464,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── HOW ZANE GETS SMARTER — dark ────────────────────────────────────── */}
+      {/* ─── HOW ZANE GETS SMARTER - dark ────────────────────────────────────── */}
       <section className="py-20" style={{ background: "#0B1118" }}>
         <div className="max-w-4xl mx-auto px-6 space-y-8">
           <motion.div className="space-y-4" {...headingReveal}>
@@ -479,10 +479,10 @@ export default function Landing() {
             </p>
             <p className="text-white/70 font-medium">Here is how Zane actually improves over time.</p>
             <p>
-              Every contract reviewed adds to your negotiation history. Every override your team makes — with the mandatory reason behind it — teaches Zane how your company actually makes decisions. Every outcome logged after a contract is signed closes the gap between your written playbook and your real risk tolerance. Every pattern detected across your portfolio surfaces insight no individual review would ever reveal.
+              Every contract reviewed adds to your negotiation history. Every override your team makes - with the mandatory reason behind it - teaches Zane how your company actually makes decisions. Every outcome logged after a contract is signed closes the gap between your written playbook and your real risk tolerance. Every pattern detected across your portfolio surfaces insight no individual review would ever reveal.
             </p>
             <p>
-              The intelligence compounds at the system level, not the model level. Your company's history, your GC's judgment, your sector's regulatory requirements — these become part of how Zane analyses the next contract. Not because an AI was retrained on your data. Because your data is structured, stored, and retrieved in a way that makes every future review more accurate than the last.
+              The intelligence compounds at the system level, not the model level. Your company's history, your GC's judgment, your sector's regulatory requirements - these become part of how Zane analyses the next contract. Not because an AI was retrained on your data. Because your data is structured, stored, and retrieved in a way that makes every future review more accurate than the last.
             </p>
             <p>
               This is also why the switching cost grows over time. After twelve months of using Zane you have something no other tool can give you. Your company's legal memory. Starting over means losing it.
@@ -534,7 +534,7 @@ export default function Landing() {
             {[
               ["Reviews contracts in isolation",                   "Learns from your negotiation history"],
               ["Produces generic market-standard outputs",         "Aligns every review to your actual playbook and past decisions"],
-              ["Stateless — starts from zero every session",       "Builds institutional memory that compounds over time"],
+              ["Stateless - starts from zero every session",       "Builds institutional memory that compounds over time"],
               ["Focused on document review",                       "Focused on operational consistency across the business"],
               ["One-off AI answers",                               "Longitudinal risk intelligence"],
             ].map(([left, right], i) => (
@@ -608,7 +608,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── REGULATORY — dark ───────────────────────────────────────────────── */}
+      {/* ─── REGULATORY - dark ───────────────────────────────────────────────── */}
       <section className="py-20" style={{ background: "#0B1118" }}>
         <div className="max-w-6xl mx-auto px-6">
           <div className="rounded-2xl overflow-hidden" style={{ background: "#111A24" }}>
@@ -619,10 +619,10 @@ export default function Landing() {
                   A regulation changes.<br />Zane tells you which contracts are affected.
                 </h2>
                 <p className="text-sm text-white/50 leading-relaxed">
-                  Hardcoded regulatory context is a liability the moment something changes. For a regulated business, that is not a minor gap — it is a trust-destroying one.
+                  Hardcoded regulatory context is a liability the moment something changes. For a regulated business, that is not a minor gap - it is a trust-destroying one.
                 </p>
                 <p className="text-sm text-white/50 leading-relaxed">
-                  Every contract review is cross-referenced against the regulatory frameworks that apply to your sector and jurisdiction. GDPR, FCA Consumer Duty, KSA GCAM, and more — automatically.
+                  Every contract review is cross-referenced against the regulatory frameworks that apply to your sector and jurisdiction. GDPR, FCA Consumer Duty, KSA GCAM, and more - automatically.
                 </p>
                 <a href="#how-it-works" className="inline-flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity font-medium">
                   See how it works <ArrowRight size={13} />

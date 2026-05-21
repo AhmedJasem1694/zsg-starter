@@ -10,7 +10,7 @@ import AppLayout from "../components/layout/AppLayout";
 // ── Role options ──────────────────────────────────────────────────────────────
 
 const ROLES = [
-  { value: "LEGAL",   label: "Legal team",     desc: "Full access — review, playbook, portfolio" },
+  { value: "LEGAL",   label: "Legal team",     desc: "Full access - review, playbook, portfolio" },
   { value: "GC",      label: "General Counsel", desc: "Full access + governance approval" },
   { value: "CFO",     label: "CFO",             desc: "Finance-related escalations only" },
   { value: "BOARD",   label: "Board member",    desc: "Board-level escalation approvals" },
@@ -35,7 +35,7 @@ const ONBOARDING_STEPS = [
   {
     icon: Upload,
     title: "Upload your first contract",
-    desc: "Upload a PDF or DOCX — Zane will review it against your playbook in under 2 minutes.",
+    desc: "Upload a PDF or DOCX - Zane will review it against your playbook in under 2 minutes.",
     href: "/app/legal/dashboard",
   },
   {
@@ -155,7 +155,7 @@ export default function TeamManagement() {
             <div className="flex gap-2">
               <input
                 type="email"
-                placeholder="colleague@company.com — press Enter or comma to add"
+                placeholder="colleague@company.com - press Enter or comma to add"
                 value={emailInput}
                 onChange={(e) => setEmailInput(e.target.value)}
                 onKeyDown={handleKeyDown}

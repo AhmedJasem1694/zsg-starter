@@ -17,15 +17,15 @@ const HARD_STOP_QUESTIONS = [
     question: "Is there a valid policy in force at the date of the alleged loss/incident?",
     options: ["Yes", "No", "Uncertain"],
     failureValues: ["No"],
-    failureMessage: "Coverage issue identified. Assessment paused — GC escalation required before proceeding.",
+    failureMessage: "Coverage issue identified. Assessment paused - GC escalation required before proceeding.",
     warningValues: ["Uncertain"],
     warningMessage: "Policy validity is uncertain. Obtain confirmation before proceeding.",
   },
   {
     id: "q2_notification",
     question: "Has the insured notified within the policy notification period?",
-    options: ["Yes", "No", "Late — after period expired"],
-    failureValues: ["No", "Late — after period expired"],
+    options: ["Yes", "No", "Late - after period expired"],
+    failureValues: ["No", "Late - after period expired"],
     failureMessage: "Notification defence identified. Assess strength of defence before proceeding.",
     isSoftStop: true,
   },
@@ -41,41 +41,41 @@ const HARD_STOP_QUESTIONS = [
   {
     id: "q4_indemnity_limit",
     question: "Is the claim value within the policy indemnity limit?",
-    options: ["Yes", "No — exceeds limit", "Uncertain — quantum not yet established"],
+    options: ["Yes", "No - exceeds limit", "Uncertain - quantum not yet established"],
     failureValues: [] as string[],
-    warningValues: ["No — exceeds limit"],
+    warningValues: ["No - exceeds limit"],
     warningMessage: "Claim may exceed policy limit. Notify excess layer insurer immediately.",
   },
   {
     id: "q5_fraud",
     question: "Are there any fraud or misrepresentation indicators?",
-    options: ["No", "Yes — fraud suspected", "Yes — misrepresentation suspected"],
-    failureValues: ["Yes — fraud suspected", "Yes — misrepresentation suspected"],
-    failureMessage: "Fraud / misrepresentation indicator identified. Hard stop — refer to Special Investigations Unit immediately. Do not make any admission or interim payment.",
+    options: ["No", "Yes - fraud suspected", "Yes - misrepresentation suspected"],
+    failureValues: ["Yes - fraud suspected", "Yes - misrepresentation suspected"],
+    failureMessage: "Fraud / misrepresentation indicator identified. Hard stop - refer to Special Investigations Unit immediately. Do not make any admission or interim payment.",
     isHardStop: true,
   },
   {
     id: "q6_fca_acknowledgment",
     question: "Has the FCA acknowledgment timeframe been met? (Typically 5 working days from receipt)",
-    options: ["Yes", "No — timeframe not met", "Not yet received"],
-    failureValues: ["No — timeframe not met"],
+    options: ["Yes", "No - timeframe not met", "Not yet received"],
+    failureValues: ["No - timeframe not met"],
     failureMessage: "FCA acknowledgment timeframe breach. Regulatory compliance action required within 24 hours. Notify Compliance.",
     isSoftStop: true,
   },
   {
     id: "q7_fos",
     question: "Is there any FOS referral or complaint already lodged?",
-    options: ["No", "Yes — FOS referral", "Yes — complaint only"],
+    options: ["No", "Yes - FOS referral", "Yes - complaint only"],
     failureValues: [] as string[],
-    warningValues: ["Yes — FOS referral", "Yes — complaint only"],
+    warningValues: ["Yes - FOS referral", "Yes - complaint only"],
     warningMessage: "FOS jurisdiction applies. Assessment will include FOS jurisdiction and DISP compliance analysis.",
   },
   {
     id: "q8_vulnerable",
     question: "Is the claimant a vulnerable customer?",
-    options: ["No", "Yes", "Unknown — treat as vulnerable"],
+    options: ["No", "Yes", "Unknown - treat as vulnerable"],
     failureValues: [] as string[],
-    warningValues: ["Yes", "Unknown — treat as vulnerable"],
+    warningValues: ["Yes", "Unknown - treat as vulnerable"],
     warningMessage: "Enhanced TCF obligations apply throughout this assessment and all outputs.",
   },
 ];
@@ -97,9 +97,9 @@ const PRIMARY_DEFENCES = [
 ];
 
 const LIABILITY_ADMISSION_OPTIONS = ["No admission", "Partial admission of liability", "Full admission of liability"];
-const WITNESS_OPTIONS = ["Strong — credible witnesses available", "Adequate", "Weak", "None"];
-const EVIDENCE_OPTIONS = ["Complete — all documents preserved", "Minor gaps identified", "Significant gaps"];
-const EXPERT_OPTIONS = ["Yes — expert report obtained", "Yes — expert to be instructed", "No — not yet instructed", "Not required"];
+const WITNESS_OPTIONS = ["Strong - credible witnesses available", "Adequate", "Weak", "None"];
+const EVIDENCE_OPTIONS = ["Complete - all documents preserved", "Minor gaps identified", "Significant gaps"];
+const EXPERT_OPTIONS = ["Yes - expert report obtained", "Yes - expert to be instructed", "No - not yet instructed", "Not required"];
 const PROCEDURAL_STAGES = [
   "Pre-action (letter of claim received)",
   "Pre-action protocol ongoing",
@@ -226,9 +226,9 @@ export default function LitigationIntake() {
     }
 
     const fcaAnswer = hardStopAnswers["q6_fca_acknowledgment"];
-    const fcaBreach = fcaAnswer === "No — timeframe not met";
+    const fcaBreach = fcaAnswer === "No - timeframe not met";
     const vulnerableAnswer = hardStopAnswers["q8_vulnerable"];
-    const vulnerableCustomer = vulnerableAnswer === "Yes" || vulnerableAnswer === "Unknown — treat as vulnerable";
+    const vulnerableCustomer = vulnerableAnswer === "Yes" || vulnerableAnswer === "Unknown - treat as vulnerable";
 
     await saveMutation.mutateAsync({
       stage: 2,
@@ -378,7 +378,7 @@ export default function LitigationIntake() {
               <div className="card border-[#450A0A] bg-[#1F0A0A] p-5 space-y-2">
                 <div className="flex items-center gap-2 text-[#FCA5A5] font-semibold text-sm">
                   <AlertTriangle size={16} />
-                  Hard stop — assessment paused
+                  Hard stop - assessment paused
                 </div>
                 <p className="text-xs text-[#FCA5A5]">{hardStopBlocked}</p>
               </div>
@@ -389,7 +389,7 @@ export default function LitigationIntake() {
               disabled={!allStage1Answered || !!hardStopBlocked || saveMutation.isPending}
               onClick={() => void proceedFromStage1()}
             >
-              {saveMutation.isPending ? "Saving…" : "Proceed to Stage 2 — Defence & Exposure"}
+              {saveMutation.isPending ? "Saving…" : "Proceed to Stage 2 - Defence & Exposure"}
             </button>
           </div>
         )}
@@ -568,7 +568,7 @@ export default function LitigationIntake() {
               disabled={saveMutation.isPending}
               onClick={() => void proceedFromStage2()}
             >
-              {saveMutation.isPending ? "Saving…" : "Proceed to Stage 3 — Ancillary Documents"}
+              {saveMutation.isPending ? "Saving…" : "Proceed to Stage 3 - Ancillary Documents"}
             </button>
           </div>
         )}
@@ -713,7 +713,7 @@ export default function LitigationIntake() {
                 disabled={saveMutation.isPending}
                 onClick={() => void completeIntake()}
               >
-                {saveMutation.isPending ? "Saving…" : "Complete intake — view Zane review"}
+                {saveMutation.isPending ? "Saving…" : "Complete intake - view Zane review"}
               </button>
             </div>
           </div>

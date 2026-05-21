@@ -35,7 +35,7 @@ const RAG_CELL: Record<string, string> = {
 };
 
 const RAG_SHORT: Record<string, string> = {
-  RED: "R", AMBER: "A", GREEN: "G", GREY: "—",
+  RED: "R", AMBER: "A", GREEN: "G", GREY: "-",
 };
 
 const CONTRACT_TYPES = [
@@ -138,7 +138,7 @@ function FileQueue({
                       onChange={(e) => onUpdate(qf.id, "counterpartyName", e.target.value)}
                     />
                   ) : (
-                    <span className="text-foreground/60">{qf.counterpartyName || "—"}</span>
+                    <span className="text-foreground/60">{qf.counterpartyName || "-"}</span>
                   )}
                 </td>
                 <td className="px-3 py-2">
@@ -152,7 +152,7 @@ function FileQueue({
                       onChange={(e) => onUpdate(qf.id, "contractValue", e.target.value)}
                     />
                   ) : (
-                    <span className="text-foreground/60">{qf.contractValue ? `£${Number(qf.contractValue).toLocaleString()}` : "—"}</span>
+                    <span className="text-foreground/60">{qf.contractValue ? `£${Number(qf.contractValue).toLocaleString()}` : "-"}</span>
                   )}
                 </td>
                 <td className="px-3 py-2">
@@ -167,7 +167,7 @@ function FileQueue({
                       />
                     </div>
                   ) : (
-                    <span className="text-foreground/60">{qf.folder || "—"}</span>
+                    <span className="text-foreground/60">{qf.folder || "-"}</span>
                   )}
                 </td>
                 <td className="px-3 py-2 text-center">
@@ -290,7 +290,7 @@ export default function BulkReview() {
         const doc = await uploadDocument(qf.file, qf.contractType, {
           counterpartyName: qf.counterpartyName || undefined,
           contractValue: qf.contractValue ? Number(qf.contractValue) : undefined,
-          // folder is a doc field — set via PATCH after upload if specified
+          // folder is a doc field - set via PATCH after upload if specified
         });
 
         // Set folder if specified
@@ -348,7 +348,7 @@ export default function BulkReview() {
           <div>
             <h1 className="text-2xl font-semibold">Bulk Review</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Upload and configure multiple contracts at once — enter metadata per file before starting review.
+              Upload and configure multiple contracts at once - enter metadata per file before starting review.
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
@@ -419,7 +419,7 @@ export default function BulkReview() {
             <div className="max-w-6xl">
               <div className="text-sm font-semibold mb-2">Portfolio risk matrix</div>
               <p className="text-xs text-muted-foreground mb-3">
-                Completed reviews — click any row to open the full review detail.
+                Completed reviews - click any row to open the full review detail.
               </p>
             </div>
             <div className="overflow-x-auto rounded-xl border border-card-border max-w-full">
@@ -468,7 +468,7 @@ export default function BulkReview() {
                           {doc.contractType.replace(/_/g, " ")}
                         </td>
                         <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">
-                          {d.contractValue ? `£${d.contractValue.toLocaleString("en-GB")}` : "—"}
+                          {d.contractValue ? `£${d.contractValue.toLocaleString("en-GB")}` : "-"}
                         </td>
                         {allCategories.map((cat) => {
                           const status = ragMap[cat];
@@ -479,7 +479,7 @@ export default function BulkReview() {
                                   {RAG_SHORT[status]}
                                 </span>
                               ) : (
-                                <span className="text-muted-foreground/30">—</span>
+                                <span className="text-muted-foreground/30">-</span>
                               )}
                             </td>
                           );
@@ -504,7 +504,7 @@ export default function BulkReview() {
               { short: "R", label: "Red: review required", cls: "bg-[#1F0A0A] text-[#FCA5A5] border border-[#450A0A]" },
               { short: "A", label: "Amber: caution",       cls: "bg-[#1C0F00] text-[#FCD34D] border border-[#431407]" },
               { short: "G", label: "Green: acceptable",    cls: "bg-[#052E16] text-[#86EFAC] border border-[#14532D]" },
-              { short: "—", label: "Not found",             cls: "bg-[#0F172A] text-[#94A3B8] border border-[#334155]" },
+              { short: "-", label: "Not found",             cls: "bg-[#0F172A] text-[#94A3B8] border border-[#334155]" },
             ].map(({ short, label, cls }) => (
               <span key={short} className="flex items-center gap-1.5">
                 <span className={`inline-block px-1.5 py-0.5 rounded font-bold text-[10px] ${cls}`}>{short}</span>

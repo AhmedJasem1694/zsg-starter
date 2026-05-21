@@ -17,7 +17,7 @@ type Verdict = "safe" | "caution" | "danger";
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function getVerdict(results: ReviewResult[]): Verdict {
-  // Prefer LLM-generated founderStatus — use worst across all results
+  // Prefer LLM-generated founderStatus - use worst across all results
   const statuses = results.map((r) => r.founderStatus).filter(Boolean) as FounderStatus[];
   if (statuses.includes("DO NOT SIGN YET")) return "danger";
   if (statuses.includes("CAUTION"))         return "caution";
@@ -174,7 +174,7 @@ function FounderClauseCard({
       {expanded && (
         <div className="px-5 pb-5 space-y-4 border-t border-current/10 pt-4">
 
-          {/* Absent clause — specific playbook guidance */}
+          {/* Absent clause - specific playbook guidance */}
           {result.isAbsent && (
             <div className="flex items-start gap-2 rounded-lg bg-[#0F172A] border border-[#334155] px-3 py-2.5">
               <AlertCircle size={13} className="text-[#94A3B8] mt-0.5 shrink-0" />
@@ -197,7 +197,7 @@ function FounderClauseCard({
             </div>
           )}
 
-          {/* Why it matters — shown when no founder-specific impact text */}
+          {/* Why it matters - shown when no founder-specific impact text */}
           {!result.founderBusinessImpact && result.whyItMatters && (
             <div>
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
@@ -217,7 +217,7 @@ function FounderClauseCard({
             </div>
           )}
 
-          {/* What to do — shown when no founder-specific ask */}
+          {/* What to do - shown when no founder-specific ask */}
           {!result.founderAskFor && result.recommendedAction && (
             <div>
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
@@ -251,7 +251,7 @@ function FounderClauseCard({
             </div>
           )}
 
-          {/* Fundraising relevance — LLM text */}
+          {/* Fundraising relevance - LLM text */}
           {result.founderFundraisingRelevance && result.founderFundraisingRelevance !== "Not relevant to fundraising" && (
             <div className="rounded-lg bg-[#0F172A] border border-[#334155] px-3 py-2.5">
               <div className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wide mb-0.5">Fundraising note</div>
@@ -287,7 +287,7 @@ function FounderClauseCard({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <Mail size={12} className="text-[#60A5FA]" />
-                      <span className="text-xs font-semibold text-[#60A5FA]">Email reply — copy and send</span>
+                      <span className="text-xs font-semibold text-[#60A5FA]">Email reply - copy and send</span>
                     </div>
                     <div className="flex gap-1.5">
                       <button
@@ -526,9 +526,9 @@ export default function FounderReview() {
   const filtered = filter === "ALL" ? results : results.filter((r) => r.ragStatus === filter);
 
   const VERDICT_BANNER = {
-    safe:    { label: "Looks good — you can proceed",         color: "text-[#86EFAC]", bg: "bg-[#052E16] border-[#14532D]", icon: CheckCircle },
+    safe:    { label: "Looks good - you can proceed",         color: "text-[#86EFAC]", bg: "bg-[#052E16] border-[#14532D]", icon: CheckCircle },
     caution: { label: "Worth a closer look before signing",   color: "text-[#FCD34D]", bg: "bg-[#1C0F00] border-[#431407]", icon: AlertCircle },
-    danger:  { label: "Don't sign yet — fix these first",     color: "text-[#FCA5A5]", bg: "bg-[#1F0A0A] border-[#450A0A]", icon: AlertTriangle },
+    danger:  { label: "Don't sign yet - fix these first",     color: "text-[#FCA5A5]", bg: "bg-[#1F0A0A] border-[#450A0A]", icon: AlertTriangle },
   } as const;
 
   const banner = VERDICT_BANNER[verdict];
@@ -563,7 +563,7 @@ export default function FounderReview() {
           </div>
         </div>
 
-        {/* Top risks — only if there are any */}
+        {/* Top risks - only if there are any */}
         {topRisks.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">

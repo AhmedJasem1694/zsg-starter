@@ -39,7 +39,7 @@ async function main() {
   const SYSTEM_COLLECTIONS = new Set(["_superusers", "_externalAuths", "_mfas", "_otps", "_authOrigins"]);
   const userCollections = collections.filter((c) => !SYSTEM_COLLECTIONS.has(c.name));
 
-  // Output clean JSON — id, name, type, schema fields only
+  // Output clean JSON - id, name, type, schema fields only
   const output = userCollections.map((c) => ({
     id:     c.id,
     name:   c.name,

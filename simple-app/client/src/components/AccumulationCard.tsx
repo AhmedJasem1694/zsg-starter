@@ -1,5 +1,5 @@
 /**
- * AccumulationCard — Section 18, Step 7 (Dashboard)
+ * AccumulationCard - Section 18, Step 7 (Dashboard)
  *
  * Shows the 4 accumulation stats, override rate trend, and an insight.
  */
@@ -85,8 +85,8 @@ export default function AccumulationCard() {
             </span>
             {" "}this month vs {overrideRatePrev}% last month
             {overrideImproving
-              ? " — Zane is learning"
-              : " — calibration needed"}
+              ? " - Zane is learning"
+              : " - calibration needed"}
           </span>
         </div>
       )}

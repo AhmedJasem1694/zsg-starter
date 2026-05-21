@@ -233,7 +233,7 @@ function computeUrgencySignals(documents: DocWithRag[]): UrgencySignal[] {
       id: "renewal",
       type: "renewal",
       severity: "amber",
-      message: `Renewal notice due in ${days} days — ${d.counterpartyName ?? d.originalName.replace(/\.(pdf|docx?)$/i, "")}`,
+      message: `Renewal notice due in ${days} days - ${d.counterpartyName ?? d.originalName.replace(/\.(pdf|docx?)$/i, "")}`,
       detail: "Act before the notice window closes to avoid automatic renewal.",
       docId: "",
     });
@@ -304,7 +304,7 @@ function NextBestAction({ documents, isMock }: { documents: DocWithRag[]; isMock
         <div className="flex-1 min-w-0">
           <div className="text-[10px] uppercase tracking-widest text-[#60A5FA]/60 font-semibold mb-0.5">Next action</div>
           <div className="text-sm font-semibold text-foreground truncate">
-            Acme Corp MSA — 3 unresolved red clauses, GC sign-off required
+            Acme Corp MSA - 3 unresolved red clauses, GC sign-off required
           </div>
         </div>
         <div className="text-xs font-semibold text-[#60A5FA] shrink-0 group-hover:translate-x-0.5 transition-transform">
@@ -333,8 +333,8 @@ function NextBestAction({ documents, isMock }: { documents: DocWithRag[]; isMock
     ? `${escCount} clause${escCount !== 1 ? "s" : ""} pending escalation`
     : `${redCount} red clause${redCount !== 1 ? "s" : ""} unresolved`;
   const name      = (priority as DocWithRag & { counterpartyName?: string }).counterpartyName
-    ? `${(priority as DocWithRag & { counterpartyName?: string }).counterpartyName} — ${detail}`
-    : `${priority.originalName.replace(/\.(pdf|docx?)$/i, "")} — ${detail}`;
+    ? `${(priority as DocWithRag & { counterpartyName?: string }).counterpartyName} - ${detail}`
+    : `${priority.originalName.replace(/\.(pdf|docx?)$/i, "")} - ${detail}`;
 
   return (
     <a
@@ -767,7 +767,7 @@ export default function Dashboard() {
         {/* Pilot safety notice */}
         <PilotNoticeBanner />
 
-        {/* Next best action — single most important item */}
+        {/* Next best action - single most important item */}
         <NextBestAction documents={filteredDocuments as DocWithRag[]} isMock={useMock} />
 
         {/* Urgency panel */}
@@ -786,7 +786,7 @@ export default function Dashboard() {
                 label: "Portfolio value",
                 value: stats.totalValue > 0
                   ? `£${stats.totalValue >= 1_000_000 ? `${(stats.totalValue / 1_000_000).toFixed(1)}M` : stats.totalValue >= 1000 ? `${Math.round(stats.totalValue / 1000)}k` : stats.totalValue.toFixed(0)}`
-                  : "—",
+                  : "-",
               },
               { label: "Red clauses", value: stats.redContracts > 0 ? `${stats.redContracts} contracts` : "None", highlight: stats.redContracts > 0 },
               { label: "Renewals in 90 days", value: stats.renewalsDue > 0 ? `${stats.renewalsDue} due` : "None" },
@@ -801,7 +801,7 @@ export default function Dashboard() {
 
         <div className="grid lg:grid-cols-3 gap-6">
 
-          {/* Left col — upload + list */}
+          {/* Left col - upload + list */}
           <div className="lg:col-span-2 space-y-5">
 
             {/* Upload */}
@@ -1010,7 +1010,7 @@ export default function Dashboard() {
                     const results = (doc as DocWithRag).reviewResults ?? [];
                     const readiness = doc.status === "COMPLETE" ? getSignReadiness(results) : "pending";
                     const { label: readinessLabel, color: readinessColor, bg: readinessBg, icon: ReadinessIcon } = READINESS_CONFIG[readiness];
-                    // mock-1 is always clickable — it has a full demo review
+                    // mock-1 is always clickable - it has a full demo review
                     const isClickable = doc.status === "COMPLETE" && (!useMock || doc.id === "mock-1");
                     const red   = results.filter((r) => r.ragStatus === "RED").length;
                     const amber = results.filter((r) => r.ragStatus === "AMBER").length;
@@ -1097,10 +1097,10 @@ export default function Dashboard() {
           {/* Right col */}
           <div className="space-y-5">
 
-            {/* Risk inbox — dynamic, only shows when there's something to flag */}
+            {/* Risk inbox - dynamic, only shows when there's something to flag */}
             <RiskInbox documents={filteredDocuments as DocWithRag[]} />
 
-            {/* Approval queue — contracts with unresolved escalations */}
+            {/* Approval queue - contracts with unresolved escalations */}
             <ApprovalQueue documents={filteredDocuments as DocWithRag[]} />
 
             {/* How to read results */}

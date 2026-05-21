@@ -29,7 +29,7 @@ export const MOCK_URGENCY_SIGNALS = [
     id: "u3",
     type: "renewal" as const,
     severity: "amber" as const,
-    message: "Renewal notice due in 11 days — Acme Corp MSA",
+    message: "Renewal notice due in 11 days - Acme Corp MSA",
     detail: "90-day notice period. Window closes 27 May 2026. Auto-renewal locks £420,000.",
     docId: "mock-1",
   },
@@ -202,7 +202,7 @@ export const MOCK_DOCUMENTS = [
   },
 ];
 
-// ─── Full mock review detail — Acme Corp MSA ─────────────────────────────────
+// ─── Full mock review detail - Acme Corp MSA ─────────────────────────────────
 // Shown when a user clicks mock-1 in demo mode.
 // Typed as UploadedDocument so ReviewDetail can consume it directly.
 
@@ -230,14 +230,14 @@ export const MOCK_REVIEW_DETAIL: UploadedDocument = {
       ragStatus: "RED",
       isAbsent: false,
       escalationRequired: true,
-      escalationTrigger: "Liability cap set at 1 month of fees (£35,000) — hard red line requires 12 months minimum (£420,000). GC sign-off mandatory before proceeding.",
+      escalationTrigger: "Liability cap set at 1 month of fees (£35,000) - hard red line requires 12 months minimum (£420,000). GC sign-off mandatory before proceeding.",
       clauseSummary: "Clause 12.3 limits Acme Corp's aggregate liability to fees paid in the preceding calendar month. No carve-outs exist for data breaches, wilful misconduct, or death and personal injury beyond statutory minima.",
-      whyItMatters: "A 1-month cap on a £420,000 annual contract means your maximum recovery in a catastrophic failure scenario is £35,000 — less than 10% of contract value. This creates severe asymmetric risk, particularly given the data processing and SaaS obligations under this agreement.",
-      recommendedAction: "Push back to 12-month aggregate liability cap (£420,000) with explicit carve-outs for: (i) data breach under UK GDPR, (ii) wilful misconduct or gross negligence, (iii) IP indemnity claims. This is a hard red line — do not sign until revised.",
+      whyItMatters: "A 1-month cap on a £420,000 annual contract means your maximum recovery in a catastrophic failure scenario is £35,000 - less than 10% of contract value. This creates severe asymmetric risk, particularly given the data processing and SaaS obligations under this agreement.",
+      recommendedAction: "Push back to 12-month aggregate liability cap (£420,000) with explicit carve-outs for: (i) data breach under UK GDPR, (ii) wilful misconduct or gross negligence, (iii) IP indemnity claims. This is a hard red line - do not sign until revised.",
       suggestedFallback: "The aggregate liability of each party to the other under or in connection with this Agreement shall not exceed an amount equal to twelve (12) months' Fees paid or payable in the twelve months preceding the event giving rise to the claim, except that this limit shall not apply to (i) either party's indemnification obligations under clause 14, (ii) death or personal injury caused by negligence, (iii) fraud or wilful misconduct, or (iv) any liability which cannot be excluded by applicable law.",
-      businessSummary: "Acme are capping their liability at one month's fees — £35k on a £420k deal. If their platform fails and you suffer loss, you're almost certainly undercompensated. This clause needs to change before signing.",
+      businessSummary: "Acme are capping their liability at one month's fees - £35k on a £420k deal. If their platform fails and you suffer loss, you're almost certainly undercompensated. This clause needs to change before signing.",
       confidenceLabel: "HIGH",
-      comparisonStatement: "CONTRACT: 1 calendar month fee cap (~£35,000)\nPLAYBOOK REQUIRED: 12-month minimum cap (~£420,000)\nGAP: 11 months / £385,000 shortfall\nSTATUS: Hard red line breach — GC escalation mandatory",
+      comparisonStatement: "CONTRACT: 1 calendar month fee cap (~£35,000)\nPLAYBOOK REQUIRED: 12-month minimum cap (~£420,000)\nGAP: 11 months / £385,000 shortfall\nSTATUS: Hard red line breach - GC escalation mandatory",
       regulatoryCitations: [
         { regulation: "Unfair Contract Terms Act 1977", article: "s.2(2)", relevance: "Exclusion of liability for negligence causing financial loss is void unless reasonable under the circumstances." },
         { regulation: "UK GDPR", article: "Art. 82", relevance: "Data processor liability for GDPR breaches cannot be wholly excluded by contract. Carve-out from liability cap is required." },
@@ -251,14 +251,14 @@ export const MOCK_REVIEW_DETAIL: UploadedDocument = {
       ragStatus: "RED",
       isAbsent: false,
       escalationRequired: true,
-      escalationTrigger: "Indemnity structure is asymmetric — your obligations are uncapped while Acme's are subject to the general liability cap. GC review required before execution.",
+      escalationTrigger: "Indemnity structure is asymmetric - your obligations are uncapped while Acme's are subject to the general liability cap. GC review required before execution.",
       clauseSummary: "Clause 14.1 requires you to indemnify Acme Corp against all claims arising from breach of warranty, IP infringement, or data protection obligations. Acme's reciprocal indemnity in clause 14.2 is limited to third-party IP claims only and subject to the general liability cap.",
-      whyItMatters: "You bear an uncapped indemnity obligation covering warranty breach and data processing failures. Acme's indemnity to you is capped and far narrower. This creates significant asymmetric exposure — particularly in a data incident scenario where you are the data processor.",
+      whyItMatters: "You bear an uncapped indemnity obligation covering warranty breach and data processing failures. Acme's indemnity to you is capped and far narrower. This creates significant asymmetric exposure - particularly in a data incident scenario where you are the data processor.",
       recommendedAction: "Negotiate mutual indemnities on equivalent terms. Your data protection indemnity must be subject to your standard liability cap except for wilful breach. Acme's indemnity should extend to their own data processing failures.",
       suggestedFallback: "Each party ('Indemnifying Party') shall indemnify the other party ('Indemnified Party') against all direct losses, claims and reasonable legal costs arising from any third-party claim that the Indemnifying Party's material breach of this Agreement caused. Each party's indemnity obligation shall be subject to the aggregate liability cap in clause 12.3, except where the loss arises from wilful misconduct or fraud.",
       businessSummary: "You have an open-ended duty to compensate Acme for almost any breach. They owe you a much narrower duty, with a cap on top. This structural imbalance needs correcting before signing.",
       confidenceLabel: "HIGH",
-      comparisonStatement: "CONTRACT: Your obligations uncapped, Acme's capped and narrowly scoped to IP claims only\nPLAYBOOK REQUIRED: Mutual indemnities on equivalent terms, both subject to the same liability cap\nSTATUS: Red — structural asymmetry requires negotiation",
+      comparisonStatement: "CONTRACT: Your obligations uncapped, Acme's capped and narrowly scoped to IP claims only\nPLAYBOOK REQUIRED: Mutual indemnities on equivalent terms, both subject to the same liability cap\nSTATUS: Red - structural asymmetry requires negotiation",
       createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     },
     {
@@ -272,11 +272,11 @@ export const MOCK_REVIEW_DETAIL: UploadedDocument = {
       whyItMatters: "UK GDPR Article 33(2) requires processors to notify controllers without undue delay upon becoming aware of a breach. The current drafting shifts this trigger to Acme's discovery, which could expose you if Acme is slow to investigate or disclose internally.",
       recommendedAction: "Amend breach notification trigger to run from processor's (your) discovery. Require sub-processor list at signing, updated with 10 business days' written notice of any changes.",
       suggestedFallback: "The Processor shall notify the Controller without undue delay, and in any event within 72 hours of the Processor becoming aware of a Personal Data Breach affecting Controller Personal Data.",
-      businessSummary: "The data terms are largely acceptable but the breach notification timing creates regulatory risk. A straightforward fix — amend the trigger date and you're compliant.",
+      businessSummary: "The data terms are largely acceptable but the breach notification timing creates regulatory risk. A straightforward fix - amend the trigger date and you're compliant.",
       confidenceLabel: "HIGH",
-      comparisonStatement: "CONTRACT: 72-hour notification from Controller's (Acme's) discovery\nPLAYBOOK REQUIRED: 72-hour notification from Processor's (your) discovery\nSTATUS: Amber — breach trigger timing requires amendment",
+      comparisonStatement: "CONTRACT: 72-hour notification from Controller's (Acme's) discovery\nPLAYBOOK REQUIRED: 72-hour notification from Processor's (your) discovery\nSTATUS: Amber - breach trigger timing requires amendment",
       regulatoryCitations: [
-        { regulation: "UK GDPR", article: "Art. 33(2)", relevance: "Processor must notify controller without undue delay after becoming aware of a personal data breach — trigger must run from processor's knowledge." },
+        { regulation: "UK GDPR", article: "Art. 33(2)", relevance: "Processor must notify controller without undue delay after becoming aware of a personal data breach - trigger must run from processor's knowledge." },
       ],
       createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     },
@@ -288,12 +288,12 @@ export const MOCK_REVIEW_DETAIL: UploadedDocument = {
       isAbsent: false,
       escalationRequired: false,
       clauseSummary: "Clause 7.2 provides for automatic annual renewal unless either party gives 90 days' written notice before the renewal date. The renewal date is 15 June 2026. The 90-day notice window closes 17 March 2026.",
-      whyItMatters: "Failure to give notice by 17 March 2026 commits you to a further 12 months at £420,000. Given this value, renewal decisions require board-level input with adequate lead time — the 90-day window is already narrower than your standard 120-day planning cycle.",
+      whyItMatters: "Failure to give notice by 17 March 2026 commits you to a further 12 months at £420,000. Given this value, renewal decisions require board-level input with adequate lead time - the 90-day window is already narrower than your standard 120-day planning cycle.",
       recommendedAction: "Log the renewal notice deadline (17 March 2026) in your contract management system immediately. Set a calendar reminder 120 days prior (~17 November 2025) to begin renewal assessment. Consider negotiating the notice period down to 60 days or adding a notification obligation from Acme.",
-      businessSummary: "Auto-renewal is active. Miss the 90-day notice window and you're locked in for another year at £420,000. The window is already open — add this deadline to your calendar today.",
+      businessSummary: "Auto-renewal is active. Miss the 90-day notice window and you're locked in for another year at £420,000. The window is already open - add this deadline to your calendar today.",
       confidenceLabel: "HIGH",
       suggestedFallback: "",
-      comparisonStatement: "CONTRACT: Auto-renewal on 90-day notice, window closes 17 March 2026\nPLAYBOOK: Renewal notices logged 120 days in advance for contracts over £100,000\nSTATUS: Amber — renewal notice due sooner than standard planning cycle",
+      comparisonStatement: "CONTRACT: Auto-renewal on 90-day notice, window closes 17 March 2026\nPLAYBOOK: Renewal notices logged 120 days in advance for contracts over £100,000\nSTATUS: Amber - renewal notice due sooner than standard planning cycle",
       createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     },
     {
@@ -307,9 +307,9 @@ export const MOCK_REVIEW_DETAIL: UploadedDocument = {
       whyItMatters: "A 6-month notice period for termination for convenience is double the market standard for MSAs of this size (typically 3 months). You have no clean exit if performance is consistently poor, creating lock-in risk during sustained underperformance.",
       recommendedAction: "Negotiate termination for convenience to 3 months. Add a termination right for sustained SLA failure: if service availability falls below 99.5% for 2 consecutive months, you should have the right to terminate on 30 days' notice without early termination charge.",
       suggestedFallback: "Either party may terminate this Agreement for convenience on not less than three (3) months' prior written notice. In addition, the Customer may terminate on 30 days' written notice if the Service fails to meet the Service Level commitments for two (2) or more consecutive calendar months.",
-      businessSummary: "You're locked in for 6 months' notice to leave — twice the market standard. And if the service is consistently poor, you have no clean exit. Both points need negotiating.",
+      businessSummary: "You're locked in for 6 months' notice to leave - twice the market standard. And if the service is consistently poor, you have no clean exit. Both points need negotiating.",
       confidenceLabel: "HIGH",
-      comparisonStatement: "CONTRACT: 6-month notice for termination for convenience\nPLAYBOOK REQUIRED: Maximum 3 months for contracts under £500,000\nSTATUS: Amber — above market standard, negotiate reduction",
+      comparisonStatement: "CONTRACT: 6-month notice for termination for convenience\nPLAYBOOK REQUIRED: Maximum 3 months for contracts under £500,000\nSTATUS: Amber - above market standard, negotiate reduction",
       createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     },
     {
@@ -325,7 +325,7 @@ export const MOCK_REVIEW_DETAIL: UploadedDocument = {
       suggestedFallback: "",
       businessSummary: "IP ownership is clean and well-structured. You own what's built for you, you can keep using their tools indefinitely, and their rights are clearly bounded. No changes needed.",
       confidenceLabel: "HIGH",
-      comparisonStatement: "CONTRACT: Clean IP assignment for bespoke work, perpetual licence for background IP\nPLAYBOOK REQUIRED: Assignment of deliverables, perpetual licence for tools\nSTATUS: Green — consistent with playbook",
+      comparisonStatement: "CONTRACT: Clean IP assignment for bespoke work, perpetual licence for background IP\nPLAYBOOK REQUIRED: Assignment of deliverables, perpetual licence for tools\nSTATUS: Green - consistent with playbook",
       createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     },
     {
@@ -339,9 +339,9 @@ export const MOCK_REVIEW_DETAIL: UploadedDocument = {
       whyItMatters: "The 5-year survival term exceeds your playbook minimum of 3 years. Mutual obligations are symmetrical and the carve-outs are standard and reasonable. No concerns.",
       recommendedAction: "Accept as drafted.",
       suggestedFallback: "",
-      businessSummary: "Strong confidentiality terms — 5-year mutual obligations, clean carve-outs, appropriate scope. No changes needed.",
+      businessSummary: "Strong confidentiality terms - 5-year mutual obligations, clean carve-outs, appropriate scope. No changes needed.",
       confidenceLabel: "HIGH",
-      comparisonStatement: "CONTRACT: 5-year mutual confidentiality, standard carve-outs\nPLAYBOOK REQUIRED: Minimum 3 years, mutual obligations\nSTATUS: Green — exceeds minimum requirements",
+      comparisonStatement: "CONTRACT: 5-year mutual confidentiality, standard carve-outs\nPLAYBOOK REQUIRED: Minimum 3 years, mutual obligations\nSTATUS: Green - exceeds minimum requirements",
       createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     },
     {
@@ -353,11 +353,11 @@ export const MOCK_REVIEW_DETAIL: UploadedDocument = {
       escalationRequired: false,
       clauseSummary: "Clause 6 sets payment at 30 days from invoice. Annual fees are invoiced quarterly in advance. Price escalation is capped at CPI+2% per year from Year 2. Interest on overdue amounts accrues at 4% above Bank of England base rate.",
       whyItMatters: "Payment terms are commercially standard. The CPI+2% escalation cap provides cost predictability over the 36-month term. Quarterly advance invoicing is typical for MSA/SaaS arrangements of this size.",
-      recommendedAction: "Accept the payment structure. Consider whether CPI+2% creates excessive exposure in high-inflation years — you may want an absolute annual cap (e.g., maximum 5% increase). Confirm the late payment interest direction applies to amounts owed by Acme.",
+      recommendedAction: "Accept the payment structure. Consider whether CPI+2% creates excessive exposure in high-inflation years - you may want an absolute annual cap (e.g., maximum 5% increase). Confirm the late payment interest direction applies to amounts owed by Acme.",
       suggestedFallback: "",
       businessSummary: "Payment terms are fair and standard. Quarterly in advance is typical, the escalation cap gives you price predictability, and 30-day payment is market standard. Minor clarification on interest direction recommended.",
       confidenceLabel: "HIGH",
-      comparisonStatement: "CONTRACT: 30-day payment, quarterly advance invoicing, CPI+2% escalation\nPLAYBOOK REQUIRED: Maximum 30-day terms, escalation cap preferred\nSTATUS: Green — consistent with playbook",
+      comparisonStatement: "CONTRACT: 30-day payment, quarterly advance invoicing, CPI+2% escalation\nPLAYBOOK REQUIRED: Maximum 30-day terms, escalation cap preferred\nSTATUS: Green - consistent with playbook",
       createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     },
     {
@@ -371,9 +371,9 @@ export const MOCK_REVIEW_DETAIL: UploadedDocument = {
       whyItMatters: "English law is your preferred governing law. Exclusive English jurisdiction is appropriate for a UK-domiciled counterparty. No concerns.",
       recommendedAction: "Accept as drafted.",
       suggestedFallback: "",
-      businessSummary: "English law, English courts — exactly what your playbook requires. Accept.",
+      businessSummary: "English law, English courts - exactly what your playbook requires. Accept.",
       confidenceLabel: "HIGH",
-      comparisonStatement: "CONTRACT: English and Welsh law, exclusive English jurisdiction\nPLAYBOOK REQUIRED: English law preferred\nSTATUS: Green — matches playbook",
+      comparisonStatement: "CONTRACT: English and Welsh law, exclusive English jurisdiction\nPLAYBOOK REQUIRED: English law preferred\nSTATUS: Green - matches playbook",
       createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     },
     {
@@ -389,7 +389,7 @@ export const MOCK_REVIEW_DETAIL: UploadedDocument = {
       suggestedFallback: "Each party shall maintain throughout the term: (a) Professional Indemnity insurance of not less than £1,000,000 per claim; (b) Public Liability insurance of not less than £2,000,000; and (c) Cyber Liability and Data Breach insurance of not less than £500,000. Evidence of such coverage shall be provided to the other party within 10 Business Days of written request.",
       businessSummary: "No insurance obligation was included. If Acme causes you loss and is uninsured, you're limited to their balance sheet. This clause is missing and should be added before signing.",
       confidenceLabel: "HIGH",
-      comparisonStatement: "CONTRACT: No insurance clause present\nPLAYBOOK REQUIRED: PI £1m+, PL £2m+, Cyber £500k+\nSTATUS: Absent — clause missing, must be added",
+      comparisonStatement: "CONTRACT: No insurance clause present\nPLAYBOOK REQUIRED: PI £1m+, PL £2m+, Cyber £500k+\nSTATUS: Absent - clause missing, must be added",
       createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     },
   ],
@@ -433,7 +433,7 @@ export const MOCK_PORTFOLIO_RISK = {
     { type: "NDA",                       red: 0, amber: 2, total: 2 },
     { type: "Data Processing Agreement", red: 1, amber: 3, total: 2 },
   ],
-  insight: "Liability caps are your most contested issue — counterparties are consistently pushing for 1-3 month fee caps vs your required 12-month minimum. Consider whether your commercial risk appetite for MSAs and Supplier Agreements needs recalibration.",
+  insight: "Liability caps are your most contested issue - counterparties are consistently pushing for 1-3 month fee caps vs your required 12-month minimum. Consider whether your commercial risk appetite for MSAs and Supplier Agreements needs recalibration.",
 };
 
 export const MOCK_RENEWALS = {
@@ -498,7 +498,7 @@ export const MOCK_ACTIONS = [
     docId: "mock-1",
     docName: "Acme Corp - Master Services Agreement",
     type: "escalation" as const,
-    message: "Liability cap breaches red line — GC sign-off required",
+    message: "Liability cap breaches red line - GC sign-off required",
     ragStatus: "RED",
   },
   {

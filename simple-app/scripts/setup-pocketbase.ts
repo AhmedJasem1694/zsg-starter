@@ -2,7 +2,7 @@
  * PocketBase Collection Bootstrap Script (PocketBase 0.22+ API)
  *
  * Creates or patches all required collections in PocketBase.
- * Safe to re-run — existing collections with correct fields are skipped;
+ * Safe to re-run - existing collections with correct fields are skipped;
  * missing fields are added to existing collections without touching existing data.
  *
  * Usage:
@@ -26,7 +26,7 @@ const pb = new PocketBase(POCKETBASE_URL);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type FieldDef = Record<string, any>;
 
-// ── Field helpers — PocketBase 0.22+ flat format (no nested "options") ────────
+// ── Field helpers - PocketBase 0.22+ flat format (no nested "options") ────────
 
 function textField(name: string, opts: FieldDef = {}): FieldDef {
   return { name, type: "text", required: false, ...opts };
@@ -70,7 +70,7 @@ function fileField(name: string, opts: FieldDef = {}): FieldDef {
 }
 
 // ── Smart additive create-or-update ──────────────────────────────────────────
-// Adds missing fields to existing collections — never removes or modifies existing.
+// Adds missing fields to existing collections - never removes or modifies existing.
 
 async function ensureCollection(
   name: string,
@@ -91,7 +91,7 @@ async function ensureCollection(
         fields: [...existingFields, ...missing],
       });
       console.log(
-        `  ✓ Patched '${name}' — added ${missing.length} field(s): ${missing.map((f) => f.name).join(", ")}`
+        `  ✓ Patched '${name}' - added ${missing.length} field(s): ${missing.map((f) => f.name).join(", ")}`
       );
     } else {
       console.log(`  ✓ '${name}' already complete`);
@@ -141,7 +141,7 @@ async function main() {
     textField("workflow_types"),
     textField("interface_type"),
     numberField("team_size"),
-    // compat fields — keep for existing code
+    // compat fields - keep for existing code
     textField("riskAppetite"),
     textField("role"),
     textField("persona"),
@@ -161,22 +161,22 @@ async function main() {
     boolField("active"),
   ]);
 
-  // ── 3. users — AUTH collection — handle specially ─────────────────────────
+  // ── 3. users - AUTH collection - handle specially ─────────────────────────
   let usersExists = false;
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const usersCol = await (pb.collections as any).getOne("users");
     if (usersCol.type === "auth") {
-      console.log("  ✓ 'users' already an auth collection — patching fields if needed");
+      console.log("  ✓ 'users' already an auth collection - patching fields if needed");
       usersExists = true;
     } else {
-      console.log("  ⚠ 'users' is a base collection — deleting and recreating as auth");
+      console.log("  ⚠ 'users' is a base collection - deleting and recreating as auth");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (pb.collections as any).delete(usersCol.id);
       usersExists = false;
     }
   } catch {
-    // collection doesn't exist — will create below
+    // collection doesn't exist - will create below
   }
 
   if (!usersExists) {
@@ -378,7 +378,7 @@ async function main() {
     relationField("assessed_by", usersId),
   ]);
 
-  // ── 16. contracts — FIRST PASS (no self-ref yet) ──────────────────────────
+  // ── 16. contracts - FIRST PASS (no self-ref yet) ──────────────────────────
   const contractsId = await ensureCollection("contracts", [
     relationField("company", companiesId, { required: true }),
     relationField("playbook", playbooksId),
@@ -418,7 +418,7 @@ async function main() {
     textField("search_text"),
   ]);
 
-  // ── 16b. contracts SECOND PASS — self-referential parent_contract ─────────
+  // ── 16b. contracts SECOND PASS - self-referential parent_contract ─────────
   {
     const contractsColId = await getCollectionId("contracts");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -623,7 +623,7 @@ async function main() {
   // ── 26. pii_sessions ─────────────────────────────────────────────────────
   await ensureCollection("pii_sessions", [
     textField("session_id"),
-    // Relation fields are optional — piiAnonymiser.ts uses compat text fields below
+    // Relation fields are optional - piiAnonymiser.ts uses compat text fields below
     relationField("contract", contractsId),
     relationField("company", companiesId),
     relationField("user", usersId),
@@ -719,7 +719,7 @@ async function main() {
   ]);
 
   // ══════════════════════════════════════════════════════════════════════════
-  // Legacy / compatibility collections — keep all existing with ensureCollection
+  // Legacy / compatibility collections - keep all existing with ensureCollection
   // ══════════════════════════════════════════════════════════════════════════
 
   // ── company_regulations ───────────────────────────────────────────────────
@@ -987,11 +987,11 @@ async function verify() {
         console.log(`  ✅ ${target.name} (${fields.length} fields)`);
         pass++;
       } else {
-        console.log(`  ❌ ${target.name} — missing fields: ${missingRequired.join(", ")}`);
+        console.log(`  ❌ ${target.name} - missing fields: ${missingRequired.join(", ")}`);
         fail++;
       }
     } catch {
-      console.log(`  ❌ ${target.name} — NOT FOUND`);
+      console.log(`  ❌ ${target.name} - NOT FOUND`);
       fail++;
     }
   }
@@ -1000,7 +1000,7 @@ async function verify() {
   console.log(`Summary: ${pass} ✅  ${fail} ❌  (of ${targets.length} target collections)\n`);
 
   if (fail > 0) {
-    console.log("⚠ Some collections have issues — review output above.");
+    console.log("⚠ Some collections have issues - review output above.");
     process.exit(1);
   } else {
     console.log("🎉 All collections verified successfully!");

@@ -15,7 +15,7 @@ export function newPBClient(): PocketBase {
 
 export const pb = new PocketBase(POCKETBASE_URL);
 
-// Disable auto-cancellation — it's designed for browser UIs (cancel stale search
+// Disable auto-cancellation - it's designed for browser UIs (cancel stale search
 // requests on keystroke) but causes AbortErrors when server code makes concurrent
 // requests to the same collection endpoint.
 pb.autoCancellation(false);

@@ -2,7 +2,7 @@
  * Contradiction Detector
  *
  * After clause extraction, runs a second LLM pass to identify internal
- * contradictions in the contract — e.g. one clause says liability is capped
+ * contradictions in the contract - e.g. one clause says liability is capped
  * at £500k while another implies unlimited exposure; or a confidentiality
  * clause is narrower than the NDA cross-referenced in the agreement.
  *
@@ -47,7 +47,7 @@ export async function detectContradictions(
     .map(([cat, text]) => `[${cat}]\n${text.slice(0, 600)}`) // cap at 600 chars per clause
     .join("\n\n---\n\n");
 
-  const systemPrompt = `You are a legal contract analyst for ${companyName}. Your task is to identify internal contradictions within a single contract — cases where two or more clauses conflict with each other, create ambiguity, or produce unexpected combined effects.
+  const systemPrompt = `You are a legal contract analyst for ${companyName}. Your task is to identify internal contradictions within a single contract - cases where two or more clauses conflict with each other, create ambiguity, or produce unexpected combined effects.
 
 Workflow: ${workflowType.replace(/_/g, " ").toLowerCase()}
 

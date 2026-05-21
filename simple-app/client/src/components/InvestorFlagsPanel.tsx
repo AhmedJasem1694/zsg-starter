@@ -1,5 +1,5 @@
 /**
- * InvestorFlagsPanel — shown on FounderDashboard when investment-related docs exist.
+ * InvestorFlagsPanel - shown on FounderDashboard when investment-related docs exist.
  * Surfaces RED/AMBER results from term sheets, SHAs, etc. with founder-friendly language.
  */
 import { useQuery } from "@tanstack/react-query";

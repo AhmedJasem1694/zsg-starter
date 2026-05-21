@@ -135,7 +135,7 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
             </div>
           )}
 
-          {/* Feature 39 — Generate suggested position */}
+          {/* Feature 39 - Generate suggested position */}
           <div className="flex items-center gap-3">
             <button
               className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#312E81] bg-[#1E1B4B] text-[#A5B4FC] hover:bg-[#312E81] transition-colors disabled:opacity-50"
@@ -443,13 +443,13 @@ function OutcomesView({ outcomes }: { outcomes: ClauseOutcome[] }) {
               </span>
               <span className="text-center text-muted-foreground text-xs w-12">{o.total}</span>
               <span className={`text-center text-xs w-12 ${o.redCount > 0 ? "text-[#FCA5A5] font-semibold" : "text-muted-foreground"}`}>
-                {o.redCount || "—"}
+                {o.redCount || "-"}
               </span>
               <span className={`text-center text-xs w-16 ${o.accepted > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-                {o.accepted || "—"}
+                {o.accepted || "-"}
               </span>
               <span className={`text-center text-xs w-16 ${o.escalated > 0 ? "text-[#60A5FA] font-medium" : "text-muted-foreground"}`}>
-                {o.escalated || "—"}
+                {o.escalated || "-"}
               </span>
             </div>
           ))}
@@ -574,7 +574,7 @@ function DriftSuggestionsView({
                 {isApplied ? (
                   <div className="flex items-center gap-1.5 text-xs text-green-400">
                     <CheckCircle size={12} />
-                    Applied — open the clause below to review and save.
+                    Applied - open the clause below to review and save.
                   </div>
                 ) : (
                   <>
@@ -671,7 +671,7 @@ function PendingRulesView() {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle size={13} className="text-[#FCD34D]" />
-                <span className="text-sm font-semibold">{pendingRules.length} pending rule{pendingRules.length !== 1 ? "s" : ""} — awaiting GC approval</span>
+                <span className="text-sm font-semibold">{pendingRules.length} pending rule{pendingRules.length !== 1 ? "s" : ""} - awaiting GC approval</span>
               </div>
               {pendingRules.map((rule) => (
                 <div key={rule.id} className="card overflow-hidden border-l-4 border-l-[#431407]">
@@ -855,10 +855,10 @@ function ExtendedOutcomesView({ outcomes, extendedOutcomes }: { outcomes: Clause
                   </td>
                   <td className="py-2.5 px-3 text-center text-muted-foreground">{o.total}</td>
                   <td className="py-2.5 px-3 text-center">
-                    {o.redCount > 0 ? <span className="text-[#FCA5A5]">{o.redCount}</span> : <span className="text-muted-foreground/40">—</span>}
+                    {o.redCount > 0 ? <span className="text-[#FCA5A5]">{o.redCount}</span> : <span className="text-muted-foreground/40">-</span>}
                   </td>
                   <td className="py-2.5 px-3 text-center">
-                    {o.accepted > 0 ? <span className="text-[#FCD34D]">{o.accepted}</span> : <span className="text-muted-foreground/40">—</span>}
+                    {o.accepted > 0 ? <span className="text-[#FCD34D]">{o.accepted}</span> : <span className="text-muted-foreground/40">-</span>}
                   </td>
                   <td className="py-2.5 px-3 text-center">
                     {avgSigned !== "UNKNOWN" ? (
@@ -869,7 +869,7 @@ function ExtendedOutcomesView({ outcomes, extendedOutcomes }: { outcomes: Clause
                         )}
                       </div>
                     ) : (
-                      <span className="text-muted-foreground/40">—</span>
+                      <span className="text-muted-foreground/40">-</span>
                     )}
                   </td>
                 </tr>
@@ -1013,13 +1013,13 @@ export default function Playbook() {
             </div>
           ) : (
             <div className="space-y-3">
-              {/* Key positions callout — 3 most critical clauses for commercial contracts */}
+              {/* Key positions callout - 3 most critical clauses for commercial contracts */}
               {rules.some((r) => KEY_CLAUSE_CATEGORIES.includes(r.clauseCategory as typeof KEY_CLAUSE_CATEGORIES[number])) && (
                 <div className="rounded-xl border border-[#1B2D4A] p-4 space-y-3" style={{ background: "#0C1929" }}>
                   <div className="flex items-center gap-2">
                     <Star size={13} className="text-[#60A5FA]" />
                     <span className="text-xs font-semibold text-[#60A5FA]">Key positions</span>
-                    <span className="text-xs text-muted-foreground ml-1">— the 3 clauses that matter most in commercial contracts</span>
+                    <span className="text-xs text-muted-foreground ml-1">- the 3 clauses that matter most in commercial contracts</span>
                   </div>
                   <div className="grid sm:grid-cols-3 gap-3">
                     {rules
@@ -1034,7 +1034,7 @@ export default function Playbook() {
                               {rule.preferredPosition}
                             </p>
                           ) : (
-                            <p className="text-[11px] text-muted-foreground/50 italic">No position set — click to configure</p>
+                            <p className="text-[11px] text-muted-foreground/50 italic">No position set - click to configure</p>
                           )}
                           {rule.hardRedLine && (
                             <div className="flex items-center gap-1 text-[10px] text-[#FCA5A5]">

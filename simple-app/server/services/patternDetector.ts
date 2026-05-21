@@ -1,5 +1,5 @@
 /**
- * Pattern Detector — Section 18, Step 4
+ * Pattern Detector - Section 18, Step 4
  *
  * Detects two types of patterns from accumulated signals:
  * A) Below-fallback acceptance patterns (from outcome_deltas)
@@ -55,7 +55,7 @@ async function detectBelowFallbackPattern(companyId: string): Promise<void> {
       }).catch(() => [] as PBRecord[]);
 
       if (existing.length > 0) {
-        console.log(`[patternDetector] Rule already exists for ${cat} OUTCOME_PATTERN — skipping`);
+        console.log(`[patternDetector] Rule already exists for ${cat} OUTCOME_PATTERN - skipping`);
         continue;
       }
 

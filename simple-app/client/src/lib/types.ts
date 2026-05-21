@@ -89,7 +89,7 @@ export type ClauseCategory =
   | "INS_SUBROGATION_POTENTIAL"
   | "INS_PANEL_FIRM_INSTRUCTIONS"
   | "INS_RESERVE_ADEQUACY"
-  // Insurance litigation — extended
+  // Insurance litigation - extended
   | "INS_FRAUD_INDICATORS"
   | "INS_REHABILITATION"
   | "INS_EXPERT_EVIDENCE"
@@ -111,7 +111,7 @@ export type ClauseCategory =
   | "LOG_TERMINATION"
   | "LOG_TRADE_COMPLIANCE"
   | "LOG_AUDIT_REPORTING"
-  // Logistics contract — extended
+  // Logistics contract - extended
   | "LOG_CARRIER_PAYMENT"
   | "LOG_DANGEROUS_GOODS"
   | "LOG_CUSTOMS_CLEARANCE"
@@ -304,7 +304,7 @@ export const CLAUSE_LABELS: Record<ClauseCategory, string> = {
   INS_SUBROGATION_POTENTIAL: "Subrogation Potential",
   INS_PANEL_FIRM_INSTRUCTIONS: "Panel Firm Instructions",
   INS_RESERVE_ADEQUACY: "Reserve Adequacy",
-  // Insurance litigation — extended
+  // Insurance litigation - extended
   INS_FRAUD_INDICATORS: "Fraud Indicators & Anti-Fraud Obligations",
   INS_REHABILITATION: "Rehabilitation & Care Management",
   INS_EXPERT_EVIDENCE: "Expert Evidence & Medical Reports",
@@ -326,7 +326,7 @@ export const CLAUSE_LABELS: Record<ClauseCategory, string> = {
   LOG_TERMINATION: "Termination & Transition",
   LOG_TRADE_COMPLIANCE: "Trade Compliance & Sanctions",
   LOG_AUDIT_REPORTING: "Audit & Reporting",
-  // Logistics contract — extended
+  // Logistics contract - extended
   LOG_CARRIER_PAYMENT: "Carrier Payment Terms & Fuel Surcharges",
   LOG_DANGEROUS_GOODS: "Dangerous Goods & ADR Compliance",
   LOG_CUSTOMS_CLEARANCE: "Customs Clearance & Broker Responsibilities",
@@ -681,7 +681,7 @@ export interface ReviewResult {
   escalationRequired: boolean;
   escalationTrigger?: string;
   businessSummary: string;
-  /** Qualitative confidence — LOW = mandatory lawyer review */
+  /** Qualitative confidence - LOW = mandatory lawyer review */
   confidenceLabel?: ConfidenceLabel;
   /** Parsed regulatory citations with article numbers */
   regulatoryCitations?: RegulatoryCitation[];
@@ -1085,7 +1085,7 @@ export const PLAYBOOK_DEFAULTS: Record<
       acceptableFallback: "Reserve requires upward review. Exposure development warrants adjustment before next reporting period.",
       hardRedLine: "Reserve is materially inadequate. Immediate uplift required. Board or claims committee reporting obligation triggered.",
     },
-    // ── Insurance litigation — extended ─────────────────────────────────────
+    // ── Insurance litigation - extended ─────────────────────────────────────
     INS_FRAUD_INDICATORS: {
       preferredPosition: "Mandatory fraud indicator checks on all new instructions. Insurer to conduct independent investigation before any interim payment. All suspected fraud referred to SIU within 5 business days.",
       acceptableFallback: "Fraud indicators reviewed at case inception. SIU referral protocol in place.",
@@ -1187,7 +1187,7 @@ export const PLAYBOOK_DEFAULTS: Record<
       acceptableFallback: "Audit on 15 days notice, once per year. Standard operational reporting. Reasonable audit costs.",
       hardRedLine: "Continuous access right or real-time reporting obligations without a data security framework. Audit costs borne by us regardless of outcome.",
     },
-    // ── Logistics contract — extended ────────────────────────────────────────
+    // ── Logistics contract - extended ────────────────────────────────────────
     LOG_CARRIER_PAYMENT: {
       preferredPosition: "Payment terms: 30 days from correct invoice. Fuel surcharges indexed to published HMRC/BIFA fuel index. Any surcharge above 10% requires 30 days' prior written notice.",
       acceptableFallback: "45-day payment terms. Fuel surcharges capped at BIFA index + 5%. 14-day notice for increases.",
@@ -1832,7 +1832,7 @@ export const PLAYBOOK_DEFAULTS: Record<
       acceptableFallback: "Reserve requires upward review. Exposure development warrants adjustment before next reporting period.",
       hardRedLine: "Reserve is materially inadequate. Immediate uplift required. Board or claims committee reporting obligation triggered.",
     },
-    // ── Insurance litigation — extended ─────────────────────────────────────
+    // ── Insurance litigation - extended ─────────────────────────────────────
     INS_FRAUD_INDICATORS: {
       preferredPosition: "Fraud screening at inception and quantum stage. SIU referral for high-value or flagged claims.",
       acceptableFallback: "Ad-hoc fraud review where indicators present. Documentation retained.",
@@ -1934,7 +1934,7 @@ export const PLAYBOOK_DEFAULTS: Record<
       acceptableFallback: "Audit on 15 days notice, once per year. Standard operational reporting. Reasonable audit costs.",
       hardRedLine: "Continuous access right or real-time reporting obligations without a data security framework. Audit costs borne by us regardless of outcome.",
     },
-    // ── Logistics contract — extended ────────────────────────────────────────
+    // ── Logistics contract - extended ────────────────────────────────────────
     LOG_CARRIER_PAYMENT: {
       preferredPosition: "Payment within 30 days. Fuel surcharges linked to published index. 14-day notice of material increases.",
       acceptableFallback: "45-day payment. Fuel surcharges with index reference. Reasonable notice of increases.",
@@ -2578,7 +2578,7 @@ export const PLAYBOOK_DEFAULTS: Record<
       acceptableFallback: "Reserve requires upward review. Exposure development warrants adjustment before next reporting period.",
       hardRedLine: "Reserve is materially inadequate. Immediate uplift required. Board or claims committee reporting obligation triggered.",
     },
-    // ── Insurance litigation — extended ─────────────────────────────────────
+    // ── Insurance litigation - extended ─────────────────────────────────────
     INS_FRAUD_INDICATORS: {
       preferredPosition: "Proportionate fraud screening on high-value claims. Referral to SIU where indicators warrant.",
       acceptableFallback: "Fraud review on request. Reasonable investigation timelines.",
@@ -2680,7 +2680,7 @@ export const PLAYBOOK_DEFAULTS: Record<
       acceptableFallback: "Audit on 15 days notice, once per year. Standard operational reporting. Reasonable audit costs.",
       hardRedLine: "Continuous access right or real-time reporting obligations without a data security framework. Audit costs borne by us regardless of outcome.",
     },
-    // ── Logistics contract — extended ────────────────────────────────────────
+    // ── Logistics contract - extended ────────────────────────────────────────
     LOG_CARRIER_PAYMENT: {
       preferredPosition: "Payment within 45 days. Fuel surcharges based on market rates with quarterly review.",
       acceptableFallback: "60-day payment acceptable where carrier provides credit. Surcharges reviewed quarterly.",

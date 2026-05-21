@@ -117,7 +117,7 @@ export async function findPatternMatch(
     });
 
     const sharedCats = bestMatch.categories.slice(0, 3).join(", ");
-    const summary = `Similar to "${bestMatch.docName}" reviewed on ${reviewDate} — shared clause categories: ${sharedCats}`;
+    const summary = `Similar to "${bestMatch.docName}" reviewed on ${reviewDate} - shared clause categories: ${sharedCats}`;
 
     return { matchedDocumentId: bestMatch.docId, summary };
   } catch (err) {
@@ -135,7 +135,7 @@ export async function processIntegrationDocument(
   companyId: string
 ): Promise<void> {
   try {
-    // Step 1: Update sync log — downloaded
+    // Step 1: Update sync log - downloaded
     await pb.collection("integration_sync_log").update(syncLogId, {
       documentId,
       status: "downloaded",
@@ -167,7 +167,7 @@ export async function processIntegrationDocument(
       },
     });
 
-    // Fire review — async, update sync log on completion
+    // Fire review - async, update sync log on completion
     runReview(documentId)
       .then(async () => {
         await pb.collection("integration_sync_log").update(syncLogId, {

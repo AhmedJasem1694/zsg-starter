@@ -1,7 +1,7 @@
 /**
  * SharePoint Integration Service
  *
- * Uses Microsoft Graph API (REST — no extra SDK needed) to handle OAuth2 flow,
+ * Uses Microsoft Graph API (REST - no extra SDK needed) to handle OAuth2 flow,
  * folder watching via Graph subscriptions, and file downloads.
  */
 
@@ -260,7 +260,7 @@ export async function watchSharePointFolder(
   const appUrl = process.env.APP_URL ?? "https://localhost:3000";
   const notificationUrl = `${appUrl}/api/integrations/sharepoint/webhook`;
 
-  // Graph subscriptions expire — max 30 days for OneDrive
+  // Graph subscriptions expire - max 30 days for OneDrive
   const expiryDate = new Date(Date.now() + 29 * 24 * 60 * 60 * 1000).toISOString();
 
   const sub = await graphRequest<{ id: string; expirationDateTime: string }>(

@@ -180,7 +180,7 @@ export default function Patterns() {
               <div className="font-semibold">No patterns detected yet</div>
               <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
                 Zane builds memory from your review decisions. After you accept, negotiate, or escalate clauses across
-                5 or more contracts, patterns will surface here — recurring counterparty behaviour, clause types
+                5 or more contracts, patterns will surface here - recurring counterparty behaviour, clause types
                 that consistently fail your playbook, and drift between your stated positions and actual outcomes.
               </p>
             </div>
@@ -283,13 +283,13 @@ export default function Patterns() {
                     </span>
                     <span className="text-center text-muted-foreground text-xs w-12">{o.total}</span>
                     <span className={`text-center text-xs w-12 ${o.redCount > 0 ? "text-[#FCA5A5] font-semibold" : "text-muted-foreground"}`}>
-                      {o.redCount || "—"}
+                      {o.redCount || "-"}
                     </span>
                     <span className={`text-center text-xs w-16 ${o.accepted > 0 ? "font-medium" : "text-muted-foreground"}`}>
-                      {o.accepted || "—"}
+                      {o.accepted || "-"}
                     </span>
                     <span className={`text-center text-xs w-16 ${o.escalated > 0 ? "text-[#60A5FA] font-medium" : "text-muted-foreground"}`}>
-                      {o.escalated || "—"}
+                      {o.escalated || "-"}
                     </span>
                   </div>
                 ))}

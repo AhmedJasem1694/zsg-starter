@@ -1,5 +1,5 @@
 /**
- * Delta Comparison Service — Section 18, Step 1
+ * Delta Comparison Service - Section 18, Step 1
  *
  * Compares an original reviewed document against a final signed version,
  * classifying each negotiated clause outcome as:
@@ -31,7 +31,7 @@ export async function runDeltaComparison(
     }).catch(() => [] as PBRecord[]);
 
     if (flaggedResults.length === 0) {
-      console.log(`[deltaComparison] No RED/AMBER results for ${originalDocId} — nothing to compare`);
+      console.log(`[deltaComparison] No RED/AMBER results for ${originalDocId} - nothing to compare`);
       return;
     }
 
@@ -75,7 +75,7 @@ export async function runDeltaComparison(
       try {
         let llmOutcome: DeltaOutcome = "NO_CHANGE";
         let confidence = 0.5;
-        let reasoning = "No final clause text found — assuming no change.";
+        let reasoning = "No final clause text found - assuming no change.";
 
         if (!finalText) {
           // Clause was removed in final version
@@ -96,8 +96,8 @@ Red line is: ${rule["hardRedLine"] as string}` : "No playbook rule available for
 
 Classify the outcome as exactly one of:
 - PREFERRED (final matches or is better than preferred position)
-- FALLBACK (final matches acceptable fallback — an acceptable compromise)
-- BELOW_FALLBACK (final is worse than fallback — below or near the red line)
+- FALLBACK (final matches acceptable fallback - an acceptable compromise)
+- BELOW_FALLBACK (final is worse than fallback - below or near the red line)
 - NO_CHANGE (no meaningful change from original)
 - REMOVED (clause was removed entirely)
 
@@ -139,6 +139,6 @@ Return ONLY valid JSON:
     console.log(`[deltaComparison] Completed for ${originalDocId} → ${finalDocId}`);
   } catch (err) {
     console.error("[deltaComparison] runDeltaComparison failed:", err);
-    // Never throws — fire-and-forget safe
+    // Never throws - fire-and-forget safe
   }
 }

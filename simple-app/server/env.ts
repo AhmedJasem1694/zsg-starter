@@ -25,15 +25,15 @@ if (!process.env.COMPANIES_HOUSE_API_KEY) {
 // Optional vars: SMTP_PORT (default 587), SMTP_FROM, APP_URL
 
 if (!process.env.JWT_SECRET) {
-  console.warn("Warning: JWT_SECRET not set — using insecure default. Set this in production.");
+  console.warn("Warning: JWT_SECRET not set - using insecure default. Set this in production.");
 }
 
 if (!process.env.FRONTEND_URL) {
-  console.info("Info: FRONTEND_URL not set — assuming same-origin deployment.");
+  console.info("Info: FRONTEND_URL not set - assuming same-origin deployment.");
 }
 
 if (process.env.NODE_ENV !== "production") {
-  console.info(`Info: NODE_ENV is "${process.env.NODE_ENV ?? "undefined"}" — not running in production mode.`);
+  console.info(`Info: NODE_ENV is "${process.env.NODE_ENV ?? "undefined"}" - not running in production mode.`);
 }
 
 if (!process.env.APP_URL) {

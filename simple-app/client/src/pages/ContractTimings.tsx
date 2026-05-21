@@ -42,7 +42,7 @@ export default function ContractTimings() {
               <div className="font-semibold">No renewal data yet</div>
               <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
                 Zane extracts renewal dates, notice periods, and auto-renewal clauses from every reviewed contract.
-                Upload contracts with renewal terms to start your renewal calendar — and get alerted before notice
+                Upload contracts with renewal terms to start your renewal calendar - and get alerted before notice
                 windows close.
               </p>
             </div>

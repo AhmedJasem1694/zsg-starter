@@ -56,7 +56,7 @@ export async function detectAndSaveRegulations(companyId: string): Promise<void>
   // Step 1: keyword-based detection
   const keywordMatches = detectFrameworks(company["sector"] as string, jurisdictions);
 
-  // Step 2: AI enhancement — find any the keyword match missed
+  // Step 2: AI enhancement - find any the keyword match missed
   let aiCodes: string[] = [];
   if (process.env.OPENROUTER_API_KEY && process.env.OPENROUTER_API_KEY !== "your-api-key-here") {
     try {

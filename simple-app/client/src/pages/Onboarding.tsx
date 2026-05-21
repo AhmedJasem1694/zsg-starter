@@ -278,7 +278,7 @@ export default function Onboarding() {
       await queryClient.invalidateQueries({ queryKey: ["company"] });
       navigate("/dashboard");
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Setup failed — please try again.";
+      const msg = e instanceof Error ? e.message : "Setup failed - please try again.";
       setFinishError(msg);
     } finally {
       setSaving(false);
@@ -309,7 +309,7 @@ export default function Onboarding() {
     setCompanyForm((prev) => ({ ...prev, jurisdiction: jurisdictionStr, industry: industryStr, sector: sectorStr }));
 
     // Founder persona: skip contract-type, playbook, and approvers
-    // — auto-initialise investment playbook and jump straight to Launch
+    // - auto-initialise investment playbook and jump straight to Launch
     if (persona === "FOUNDER") {
       setPlaybook(initPlaybook(companyForm.riskAppetite, false, false, true, workflowType, selectedIndustries));
       setStep(8);
@@ -344,7 +344,7 @@ export default function Onboarding() {
     setSaving(true);
     setFinishError("");
     try {
-      // Step 1: Always (re)create the company — idempotent because POST /api/company
+      // Step 1: Always (re)create the company - idempotent because POST /api/company
       // deletes any existing company first (single-company mode).
       try {
         await companyMutation.mutateAsync({ ...companyForm, persona, workflowType });
@@ -352,7 +352,7 @@ export default function Onboarding() {
         throw new Error(`Company setup failed: ${e instanceof Error ? e.message : String(e)}`);
       }
 
-      // Step 2: Save playbook rules — filter out any entries missing required fields
+      // Step 2: Save playbook rules - filter out any entries missing required fields
       // (can happen if the user cleared a text area or if a category has no default)
       const validRules = playbook
         .map(({ clauseCategory, preferredPosition, acceptableFallback, hardRedLine, approvalRequired, fallbackTemplate, riskWeight }) => ({
@@ -376,22 +376,22 @@ export default function Onboarding() {
         }
       }
 
-      // Step 4: Save approval thresholds — fire-and-forget
+      // Step 4: Save approval thresholds - fire-and-forget
       if (thresholds.length > 0) {
         saveGovernanceThresholds(thresholds).catch((e) => console.warn("[handleFinish] thresholds save:", e));
       }
 
-      // Step 5: Save governance triggers — fire-and-forget
+      // Step 5: Save governance triggers - fire-and-forget
       if (governanceTriggers.length > 0) {
         saveGovernanceTriggers(governanceTriggers).catch((e) => console.warn("[handleFinish] triggers save:", e));
       }
 
-      // Step 6: Send team invites — fire-and-forget
+      // Step 6: Send team invites - fire-and-forget
       if (teamInviteEmails.length > 0) {
         sendTeamInvites(teamInviteEmails).catch((e) => console.warn("[handleFinish] invites:", e));
       }
 
-      // Step 7: Detect regs — fire-and-forget, never blocks navigation
+      // Step 7: Detect regs - fire-and-forget, never blocks navigation
       detectRegulations().catch(() => {});
 
       await queryClient.invalidateQueries({ queryKey: ["company"] });
@@ -609,7 +609,7 @@ function Step0Workflow({
               Get started in 30 seconds
             </h3>
             <p className="text-xs text-white/40 mt-0.5 leading-relaxed">
-              Enter your company name — Zane auto-detects your industry. Adjust, then launch.
+              Enter your company name - Zane auto-detects your industry. Adjust, then launch.
             </p>
           </div>
           <button
@@ -643,7 +643,7 @@ function Step0Workflow({
               </div>
             </div>
 
-            {/* Industry — auto-detected + editable */}
+            {/* Industry - auto-detected + editable */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
@@ -651,11 +651,11 @@ function Step0Workflow({
                 </label>
                 {detected && detectedIndustries.length > 0 && (
                   <span className="text-[10px] text-emerald-400 flex items-center gap-1">
-                    <CheckCircle size={9} /> Auto-detected from Companies House — adjust as needed
+                    <CheckCircle size={9} /> Auto-detected from Companies House - adjust as needed
                   </span>
                 )}
                 {!detected && !detecting && quickName.trim().length >= 3 && (
-                  <span className="text-[10px] text-white/30">Not found — select manually</span>
+                  <span className="text-[10px] text-white/30">Not found - select manually</span>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-1.5">
@@ -1020,7 +1020,7 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
       }
       setEnriched(true);
     } catch {
-      // Non-fatal — just apply the name
+      // Non-fatal - just apply the name
       onChange({ ...form, name: candidate.name });
       setEnriched(true);
     } finally {
@@ -1079,7 +1079,7 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
             />
           </DarkField>
 
-          {/* Litigation practice type — single-select card grid */}
+          {/* Litigation practice type - single-select card grid */}
           <DarkField label="Litigation practice type" required>
             <div className="grid grid-cols-2 gap-2 mt-1">
               {LITIGATION_PRACTICE_TYPES.map((opt) => {
@@ -1103,7 +1103,7 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
           {/* Handler type / role in litigation */}
           <DarkField label="Your role in litigation" required>
             <DarkSelect value={form.role} onChange={(v) => onChange({ ...form, role: v as CompanyRole })} options={[
-              { value: "INSURER_INHOUSE", label: "Insurer — in-house litigation team" },
+              { value: "INSURER_INHOUSE", label: "Insurer - in-house litigation team" },
               { value: "PANEL_FIRM",      label: "Panel solicitors / External counsel" },
               { value: "TPA",             label: "Third Party Administrator (TPA)" },
               { value: "CLAIMANT_FIRM",   label: "Claimant solicitors" },
@@ -1134,14 +1134,14 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
           </DarkField>
 
           {/* Settlement posture slider */}
-          <DarkField label="Settlement posture" required hint="Sets default clause positions — adjust each one in the playbook step.">
+          <DarkField label="Settlement posture" required hint="Sets default clause positions - adjust each one in the playbook step.">
             <RiskAppetiteSlider
               value={form.riskAppetite}
               onChange={(v) => onChange({ ...form, riskAppetite: v })}
               labels={[
-                { value: "CONSERVATIVE", label: "Conservative", sub: "Defend aggressively — every case on merits" },
-                { value: "MODERATE",     label: "Moderate",     sub: "Balanced — merits-driven with pragmatic settlement" },
-                { value: "COMMERCIAL",   label: "Commercial",   sub: "Settlement-focused — resolve cost-effectively" },
+                { value: "CONSERVATIVE", label: "Conservative", sub: "Defend aggressively - every case on merits" },
+                { value: "MODERATE",     label: "Moderate",     sub: "Balanced - merits-driven with pragmatic settlement" },
+                { value: "COMMERCIAL",   label: "Commercial",   sub: "Settlement-focused - resolve cost-effectively" },
               ]}
             />
           </DarkField>
@@ -1255,7 +1255,7 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
             {enriched && !enriching && (
               <div className="flex items-center gap-2 mt-2 text-xs text-emerald-400">
                 <CheckCircle size={12} />
-                Company found — industries pre-selected below. Add or remove as needed.
+                Company found - industries pre-selected below. Add or remove as needed.
               </div>
             )}
           </div>
@@ -1339,7 +1339,7 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
         )}
 
         {/* Risk appetite slider */}
-        <DarkField label="Risk appetite" required hint="Sets default clause positions — adjust each one in the playbook step.">
+        <DarkField label="Risk appetite" required hint="Sets default clause positions - adjust each one in the playbook step.">
           <RiskAppetiteSlider
             value={form.riskAppetite}
             onChange={(v) => onChange({ ...form, riskAppetite: v })}
@@ -1920,21 +1920,21 @@ const JURISDICTION_LABELS: Record<string, string> = {
 
 // Plain-English descriptions of each jurisdiction's regulatory flavour
 const JURISDICTION_CONTEXT: Record<string, string> = {
-  GB:  "UK domestic law post-Brexit — FCA, ICO, CMA and sector regulators",
+  GB:  "UK domestic law post-Brexit - FCA, ICO, CMA and sector regulators",
   EU:  "EU-wide rules that apply if you operate in, sell to, or process data from EU countries",
-  IE:  "Irish law — important if you're EU-passporting via Dublin",
-  NL:  "Dutch law — relevant for Netherlands-incorporated entities",
-  CH:  "Swiss law — applies if you contract under Swiss jurisdiction",
-  US:  "US federal & state law — relevant for US-facing products or contracts",
-  CA:  "Canadian law — PIPEDA privacy and provincial regulations",
-  SG:  "Singapore law — MAS regulated activities and PDPA",
-  HK:  "Hong Kong law — SFC regulated activities",
-  JP:  "Japanese law — APPI privacy and FSA regulations",
-  AE:  "UAE / DIFC / ADGM law — relevant for Middle East operations",
-  KSA: "Saudi Arabian law — PDPL and SAMA regulations",
-  KR:  "South Korean law — PIPA and FSC regulations",
-  IN:  "Indian law — DPDP Act and RBI/SEBI regulations",
-  BR:  "Brazilian law — LGPD privacy and BACEN regulations",
+  IE:  "Irish law - important if you're EU-passporting via Dublin",
+  NL:  "Dutch law - relevant for Netherlands-incorporated entities",
+  CH:  "Swiss law - applies if you contract under Swiss jurisdiction",
+  US:  "US federal & state law - relevant for US-facing products or contracts",
+  CA:  "Canadian law - PIPEDA privacy and provincial regulations",
+  SG:  "Singapore law - MAS regulated activities and PDPA",
+  HK:  "Hong Kong law - SFC regulated activities",
+  JP:  "Japanese law - APPI privacy and FSA regulations",
+  AE:  "UAE / DIFC / ADGM law - relevant for Middle East operations",
+  KSA: "Saudi Arabian law - PDPL and SAMA regulations",
+  KR:  "South Korean law - PIPA and FSC regulations",
+  IN:  "Indian law - DPDP Act and RBI/SEBI regulations",
+  BR:  "Brazilian law - LGPD privacy and BACEN regulations",
 };
 
 function Step7Regulations({ companyForm, detected, onDetected, onBack, onNext, detectFn }: {
@@ -1961,7 +1961,7 @@ function Step7Regulations({ companyForm, detected, onDetected, onBack, onNext, d
       onDetected();
     } catch (e) {
       console.error("[detect]", e);
-      setError("Could not detect frameworks — skip for now and detect later from the Regulations page.");
+      setError("Could not detect frameworks - skip for now and detect later from the Regulations page.");
     } finally {
       setDetecting(false);
     }
@@ -2017,13 +2017,13 @@ function Step7Regulations({ companyForm, detected, onDetected, onBack, onNext, d
         {error && <p className="text-xs text-amber-400">{error}</p>}
       </div>
 
-      {/* Results — grouped by jurisdiction */}
+      {/* Results - grouped by jurisdiction */}
       {detected && regs.length > 0 && (
         <div className="space-y-6">
           <div className="flex items-center gap-2">
             <CheckCircle size={15} className="text-emerald-400 shrink-0" />
             <span className="text-sm font-semibold text-emerald-400">{regs.length} regulatory framework{regs.length !== 1 ? "s" : ""} detected</span>
-            <span className="text-xs text-white/30">— Zane will flag contract clauses that conflict with these</span>
+            <span className="text-xs text-white/30">- Zane will flag contract clauses that conflict with these</span>
           </div>
 
           {Object.entries(byJurisdiction).map(([jurisdiction, items]) => (

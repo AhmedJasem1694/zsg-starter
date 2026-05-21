@@ -115,7 +115,7 @@ function mapResult(r: PBRecord) {
     if (r["regulatoryCitations"]) {
       regulatoryCitations = JSON.parse(r["regulatoryCitations"] as string);
     }
-  } catch { /* malformed JSON — return empty */ }
+  } catch { /* malformed JSON - return empty */ }
 
   return {
     ...r,
@@ -188,7 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { name, email, password } = parsed.data;
 
     try {
-      // Use PocketBase native auth — it handles hashing internally
+      // Use PocketBase native auth - it handles hashing internally
       const user = await pb.collection("users").create({
         name,
         email,
@@ -248,7 +248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ── Company search / enrichment ──────────────────────────────────────────────
 
-  // No requireAuth — this searches public registry data and is needed during onboarding
+  // No requireAuth - this searches public registry data and is needed during onboarding
   app.get("/api/company/search", ah(async (req: Request, res: Response) => {
     const q = String(req.query.q ?? "").trim();
     if (q.length < 2) { res.json({ candidates: [] }); return; }
@@ -256,7 +256,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ candidates });
   }));
 
-  // No requireAuth — enriches public company registry data, used during onboarding
+  // No requireAuth - enriches public company registry data, used during onboarding
   app.post("/api/company/enrich", ah(async (req: Request, res: Response) => {
     const candidate = req.body;
     if (!candidate?.name) { sendError(res, 400, "candidate required"); return; }
@@ -467,7 +467,7 @@ Ensure updates are realistic, plausible, and specific (not generic).`;
       const match = result.match(/\[[\s\S]*\]/);
       if (match) updates = JSON.parse(match[0]) as unknown[];
     } catch {
-      // Return empty — non-fatal
+      // Return empty - non-fatal
     }
 
     // Cache for 24h
@@ -602,7 +602,7 @@ Ensure updates are realistic, plausible, and specific (not generic).`;
     res.json({ ok: true });
   }));
 
-  // Feature 39 — Generate AI-suggested playbook position for a clause category
+  // Feature 39 - Generate AI-suggested playbook position for a clause category
   // ── Playbook update suggestions based on outcome data ────────────────────────
   // Returns clauses with high drift + an LLM-powered update suggestion for each.
 
@@ -657,7 +657,7 @@ Ensure updates are realistic, plausible, and specific (not generic).`;
 
       const prompt = `You are a senior commercial lawyer reviewing a legal team's playbook.
 
-Context: This team has accepted ${dc.acceptedRed} out of ${dc.totalRed} contracts where their "${dc.cat.replace(/_/g, " ")}" clause was flagged RED — a ${dc.driftPct}% acceptance rate below their red line.
+Context: This team has accepted ${dc.acceptedRed} out of ${dc.totalRed} contracts where their "${dc.cat.replace(/_/g, " ")}" clause was flagged RED - a ${dc.driftPct}% acceptance rate below their red line.
 
 Current playbook positions:
 - Preferred position: ${currentPosition ?? "Not set"}
@@ -929,7 +929,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
         recommendations.push({ contractType: "SHA", label: "Shareholders' Agreement", reason: "Every funded company needs a SHA to govern investor rights, board seats, and exit mechanics.", priority: "high" });
       }
       if (!uploaded.has("TERM_SHEET")) {
-        recommendations.push({ contractType: "TERM_SHEET", label: "Term Sheet", reason: "If you're fundraising, review your term sheet before signing — it sets the economic terms.", priority: "high" });
+        recommendations.push({ contractType: "TERM_SHEET", label: "Term Sheet", reason: "If you're fundraising, review your term sheet before signing - it sets the economic terms.", priority: "high" });
       }
       if (!uploaded.has("NDA")) {
         recommendations.push({ contractType: "NDA", label: "NDA / Confidentiality Agreement", reason: "Share sensitive information with investors and partners under a signed NDA.", priority: "medium" });
@@ -1145,7 +1145,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
   }));
 
   // ── False Positive ────────────────────────────────────────────────────────────
-  // Marks a clause extraction as incorrect — the clause wasn't really there or was
+  // Marks a clause extraction as incorrect - the clause wasn't really there or was
   // misclassified. Logged separately to improve the classifier over time.
 
   app.post("/api/feedback/false-positive/:resultId", requireAuth, ah(async (req: Request, res: Response) => {
@@ -1244,21 +1244,21 @@ Each field should be 1-3 sentences of clear, practical legal language.
       if (stats.accepted >= 3 && (stats.ragCounts["RED"] ?? 0) > 0) {
         patterns.push({
           type: "repeated_acceptance",
-          message: `You've accepted ${stats.ragCounts["RED"]} red-flagged ${cat.replace(/_/g, " ")} clause${stats.ragCounts["RED"] > 1 ? "s" : ""} — consider updating your playbook.`,
+          message: `You've accepted ${stats.ragCounts["RED"]} red-flagged ${cat.replace(/_/g, " ")} clause${stats.ragCounts["RED"] > 1 ? "s" : ""} - consider updating your playbook.`,
           severity: "warn",
         });
       }
       if (stats.escalated >= 2) {
         patterns.push({
           type: "repeated_escalation",
-          message: `${cat.replace(/_/g, " ")} has been escalated ${stats.escalated} times — this clause type consistently needs legal review.`,
+          message: `${cat.replace(/_/g, " ")} has been escalated ${stats.escalated} times - this clause type consistently needs legal review.`,
           severity: "info",
         });
       }
       if (stats.ragCounts["GREY"] ?? 0 >= 3) {
         patterns.push({
           type: "frequently_absent",
-          message: `${cat.replace(/_/g, " ")} has been absent in ${stats.ragCounts["GREY"]} contracts — worth requesting this clause proactively.`,
+          message: `${cat.replace(/_/g, " ")} has been absent in ${stats.ragCounts["GREY"]} contracts - worth requesting this clause proactively.`,
           severity: "warn",
         });
       }
@@ -1284,7 +1284,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
     if (totalGreen > 5 && acceptedRed === 0) {
       patterns.push({
         type: "clean_streak",
-        message: `${totalGreen} clauses have been green across your contracts — your playbook is working well.`,
+        message: `${totalGreen} clauses have been green across your contracts - your playbook is working well.`,
         severity: "good",
       });
     }
@@ -1410,7 +1410,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
     const systemPrompt = `You are a commercial contract negotiation expert.
 Write a short, ${tone} email paragraph (3-5 sentences) that a business owner can send to the other side to negotiate the ${clauseLabel} clause.
 The clause is currently rated ${ragStatus} (RED = problematic, AMBER = needs improvement, GREEN = fine).
-Be specific, polite, and suggest the improved wording. Do not use legalese — keep it plain English.
+Be specific, polite, and suggest the improved wording. Do not use legalese - keep it plain English.
 Output ONLY the email text, no subject line, no preamble.`;
 
     const userPrompt = `Contract: ${contractType ?? "commercial agreement"}
@@ -1426,7 +1426,7 @@ Write the negotiation email paragraph.`;
       // Fallback: compose a template-based reply
       const templateReply = fallback
         ? `Thank you for sending through the contract. Regarding the ${clauseLabel} clause, we'd like to propose the following amendment: "${fallback}". This better reflects our standard position and we'd welcome your thoughts.`
-        : `Thank you for sending through the contract. We'd like to discuss the ${clauseLabel} clause before proceeding — please let us know when you're available to talk through our proposed changes.`;
+        : `Thank you for sending through the contract. We'd like to discuss the ${clauseLabel} clause before proceeding - please let us know when you're available to talk through our proposed changes.`;
       res.json({ reply: templateReply });
       return;
     }
@@ -1590,7 +1590,7 @@ Write the negotiation email paragraph.`;
       .map(([type, v]) => ({ type: type.replace(/_/g, " "), red: v.red, amber: v.amber, total: v.docIds.size }))
       .sort((a, b) => b.red - a.red);
 
-    // Counterparty risk heat map — top 8 counterparties by red count
+    // Counterparty risk heat map - top 8 counterparties by red count
     const cpMap: Record<string, { red: number; amber: number; green: number; docIds: Set<string>; value: number }> = {};
     for (const r of results) {
       const docId = r["document"] as string;
@@ -1819,7 +1819,7 @@ Write the negotiation email paragraph.`;
     const filterStr = filters.join(" && ");
 
     if (format === "csv") {
-      // Full export — no pagination, max 5000 rows
+      // Full export - no pagination, max 5000 rows
       const rows = await pb.collection("audit_log").getFullList({
         sort: "-created",
         filter: filterStr || undefined,
@@ -1879,7 +1879,7 @@ Write the negotiation email paragraph.`;
 
   // ── Contract library ──────────────────────────────────────────────────────────
 
-  // GET /api/library — documents grouped by folder, with version chain resolution
+  // GET /api/library - documents grouped by folder, with version chain resolution
   app.get("/api/library", requireAuth, ah(async (req: Request, res: Response) => {
     const company = await getCompany();
     if (!company) { res.json({ folders: [] }); return; }
@@ -1918,14 +1918,14 @@ Write the negotiation email paragraph.`;
     res.json({ folders, total: filtered.length });
   }));
 
-  // PATCH /api/documents/:id/folder — assign a folder
+  // PATCH /api/documents/:id/folder - assign a folder
   app.patch("/api/documents/:id/folder", requireAuth, ah(async (req: Request, res: Response) => {
     const { folder } = req.body as { folder: string };
     const updated = await pb.collection("uploaded_documents").update(req.params.id, { folder });
     res.json(mapDoc(updated));
   }));
 
-  // PATCH /api/documents/:id/version — link to parent document version
+  // PATCH /api/documents/:id/version - link to parent document version
   app.patch("/api/documents/:id/version", requireAuth, ah(async (req: Request, res: Response) => {
     const { parentDocumentId } = req.body as { parentDocumentId: string };
     const updated = await pb.collection("uploaded_documents").update(req.params.id, { parentDocumentId });
@@ -1952,7 +1952,7 @@ Write the negotiation email paragraph.`;
       detail: { outcome, originalName: doc["originalName"] },
     });
 
-    // Re-run outcome pattern aggregation — fire-and-forget
+    // Re-run outcome pattern aggregation - fire-and-forget
     const { persistOutcomePatterns } = await import("./services/outcomeCapture.js");
     persistOutcomePatterns(doc["company"] as string).catch((err: unknown) =>
       console.error("[outcome capture] pattern update failed:", err)
@@ -2016,7 +2016,7 @@ Write the negotiation email paragraph.`;
     const created = await Promise.all(
       emails.map((email) => pb.collection("team_invites").create({ companyId: company.id, email, role, status: "pending" }))
     );
-    // Best-effort invite emails — import sendEscalationEmail-like mailer if SMTP configured
+    // Best-effort invite emails - import sendEscalationEmail-like mailer if SMTP configured
     res.json({ invited: created.map((r) => r.id).length });
   }));
 
@@ -2059,9 +2059,9 @@ Write the negotiation email paragraph.`;
     }
   }));
 
-  // ── Section 18 — Behavioural Accumulation Engine ─────────────────────────────
+  // ── Section 18 - Behavioural Accumulation Engine ─────────────────────────────
 
-  // ── Step 1 — Outcome delta capture ───────────────────────────────────────────
+  // ── Step 1 - Outcome delta capture ───────────────────────────────────────────
 
   // Upload the final signed version of a document
   app.post(
@@ -2175,7 +2175,7 @@ Write the negotiation email paragraph.`;
     res.json({ ok: true });
   }));
 
-  // ── Step 2 — Override signal capture ─────────────────────────────────────────
+  // ── Step 2 - Override signal capture ─────────────────────────────────────────
 
   app.post("/api/review/:resultId/override", requireAuth, ah(async (req: Request, res: Response) => {
     const { correctedStatus, reason } = req.body as { correctedStatus: string; reason: string };
@@ -2246,7 +2246,7 @@ Write the negotiation email paragraph.`;
     res.json({ ok: true });
   }));
 
-  // ── Step 3 — False positive capture ──────────────────────────────────────────
+  // ── Step 3 - False positive capture ──────────────────────────────────────────
 
   app.post("/api/review/:resultId/false-positive", requireAuth, ah(async (req: Request, res: Response) => {
     const { errorType, correctInterpretation } = req.body as {
@@ -2295,7 +2295,7 @@ Write the negotiation email paragraph.`;
     res.json({ ok: true });
   }));
 
-  // ── Step 5 — Company rules engine ────────────────────────────────────────────
+  // ── Step 5 - Company rules engine ────────────────────────────────────────────
 
   app.get("/api/company-rules", requireAuth, ah(async (_req: Request, res: Response) => {
     const company = await getCompany();
@@ -2364,7 +2364,7 @@ Write the negotiation email paragraph.`;
     res.json(updated);
   }));
 
-  // ── Step 7 — Visibility layer routes ──────────────────────────────────────────
+  // ── Step 7 - Visibility layer routes ──────────────────────────────────────────
 
   // Signals summary per clause category
   app.get("/api/accumulation/signals-summary", requireAuth, ah(async (req: Request, res: Response) => {
@@ -2676,7 +2676,7 @@ Write the negotiation email paragraph.`;
     res.json({ ok: true, folderName });
   }));
 
-  // Google Drive webhook — no auth, external POST
+  // Google Drive webhook - no auth, external POST
   app.post("/api/integrations/google-drive/webhook", ah(async (req: Request, res: Response) => {
     // Respond immediately to avoid retry
     res.status(200).end();
@@ -2778,7 +2778,7 @@ Write the negotiation email paragraph.`;
     res.json({ ok: true, folderName });
   }));
 
-  // SharePoint webhook — no auth, external POST
+  // SharePoint webhook - no auth, external POST
   // Graph validation: first request is GET with validationToken query param
   app.get("/api/integrations/sharepoint/webhook", (req: Request, res: Response) => {
     const validationToken = (req.query as Record<string, string>).validationToken;

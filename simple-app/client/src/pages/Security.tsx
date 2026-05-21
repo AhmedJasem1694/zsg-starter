@@ -11,7 +11,7 @@ const PILLARS = [
       "AES-256 encryption for all stored data",
       "TLS 1.3 for all API and web traffic",
       "Encrypted database backups",
-      "Secrets managed via environment variables — never hardcoded",
+      "Secrets managed via environment variables - never hardcoded",
     ],
   },
   {
@@ -54,12 +54,12 @@ const PILLARS = [
     icon: RefreshCw,
     title: "LLM Data Privacy",
     description:
-      "Contract text is anonymised before any model call — party names and sensitive identifiers are replaced with placeholders and restored in your output.",
+      "Contract text is anonymised before any model call - party names and sensitive identifiers are replaced with placeholders and restored in your output.",
     checks: [
       "PII anonymisation before every LLM call",
       "Prompt caching applied only to playbook rules, not contract text",
       "No contract data retained by model provider beyond session",
-      "Configurable model routing — use your own API keys",
+      "Configurable model routing - use your own API keys",
     ],
   },
   {
@@ -187,12 +187,12 @@ export default function Security() {
         </div>
       </section>
 
-      {/* Compliance — Current */}
+      {/* Compliance - Current */}
       <section className="max-w-4xl mx-auto px-6 pb-12">
         <div className="mb-6">
           <h2 className="text-xl font-bold mb-1">Compliance alignment</h2>
           <p className="text-muted-foreground text-sm">
-            What Zane is designed for — and what requires Enterprise engagement.
+            What Zane is designed for - and what requires Enterprise engagement.
           </p>
         </div>
 

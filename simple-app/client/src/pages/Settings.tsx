@@ -216,7 +216,7 @@ function IntegrationCard({
                 status={status as "connected" | "disconnected" | "error"}
                 label={
                   connected && config?.folderName
-                    ? `Connected — watching ${config.folderName}`
+                    ? `Connected - watching ${config.folderName}`
                     : undefined
                 }
               />

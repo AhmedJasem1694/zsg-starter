@@ -36,7 +36,7 @@ export async function runReview(documentId: string): Promise<void> {
   ]);
   const contractValue = doc["contractValue"] as number | null;
 
-  // Helper: Tier 2 — check if contract value triggers an approver
+  // Helper: Tier 2 - check if contract value triggers an approver
   function getValueTierApprover(): string | null {
     if (!contractValue || approvalThresholds.length === 0) return null;
     for (const band of approvalThresholds) {
@@ -50,7 +50,7 @@ export async function runReview(documentId: string): Promise<void> {
     return null;
   }
 
-  // Helper: Tier 3 — check if a clause category is a governance trigger
+  // Helper: Tier 3 - check if a clause category is a governance trigger
   function getGovernanceTriggerApprover(category: string): string | null {
     const trigger = governanceTriggers.find((t) => t["clauseCategory"] === category);
     return trigger ? (trigger["escalateTo"] as string) : null;
@@ -143,7 +143,7 @@ export async function runReview(documentId: string): Promise<void> {
     // Granular status: COMPARING
     await pb.collection("uploaded_documents").update(documentId, { status: "COMPARING" });
 
-    // Deduplicate — keep highest-confidence chunk per category
+    // Deduplicate - keep highest-confidence chunk per category
     const bestByCategory = new Map<string, (typeof classified)[0]>();
     for (const item of classified) {
       const existing = bestByCategory.get(item.category);
@@ -152,7 +152,7 @@ export async function runReview(documentId: string): Promise<void> {
       }
     }
 
-    // Fetch regulatory context once — injected into every clause comparison
+    // Fetch regulatory context once - injected into every clause comparison
     const regulatoryContext = await getRegulationSummaryForLLM(company.id);
 
     const results: Array<{
@@ -212,7 +212,7 @@ export async function runReview(documentId: string): Promise<void> {
         continue;
       }
 
-      // Store extracted clause — de-anonymise rawText for user-facing display
+      // Store extracted clause - de-anonymise rawText for user-facing display
       const extractedClause = await pb.collection("extracted_clauses").create({
         document: documentId,
         clauseCategory: category,
@@ -230,7 +230,7 @@ export async function runReview(documentId: string): Promise<void> {
       const combinedRegContext = regulatoryContext + clauseRegContext;
 
       // Compare against playbook with regulatory context
-      // Note: match.rawText is already anonymised — company/counterparty names
+      // Note: match.rawText is already anonymised - company/counterparty names
       // are placeholders. The comparison result text is de-anonymised below.
       const docGoverningLaw = doc["governingLaw"] as string | undefined;
       const docJurisdiction = doc["jurisdiction"] as string | undefined;
@@ -289,9 +289,9 @@ export async function runReview(documentId: string): Promise<void> {
       });
 
       // ── Three-tier governance escalation ───────────────────────────────────
-      // Tier 1: clause-level RAG (from LLM comparison — already in deanonComparison)
+      // Tier 1: clause-level RAG (from LLM comparison - already in deanonComparison)
       // Tier 2: contract value band (from approval_thresholds)
-      // Tier 3: governance triggers (from governance_triggers — always escalate)
+      // Tier 3: governance triggers (from governance_triggers - always escalate)
       const tier2Approver = getValueTierApprover();
       const tier3Approver = getGovernanceTriggerApprover(category);
 
@@ -413,12 +413,12 @@ export async function runReview(documentId: string): Promise<void> {
       },
     });
 
-    // Persist outcome patterns — fire-and-forget
+    // Persist outcome patterns - fire-and-forget
     persistOutcomePatterns(company.id).catch((err: unknown) => {
       console.error("[Zane] Outcome pattern persistence failed:", err);
     });
 
-    // Send escalation emails — fire-and-forget, never block or fail the review
+    // Send escalation emails - fire-and-forget, never block or fail the review
     const escalations = results.filter((r) => r.escalationRequired && r.ruleId);
     if (escalations.length > 0) {
       const contacts = await pb.collection("approval_contacts").getFullList({
