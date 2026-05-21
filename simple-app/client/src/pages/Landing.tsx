@@ -593,7 +593,7 @@ export default function Landing() {
             variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
           >
             {[
-              "A contract review that takes two to three hours manually takes under ten minutes with Zane.",
+              "A contract review that takes hours manually takes a fraction of the time with Zane.",
               "A new lawyer joining the team gets a full briefing document generated from your contract history in minutes rather than spending six weeks reading through everything.",
               "A GC who leaves takes their experience with them. With Zane that experience stays.",
               "A regulation changes. Zane immediately identifies which active contracts are affected.",
@@ -796,8 +796,8 @@ export default function Landing() {
             </motion.div>
             <p className="text-white/30 text-xs">
               Or email{" "}
-              <a href="mailto:ahmed@zanelegal.ai" className="text-white/50 hover:text-white/70 transition-colors underline underline-offset-2">
-                ahmed@zanelegal.ai
+              <a href="mailto:hello@zanelegal.ai" className="text-white/50 hover:text-white/70 transition-colors underline underline-offset-2">
+                hello@zanelegal.ai
               </a>
               {" "}with any questions first.
             </p>
