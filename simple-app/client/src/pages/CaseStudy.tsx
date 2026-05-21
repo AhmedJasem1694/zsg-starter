@@ -12,12 +12,12 @@ export default function CaseStudy() {
       {/* Nav */}
       <header className="sticky top-0 z-20 border-b border-white/8 backdrop-blur-md" style={{ background: `${BG}dd` }}>
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+          <Link to="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
             <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-              <span className="text-white text-xs font-bold">M</span>
+              <span className="text-white text-xs font-bold">Z</span>
             </div>
             <span className="text-sm font-semibold text-white">Zane</span>
-          </div>
+          </Link>
           <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-white/55 hover:text-white transition-colors">
             <ArrowLeft size={14} /> Back to home
           </Link>
