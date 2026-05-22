@@ -200,11 +200,19 @@ export const logout = () => {
   return req<{ ok: boolean }>("POST", "/api/auth/logout");
 };
 export const getMe = async (): Promise<{ userId: string; email: string }> => {
-  const data = await req<{ userId: string; email: string; token?: string }>("GET", "/api/auth/me");
-  // Bootstrap the in-memory token from the /me response so Bearer auth works
-  // even when httpOnly cookies aren't forwarded by a reverse proxy.
-  if (data.token) storeAuthToken(data.token);
-  return data;
+  try {
+    const data = await req<{ userId: string; email: string; token?: string }>("GET", "/api/auth/me");
+    // Bootstrap the in-memory token from the /me response so Bearer auth works
+    // even when httpOnly cookies aren't forwarded by a reverse proxy.
+    if (data.token) storeAuthToken(data.token);
+    return data;
+  } catch (err) {
+    // Clear any stale token so the user doesn't stay perpetually "logged in"
+    // with a JWT that the server no longer accepts (e.g. user deleted, DB reset).
+    // Without this, sessionStorage._zt keeps redirecting away from /register.
+    storeAuthToken(null);
+    throw err;
+  }
 };
 
 // Portfolio

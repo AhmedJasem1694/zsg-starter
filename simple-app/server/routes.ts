@@ -206,13 +206,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Include token in body so clients can use Authorization: Bearer as fallback
       res.json({ userId: user.id, name: user["name"], email: user["email"], token });
     } catch (err: unknown) {
-      const pbErr = err as { status?: number; response?: { data?: Record<string, unknown> } };
+      const pbErr = err as { status?: number; response?: { data?: Record<string, unknown>; message?: string } };
+      console.error("[register] PocketBase error:", pbErr.status, JSON.stringify(pbErr.response ?? err));
       if (pbErr.status === 400) {
         const data = pbErr.response?.data ?? {};
         if ("email" in data) {
           sendError(res, 409, "An account with this email already exists"); return;
         }
-        sendError(res, 400, "Invalid registration data"); return;
+        // Surface the actual PocketBase validation message if present
+        const detail = pbErr.response?.message ?? "Invalid registration data";
+        sendError(res, 400, detail); return;
       }
       throw err;
     }
@@ -248,12 +251,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ ok: true });
   });
 
-  app.get("/api/auth/me", requireAuth, (req: Request, res: Response) => {
+  app.get("/api/auth/me", requireAuth, ah(async (req: Request, res: Response) => {
+    // Verify the user still exists in PocketBase.
+    // The JWT may be valid (30-day TTL) but the underlying record could have been
+    // deleted (e.g. during a dev reset). Without this check, old JWTs keep the
+    // user permanently "logged in" and block them from re-registering.
+    try {
+      await pb.collection("users").getOne(req.user!.userId);
+    } catch {
+      // User record gone - invalidate the session cookie so the client gets a clean state
+      res.clearCookie("token");
+      res.status(401).json({ error: "Session expired - please log in again" });
+      return;
+    }
     // Include a fresh token in the response so the client can use Authorization: Bearer
     // as a fallback when cookies are not relayed by the reverse proxy (e.g. Railway).
     const freshToken = signToken(req.user!);
     res.json({ ...req.user, token: freshToken });
-  });
+  }));
 
   // ── Company search / enrichment ──────────────────────────────────────────────
 
