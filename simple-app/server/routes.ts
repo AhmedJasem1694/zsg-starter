@@ -159,7 +159,10 @@ function sendError(res: Response, status: number, message: string) {
 // ── Helper: get the single company (single-company mode) ─────────────────────
 
 async function getCompany(): Promise<PBRecord | null> {
-  const list = await pb.collection("companies").getFullList({ batch: 1 });
+  const list = await pb.collection("companies").getFullList({ batch: 1 }).catch((err: unknown) => {
+    console.error("[getCompany] PocketBase query failed:", (err as Error)?.message ?? err);
+    throw err;
+  });
   return list[0] ?? null;
 }
 
@@ -364,7 +367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Check for existing fresh synthesis (< 7 days old)
     const existing = await pb.collection("regulatory_synthesis_pages").getFullList({
       filter: `companyId = "${company.id}" && topic = "${regulationId}"`,
-      sort: "-created",
+      sort: "-id",
     }).catch(() => []);
     if (existing.length > 0) {
       const age = Date.now() - new Date(existing[0]["created"] as string).getTime();
@@ -435,7 +438,7 @@ Be precise, practical, and legally accurate. This is advisory context, not legal
     // Check for cached digest (< 24h old)
     const existing = await pb.collection("regulatory_synthesis_pages").getFullList({
       filter: `companyId = "${company.id}" && topic = "DIGEST"`,
-      sort: "-created",
+      sort: "-id",
     }).catch(() => []);
     if (existing.length > 0) {
       const age = Date.now() - new Date(existing[0]["created"] as string).getTime();
@@ -538,7 +541,7 @@ Ensure updates are realistic, plausible, and specific (not generic).`;
 
     const rules = await pb.collection("playbook_rules").getFullList({
       filter,
-      sort: "+created",
+      sort: "+id",
     });
 
     // Derive playbook version from count of playbook_updated audit entries
@@ -546,7 +549,7 @@ Ensure updates are realistic, plausible, and specific (not generic).`;
     try {
       const versionResult = await pb.collection("audit_log").getList(1, 1, {
         filter: `action = "playbook_updated" && companyId = "${company.id}"`,
-        sort: "-created",
+        sort: "-id",
       });
       playbookVersion = Math.max(1, versionResult.totalItems);
     } catch { /* non-fatal */ }
@@ -580,7 +583,7 @@ Ensure updates are realistic, plausible, and specific (not generic).`;
     // Resolve company if not provided
     let cId = companyId;
     if (!cId) {
-      const companies = await pb.collection("companies").getFullList({ sort: "-created" });
+      const companies = await pb.collection("companies").getFullList({ sort: "-id" });
       if (!companies.length) { sendError(res, 400, "No company found"); return; }
       cId = companies[0].id;
     }
@@ -847,7 +850,12 @@ Each field should be 1-3 sentences of clear, practical legal language.
     // document.company which are unreliable across PocketBase versions.
     const docs = await pb.collection("uploaded_documents").getFullList({
       filter: `company = "${company.id}"`,
-      sort: "-created",
+      sort: "-id",
+    }).catch((err: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pbErr = err as any;
+      console.error("[GET /api/documents] uploaded_documents query failed:", pbErr?.message, "status:", pbErr?.status, "data:", JSON.stringify(pbErr?.response ?? pbErr?.data));
+      throw err; // re-throw so the route returns 500 with a useful log
     });
 
     const docIds = docs.map((d) => d.id);
@@ -1719,7 +1727,7 @@ Write the negotiation email paragraph.`;
     const [docs, allResults] = await Promise.all([
       pb.collection("uploaded_documents").getFullList({
         filter: `company = "${company.id}"`,
-        sort: "-created",
+        sort: "-id",
       }),
       pb.collection("review_results").getFullList({
         filter: `document.company = "${company.id}"`,
@@ -1854,7 +1862,7 @@ Write the negotiation email paragraph.`;
   app.get("/api/ancillary/:documentId", requireAuth, ah(async (req: Request, res: Response) => {
     const docs = await pb.collection("ancillary_documents").getFullList({
       filter: `document = "${req.params.documentId}"`,
-      sort: "-created",
+      sort: "-id",
     });
     res.json(docs.map(mapAncillary));
   }));
@@ -1882,7 +1890,7 @@ Write the negotiation email paragraph.`;
     if (format === "csv") {
       // Full export - no pagination, max 5000 rows
       const rows = await pb.collection("audit_log").getFullList({
-        sort: "-created",
+        sort: "-id",
         filter: filterStr || undefined,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
@@ -1917,7 +1925,7 @@ Write the negotiation email paragraph.`;
     }
 
     const result = await pb.collection("audit_log").getList(page, limit, {
-      sort: "-created",
+      sort: "-id",
       filter: filterStr || undefined,
     });
 
@@ -1947,7 +1955,7 @@ Write the negotiation email paragraph.`;
 
     const { search } = req.query as Record<string, string>;
     const docs = await pb.collection("uploaded_documents").getFullList({
-      sort: "-created",
+      sort: "-id",
       filter: `company = "${company.id}"`,
     });
 
@@ -2086,7 +2094,7 @@ Write the negotiation email paragraph.`;
     if (!company) { res.json([]); return; }
     const rows = await pb.collection("team_invites").getFullList({
       filter: `companyId = "${company.id}"`,
-      sort: "-created",
+      sort: "-id",
     });
     res.json(rows);
   }));
@@ -2364,7 +2372,7 @@ Write the negotiation email paragraph.`;
 
     const allRules = await pb.collection("company_rules").getFullList({
       filter: `company = "${company.id}"`,
-      sort: "-created",
+      sort: "-id",
     });
 
     const grouped = {
@@ -2924,18 +2932,18 @@ Write the negotiation email paragraph.`;
     const integrationIds = configs.map((c) => c.id).join('","');
     const entries = await pb.collection("integration_sync_log").getFullList({
       filter: `integrationId ?= "${integrationIds}"`,
-      sort: "-created",
+      sort: "-id",
     }).catch(async () => {
       // Fallback: fetch per-integration
       const all = [];
       for (const c of configs) {
         const logs = await pb.collection("integration_sync_log").getFullList({
           filter: `integrationId = "${c.id}"`,
-          sort: "-created",
+          sort: "-id",
         }).catch(() => []);
         all.push(...logs);
       }
-      return all.sort((a, b) => new Date(b["created"] as string).getTime() - new Date(a["created"] as string).getTime()).slice(0, 50);
+      return all.sort((a, b) => String(b["id"]).localeCompare(String(a["id"]))).slice(0, 50);
     });
 
     res.json({ entries: entries.slice(0, 50) });

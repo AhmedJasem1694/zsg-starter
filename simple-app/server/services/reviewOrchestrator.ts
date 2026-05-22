@@ -254,6 +254,9 @@ async function _runReview(documentId: string): Promise<void> {
         clauseCategory: category,
         rawText: deanonymise(match.rawText, entityMap),
         confidence: match.confidence,
+      }).catch((err: unknown) => {
+        console.error(`[review] extracted_clauses.create FAILED for ${documentId}/${category}:`, (err as any)?.message, JSON.stringify((err as any)?.response));
+        throw err;
       });
 
       // Fetch per-clause regulatory context from the regulatory engine
@@ -286,6 +289,9 @@ async function _runReview(documentId: string): Promise<void> {
         doc["counterpartyType"] as string || "",
         doc["contractType"] as string || ""
       );
+
+      // Log comparison result for debugging (ragStatus especially)
+      console.log(`[review] comparison result for ${category}: ragStatus=${comparison.ragStatus} confidenceLabel=${comparison.confidenceLabel}`);
 
       // ── De-anonymise LLM output fields ─────────────────────────────────────
       // Restore original party names / PII in user-facing text fields.
@@ -406,28 +412,33 @@ async function _runReview(documentId: string): Promise<void> {
       results.map((r) =>
         pb.collection("review_results").create({
           document: documentId,
-          clause: r.clauseId,
-          rule: r.ruleId,
+          clause: r.clauseId ?? undefined,
+          rule: r.ruleId ?? undefined,
           clauseCategory: r.clauseCategory,
-          ragStatus: r.ragStatus,
-          comparisonStatement: r.comparisonStatement,
-          clauseSummary: r.clauseSummary,
-          whyItMatters: r.whyItMatters,
-          recommendedAction: r.recommendedAction,
-          suggestedFallback: r.suggestedFallback,
+          // Defensive fallback: ragStatus is required; if LLM returned empty/null default to GREY
+          ragStatus: r.ragStatus || "GREY",
+          comparisonStatement: r.comparisonStatement ?? "",
+          clauseSummary: r.clauseSummary ?? "",
+          whyItMatters: r.whyItMatters ?? "",
+          recommendedAction: r.recommendedAction ?? "",
+          suggestedFallback: r.suggestedFallback ?? "",
           escalationRequired: r.escalationRequired,
-          escalationTrigger: r.escalationTrigger,
-          businessSummary: r.businessSummary,
-          confidenceLabel: r.confidenceLabel,
-          regulatoryCitations: r.regulatoryCitations,
+          escalationTrigger: r.escalationTrigger ?? "",
+          businessSummary: r.businessSummary ?? "",
+          confidenceLabel: r.confidenceLabel ?? "",
+          regulatoryCitations: r.regulatoryCitations ?? "[]",
           isAbsent: r.isAbsent,
-          founderStatus: r.founderStatus,
-          founderPlainEnglish: r.founderPlainEnglish,
-          founderBusinessImpact: r.founderBusinessImpact,
-          founderAskFor: r.founderAskFor,
-          founderCopyPaste: r.founderCopyPaste,
-          founderFundraisingRelevance: r.founderFundraisingRelevance,
-          founderIfIgnored: r.founderIfIgnored,
+          founderStatus: r.founderStatus ?? "",
+          founderPlainEnglish: r.founderPlainEnglish ?? "",
+          founderBusinessImpact: r.founderBusinessImpact ?? "",
+          founderAskFor: r.founderAskFor ?? "",
+          founderCopyPaste: r.founderCopyPaste ?? "",
+          founderFundraisingRelevance: r.founderFundraisingRelevance ?? "",
+          founderIfIgnored: r.founderIfIgnored ?? "",
+        }).catch((err: unknown) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          console.error(`[review] review_results.create FAILED for ${documentId}/${r.clauseCategory}:`, (err as any)?.message, JSON.stringify((err as any)?.response));
+          throw err;
         })
       )
     );

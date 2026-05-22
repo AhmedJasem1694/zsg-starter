@@ -1,11 +1,10 @@
 import fs from "fs";
 import path from "path";
-import { createRequire } from "module";
 import mammoth from "mammoth";
 import { createWorker } from "tesseract.js";
-
-const require = createRequire(import.meta.url);
-const pdfParse = require("pdf-parse") as (buf: Buffer) => Promise<{ text: string; numpages: number }>;
+// pdf-parse v2 exports a class-based API: new PDFParse({ data: buffer }).getText()
+// The old v1 function-call pattern (pdfParse(buffer)) no longer works.
+import { PDFParse } from "pdf-parse";
 
 export interface ParseResult {
   text: string;
@@ -51,17 +50,18 @@ export async function parseDocument(filePath: string): Promise<ParseResult> {
     let nativeText = "";
     let pageCount = 0;
     try {
-      // pdf-parse can hang indefinitely on certain PDFs (scanned, malformed, password-protected).
-      // Wrap with a 30s timeout so the pipeline never stalls here.
+      // pdf-parse v2: instantiate with the buffer, then call getText().
+      // Wrap with a 30s timeout so the pipeline never stalls on a scanned/malformed PDF.
+      const parser = new PDFParse({ data: buffer });
       const parseWithTimeout = Promise.race([
-        pdfParse(buffer),
+        parser.getText(),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error("pdf-parse timed out after 30s")), 30_000)
         ),
       ]);
       const result = await parseWithTimeout;
       nativeText = result.text ?? "";
-      pageCount = result.numpages ?? 0;
+      pageCount = result.total ?? 0; // TextResult.total = numPages
     } catch (err) {
       console.warn(`[documentParser] pdf-parse failed/timed out: ${(err as Error)?.message ?? String(err)}`);
       // native parse failed - will fall through to OCR

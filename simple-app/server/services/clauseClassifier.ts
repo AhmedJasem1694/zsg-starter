@@ -178,7 +178,7 @@ export async function classifyClauses(
 
   // Propagate errors: callers must handle failure explicitly so the pipeline
   // sets FAILED status rather than silently completing with empty results
-  const parsed = await llmJsonCall<ClassifyItem[]>({
+  const rawParsed = await llmJsonCall<ClassifyItem[] | Record<string, unknown>>({
     messages: [
       {
         role: "system",
@@ -197,6 +197,22 @@ If a chunk does not match any category, omit it from results.`,
     maxTokens: 2048,
     description: "clause classification",
   });
+
+  // LLMs occasionally wrap arrays in an object like {"items": [...]} — extract the array
+  let parsed: ClassifyItem[];
+  if (Array.isArray(rawParsed)) {
+    parsed = rawParsed;
+  } else {
+    // Try to find an array value inside the returned object
+    const nestedArray = Object.values(rawParsed).find(Array.isArray) as ClassifyItem[] | undefined;
+    if (nestedArray) {
+      console.warn("[classifyClauses] LLM returned wrapped array — extracting nested array");
+      parsed = nestedArray;
+    } else {
+      console.warn("[classifyClauses] LLM returned non-array, cannot classify:", JSON.stringify(rawParsed).slice(0, 200));
+      return [];
+    }
+  }
 
   return parsed
     .filter(

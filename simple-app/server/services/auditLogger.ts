@@ -85,7 +85,11 @@ export interface AuditEntry {
  */
 export async function audit(entry: AuditEntry): Promise<void> {
   try {
-    await pb.collection("audit_log").create({
+    // Build the payload. `company` is the relation field (needs a valid record ID);
+    // `companyId` is a compat text field kept for backwards compatibility.
+    // Only set the relation when we actually have a company ID to avoid validation errors.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const payload: Record<string, any> = {
       action: entry.action,
       entityType: entry.entityType ?? "",
       entityId: entry.entityId ?? "",
@@ -93,7 +97,11 @@ export async function audit(entry: AuditEntry): Promise<void> {
       userId: entry.userId ?? "",
       detail: entry.detail ? JSON.stringify(entry.detail) : "{}",
       ipAddress: entry.ipAddress ?? "",
-    });
+    };
+    if (entry.companyId) {
+      payload.company = entry.companyId; // satisfy the relation field
+    }
+    await pb.collection("audit_log").create(payload);
   } catch (err) {
     // Non-fatal: audit logging must never break the main application flow
     console.error("[AUDIT] Failed to write audit log entry:", err);

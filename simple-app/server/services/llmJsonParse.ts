@@ -47,18 +47,19 @@ export async function llmJsonCall<T>(opts: LLMJsonOptions): Promise<T> {
 }
 
 function tryParseJson<T>(text: string): T | null {
-  // Try direct parse first
+  // Try direct parse first (handles arrays and objects equally)
   try {
     return JSON.parse(text) as T;
   } catch { /* fall through */ }
 
-  // Try extracting JSON object
+  // Try extracting JSON object first — the outermost object is usually the intended result.
+  // Objects take priority over arrays because LLMs sometimes include arrays as fields inside objects.
   const objMatch = text.match(/\{[\s\S]*\}/);
   if (objMatch) {
     try { return JSON.parse(objMatch[0]) as T; } catch { /* fall through */ }
   }
 
-  // Try extracting JSON array
+  // Try extracting JSON array (fallback, e.g. when LLM returns a bare array)
   const arrMatch = text.match(/\[[\s\S]*\]/);
   if (arrMatch) {
     try { return JSON.parse(arrMatch[0]) as T; } catch { /* fall through */ }

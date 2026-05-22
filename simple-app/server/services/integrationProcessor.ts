@@ -37,7 +37,7 @@ export async function findPatternMatch(
       .collection("review_results")
       .getFullList({
         filter: `document.company = "${companyId}"`,
-        sort: "-created",
+        sort: "-id",
         expand: "document",
         fields: "id,clauseCategory,document,created,expand",
       })

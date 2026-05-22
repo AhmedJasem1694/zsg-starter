@@ -72,6 +72,34 @@ function fileField(name: string, opts: FieldDef = {}): FieldDef {
 // ── Smart additive create-or-update ──────────────────────────────────────────
 // Adds missing fields to existing collections - never removes or modifies existing.
 
+/**
+ * Patch a specific field's `required` property on an existing collection.
+ * Used to fix fields that were created with required:true but should be optional.
+ */
+async function patchFieldRequired(collectionName: string, fieldName: string, required: boolean): Promise<void> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existing = await (pb.collections as any).getOne(collectionName);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const fields: any[] = existing.fields ?? existing.schema ?? [];
+    const field = fields.find((f: any) => f.name === fieldName);
+    if (!field) {
+      console.log(`  ⚠ Field '${fieldName}' not found in '${collectionName}' - skipping`);
+      return;
+    }
+    if (field.required === required) {
+      console.log(`  ✓ '${collectionName}.${fieldName}' already required=${required}`);
+      return;
+    }
+    field.required = required;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (pb.collections as any).update(existing.id, { fields });
+    console.log(`  ✓ Patched '${collectionName}.${fieldName}' → required=${required}`);
+  } catch (err: unknown) {
+    console.error(`  ✗ Failed to patch '${collectionName}.${fieldName}':`, err);
+  }
+}
+
 async function ensureCollection(
   name: string,
   fields: FieldDef[],
@@ -670,7 +698,7 @@ async function main() {
 
   // ── 29. audit_log ─────────────────────────────────────────────────────────
   await ensureCollection("audit_log", [
-    relationField("company", companiesId, { required: true }),
+    relationField("company", companiesId, { required: false }),
     relationField("user", usersId),
     textField("action", { required: true }),
     textField("entity_type"),
@@ -929,6 +957,13 @@ async function main() {
   ]);
 
   console.log("\n✅ All collections created/patched successfully.\n");
+
+  // ── Schema corrections ─────────────────────────────────────────────────────
+  // Fix fields that were originally created with wrong constraints.
+  console.log("\nApplying schema corrections...");
+  // audit_log.company was created with required:true which blocks every audit write
+  // when no companyId is available (e.g. auth events). Make it optional.
+  await patchFieldRequired("audit_log", "company", false);
 
   // ══════════════════════════════════════════════════════════════════════════
   // Verification

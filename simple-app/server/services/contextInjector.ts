@@ -29,13 +29,13 @@ export async function buildContextBlock(
     const [overrides, outcomes, rules, falsePositives] = await Promise.all([
       pb.collection("override_signals").getFullList({
         filter: `company = "${companyId}" && clauseCategory = "${clauseCategory}"`,
-        sort: "-created",
+        sort: "-id",
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any).catch(() => [] as PBRecord[]),
 
       pb.collection("outcome_deltas").getFullList({
         filter: `company = "${companyId}" && clauseCategory = "${clauseCategory}" && confirmedOutcome != ""`,
-        sort: "-created",
+        sort: "-id",
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any).catch(() => [] as PBRecord[]),
 
