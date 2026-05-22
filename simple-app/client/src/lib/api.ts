@@ -8,15 +8,34 @@ import type {
   AncillaryDocumentData,
 } from "./types";
 
+// In-memory token store — populated by register/login responses.
+// Used as Authorization: Bearer fallback when httpOnly cookies don't reach the server
+// (e.g. certain reverse-proxy or browser configurations in production).
+let _authToken: string | null = (() => {
+  try { return sessionStorage.getItem("_zt"); } catch { return null; }
+})();
+
+export function storeAuthToken(token: string | null) {
+  _authToken = token;
+  try {
+    if (token) sessionStorage.setItem("_zt", token);
+    else sessionStorage.removeItem("_zt");
+  } catch { /* sessionStorage unavailable */ }
+}
+
 async function req<T>(
   method: string,
   url: string,
   body?: unknown
 ): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (!(body instanceof FormData)) headers["Content-Type"] = "application/json";
+  if (_authToken) headers["Authorization"] = `Bearer ${_authToken}`;
+
   const res = await fetch(url, {
     method,
     credentials: "include",
-    headers: body instanceof FormData ? undefined : { "Content-Type": "application/json" },
+    headers,
     body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
@@ -162,11 +181,24 @@ export const getStats = () => req<{
 }>("GET", "/api/stats");
 
 // Auth
-export const register = (data: { name: string; email: string; password: string }) =>
-  req<{ userId: string; email: string; name: string }>("POST", "/api/auth/register", data);
-export const login = (data: { email: string; password: string }) =>
-  req<{ userId: string; email: string; name: string }>("POST", "/api/auth/login", data);
-export const logout = () => req<{ ok: boolean }>("POST", "/api/auth/logout");
+export const register = async (data: { name: string; email: string; password: string }) => {
+  const res = await req<{ userId: string; email: string; name: string; token?: string }>(
+    "POST", "/api/auth/register", data
+  );
+  if (res.token) storeAuthToken(res.token);
+  return res;
+};
+export const login = async (data: { email: string; password: string }) => {
+  const res = await req<{ userId: string; email: string; name: string; token?: string }>(
+    "POST", "/api/auth/login", data
+  );
+  if (res.token) storeAuthToken(res.token);
+  return res;
+};
+export const logout = () => {
+  storeAuthToken(null);
+  return req<{ ok: boolean }>("POST", "/api/auth/logout");
+};
 export const getMe = () => req<{ userId: string; email: string }>("GET", "/api/auth/me");
 
 // Portfolio

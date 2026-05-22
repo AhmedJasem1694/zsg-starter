@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { getMe, logout as apiLogout } from "../lib/api";
 
 interface AuthUser {
   userId: string;
@@ -7,9 +8,8 @@ interface AuthUser {
 }
 
 async function fetchMe(): Promise<AuthUser> {
-  const res = await fetch("/api/auth/me", { credentials: "include" });
-  if (!res.ok) throw new Error("Not authenticated");
-  return res.json() as Promise<AuthUser>;
+  // Use the typed api helper so the Authorization: Bearer header is included
+  return getMe();
 }
 
 export function useAuth() {
@@ -28,7 +28,7 @@ export function useLogout() {
   const navigate = useNavigate();
 
   return useMutation({
-    mutationFn: () => fetch("/api/auth/logout", { method: "POST", credentials: "include" }).then((r) => r.json()),
+    mutationFn: () => apiLogout(),
     onSuccess: () => {
       navigate("/", { replace: true });
       queryClient.clear();

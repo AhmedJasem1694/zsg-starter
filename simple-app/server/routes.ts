@@ -201,9 +201,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         passwordConfirm: password,
       });
       const token = signToken({ userId: user.id, email: user["email"] as string });
-      res.cookie("token", token, COOKIE_OPTS);
+      res.cookie("token", token, { ...COOKIE_OPTS, path: "/" });
       await audit({ action: "user_registered", userId: user.id, detail: { email: user["email"] } });
-      res.json({ userId: user.id, name: user["name"], email: user["email"] });
+      // Include token in body so clients can use Authorization: Bearer as fallback
+      res.json({ userId: user.id, name: user["name"], email: user["email"], token });
     } catch (err: unknown) {
       const pbErr = err as { status?: number; response?: { data?: Record<string, unknown> } };
       if (pbErr.status === 400) {
@@ -233,9 +234,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const authData = await userClient.collection("users").authWithPassword(email, password);
       const user = authData.record;
       const token = signToken({ userId: user.id, email: user["email"] as string });
-      res.cookie("token", token, COOKIE_OPTS);
+      res.cookie("token", token, { ...COOKIE_OPTS, path: "/" });
       await audit({ action: "user_login", userId: user.id, ipAddress: req.ip });
-      res.json({ userId: user.id, name: user["name"], email: user["email"] });
+      // Include token in body so clients can use Authorization: Bearer as fallback
+      res.json({ userId: user.id, name: user["name"], email: user["email"], token });
     } catch {
       sendError(res, 401, "Invalid email or password");
     }
