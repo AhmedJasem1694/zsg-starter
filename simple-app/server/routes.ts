@@ -249,7 +249,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get("/api/auth/me", requireAuth, (req: Request, res: Response) => {
-    res.json(req.user);
+    // Include a fresh token in the response so the client can use Authorization: Bearer
+    // as a fallback when cookies are not relayed by the reverse proxy (e.g. Railway).
+    const freshToken = signToken(req.user!);
+    res.json({ ...req.user, token: freshToken });
   });
 
   // ── Company search / enrichment ──────────────────────────────────────────────

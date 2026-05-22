@@ -199,7 +199,13 @@ export const logout = () => {
   storeAuthToken(null);
   return req<{ ok: boolean }>("POST", "/api/auth/logout");
 };
-export const getMe = () => req<{ userId: string; email: string }>("GET", "/api/auth/me");
+export const getMe = async (): Promise<{ userId: string; email: string }> => {
+  const data = await req<{ userId: string; email: string; token?: string }>("GET", "/api/auth/me");
+  // Bootstrap the in-memory token from the /me response so Bearer auth works
+  // even when httpOnly cookies aren't forwarded by a reverse proxy.
+  if (data.token) storeAuthToken(data.token);
+  return data;
+};
 
 // Portfolio
 export const getPortfolio = () => req<{
