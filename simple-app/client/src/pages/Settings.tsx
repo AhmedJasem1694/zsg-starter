@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import AppLayout from "../components/layout/AppLayout";
 import IntegrationStatusBadge from "../components/IntegrationStatusBadge";
+import { req } from "../lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -42,29 +43,16 @@ interface DriveFolder {
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
-async function apiFetch<T>(url: string, opts?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    credentials: "include",
-    headers: { "Content-Type": "application/json", ...opts?.headers },
-    ...opts,
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as { error?: string }).error ?? res.statusText);
-  }
-  return res.json() as Promise<T>;
-}
-
 const getGDriveStatus = () =>
-  apiFetch<IntegrationConfig | null>("/api/integrations/google-drive/status");
+  req<IntegrationConfig | null>("GET", "/api/integrations/google-drive/status");
 const getSharePointStatus = () =>
-  apiFetch<IntegrationConfig | null>("/api/integrations/sharepoint/status");
+  req<IntegrationConfig | null>("GET", "/api/integrations/sharepoint/status");
 const getSyncLog = () =>
-  apiFetch<{ entries: SyncLogEntry[] }>("/api/integrations/sync-log");
+  req<{ entries: SyncLogEntry[] }>("GET", "/api/integrations/sync-log");
 const getGDriveFolders = () =>
-  apiFetch<{ folders: DriveFolder[] }>("/api/integrations/google-drive/folders");
+  req<{ folders: DriveFolder[] }>("GET", "/api/integrations/google-drive/folders");
 const getSPFolders = () =>
-  apiFetch<{ folders: DriveFolder[] }>("/api/integrations/sharepoint/folders");
+  req<{ folders: DriveFolder[] }>("GET", "/api/integrations/sharepoint/folders");
 
 // ── Sync log status helpers ───────────────────────────────────────────────────
 
@@ -123,7 +111,8 @@ function IntegrationCard({
 
   // Connect: open OAuth in new tab
   async function handleConnect() {
-    const authRes = await apiFetch<{ authUrl: string }>(
+    const authRes = await req<{ authUrl: string }>(
+      "GET",
       isGDrive
         ? "/api/integrations/google-drive/auth"
         : "/api/integrations/sharepoint/auth"
@@ -157,18 +146,15 @@ function IntegrationCard({
     setWatchError("");
     try {
       if (isGDrive) {
-        await apiFetch("/api/integrations/google-drive/watch", {
-          method: "POST",
-          body: JSON.stringify({ folderId: folder.id, folderName: folder.name }),
+        await req("POST", "/api/integrations/google-drive/watch", {
+          folderId: folder.id,
+          folderName: folder.name,
         });
       } else {
-        await apiFetch("/api/integrations/sharepoint/watch", {
-          method: "POST",
-          body: JSON.stringify({
-            driveId: folder.id,
-            folderId: folder.id,
-            folderName: folder.name,
-          }),
+        await req("POST", "/api/integrations/sharepoint/watch", {
+          driveId: folder.id,
+          folderId: folder.id,
+          folderName: folder.name,
         });
       }
       await qc.invalidateQueries({ queryKey: [provider + "Status"] });
@@ -183,11 +169,11 @@ function IntegrationCard({
   // Disconnect
   const disconnectMutation = useMutation({
     mutationFn: () =>
-      apiFetch(
+      req(
+        "POST",
         isGDrive
           ? "/api/integrations/google-drive/disconnect"
-          : "/api/integrations/sharepoint/disconnect",
-        { method: "POST" }
+          : "/api/integrations/sharepoint/disconnect"
       ),
     onSuccess: () => qc.invalidateQueries({ queryKey: [provider + "Status"] }),
   });

@@ -408,7 +408,7 @@ export default function FounderDashboard() {
                           {cfg.label}
                         </div>
 
-                        {doc.status === "PROCESSING" && (
+                        {ACTIVE_STATUSES.includes(doc.status) && (
                           <span className="flex items-center gap-1 text-xs text-[#FCD34D] shrink-0">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D] animate-pulse" />
                             Reading…

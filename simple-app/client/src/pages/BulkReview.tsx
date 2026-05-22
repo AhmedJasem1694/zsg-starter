@@ -5,7 +5,7 @@ import {
   Upload, FileText, ChevronRight, Download, X, Play, Loader2, CheckCircle,
   AlertTriangle, Folder,
 } from "lucide-react";
-import { uploadDocument, startReview, getDocuments } from "../lib/api";
+import { uploadDocument, startReview, getDocuments, req } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import { CLAUSE_LABELS } from "../lib/types";
 import type { UploadedDocument, ClauseCategory } from "../lib/types";
@@ -295,11 +295,7 @@ export default function BulkReview() {
 
         // Set folder if specified
         if (qf.folder) {
-          await fetch(`/api/documents/${doc.id}/folder`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ folder: qf.folder }),
-          }).catch(() => null);
+          await req("PATCH", `/api/documents/${doc.id}/folder`, { folder: qf.folder }).catch(() => null);
         }
 
         setFileStatus(qf.id, "reviewing");

@@ -619,21 +619,33 @@ Ensure updates are realistic, plausible, and specific (not generic).`;
     const company = await getCompany();
     if (!company) { res.json({ suggestions: [] }); return; }
 
-    // Load feedback and results
-    const [results, feedbacks, rules] = await Promise.all([
-      pb.collection("review_results").getFullList({
-        filter: `document.company = "${company.id}"`,
-        fields: "id,clauseCategory,ragStatus",
-      }),
-      pb.collection("user_feedback").getFullList({
-        filter: `result.document.company = "${company.id}"`,
-        fields: "result,userAction",
+    // Load documents first, then query results/feedbacks without chained relation filters
+    const [driftDocs, rules] = await Promise.all([
+      pb.collection("uploaded_documents").getFullList({
+        filter: `company = "${company.id}"`,
+        fields: "id",
       }),
       pb.collection("playbook_rules").getFullList({
         filter: `company = "${company.id}"`,
         fields: "id,clauseCategory,preferredPosition,hardRedLine,workflowType",
       }),
     ]);
+    const driftDocIds = driftDocs.map((d) => d.id);
+    const driftDocFilter = driftDocIds.length > 0
+      ? driftDocIds.map((id) => `document = "${id}"`).join(" || ")
+      : `id = "none"`;
+    const results = await pb.collection("review_results").getFullList({
+      filter: driftDocFilter,
+      fields: "id,clauseCategory,ragStatus",
+    }).catch(() => [] as PBRecord[]);
+    const driftResultIds = results.map((r) => r.id);
+    const driftResultFilter = driftResultIds.length > 0
+      ? driftResultIds.map((id) => `result = "${id}"`).join(" || ")
+      : `id = "none"`;
+    const feedbacks = await pb.collection("user_feedback").getFullList({
+      filter: driftResultFilter,
+      fields: "result,userAction",
+    }).catch(() => [] as PBRecord[]);
 
     const fbMap = new Map<string, string>();
     for (const f of feedbacks) fbMap.set(f["result"] as string, f["userAction"] as string);
@@ -1264,20 +1276,30 @@ Each field should be 1-3 sentences of clear, practical legal language.
     const company = await getCompany();
     if (!company) { res.json({ patterns: [], clauseOutcomes: [], counterpartyPatterns: [], negotiationDrift: [] }); return; }
 
-    const [results, feedbacks, docs] = await Promise.all([
-      pb.collection("review_results").getFullList({
-        filter: `document.company = "${company.id}"`,
-        fields: "id,document,clauseCategory,ragStatus,clauseSummary,businessSummary,recommendedAction",
-      }),
-      pb.collection("user_feedback").getFullList({
-        filter: `result.document.company = "${company.id}"`,
-        fields: "result,userAction,finalClauseText,notes,created",
-      }),
-      pb.collection("uploaded_documents").getFullList({
-        filter: `company = "${company.id}"`,
-        fields: "id,counterpartyName,contractType",
-      }),
-    ]);
+    const docs = await pb.collection("uploaded_documents").getFullList({
+      filter: `company = "${company.id}"`,
+      fields: "id,counterpartyName,contractType",
+    });
+
+    const docIds = docs.map((d) => d.id);
+    const docIdFilter = docIds.length > 0
+      ? docIds.map((id) => `document = "${id}"`).join(" || ")
+      : `id = "none"`;
+
+    const results = await pb.collection("review_results").getFullList({
+      filter: docIdFilter,
+      fields: "id,document,clauseCategory,ragStatus,clauseSummary,businessSummary,recommendedAction",
+    }).catch(() => [] as PBRecord[]);
+
+    const resultIds = results.map((r) => r.id);
+    const resultIdFilter = resultIds.length > 0
+      ? resultIds.map((id) => `result = "${id}"`).join(" || ")
+      : `id = "none"`;
+
+    const feedbacks = await pb.collection("user_feedback").getFullList({
+      filter: resultIdFilter,
+      fields: "result,userAction,finalClauseText,notes,created",
+    }).catch(() => [] as PBRecord[]);
 
     // Build doc → counterparty/type maps
     const docMetaMap = new Map<string, { counterpartyName: string; contractType: string }>();
@@ -1329,7 +1351,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
           severity: "info",
         });
       }
-      if (stats.ragCounts["GREY"] ?? 0 >= 3) {
+      if ((stats.ragCounts["GREY"] ?? 0) >= 3) {
         patterns.push({
           type: "frequently_absent",
           message: `${cat.replace(/_/g, " ")} has been absent in ${stats.ragCounts["GREY"]} contracts - worth requesting this clause proactively.`,
@@ -1519,20 +1541,26 @@ Write the negotiation email paragraph.`;
     const company = await getCompany();
     if (!company) { res.json(null); return; }
 
-    const [docs, results] = await Promise.all([
-      pb.collection("uploaded_documents").getFullList({
-        filter: `company = "${company.id}"`,
-      }),
-      pb.collection("review_results").getFullList({
-        filter: `document.company = "${company.id}"`,
-      }),
-    ]);
+    const docs = await pb.collection("uploaded_documents").getFullList({
+      filter: `company = "${company.id}"`,
+    });
+
+    const docIds = docs.map((d) => d.id);
+    const docIdFilter = docIds.length > 0
+      ? docIds.map((id) => `document = "${id}"`).join(" || ")
+      : `id = "none"`;
+
+    const results = await pb.collection("review_results").getFullList({
+      filter: docIdFilter,
+    }).catch(() => [] as PBRecord[]);
 
     const feedbackMap = new Map<string, PBRecord>();
     if (results.length > 0) {
+      const resultIds = results.map((r) => r.id);
+      const resultIdFilter = resultIds.map((id) => `result = "${id}"`).join(" || ");
       const feedbacks = await pb.collection("user_feedback").getFullList({
-        filter: `result.document.company = "${company.id}"`,
-      });
+        filter: resultIdFilter,
+      }).catch(() => [] as PBRecord[]);
       for (const f of feedbacks) feedbackMap.set(f["result"] as string, f);
     }
 
@@ -1591,18 +1619,24 @@ Write the negotiation email paragraph.`;
     const company = await getCompany();
     if (!company) { res.json(null); return; }
 
-    const [results, completeDocs, allEscalations] = await Promise.all([
+    const completeDocs = await pb.collection("uploaded_documents").getFullList({
+      filter: `company = "${company.id}" && status = "COMPLETE"`,
+      fields: "id,contractType,counterpartyName,contractValue,currency,outcome",
+    });
+
+    const completeDocIds = completeDocs.map((d) => d.id);
+    const completeDocFilter = completeDocIds.length > 0
+      ? completeDocIds.map((id) => `document = "${id}"`).join(" || ")
+      : `id = "none"`;
+
+    const [results, allEscalations] = await Promise.all([
       pb.collection("review_results").getFullList({
-        filter: `document.company = "${company.id}" && document.status = "COMPLETE"`,
-      }),
-      pb.collection("uploaded_documents").getFullList({
-        filter: `company = "${company.id}" && status = "COMPLETE"`,
-        fields: "id,contractType,counterpartyName,contractValue,currency,outcome",
-      }),
+        filter: completeDocFilter,
+      }).catch(() => [] as PBRecord[]),
       pb.collection("review_results").getFullList({
-        filter: `document.company = "${company.id}" && escalationRequired = true`,
+        filter: `${completeDocFilter} && escalationRequired = true`,
         fields: "id,document",
-      }),
+      }).catch(() => [] as PBRecord[]),
     ]);
 
     if (results.length === 0) { res.json(null); return; }
@@ -1729,16 +1763,18 @@ Write the negotiation email paragraph.`;
     const company = await getCompany();
     if (!company) { res.json(null); return; }
 
-    const [docs, allResults] = await Promise.all([
-      pb.collection("uploaded_documents").getFullList({
-        filter: `company = "${company.id}"`,
-        sort: "-id",
-      }),
-      pb.collection("review_results").getFullList({
-        filter: `document.company = "${company.id}"`,
-        fields: "id,document,clauseCategory,ragStatus,clauseSummary",
-      }),
-    ]);
+    const docs = await pb.collection("uploaded_documents").getFullList({
+      filter: `company = "${company.id}"`,
+      sort: "-id",
+    });
+    const timingDocIds = docs.map((d) => d.id);
+    const timingDocFilter = timingDocIds.length > 0
+      ? timingDocIds.map((id) => `document = "${id}"`).join(" || ")
+      : `id = "none"`;
+    const allResults = await pb.collection("review_results").getFullList({
+      filter: timingDocFilter,
+      fields: "id,document,clauseCategory,ragStatus,clauseSummary",
+    }).catch(() => [] as PBRecord[]);
 
     const relevantCats = new Set(["AUTO_RENEWAL", "TERMINATION", "BREAK_CLAUSE", "PAYMENT_TERMS", "CHANGE_OF_CONTROL"]);
 
@@ -2491,21 +2527,23 @@ Write the negotiation email paragraph.`;
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().replace("T", " ").split(".")[0];
     const lastMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().replace("T", " ").split(".")[0];
 
+    // Fetch complete docs first so we can filter review results without chained relation queries
+    const completeDocs: PBRecord[] = await pb.collection("uploaded_documents").getFullList({
+      filter: `company = "${company.id}" && status = "COMPLETE"`,
+      fields: "id",
+    }).catch(() => []);
+    const completeDocIdSet = new Set(completeDocs.map((d) => d.id as string));
+
     const [
-      completeDocs,
       confirmedOutcomes,
       pendingRules,
       activeRules,
-      allResults,
+      allResultsRaw,
       thisMonthOverrides,
-      lastMonthResults,
+      lastMonthResultsRaw,
       lastMonthOverrides,
       belowFallbackDeltas,
     ] = await Promise.all([
-      pb.collection("uploaded_documents").getFullList({
-        filter: `company = "${company.id}" && status = "COMPLETE"`,
-        fields: "id",
-      }).catch(() => []),
       pb.collection("outcome_deltas").getFullList({
         filter: `company = "${company.id}" && confirmedOutcome != ""`,
         fields: "id",
@@ -2519,17 +2557,17 @@ Write the negotiation email paragraph.`;
         fields: "id",
       }).catch(() => []),
       pb.collection("review_results").getFullList({
-        filter: `document.company = "${company.id}" && created >= "${thisMonthStart}"`,
-        fields: "id",
-      }).catch(() => []),
+        filter: `created >= "${thisMonthStart}"`,
+        fields: "id,document",
+      }).catch(() => [] as PBRecord[]),
       pb.collection("override_signals").getFullList({
         filter: `company = "${company.id}" && created >= "${thisMonthStart}"`,
         fields: "id",
       }).catch(() => []),
       pb.collection("review_results").getFullList({
-        filter: `document.company = "${company.id}" && created >= "${lastMonthStart}" && created < "${lastMonthEnd}"`,
-        fields: "id",
-      }).catch(() => []),
+        filter: `created >= "${lastMonthStart}" && created < "${lastMonthEnd}"`,
+        fields: "id,document",
+      }).catch(() => [] as PBRecord[]),
       pb.collection("override_signals").getFullList({
         filter: `company = "${company.id}" && created >= "${lastMonthStart}" && created < "${lastMonthEnd}"`,
         fields: "id",
@@ -2539,6 +2577,10 @@ Write the negotiation email paragraph.`;
         sort: "-confirmedAt",
       }).catch(() => [] as PBRecord[]),
     ]);
+
+    // Filter review results to this company's docs only (avoids chained relation filter)
+    const allResults = allResultsRaw.filter((r) => completeDocIdSet.has(r["document"] as string));
+    const lastMonthResults = lastMonthResultsRaw.filter((r) => completeDocIdSet.has(r["document"] as string));
 
     const overrideRate = allResults.length > 0
       ? Math.round((thisMonthOverrides.length / allResults.length) * 100)
@@ -2577,13 +2619,28 @@ Write the negotiation email paragraph.`;
     const company = await getCompany();
     if (!company) { res.json([]); return; }
 
-    const [results, feedbacks, outcomes] = await Promise.all([
-      pb.collection("review_results").getFullList({
-        filter: `document.company = "${company.id}"`,
-        fields: "id,clauseCategory,ragStatus",
-      }).catch(() => [] as PBRecord[]),
+    const extDocs = await pb.collection("uploaded_documents").getFullList({
+      filter: `company = "${company.id}"`,
+      fields: "id",
+    }).catch(() => [] as PBRecord[]);
+    const extDocIds = extDocs.map((d) => d.id);
+    const extDocFilter = extDocIds.length > 0
+      ? extDocIds.map((id) => `document = "${id}"`).join(" || ")
+      : `id = "none"`;
+
+    const results = await pb.collection("review_results").getFullList({
+      filter: extDocFilter,
+      fields: "id,clauseCategory,ragStatus",
+    }).catch(() => [] as PBRecord[]);
+
+    const extResultIds = results.map((r) => r.id);
+    const extResultFilter = extResultIds.length > 0
+      ? extResultIds.map((id) => `result = "${id}"`).join(" || ")
+      : `id = "none"`;
+
+    const [feedbacks, outcomes] = await Promise.all([
       pb.collection("user_feedback").getFullList({
-        filter: `result.document.company = "${company.id}"`,
+        filter: extResultFilter,
         fields: "result,userAction",
       }).catch(() => [] as PBRecord[]),
       pb.collection("outcome_deltas").getFullList({

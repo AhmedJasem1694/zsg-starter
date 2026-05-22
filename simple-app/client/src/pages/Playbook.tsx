@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp, Save, BarChart2, BookOpen, Sparkles, Loader2, Plus, X, Star, TrendingUp, AlertOctagon, CheckCircle, Shield, AlertTriangle } from "lucide-react";
-import { getPlaybookRules, updatePlaybookRule, getFeedbackPatterns, generatePlaybookSuggestion, createPlaybookRule, getPlaybookDriftSuggestions, getCompanyRules, approveCompanyRule, rejectCompanyRule, updateCompanyRuleText, getClauseOutcomesExtended } from "../lib/api";
+import { getPlaybookRules, updatePlaybookRule, getFeedbackPatterns, generatePlaybookSuggestion, createPlaybookRule, getPlaybookDriftSuggestions, getCompanyRules, approveCompanyRule, rejectCompanyRule, updateCompanyRuleText, getClauseOutcomesExtended, getCompany } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import { CLAUSE_LABELS, type ClauseCategory, type PlaybookRule, type ApprovalRole } from "../lib/types";
 import type { ClauseOutcome, PlaybookDriftSuggestion, CompanyRule, ExtendedClauseOutcome } from "../lib/api";
@@ -925,7 +925,7 @@ export default function Playbook() {
   // Get company for workflowType (for suggestion context)
   const { data: company } = useQuery({
     queryKey: ["company"],
-    queryFn: () => import("../lib/api").then((m) => m.getCompany()),
+    queryFn: getCompany,
     retry: false,
   });
   const workflowType = (company as { workflowType?: string } | undefined)?.workflowType;

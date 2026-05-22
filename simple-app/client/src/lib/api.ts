@@ -23,7 +23,7 @@ export function storeAuthToken(token: string | null) {
   } catch { /* sessionStorage unavailable */ }
 }
 
-async function req<T>(
+export async function req<T>(
   method: string,
   url: string,
   body?: unknown
@@ -157,9 +157,9 @@ export async function getDocumentStats(): Promise<{
   redContracts: number;
   renewalsDue: number;
 }> {
-  const res = await fetch("/api/documents/stats", { credentials: "include" });
-  if (!res.ok) return { totalContracts: 0, totalValue: 0, redContracts: 0, renewalsDue: 0 };
-  return res.json() as Promise<{ totalContracts: number; totalValue: number; redContracts: number; renewalsDue: number }>;
+  return req<{ totalContracts: number; totalValue: number; redContracts: number; renewalsDue: number }>(
+    "GET", "/api/documents/stats"
+  ).catch(() => ({ totalContracts: 0, totalValue: 0, redContracts: 0, renewalsDue: 0 }));
 }
 
 // Review
@@ -236,27 +236,16 @@ export const detectRegulations = () => req<CompanyRegulation[]>("POST", "/api/re
 
 // Litigation intake
 export async function getLitigationIntake(documentId: string) {
-  const res = await fetch(`/api/litigation/intake/${documentId}`, { credentials: "include" });
-  if (!res.ok) return null;
-  return res.json() as Promise<LitigationIntakeData | null>;
+  return req<LitigationIntakeData | null>("GET", `/api/litigation/intake/${documentId}`).catch(() => null);
 }
 
 export async function saveLitigationIntake(documentId: string, data: Partial<LitigationIntakeData>) {
-  const res = await fetch(`/api/litigation/intake/${documentId}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    body: JSON.stringify(data),
-  });
-  if (!res.ok) throw new Error("Failed to save intake");
-  return res.json() as Promise<LitigationIntakeData>;
+  return req<LitigationIntakeData>("POST", `/api/litigation/intake/${documentId}`, data);
 }
 
 // Ancillary documents
 export async function getAncillaryDocuments(documentId: string) {
-  const res = await fetch(`/api/ancillary/${documentId}`, { credentials: "include" });
-  if (!res.ok) return [];
-  return res.json() as Promise<AncillaryDocumentData[]>;
+  return req<AncillaryDocumentData[]>("GET", `/api/ancillary/${documentId}`).catch(() => [] as AncillaryDocumentData[]);
 }
 
 export async function uploadAncillaryDocument(
@@ -267,17 +256,11 @@ export async function uploadAncillaryDocument(
   const formData = new FormData();
   formData.append("file", file);
   formData.append("privilegeFlag", String(privilegeFlag));
-  const res = await fetch(`/api/ancillary/${documentId}`, {
-    method: "POST",
-    credentials: "include",
-    body: formData,
-  });
-  if (!res.ok) throw new Error("Failed to upload ancillary document");
-  return res.json() as Promise<AncillaryDocumentData>;
+  return req<AncillaryDocumentData>("POST", `/api/ancillary/${documentId}`, formData);
 }
 
 export async function deleteAncillaryDocument(ancillaryId: string) {
-  await fetch(`/api/ancillary/${ancillaryId}`, { method: "DELETE", credentials: "include" });
+  await req("DELETE", `/api/ancillary/${ancillaryId}`);
 }
 
 // Feedback
