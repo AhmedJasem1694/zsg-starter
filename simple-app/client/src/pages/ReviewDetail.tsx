@@ -71,7 +71,11 @@ export default function ReviewDetail() {
     enabled: !isMock,
     refetchInterval: (query) => {
       const d = query.state.data;
-      return d?.status && ACTIVE_STATUSES.includes(d.status) ? 3000 : false;
+      if (!d?.status) return false;
+      // Poll faster during clause comparison so results stream in quickly.
+      if (d.status === "COMPARING") return 2000;
+      if (ACTIVE_STATUSES.includes(d.status)) return 3000;
+      return false;
     },
   });
 
@@ -110,18 +114,28 @@ export default function ReviewDetail() {
 
   // ── Processing state ──────────────────────────────────────────────────────
 
-  if (ACTIVE_STATUSES.includes(doc.status)) {
-    const elapsedSec = (Date.now() - new Date(doc.uploadedAt).getTime()) / 1000;
-    const DETAIL_STAGES = [
-      { label: "Parsing document",              maxSec: 15  },
-      { label: "Anonymising sensitive data",    maxSec: 35  },
-      { label: "Identifying clause categories", maxSec: 70  },
-      { label: "Comparing against playbook",    maxSec: 130 },
-      { label: "Applying regulatory context",   maxSec: 200 },
-      { label: "Preparing review report",       maxSec: Infinity },
-    ];
-    const activeIdx = DETAIL_STAGES.findIndex((s) => elapsedSec < s.maxSec);
-    const stageIdx  = activeIdx === -1 ? DETAIL_STAGES.length - 1 : activeIdx;
+  // Stage list driven by actual doc.status — more accurate than elapsed time.
+  const PIPELINE_STAGES: Array<{ label: string; status: string; detail?: string }> = [
+    { label: "Parsing document",              status: "PARSING"     },
+    { label: "Anonymising sensitive data",    status: "ANONYMISING" },
+    { label: "Identifying clause categories", status: "CLASSIFYING" },
+    { label: "Comparing against playbook",    status: "COMPARING"   },
+  ];
+  const STATUS_TO_STAGE: Record<string, number> = {
+    PROCESSING: 0, PARSING: 0, ANONYMISING: 1, CLASSIFYING: 2, COMPARING: 3,
+  };
+
+  const isActiveStatus = ACTIVE_STATUSES.includes(doc.status);
+  const isComparing    = doc.status === "COMPARING";
+  const partialResults = doc.reviewResults ?? [];
+  const hasPartial     = partialResults.length > 0;
+
+  // Show full-page loading screen while pre-comparison stages run, or during
+  // COMPARING before the first result arrives (so the page is never empty).
+  if (isActiveStatus && !(isComparing && hasPartial)) {
+    const stageIdx = STATUS_TO_STAGE[doc.status] ?? 0;
+    const completedCount = isComparing ? 0 : undefined;
+    const totalCount = isComparing ? (doc.clausesTotal ?? undefined) : undefined;
 
     return (
       <AppLayout>
@@ -136,12 +150,15 @@ export default function ReviewDetail() {
               </div>
             </div>
             <div className="space-y-3 max-w-sm">
-              {DETAIL_STAGES.map((stage, i) => {
+              {PIPELINE_STAGES.map((stage, i) => {
                 const done    = i < stageIdx;
                 const active  = i === stageIdx;
                 const pending = i > stageIdx;
+                const label   = (active && isComparing && totalCount != null)
+                  ? `Analysing clauses ${completedCount ?? 0} of ${totalCount}`
+                  : stage.label;
                 return (
-                  <div key={stage.label} className="flex items-center gap-3">
+                  <div key={stage.status} className="flex items-center gap-3">
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-500
                       ${done    ? "bg-[#14532D] border-[#166534]" : ""}
                       ${active  ? "bg-[#1C0F00] border-[#92400E] animate-pulse" : ""}
@@ -153,13 +170,13 @@ export default function ReviewDetail() {
                       ${done    ? "text-muted-foreground line-through" : ""}
                       ${active  ? "text-[#FCD34D] font-medium" : ""}
                       ${pending ? "text-muted-foreground/40" : ""}`}>
-                      {stage.label}
+                      {label}
                     </span>
                   </div>
                 );
               })}
             </div>
-            <div className="text-xs text-muted-foreground">Usually takes 1–3 minutes. This page auto-refreshes.</div>
+            <div className="text-xs text-muted-foreground">Results appear as each clause is analysed. This page auto-refreshes.</div>
           </div>
         </div>
       </AppLayout>
@@ -260,6 +277,29 @@ export default function ReviewDetail() {
 
         {/* Back */}
         <BackButton onClick={() => navigate("/app/legal/dashboard")} />
+
+        {/* ── Live analysis progress banner (during COMPARING with partial results) */}
+        {isComparing && hasPartial && (
+          <div className="flex items-center gap-3 rounded-xl border border-[#1E3A5F] bg-[#0D1B2A] px-4 py-3">
+            <Loader2 size={14} className="text-[#60A5FA] shrink-0 animate-spin" />
+            <div className="flex-1 min-w-0">
+              <span className="text-sm font-medium text-[#93C5FD]">
+                {doc.clausesTotal != null
+                  ? `Analysing clauses — ${partialResults.length} of ${doc.clausesTotal} complete`
+                  : "Analysing clauses…"}
+              </span>
+              {doc.clausesTotal != null && (
+                <div className="mt-1.5 h-1 bg-[#1E293B] rounded-full overflow-hidden w-48">
+                  <div
+                    className="h-full bg-[#3B82F6] rounded-full transition-all duration-700"
+                    style={{ width: `${Math.min(100, (partialResults.length / doc.clausesTotal) * 100)}%` }}
+                  />
+                </div>
+              )}
+            </div>
+            <span className="text-xs text-muted-foreground shrink-0">Results appear as they complete</span>
+          </div>
+        )}
 
         {/* ── Contract Intelligence Header ─────────────────────────────── */}
         <ContractHeader

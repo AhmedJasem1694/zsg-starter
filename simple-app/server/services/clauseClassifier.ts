@@ -176,6 +176,12 @@ export async function classifyClauses(
     return [];
   }
 
+  // For classification we only need the first ~400 chars of each chunk — the
+  // clause type is always identifiable from the heading and opening sentences.
+  // Sending full 2000-char chunks multiplies prompt size 5× with no accuracy gain.
+  const CLASSIFY_SNIPPET_CHARS = 400;
+  const snippets = chunks.map((c, i) => `[${i}] ${c.slice(0, CLASSIFY_SNIPPET_CHARS)}`);
+
   // Propagate errors: callers must handle failure explicitly so the pipeline
   // sets FAILED status rather than silently completing with empty results
   const rawParsed = await llmJsonCall<ClassifyItem[] | Record<string, unknown>>({
@@ -189,9 +195,7 @@ If a chunk does not match any category, omit it from results.`,
       },
       {
         role: "user",
-        content: `Classify these contract text chunks:\n\n${chunks
-          .map((c, i) => `[${i}] ${c}`)
-          .join("\n\n---\n\n")}`,
+        content: `Classify these contract text chunks:\n\n${snippets.join("\n\n---\n\n")}`,
       },
     ],
     maxTokens: 2048,

@@ -810,6 +810,8 @@ async function main() {
     textField("extractionMethod"),
     boolField("ocrUsed"),
     numberField("textLength"),
+    numberField("clausesTotal"),
+    numberField("clausesCompleted"),
   ]);
 
   // ── extracted_clauses ─────────────────────────────────────────────────────

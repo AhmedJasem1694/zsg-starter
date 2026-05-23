@@ -650,6 +650,10 @@ export interface UploadedDocument {
   outcomeNotes?: string;
   /** JSON array of contradiction findings from the second LLM pass */
   contradictions?: ContradictionFinding[];
+  /** Total number of playbook rules being compared (set at start of COMPARING stage) */
+  clausesTotal?: number;
+  /** Number of clause results written so far — incremented as each comparison completes */
+  clausesCompleted?: number;
   uploadedAt: string;
   reviewResults?: ReviewResult[];
 }

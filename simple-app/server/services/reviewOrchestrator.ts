@@ -75,15 +75,13 @@ export async function runReview(documentId: string): Promise<void> {
 }
 
 async function _runReview(documentId: string): Promise<void> {
-  // Load document, company, and playbook rules
+  // Load document and company sequentially (each depends on the previous).
+  // Playbook rules, approval thresholds, and governance triggers all depend on
+  // company.id — fetch them in parallel once company is known.
   const doc = await pb.collection("uploaded_documents").getOne(documentId);
   const company = await pb.collection("companies").getOne(doc["company"] as string);
-  const playbookRules = await pb.collection("playbook_rules").getFullList({
-    filter: `company = "${company.id}"`,
-  });
-
-  // ── Load governance configuration (Tier 2 + Tier 3) ────────────────────────
-  const [approvalThresholds, governanceTriggers] = await Promise.all([
+  const [playbookRules, approvalThresholds, governanceTriggers] = await Promise.all([
+    pb.collection("playbook_rules").getFullList({ filter: `company = "${company.id}"` }),
     pb.collection("approval_thresholds").getFullList({ filter: `companyId = "${company.id}"`, sort: "+minValue" }).catch(() => []),
     pb.collection("governance_triggers").getFullList({ filter: `companyId = "${company.id}"` }).catch(() => []),
   ]);
@@ -213,11 +211,14 @@ async function _runReview(documentId: string): Promise<void> {
 
     // Derive active categories from the company's playbook rules
     const playbookCategories = Array.from(new Set(playbookRules.map((r) => r["clauseCategory"] as string)));
-    const classified = await classifyClauses(chunks, company["workflowType"] as string, playbookCategories);
-    console.log(`[review] CLASSIFIED ${documentId}: ${classified.length} clauses matched out of ${playbookCategories.length} categories`);
 
-    // Granular status: COMPARING
-    await pb.collection("uploaded_documents").update(documentId, { status: "COMPARING" });
+    // Classify clauses and fetch global regulatory context in parallel —
+    // they are completely independent of each other.
+    const [classified, regulatoryContext] = await Promise.all([
+      classifyClauses(chunks, company["workflowType"] as string, playbookCategories),
+      getRegulationSummaryForLLM(company.id),
+    ]);
+    console.log(`[review] CLASSIFIED ${documentId}: ${classified.length} clauses matched out of ${playbookCategories.length} categories`);
 
     // Deduplicate - keep highest-confidence chunk per category
     const bestByCategory = new Map<string, (typeof classified)[0]>();
@@ -228,10 +229,8 @@ async function _runReview(documentId: string): Promise<void> {
       }
     }
 
-    // Fetch regulatory context once - injected into every clause comparison
-    const regulatoryContext = await getRegulationSummaryForLLM(company.id);
-
-    const results: Array<{
+    // ── Type for in-memory clause results (used for post-processing) ─────────
+    type LocalResult = {
       clauseCategory: string;
       ragStatus: string;
       comparisonStatement: string;
@@ -248,7 +247,6 @@ async function _runReview(documentId: string): Promise<void> {
       missingSeverity: "CRITICAL" | "OPTIONAL" | null;
       clauseId: string | null;
       ruleId: string | null;
-      // Founder fields
       founderStatus: string;
       founderPlainEnglish: string;
       founderBusinessImpact: string;
@@ -256,167 +254,224 @@ async function _runReview(documentId: string): Promise<void> {
       founderCopyPaste: string;
       founderFundraisingRelevance: string;
       founderIfIgnored: string;
-    }> = [];
+    };
 
-    for (const rule of playbookRules) {
-      const category = rule["clauseCategory"] as string;
-      const match = bestByCategory.get(category);
+    // ── Shared state for streaming progress ───────────────────────────────────
+    // clausesCompleted is incremented atomically (Node.js is single-threaded,
+    // so ++ on a local var cannot race between async continuations).
+    let clausesCompleted = 0;
+    const results: LocalResult[] = []; // kept for post-processing after all comparisons finish
 
-      if (!match) {
-        // Clause absent from contract
-        const absent = buildAbsentClauseResult(
-          category,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          rule as any,
-          (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER"
-        );
-        const missingSeverity = computeMissingSeverity(
-          category,
-          (doc["contractType"] as string) ?? ""
-        );
-        results.push({
-          clauseCategory: category,
-          ...absent,
-          regulatoryCitations: JSON.stringify(absent.regulatoryCitations),
-          escalationTrigger: absent.escalationTrigger || null,
-          isAbsent: true,
-          missingSeverity,
-          clauseId: null,
-          ruleId: rule.id,
-          founderStatus: absent.founderStatus,
-          founderPlainEnglish: absent.founderPlainEnglish,
-          founderBusinessImpact: absent.founderBusinessImpact,
-          founderAskFor: absent.founderAskFor,
-          founderCopyPaste: absent.founderCopyPaste,
-          founderFundraisingRelevance: absent.founderFundraisingRelevance,
-          founderIfIgnored: absent.founderIfIgnored,
-        });
-        continue;
-      }
+    // Set COMPARING status + total clause count so the frontend can show progress.
+    // clausesCompleted starts at 0 and is bumped each time a result lands in PB.
+    await pb.collection("uploaded_documents").update(documentId, {
+      status: "COMPARING",
+      clausesTotal: playbookRules.length,
+      clausesCompleted: 0,
+    });
 
-      // Store extracted clause - de-anonymise rawText for user-facing display
-      const extractedClause = await pb.collection("extracted_clauses").create({
+    // Helper: write one result record to PocketBase immediately and bump progress.
+    // This is the "streaming" mechanism — the frontend polls and sees results as
+    // they arrive rather than waiting for the full batch to finish.
+    const persistResult = async (r: LocalResult): Promise<void> => {
+      await pb.collection("review_results").create({
         document: documentId,
-        clauseCategory: category,
-        rawText: deanonymise(match.rawText, entityMap),
-        confidence: match.confidence,
+        clause: r.clauseId ?? undefined,
+        rule: r.ruleId ?? undefined,
+        clauseCategory: r.clauseCategory,
+        ragStatus: r.ragStatus || "GREY",
+        comparisonStatement: r.comparisonStatement ?? "",
+        clauseSummary: r.clauseSummary ?? "",
+        whyItMatters: r.whyItMatters ?? "",
+        recommendedAction: r.recommendedAction ?? "",
+        suggestedFallback: r.suggestedFallback ?? "",
+        escalationRequired: r.escalationRequired,
+        escalationTrigger: r.escalationTrigger ?? "",
+        businessSummary: r.businessSummary ?? "",
+        confidenceLabel: r.confidenceLabel ?? "",
+        regulatoryCitations: r.regulatoryCitations ?? "[]",
+        isAbsent: r.isAbsent,
+        missingSeverity: r.missingSeverity ?? "",
+        founderStatus: r.founderStatus ?? "",
+        founderPlainEnglish: r.founderPlainEnglish ?? "",
+        founderBusinessImpact: r.founderBusinessImpact ?? "",
+        founderAskFor: r.founderAskFor ?? "",
+        founderCopyPaste: r.founderCopyPaste ?? "",
+        founderFundraisingRelevance: r.founderFundraisingRelevance ?? "",
+        founderIfIgnored: r.founderIfIgnored ?? "",
       }).catch((err: unknown) => {
-        console.error(`[review] extracted_clauses.create FAILED for ${documentId}/${category}:`, (err as any)?.message, JSON.stringify((err as any)?.response));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        console.error(`[review] review_results.create FAILED for ${documentId}/${r.clauseCategory}:`, (err as any)?.message, JSON.stringify((err as any)?.response));
         throw err;
       });
 
-      // Fetch per-clause regulatory context from the regulatory engine
-      const clauseRegDocs = await getRegulatoryContext({
-        clauseCategory: category,
-        jurisdiction: company["jurisdiction"] as string,
-        sector: company["sector"] as string,
-      });
-      const clauseRegContext = formatRegulatoryContextForPrompt(clauseRegDocs);
-      const combinedRegContext = regulatoryContext + clauseRegContext;
+      // Increment and push progress update — fire-and-forget so it never
+      // blocks the LLM call pipeline. Out-of-order arrival is fine; the client
+      // uses reviewResults.length as the authoritative completed count.
+      clausesCompleted++;
+      pb.collection("uploaded_documents").update(documentId, { clausesCompleted }).catch(() => {});
+    }
 
-      // Compare against playbook with regulatory context
-      // Note: match.rawText is already anonymised - company/counterparty names
-      // are placeholders. The comparison result text is de-anonymised below.
-      const docGoverningLaw = doc["governingLaw"] as string | undefined;
-      const docJurisdiction = doc["jurisdiction"] as string | undefined;
-      const govLawContext = docGoverningLaw
-        ? `\n\nContract governing law: ${docGoverningLaw}${docJurisdiction ? ` (jurisdiction: ${docJurisdiction})` : ""}. Apply the law of this jurisdiction when assessing the clause.`
-        : "";
-      const comparison = await compareClauseToPlaybook(
-        match.rawText,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        rule as any,
-        company["name"] as string,
-        company["sector"] as string,
-        combinedRegContext + govLawContext,
-        (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER",
-        doc["workflowType"] as string || "COMMERCIAL_CONTRACT",
-        company.id,
-        doc["counterpartyType"] as string || "",
-        doc["contractType"] as string || ""
-      );
+    // ── PARALLEL clause comparisons ───────────────────────────────────────────
+    // All rules fire simultaneously. Each absent clause (no LLM call) completes
+    // instantly; each present clause fires an independent LLM request. The total
+    // wall-clock time is roughly the slowest single LLM call, not the sum of all.
+    //
+    // Promise.allSettled is used so that a single failing comparison doesn't abort
+    // the rest — failed clauses are logged and skipped.
+    const deAnon = <T extends string | null | undefined>(s: T): T =>
+      (s ? deanonymise(s, entityMap) : s) as T;
 
-      // Log comparison result for debugging (ragStatus especially)
-      console.log(`[review] comparison result for ${category}: ragStatus=${comparison.ragStatus} confidenceLabel=${comparison.confidenceLabel}`);
+    const docGoverningLaw = doc["governingLaw"] as string | undefined;
+    const docJurisdiction = doc["jurisdiction"] as string | undefined;
+    const govLawSuffix = docGoverningLaw
+      ? `\n\nContract governing law: ${docGoverningLaw}${docJurisdiction ? ` (jurisdiction: ${docJurisdiction})` : ""}. Apply the law of this jurisdiction when assessing the clause.`
+      : "";
 
-      // ── De-anonymise LLM output fields ─────────────────────────────────────
-      // Restore original party names / PII in user-facing text fields.
-      const deAnon = <T extends string | null | undefined>(s: T): T =>
-        (s ? deanonymise(s, entityMap) : s) as T;
+    const settled = await Promise.allSettled(
+      playbookRules.map(async (rule) => {
+        const category = rule["clauseCategory"] as string;
+        const match = bestByCategory.get(category);
 
-      const deanonComparison = {
-        ...comparison,
-        clauseSummary:              deAnon(comparison.clauseSummary),
-        whyItMatters:               deAnon(comparison.whyItMatters),
-        recommendedAction:          deAnon(comparison.recommendedAction),
-        suggestedFallback:          deAnon(comparison.suggestedFallback),
-        escalationTrigger:          deAnon(comparison.escalationTrigger),
-        businessSummary:            deAnon(comparison.businessSummary),
-        founderPlainEnglish:        deAnon(comparison.founderPlainEnglish),
-        founderBusinessImpact:      deAnon(comparison.founderBusinessImpact),
-        founderAskFor:              deAnon(comparison.founderAskFor),
-        founderCopyPaste:           deAnon(comparison.founderCopyPaste),
-        founderFundraisingRelevance: deAnon(comparison.founderFundraisingRelevance),
-        founderIfIgnored:           deAnon(comparison.founderIfIgnored),
-      };
-      // ───────────────────────────────────────────────────────────────────────
+        if (!match) {
+          // ── Absent clause — no LLM call needed ──────────────────────────────
+          const absent = buildAbsentClauseResult(
+            category,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            rule as any,
+            (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER"
+          );
+          const missingSeverity = computeMissingSeverity(
+            category,
+            (doc["contractType"] as string) ?? ""
+          );
+          const r: LocalResult = {
+            clauseCategory: category,
+            ...absent,
+            regulatoryCitations: JSON.stringify(absent.regulatoryCitations),
+            escalationTrigger: absent.escalationTrigger || null,
+            isAbsent: true,
+            missingSeverity,
+            clauseId: null,
+            ruleId: rule.id,
+            founderStatus: absent.founderStatus,
+            founderPlainEnglish: absent.founderPlainEnglish,
+            founderBusinessImpact: absent.founderBusinessImpact,
+            founderAskFor: absent.founderAskFor,
+            founderCopyPaste: absent.founderCopyPaste,
+            founderFundraisingRelevance: absent.founderFundraisingRelevance,
+            founderIfIgnored: absent.founderIfIgnored,
+          };
+          await persistResult(r);
+          results.push(r);
+          return;
+        }
 
-      // Audit: fire-and-forget — never block the comparison loop on audit writes
-      void audit({
-        action: "rag_status_assigned",
-        entityType: "review_result",
-        entityId: extractedClause.id,
-        companyId: company.id,
-        detail: {
-          documentId,
+        // ── Present clause — LLM comparison ─────────────────────────────────
+        // Store extracted clause text (de-anonymised for user-facing display).
+        const extractedClause = await pb.collection("extracted_clauses").create({
+          document: documentId,
           clauseCategory: category,
-          ragStatus: deanonComparison.ragStatus,
-          confidenceLabel: deanonComparison.confidenceLabel,
-          escalationRequired: deanonComparison.escalationRequired,
-        },
-      });
+          rawText: deanonymise(match.rawText, entityMap),
+          confidence: match.confidence,
+        }).catch((err: unknown) => {
+          console.error(`[review] extracted_clauses.create FAILED for ${documentId}/${category}:`, (err as any)?.message, JSON.stringify((err as any)?.response));
+          throw err;
+        });
 
-      // ── Three-tier governance escalation ───────────────────────────────────
-      // Tier 1: clause-level RAG (from LLM comparison - already in deanonComparison)
-      // Tier 2: contract value band (from approval_thresholds)
-      // Tier 3: governance triggers (from governance_triggers - always escalate)
-      const tier2Approver = getValueTierApprover();
-      const tier3Approver = getGovernanceTriggerApprover(category);
+        // Per-clause regulatory context (runs in parallel with the LLM call via
+        // the outer Promise.allSettled — each rule fetches its own context).
+        const clauseRegDocs = await getRegulatoryContext({
+          clauseCategory: category,
+          jurisdiction: company["jurisdiction"] as string,
+          sector: company["sector"] as string,
+        });
+        const combinedRegContext = regulatoryContext + formatRegulatoryContextForPrompt(clauseRegDocs);
 
-      const tier2Escalation = !!tier2Approver;
-      const tier3Escalation = !!tier3Approver;
-      const combinedEscalation = deanonComparison.escalationRequired || tier2Escalation || tier3Escalation;
+        const comparison = await compareClauseToPlaybook(
+          match.rawText,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          rule as any,
+          company["name"] as string,
+          company["sector"] as string,
+          combinedRegContext + govLawSuffix,
+          (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER",
+          doc["workflowType"] as string || "COMMERCIAL_CONTRACT",
+          company.id,
+          doc["counterpartyType"] as string || "",
+          doc["contractType"] as string || ""
+        );
 
-      let combinedTrigger = deanonComparison.escalationTrigger || null;
-      const extraTriggers: string[] = [];
-      if (tier2Escalation && tier2Approver) extraTriggers.push(`Contract value threshold: ${tier2Approver} approval required.`);
-      if (tier3Escalation && tier3Approver) extraTriggers.push(`Governance trigger: ${category.replace(/_/g, " ")} always requires ${tier3Approver} sign-off.`);
-      if (extraTriggers.length > 0) {
-        combinedTrigger = [combinedTrigger, ...extraTriggers].filter(Boolean).join(" | ");
-      }
+        console.log(`[review] compared ${category}: ${comparison.ragStatus} (${comparison.confidenceLabel})`);
 
-      results.push({
-        clauseCategory: category,
-        ...deanonComparison,
-        escalationRequired: combinedEscalation,
-        escalationTrigger: combinedTrigger,
-        regulatoryCitations: JSON.stringify(deanonComparison.regulatoryCitations ?? []),
-        isAbsent: false,
-        missingSeverity: null,
-        clauseId: extractedClause.id,
-        ruleId: rule.id,
-        founderStatus: deanonComparison.founderStatus,
-        founderPlainEnglish: deanonComparison.founderPlainEnglish,
-        founderBusinessImpact: deanonComparison.founderBusinessImpact,
-        founderAskFor: deanonComparison.founderAskFor,
-        founderCopyPaste: deanonComparison.founderCopyPaste,
-        founderFundraisingRelevance: deanonComparison.founderFundraisingRelevance,
-        founderIfIgnored: deanonComparison.founderIfIgnored,
-      });
+        // De-anonymise LLM output fields before persisting.
+        const deanonComparison = {
+          ...comparison,
+          clauseSummary:               deAnon(comparison.clauseSummary),
+          whyItMatters:                deAnon(comparison.whyItMatters),
+          recommendedAction:           deAnon(comparison.recommendedAction),
+          suggestedFallback:           deAnon(comparison.suggestedFallback),
+          escalationTrigger:           deAnon(comparison.escalationTrigger),
+          businessSummary:             deAnon(comparison.businessSummary),
+          founderPlainEnglish:         deAnon(comparison.founderPlainEnglish),
+          founderBusinessImpact:       deAnon(comparison.founderBusinessImpact),
+          founderAskFor:               deAnon(comparison.founderAskFor),
+          founderCopyPaste:            deAnon(comparison.founderCopyPaste),
+          founderFundraisingRelevance: deAnon(comparison.founderFundraisingRelevance),
+          founderIfIgnored:            deAnon(comparison.founderIfIgnored),
+        };
+
+        void audit({
+          action: "rag_status_assigned",
+          entityType: "review_result",
+          entityId: extractedClause.id,
+          companyId: company.id,
+          detail: { documentId, clauseCategory: category, ragStatus: deanonComparison.ragStatus, confidenceLabel: deanonComparison.confidenceLabel, escalationRequired: deanonComparison.escalationRequired },
+        });
+
+        // ── Three-tier governance escalation ─────────────────────────────────
+        const tier2Approver = getValueTierApprover();
+        const tier3Approver = getGovernanceTriggerApprover(category);
+        const combinedEscalation = deanonComparison.escalationRequired || !!tier2Approver || !!tier3Approver;
+        const extraTriggers: string[] = [];
+        if (tier2Approver) extraTriggers.push(`Contract value threshold: ${tier2Approver} approval required.`);
+        if (tier3Approver) extraTriggers.push(`Governance trigger: ${category.replace(/_/g, " ")} always requires ${tier3Approver} sign-off.`);
+        const combinedTrigger = [deanonComparison.escalationTrigger || null, ...extraTriggers].filter(Boolean).join(" | ") || null;
+
+        const r: LocalResult = {
+          clauseCategory: category,
+          ...deanonComparison,
+          escalationRequired: combinedEscalation,
+          escalationTrigger: combinedTrigger,
+          regulatoryCitations: JSON.stringify(deanonComparison.regulatoryCitations ?? []),
+          isAbsent: false,
+          missingSeverity: null,
+          clauseId: extractedClause.id,
+          ruleId: rule.id,
+          founderStatus: deanonComparison.founderStatus,
+          founderPlainEnglish: deanonComparison.founderPlainEnglish,
+          founderBusinessImpact: deanonComparison.founderBusinessImpact,
+          founderAskFor: deanonComparison.founderAskFor,
+          founderCopyPaste: deanonComparison.founderCopyPaste,
+          founderFundraisingRelevance: deanonComparison.founderFundraisingRelevance,
+          founderIfIgnored: deanonComparison.founderIfIgnored,
+        };
+
+        // Write to PocketBase immediately — frontend poll picks this up within 3s.
+        await persistResult(r);
+        results.push(r);
+      })
+    );
+
+    // Log any individual clause failures (they don't abort the review).
+    const clauseFailures = settled.filter((s) => s.status === "rejected");
+    if (clauseFailures.length > 0) {
+      console.error(`[review] ${clauseFailures.length} clause(s) failed during parallel comparison:`,
+        clauseFailures.map((s) => (s as PromiseRejectedResult).reason?.message ?? s));
     }
 
     // ── Contradiction detection (second LLM pass) ──────────────────────────────
-    // Build a map of category → de-anonymised clause text for the detector
+    // Build a map of category → clause summary for the detector.
     const clauseTextMap = new Map<string, string>();
     for (const r of results) {
       if (!r.isAbsent && r.clauseSummary) {
@@ -454,42 +509,8 @@ async function _runReview(documentId: string): Promise<void> {
       });
     }
 
-    // Persist all review results
-    await Promise.all(
-      results.map((r) =>
-        pb.collection("review_results").create({
-          document: documentId,
-          clause: r.clauseId ?? undefined,
-          rule: r.ruleId ?? undefined,
-          clauseCategory: r.clauseCategory,
-          // Defensive fallback: ragStatus is required; if LLM returned empty/null default to GREY
-          ragStatus: r.ragStatus || "GREY",
-          comparisonStatement: r.comparisonStatement ?? "",
-          clauseSummary: r.clauseSummary ?? "",
-          whyItMatters: r.whyItMatters ?? "",
-          recommendedAction: r.recommendedAction ?? "",
-          suggestedFallback: r.suggestedFallback ?? "",
-          escalationRequired: r.escalationRequired,
-          escalationTrigger: r.escalationTrigger ?? "",
-          businessSummary: r.businessSummary ?? "",
-          confidenceLabel: r.confidenceLabel ?? "",
-          regulatoryCitations: r.regulatoryCitations ?? "[]",
-          isAbsent: r.isAbsent,
-          missingSeverity: r.missingSeverity ?? "",
-          founderStatus: r.founderStatus ?? "",
-          founderPlainEnglish: r.founderPlainEnglish ?? "",
-          founderBusinessImpact: r.founderBusinessImpact ?? "",
-          founderAskFor: r.founderAskFor ?? "",
-          founderCopyPaste: r.founderCopyPaste ?? "",
-          founderFundraisingRelevance: r.founderFundraisingRelevance ?? "",
-          founderIfIgnored: r.founderIfIgnored ?? "",
-        }).catch((err: unknown) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          console.error(`[review] review_results.create FAILED for ${documentId}/${r.clauseCategory}:`, (err as any)?.message, JSON.stringify((err as any)?.response));
-          throw err;
-        })
-      )
-    );
+    // NOTE: individual review_results records are already persisted inline above
+    // (streaming). No batch write needed here.
 
     await pb.collection("uploaded_documents").update(documentId, { status: "COMPLETE" });
 
