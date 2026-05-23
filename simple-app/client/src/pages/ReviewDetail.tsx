@@ -57,7 +57,7 @@ export default function ReviewDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [filter, setFilter] = useState<RagStatus | "ALL">("ALL");
+  const [filter, setFilter] = useState<RagStatus | "ALL" | "GREY_CRITICAL" | "GREY_OPTIONAL">("ALL");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Demo mode - mock-1 served from local data, no API call needed
@@ -236,13 +236,19 @@ export default function ReviewDetail() {
 
   const results = doc.reviewResults ?? [];
   const counts = {
-    RED:   results.filter((r) => r.ragStatus === "RED").length,
-    AMBER: results.filter((r) => r.ragStatus === "AMBER").length,
-    GREEN: results.filter((r) => r.ragStatus === "GREEN").length,
-    GREY:  results.filter((r) => r.ragStatus === "GREY").length,
+    RED:           results.filter((r) => r.ragStatus === "RED").length,
+    AMBER:         results.filter((r) => r.ragStatus === "AMBER").length,
+    GREEN:         results.filter((r) => r.ragStatus === "GREEN").length,
+    GREY:          results.filter((r) => r.ragStatus === "GREY").length,
+    GREY_CRITICAL: results.filter((r) => r.ragStatus === "GREY" && r.missingSeverity === "CRITICAL").length,
+    GREY_OPTIONAL: results.filter((r) => r.ragStatus === "GREY" && r.missingSeverity !== "CRITICAL").length,
   };
   const overallRag: RagStatus = counts.RED > 0 ? "RED" : counts.AMBER > 0 ? "AMBER" : "GREEN";
-  const filtered = filter === "ALL" ? results : results.filter((r) => r.ragStatus === filter);
+  const filtered =
+    filter === "ALL"           ? results :
+    filter === "GREY_CRITICAL" ? results.filter((r) => r.ragStatus === "GREY" && r.missingSeverity === "CRITICAL") :
+    filter === "GREY_OPTIONAL" ? results.filter((r) => r.ragStatus === "GREY" && r.missingSeverity !== "CRITICAL") :
+                                 results.filter((r) => r.ragStatus === filter);
 
   const renewalDaysUntil = doc.renewalDate
     ? Math.ceil((new Date(doc.renewalDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -433,22 +439,62 @@ export default function ReviewDetail() {
 
             {/* Filter pills */}
             <div className="flex flex-wrap gap-2">
-              {(["ALL", "RED", "AMBER", "GREEN", "GREY"] as const).map((f) => {
-                const count = f === "ALL" ? results.length : counts[f as RagStatus];
-                return (
-                  <button
-                    key={f}
-                    onClick={() => setFilter(f)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                      filter === f
-                        ? "bg-[#1E3A5F] text-[#93C5FD] border-[#2563EB]"
-                        : "border-border text-muted-foreground hover:border-[#475569] hover:text-foreground"
-                    }`}
-                  >
-                    {f === "ALL" ? `All (${count})` : `${RAG_LABEL[f as RagStatus]} (${count})`}
-                  </button>
-                );
-              })}
+              {/* All */}
+              <button
+                onClick={() => setFilter("ALL")}
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                  filter === "ALL"
+                    ? "bg-[#1E3A5F] text-[#93C5FD] border-[#2563EB]"
+                    : "border-border text-muted-foreground hover:border-[#475569] hover:text-foreground"
+                }`}
+              >
+                All ({results.length})
+              </button>
+
+              {/* RED / AMBER / GREEN */}
+              {(["RED", "AMBER", "GREEN"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                    filter === f
+                      ? "bg-[#1E3A5F] text-[#93C5FD] border-[#2563EB]"
+                      : "border-border text-muted-foreground hover:border-[#475569] hover:text-foreground"
+                  }`}
+                >
+                  {RAG_LABEL[f]} ({counts[f]})
+                </button>
+              ))}
+
+              {/* Missing — Critical (red badge style) */}
+              <button
+                onClick={() => setFilter("GREY_CRITICAL")}
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                  filter === "GREY_CRITICAL"
+                    ? "bg-[#1E3A5F] text-[#93C5FD] border-[#2563EB]"
+                    : "border-border text-muted-foreground hover:border-[#475569] hover:text-foreground"
+                }`}
+              >
+                Missing — Critical{" "}
+                <span className="inline-flex items-center justify-center ml-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#1F0A0A] border border-[#450A0A] text-[#FCA5A5]">
+                  {counts.GREY_CRITICAL}
+                </span>
+              </button>
+
+              {/* Missing — Optional (slate badge style) */}
+              <button
+                onClick={() => setFilter("GREY_OPTIONAL")}
+                className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                  filter === "GREY_OPTIONAL"
+                    ? "bg-[#1E3A5F] text-[#93C5FD] border-[#2563EB]"
+                    : "border-border text-muted-foreground hover:border-[#475569] hover:text-foreground"
+                }`}
+              >
+                Missing — Optional{" "}
+                <span className="inline-flex items-center justify-center ml-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#0F172A] border border-[#334155] text-[#94A3B8]">
+                  {counts.GREY_OPTIONAL}
+                </span>
+              </button>
             </div>
 
             {/* Clause cards */}
@@ -496,7 +542,7 @@ function ContractHeader({
 }: {
   doc: UploadedDocument;
   overallRag: RagStatus;
-  counts: Record<RagStatus, number>;
+  counts: ExtendedCounts;
   renewalDaysUntil: number | null;
   onExport: () => void;
   isMock: boolean;
@@ -814,14 +860,17 @@ function IntelligenceSignals({
 
 // ─── Risk Distribution ────────────────────────────────────────────────────────
 
-function RiskDistribution({ counts, total }: { counts: Record<RagStatus, number>; total: number }) {
+type ExtendedCounts = Record<RagStatus, number> & { GREY_CRITICAL: number; GREY_OPTIONAL: number };
+
+function RiskDistribution({ counts, total }: { counts: ExtendedCounts; total: number }) {
   if (total === 0) return null;
 
   const bars: Array<{ label: string; count: number; color: string; bg: string }> = [
-    { label: "Red",     count: counts.RED,   color: "#FCA5A5", bg: "bg-[#FCA5A5]" },
-    { label: "Amber",   count: counts.AMBER, color: "#FCD34D", bg: "bg-[#FCD34D]" },
-    { label: "Green",   count: counts.GREEN, color: "#86EFAC", bg: "bg-[#86EFAC]" },
-    { label: "Missing", count: counts.GREY,  color: "#475569", bg: "bg-[#475569]" },
+    { label: "Red",               count: counts.RED,           color: "#FCA5A5", bg: "bg-[#FCA5A5]" },
+    { label: "Amber",             count: counts.AMBER,         color: "#FCD34D", bg: "bg-[#FCD34D]" },
+    { label: "Green",             count: counts.GREEN,         color: "#86EFAC", bg: "bg-[#86EFAC]" },
+    { label: "Missing (critical)", count: counts.GREY_CRITICAL, color: "#FCA5A5", bg: "bg-[#FCA5A5]/60" },
+    { label: "Missing (optional)", count: counts.GREY_OPTIONAL, color: "#475569", bg: "bg-[#475569]" },
   ].filter((b) => b.count > 0);
 
   return (
@@ -1195,7 +1244,13 @@ function ClauseCard({
         </div>
         <div className="flex items-center gap-2 shrink-0 pt-0.5">
           {!isMock && <LearningIndicator clauseCategory={result.clauseCategory} />}
-          <span className={RAG_BADGE[result.ragStatus]}>{RAG_LABEL[result.ragStatus]}</span>
+          {result.ragStatus === "GREY" ? (
+            <span className={result.missingSeverity === "CRITICAL" ? "rag-red" : "rag-grey"}>
+              {result.missingSeverity === "CRITICAL" ? "Missing — Critical" : "Missing — Optional"}
+            </span>
+          ) : (
+            <span className={RAG_BADGE[result.ragStatus]}>{RAG_LABEL[result.ragStatus]}</span>
+          )}
           <span className="text-muted-foreground/50 text-xs">{expanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}</span>
         </div>
       </button>
@@ -1648,11 +1703,13 @@ function EscalationSummary({ doc, results }: { doc: UploadedDocument; results: R
 
 function exportReviewAsText(doc: UploadedDocument) {
   const results = doc.reviewResults ?? [];
-  const counts  = {
-    RED:   results.filter((r) => r.ragStatus === "RED").length,
-    AMBER: results.filter((r) => r.ragStatus === "AMBER").length,
-    GREEN: results.filter((r) => r.ragStatus === "GREEN").length,
-    GREY:  results.filter((r) => r.ragStatus === "GREY").length,
+  const counts = {
+    RED:           results.filter((r) => r.ragStatus === "RED").length,
+    AMBER:         results.filter((r) => r.ragStatus === "AMBER").length,
+    GREEN:         results.filter((r) => r.ragStatus === "GREEN").length,
+    GREY:          results.filter((r) => r.ragStatus === "GREY").length,
+    GREY_CRITICAL: results.filter((r) => r.ragStatus === "GREY" && r.missingSeverity === "CRITICAL").length,
+    GREY_OPTIONAL: results.filter((r) => r.ragStatus === "GREY" && r.missingSeverity !== "CRITICAL").length,
   };
   const overallRag = counts.RED > 0 ? "RED" : counts.AMBER > 0 ? "AMBER" : "GREEN";
   const date = new Date(doc.uploadedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
@@ -1667,7 +1724,7 @@ function exportReviewAsText(doc: UploadedDocument) {
     `Reviewed:    ${date}`,
     `Overall RAG: ${overallRag}`,
     doc.contractValue ? `Value:       £${doc.contractValue.toLocaleString("en-GB")}` : "",
-    `Clauses:     ${results.length} reviewed  |  ${counts.RED} Red  |  ${counts.AMBER} Amber  |  ${counts.GREEN} Green  |  ${counts.GREY} Missing`,
+    `Clauses:     ${results.length} reviewed  |  ${counts.RED} Red  |  ${counts.AMBER} Amber  |  ${counts.GREEN} Green  |  ${counts.GREY_CRITICAL} Missing (Critical)  |  ${counts.GREY_OPTIONAL} Missing (Optional)`,
     "",
   ].filter((l) => l !== "" || l === "");
 

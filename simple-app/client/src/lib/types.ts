@@ -686,6 +686,8 @@ export interface ReviewResult {
   /** Parsed regulatory citations with article numbers */
   regulatoryCitations?: RegulatoryCitation[];
   isAbsent: boolean;
+  /** Only populated when ragStatus === "GREY" (clause absent from document) */
+  missingSeverity?: "CRITICAL" | "OPTIONAL";
   createdAt: string;
   feedback?: UserFeedback;
   // ── Founder-specific fields ───────────────────────────────────────────────

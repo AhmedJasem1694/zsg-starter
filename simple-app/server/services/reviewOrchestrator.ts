@@ -22,6 +22,46 @@ function toTitleCase(s: string) {
   return s.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+// ── Missing-clause severity classification ────────────────────────────────────
+// Hardcoded v1 classification for commercial contracts.
+// A clause absent from the document is CRITICAL if its absence creates genuine
+// legal or commercial risk; OPTIONAL otherwise.
+
+const CRITICAL_COMMERCIAL = new Set([
+  "LIABILITY_CAP",
+  "DATA_PRIVACY",
+  "GOVERNING_LAW",
+  "TERMINATION",
+  "CONFIDENTIALITY",
+]);
+
+const CRITICAL_SUPPLIER_EXTRA = new Set([
+  "INDEMNITY",
+  "PAYMENT_TERMS",
+]);
+
+const OPTIONAL_COMMERCIAL = new Set([
+  "AUDIT_RIGHTS",
+  "CHANGE_OF_CONTROL",
+  "FORCE_MAJEURE",
+  "ANTI_BRIBERY",
+  "DISPUTE_RESOLUTION",
+  "AUTO_RENEWAL",
+  "IP_OWNERSHIP",
+]);
+
+export function computeMissingSeverity(
+  clauseCategory: string,
+  contractType: string
+): "CRITICAL" | "OPTIONAL" {
+  const isSupplier = /supplier/i.test(contractType);
+  if (CRITICAL_COMMERCIAL.has(clauseCategory)) return "CRITICAL";
+  if (isSupplier && CRITICAL_SUPPLIER_EXTRA.has(clauseCategory)) return "CRITICAL";
+  if (OPTIONAL_COMMERCIAL.has(clauseCategory)) return "OPTIONAL";
+  // Unlisted categories: default to OPTIONAL so nothing is incorrectly flagged critical
+  return "OPTIONAL";
+}
+
 // Hard ceiling: if the entire review hasn't completed in 8 minutes, force FAILED.
 // This catches any unforeseen hang that slips past individual timeouts.
 const REVIEW_TIMEOUT_MS = 8 * 60 * 1000;
@@ -205,6 +245,7 @@ async function _runReview(documentId: string): Promise<void> {
       confidenceLabel: string;
       regulatoryCitations: string; // JSON
       isAbsent: boolean;
+      missingSeverity: "CRITICAL" | "OPTIONAL" | null;
       clauseId: string | null;
       ruleId: string | null;
       // Founder fields
@@ -229,12 +270,17 @@ async function _runReview(documentId: string): Promise<void> {
           rule as any,
           (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER"
         );
+        const missingSeverity = computeMissingSeverity(
+          category,
+          (doc["contractType"] as string) ?? ""
+        );
         results.push({
           clauseCategory: category,
           ...absent,
           regulatoryCitations: JSON.stringify(absent.regulatoryCitations),
           escalationTrigger: absent.escalationTrigger || null,
           isAbsent: true,
+          missingSeverity,
           clauseId: null,
           ruleId: rule.id,
           founderStatus: absent.founderStatus,
@@ -356,6 +402,7 @@ async function _runReview(documentId: string): Promise<void> {
         escalationTrigger: combinedTrigger,
         regulatoryCitations: JSON.stringify(deanonComparison.regulatoryCitations ?? []),
         isAbsent: false,
+        missingSeverity: null,
         clauseId: extractedClause.id,
         ruleId: rule.id,
         founderStatus: deanonComparison.founderStatus,
@@ -428,6 +475,7 @@ async function _runReview(documentId: string): Promise<void> {
           confidenceLabel: r.confidenceLabel ?? "",
           regulatoryCitations: r.regulatoryCitations ?? "[]",
           isAbsent: r.isAbsent,
+          missingSeverity: r.missingSeverity ?? "",
           founderStatus: r.founderStatus ?? "",
           founderPlainEnglish: r.founderPlainEnglish ?? "",
           founderBusinessImpact: r.founderBusinessImpact ?? "",

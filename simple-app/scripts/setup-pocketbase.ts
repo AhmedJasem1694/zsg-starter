@@ -839,6 +839,7 @@ async function main() {
     textField("escalationTrigger"),
     textField("businessSummary"),
     boolField("isAbsent"),
+    textField("missingSeverity"),
     textField("founderStatus"),
     textField("founderPlainEnglish"),
     textField("founderBusinessImpact"),
