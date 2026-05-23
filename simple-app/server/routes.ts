@@ -251,30 +251,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ ok: true });
   });
 
-  app.get("/api/auth/me", requireAuth, ah(async (req: Request, res: Response) => {
-    // Verify the user still exists in PocketBase.
-    // The JWT may be valid (30-day TTL) but the underlying record could have been
-    // deleted (e.g. during a dev reset). Without this check, old JWTs keep the
-    // user permanently "logged in" and block them from re-registering.
-    try {
-      await pb.collection("users").getOne(req.user!.userId);
-    } catch (lookupErr: unknown) {
-      const pbErr = lookupErr as { status?: number };
-      if (pbErr.status === 404) {
-        // User record genuinely gone - invalidate session so client gets clean state
-        res.clearCookie("token");
-        res.status(401).json({ error: "Session expired - please log in again" });
-        return;
-      }
-      // For network errors / PB admin token expiry / 500s: fail open and trust the JWT.
-      // Logging users out on every PB hiccup would be far worse than keeping a stale session.
-      console.warn("[auth/me] PocketBase user lookup failed (non-404), trusting JWT:", (pbErr as { message?: string }).message ?? lookupErr);
-    }
-    // Include a fresh token in the response so the client can use Authorization: Bearer
-    // as a fallback when cookies are not relayed by the reverse proxy (e.g. Railway).
-    const freshToken = signToken(req.user!);
-    res.json({ ...req.user, token: freshToken });
-  }));
+  app.get("/api/auth/me", requireAuth, (req: Request, res: Response) => {
+    // The JWT has already been verified by requireAuth. We trust it.
+    // Include a fresh token so the client can use Authorization: Bearer as a fallback
+    // when httpOnly cookies are stripped by a reverse proxy (e.g. Railway).
+    //
+    // IMPORTANT: jwt.verify() returns the full payload including `exp` and `iat`.
+    // We must pass ONLY the fields we want to re-sign — otherwise jwt.sign throws
+    // "payload already has an exp property" when combined with expiresIn option.
+    const { userId, email } = req.user!;
+    const freshToken = signToken({ userId, email });
+    res.json({ userId, email, token: freshToken });
+  });
 
   // ── Company search / enrichment ──────────────────────────────────────────────
 
