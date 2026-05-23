@@ -258,11 +258,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // user permanently "logged in" and block them from re-registering.
     try {
       await pb.collection("users").getOne(req.user!.userId);
-    } catch {
-      // User record gone - invalidate the session cookie so the client gets a clean state
-      res.clearCookie("token");
-      res.status(401).json({ error: "Session expired - please log in again" });
-      return;
+    } catch (lookupErr: unknown) {
+      const pbErr = lookupErr as { status?: number };
+      if (pbErr.status === 404) {
+        // User record genuinely gone - invalidate session so client gets clean state
+        res.clearCookie("token");
+        res.status(401).json({ error: "Session expired - please log in again" });
+        return;
+      }
+      // For network errors / PB admin token expiry / 500s: fail open and trust the JWT.
+      // Logging users out on every PB hiccup would be far worse than keeping a stale session.
+      console.warn("[auth/me] PocketBase user lookup failed (non-404), trusting JWT:", (pbErr as { message?: string }).message ?? lookupErr);
     }
     // Include a fresh token in the response so the client can use Authorization: Bearer
     // as a fallback when cookies are not relayed by the reverse proxy (e.g. Railway).

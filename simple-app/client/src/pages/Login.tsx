@@ -12,8 +12,13 @@ export default function Login() {
   const mut = useMutation({
     mutationFn: login,
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["auth-me"] });
-      await queryClient.invalidateQueries({ queryKey: ["company"] });
+      // refetchQueries waits for the data to arrive in cache before navigating.
+      // invalidateQueries only marks stale — if the query was in error state the
+      // cached value stays undefined and /dashboard redirects to /onboarding.
+      await queryClient.refetchQueries({ queryKey: ["auth-me"] });
+      await queryClient.refetchQueries({ queryKey: ["company"] }).catch(() => {
+        // company 404 means no company yet → /dashboard will send to /onboarding
+      });
       navigate("/dashboard");
     },
     onError: (e: Error) => setError(e.message),

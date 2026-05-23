@@ -17,7 +17,10 @@ process.on("unhandledRejection", (reason) => {
   console.error("[unhandledRejection]", reason);
 });
 
-const PORT = 3000;
+// Railway (and most PaaS) sets PORT dynamically. Always prefer the env var so
+// the server is reachable via the platform's load balancer. Fall back to 3000
+// for local dev where PORT is typically unset.
+const PORT = parseInt(process.env.PORT ?? "3000", 10);
 
 const app = express();
 

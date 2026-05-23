@@ -275,7 +275,12 @@ export default function Onboarding() {
         .filter((r) => r.preferredPosition?.trim() && r.acceptableFallback?.trim() && r.hardRedLine?.trim());
       await savePlaybookRules(validRules);
       detectRegulations().catch(() => {});
-      await queryClient.invalidateQueries({ queryKey: ["company"] });
+      // Use refetchQueries (not invalidateQueries) so we WAIT for the company
+      // data to land in the cache before navigating. invalidateQueries marks the
+      // query stale but navigates before the refetch finishes — when the query
+      // was previously in error state (404, brand-new user) company stays null
+      // on /dashboard and bounces straight back to /onboarding in a loop.
+      await queryClient.refetchQueries({ queryKey: ["company"] });
       navigate("/dashboard");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Setup failed - please try again.";
@@ -394,7 +399,10 @@ export default function Onboarding() {
       // Step 7: Detect regs - fire-and-forget, never blocks navigation
       detectRegulations().catch(() => {});
 
-      await queryClient.invalidateQueries({ queryKey: ["company"] });
+      // Use refetchQueries so the fresh company lands in cache before navigating.
+      // invalidateQueries + navigate races and leaves company=null on the dashboard
+      // route (error state from the pre-creation 404), causing an /onboarding loop.
+      await queryClient.refetchQueries({ queryKey: ["company"] });
       navigate("/dashboard");
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Something went wrong - please try again.";
