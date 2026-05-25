@@ -15,6 +15,8 @@ import { searchCompanies, enrichCompany } from "./services/companySearch.js";
 import { audit } from "./services/auditLogger.js";
 import { runDeltaComparison } from "./services/deltaComparison.js";
 import { runPatternDetection } from "./services/patternDetector.js";
+import { MARKET_STANDARD_PLAYBOOK } from "./data/marketStandardPlaybook.js";
+import { parseDocument } from "./services/documentParser.js";
 import {
   getGoogleAuthUrl,
   handleGoogleCallback,
@@ -795,8 +797,9 @@ Each field should be 1-3 sentences of clear, practical legal language.
       });
     },
     ah(async (req: Request, res: Response) => {
+      // Document-first flow: accept uploads even before onboarding is complete.
+      // The document will be associated with the company via POST /api/quick-setup.
       const company = await getCompany();
-      if (!company) { sendError(res, 400, "Complete onboarding before uploading"); return; }
 
       const file = req.file;
       if (!file) { sendError(res, 400, "No file uploaded"); return; }
@@ -830,7 +833,9 @@ Each field should be 1-3 sentences of clear, practical legal language.
       const renewalDate = body.renewalDate || null; // ISO date string or null
 
       const doc = await pb.collection("uploaded_documents").create({
-        company: company.id,
+        // company is omitted for document-first uploads (pre-onboarding).
+        // The relation field is non-required and will be associated later via /api/quick-setup.
+        ...(company ? { company: company.id } : {}),
         filename: file.filename,
         originalName: file.originalname,
         contractType: body.contractType ?? "SUPPLIER_AGREEMENT",
@@ -854,16 +859,156 @@ Each field should be 1-3 sentences of clear, practical legal language.
         action: "contract_uploaded",
         entityType: "uploaded_document",
         entityId: doc.id,
-        companyId: company.id,
+        companyId: company?.id,
         userId: req.user?.userId,
         ipAddress: req.ip,
         detail: { contractType: doc["contractType"], originalName: doc["originalName"], contractValue },
       });
 
-      console.log(`[upload] Document created: ${doc.id} (${doc["originalName"] as string}) for company ${company.id}`);
+      console.log(`[upload] Document created: ${doc.id} (${doc["originalName"] as string}) for company ${company?.id ?? "(pre-onboarding)"}`);
       res.json(mapDoc(doc));
     })
   );
+
+  // ── Document-first: extract metadata via LLM ──────────────────────────────
+  // Used immediately after upload to pre-fill the minimal onboarding modal.
+  app.post("/api/documents/:id/extract-metadata", requireAuth, ah(async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+
+    let doc: Record<string, unknown>;
+    try {
+      doc = await pb.collection("uploaded_documents").getOne(id);
+    } catch {
+      sendError(res, 404, "Document not found"); return;
+    }
+
+    const filePath = path.join(process.cwd(), "uploads", doc["filename"] as string);
+    if (!fs.existsSync(filePath)) { sendError(res, 404, "File not found on disk"); return; }
+
+    // Parse the document to get raw text
+    let rawText = "";
+    try {
+      const parsed = await parseDocument(filePath);
+      rawText = parsed.text.slice(0, 3000);
+    } catch {
+      // Return empty extraction rather than erroring — the modal can still work
+      res.json({});
+      return;
+    }
+
+    if (!rawText.trim()) { res.json({}); return; }
+
+    // LLM extraction — best-effort, swallow any failure
+    const { chatComplete } = await import("./services/openrouter.js");
+    try {
+      const response = await chatComplete([{
+        role: "user",
+        content: `Extract the following information from this contract if present. Return valid JSON only. No preamble. No markdown.
+
+{
+  "contract_type": "one of: SUPPLIER_AGREEMENT | CUSTOMER_AGREEMENT | MSA | NDA | SaaS_AGREEMENT | PROFESSIONAL_SERVICES | EMPLOYMENT | CONTRACTOR_AGREEMENT | IP_LICENSE_AGREEMENT | JV_AGREEMENT | SHARE_PURCHASE | COMMERCIAL_LEASE | LOAN_AGREEMENT | DISTRIBUTION_AGREEMENT | OTHER — or null",
+  "counterparty_name": "name of the counterparty company or individual, or null",
+  "governing_law": "full jurisdiction name (e.g. England and Wales, New York, Singapore), or null",
+  "contract_value": contract value as a plain number (no currency symbol) or null,
+  "currency": "ISO currency code (GBP/USD/EUR/SGD etc.) or null",
+  "renewal_date": "ISO date string YYYY-MM-DD or null",
+  "auto_renewal": true or false or null,
+  "contract_term_months": integer number of months or null
+}
+
+Contract text:
+${rawText}`,
+      }], 512);
+
+      const match = response.match(/\{[\s\S]*?\}/);
+      if (!match) { res.json({}); return; }
+
+      const extracted = JSON.parse(match[0]) as Record<string, unknown>;
+      res.json(extracted);
+    } catch {
+      res.json({}); // best-effort — never block the UX
+    }
+  }));
+
+  // ── Document-first: quick company setup ───────────────────────────────────
+  // Creates a company from minimal fields, saves market-standard playbook rules,
+  // associates a pending document, and optionally fires the review pipeline.
+  app.post("/api/quick-setup", requireAuth, ah(async (req: Request, res: Response) => {
+    const body = req.body as {
+      companyName?: string;
+      sector?: string;
+      riskAppetite?: string;
+      persona?: string;
+      pendingDocumentId?: string;
+      startReview?: boolean;
+    };
+
+    const companyName  = (body.companyName ?? "My Company").trim();
+    const sector       = (body.sector ?? "General").trim();
+    const riskAppetite = body.riskAppetite ?? "MODERATE";
+    const persona      = body.persona ?? "CORPORATE";
+
+    // Single-company mode: collect old companies BEFORE creating the new one,
+    // but delete them AFTER the new company and document association are in place.
+    // This prevents any cascade-delete from removing the pending document.
+    const existingCompanies = await pb.collection("companies").getFullList();
+
+    const company = await pb.collection("companies").create({
+      name: companyName,
+      sector,
+      riskAppetite,
+      jurisdiction: "England & Wales",
+      role: "BUYER",
+      persona,
+      workflowType: "COMMERCIAL_CONTRACT",
+    });
+
+    // Associate the pending document with the new company BEFORE deleting old companies
+    // so that any cascade-delete on old companies cannot remove the document.
+    let docId: string | null = null;
+    if (body.pendingDocumentId) {
+      try {
+        await pb.collection("uploaded_documents").update(body.pendingDocumentId, {
+          company: company.id,
+        });
+        docId = body.pendingDocumentId;
+        console.log(`[quick-setup] document ${docId} associated with company ${company.id}`);
+      } catch (e) {
+        console.warn("[quick-setup] doc association failed:", e);
+      }
+    }
+
+    // Save market-standard playbook rules — must complete before we respond so
+    // that POST /api/review/:id doesn't hit the "no rules" 422 guard immediately.
+    const ruleCreates = MARKET_STANDARD_PLAYBOOK.map((entry) =>
+      pb.collection("playbook_rules").create({
+        company: company.id,
+        clauseCategory: entry.clauseCategory,
+        workflowType: "COMMERCIAL_CONTRACT",
+        preferredPosition: entry.preferredPosition,
+        acceptableFallback: entry.acceptableFallback,
+        hardRedLine: entry.hardRedLine,
+        riskWeight: entry.riskWeight,
+      }).catch((e: unknown) => console.warn("[quick-setup] rule create failed:", e))
+    );
+    await Promise.all(ruleCreates);
+
+    // NOW delete old companies — document is already safe under the new company
+    await Promise.allSettled(existingCompanies.map((c) => pb.collection("companies").delete(c.id)));
+
+    // Kick off regulatory detection in the background (rules already saved above)
+    void detectAndSaveRegulations(company.id).catch(console.error);
+
+    await audit({
+      action: "company_created",
+      entityType: "company",
+      entityId: company.id,
+      userId: req.user?.userId,
+      detail: { name: company["name"], sector, persona, source: "document_first" },
+    });
+
+    res.json({ company: mapCompany(company), documentId: docId });
+  }));
 
   app.get("/api/documents", requireAuth, ah(async (req: Request, res: Response) => {
     const company = await getCompany();

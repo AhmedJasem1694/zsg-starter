@@ -89,12 +89,15 @@ Example: ["GB_FCA_CONSUMER_DUTY", "EU_AI_ACT"]`,
   );
   const allFrameworks = [...keywordMatches, ...aiFrameworks];
 
-  // Clear existing regulations for this company
+  // Clear existing regulations for this company.
+  // Use individual .catch(() => {}) so concurrent detection runs (e.g. the async
+  // kick-off from POST /api/company overlapping with POST /api/regulatory/detect)
+  // don't throw when a record has already been deleted by the other run.
   const existing = await pb.collection("company_regulations").getFullList({
     filter: `company = "${companyId}"`,
     fields: "id",
   });
-  await Promise.all(existing.map((r) => pb.collection("company_regulations").delete(r.id)));
+  await Promise.all(existing.map((r) => pb.collection("company_regulations").delete(r.id).catch(() => {})));
 
   // Save new regulations
   if (allFrameworks.length > 0) {

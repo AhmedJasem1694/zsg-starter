@@ -6,6 +6,7 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Onboarding from "./pages/Onboarding";
+import DocumentFirstDashboard from "./pages/DocumentFirstDashboard";
 import Dashboard from "./pages/Dashboard";
 import ReviewDetail from "./pages/ReviewDetail";
 import Playbook from "./pages/Playbook";
@@ -38,7 +39,7 @@ function PersonaRouter() {
   });
 
   if (isPending) return null;
-  if (!company) return <Navigate to="/onboarding" replace />;
+  if (!company) return <DocumentFirstDashboard />;
 
   const persona: Persona = (company as { persona?: Persona }).persona ?? "CORPORATE";
   if (persona === "FOUNDER") {
@@ -50,7 +51,8 @@ function PersonaRouter() {
 //── Auth guard helper ─────────────────────────────────────────────────────────
 
 function RequireAuth({ children, company }: { children: React.ReactNode; company: unknown }) {
-  return company ? <>{children}</> : <Navigate to="/onboarding" replace />;
+  // No company → document-first dashboard instead of full onboarding wizard
+  return company ? <>{children}</> : <Navigate to="/dashboard" replace />;
 }
 
 // ── App routes ────────────────────────────────────────────────────────────────
@@ -84,13 +86,15 @@ function AppRoutes() {
         element={user ? <Navigate to="/dashboard" replace /> : <Register />}
       />
 
-      {/* Auth-required: onboarding */}
+      {/* Auth-required: onboarding (manual / full wizard) */}
       <Route
         path="/onboarding"
         element={user ? <Onboarding /> : <Navigate to="/login" replace />}
       />
 
-      {/* Smart redirect: /dashboard → persona-specific path */}
+      {/* Smart redirect: /dashboard → persona-specific path.
+          No company yet → document-first dashboard (NOT /onboarding).
+          The user uploads a contract and Zane drives the setup. */}
       <Route
         path="/dashboard"
         element={
@@ -99,7 +103,7 @@ function AppRoutes() {
           ) : company ? (
             <PersonaRouter />
           ) : (
-            <Navigate to="/onboarding" replace />
+            <DocumentFirstDashboard />
           )
         }
       />

@@ -693,8 +693,6 @@ export default function Dashboard() {
         setUploadError("File is too large - maximum size is 20 MB.");
       } else if (msg.includes("415") || msg.toLowerCase().includes("not supported")) {
         setUploadError("Only PDF and Word (.docx) files are supported.");
-      } else if (msg.includes("400") || msg.toLowerCase().includes("onboarding")) {
-        setUploadError("Please complete onboarding before uploading.");
       } else {
         setUploadError("Upload failed - please check your connection and try again.");
       }

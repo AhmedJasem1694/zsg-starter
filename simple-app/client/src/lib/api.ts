@@ -8,6 +8,17 @@ import type {
   AncillaryDocumentData,
 } from "./types";
 
+// ── ApiError — carries HTTP status so callers can distinguish 401 from 500 ───
+
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
 // In-memory token store — populated by register/login responses.
 // Used as Authorization: Bearer fallback when httpOnly cookies don't reach the server
 // (e.g. certain reverse-proxy or browser configurations in production).
@@ -40,7 +51,7 @@ export async function req<T>(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as { error?: string }).error ?? res.statusText);
+    throw new ApiError((err as { error?: string }).error ?? res.statusText, res.status);
   }
   return res.json() as Promise<T>;
 }
@@ -71,6 +82,37 @@ export interface EnrichedCompany {
   customIndustries: string[];
   sector: string;
 }
+// ── Document-first onboarding ─────────────────────────────────────────────────
+
+export interface ExtractedDocumentMetadata {
+  contract_type?: string | null;
+  counterparty_name?: string | null;
+  governing_law?: string | null;
+  contract_value?: number | null;
+  currency?: string | null;
+  renewal_date?: string | null;
+  auto_renewal?: boolean | null;
+  contract_term_months?: number | null;
+}
+
+/** Run LLM metadata extraction on an already-uploaded document. Best-effort. */
+export const extractDocumentMetadata = (documentId: string) =>
+  req<ExtractedDocumentMetadata>("POST", `/api/documents/${documentId}/extract-metadata`);
+
+/** Create a company from minimal fields and associate a pending document. */
+export const quickSetup = (data: {
+  companyName: string;
+  sector: string;
+  riskAppetite: string;
+  persona: string;
+  pendingDocumentId: string;
+}) =>
+  req<{ company: import("./types").Company; documentId: string | null }>(
+    "POST",
+    "/api/quick-setup",
+    data
+  );
+
 export const searchCompany = (q: string) =>
   req<{ candidates: CompanyCandidate[] }>("GET", `/api/company/search?q=${encodeURIComponent(q)}`);
 export const enrichCompanyData = (candidate: CompanyCandidate) =>
@@ -207,10 +249,16 @@ export const getMe = async (): Promise<{ userId: string; email: string }> => {
     if (data.token) storeAuthToken(data.token);
     return data;
   } catch (err) {
-    // Clear any stale token so the user doesn't stay perpetually "logged in"
-    // with a JWT that the server no longer accepts (e.g. user deleted, DB reset).
-    // Without this, sessionStorage._zt keeps redirecting away from /register.
-    storeAuthToken(null);
+    // Only clear the in-memory token when the server EXPLICITLY rejected it (401).
+    // For transient failures (network error, 5xx) we must NOT wipe _authToken —
+    // clearing it on a temporary glitch breaks subsequent authenticated calls
+    // because the Bearer header disappears and httpOnly cookies may not be
+    // forwarded by the reverse proxy (Railway, etc.).
+    // Without this guard, a background refetchOnWindowFocus that momentarily
+    // fails would silently log the user out mid-onboarding.
+    if (err instanceof ApiError && err.status === 401) {
+      storeAuthToken(null);
+    }
     throw err;
   }
 };

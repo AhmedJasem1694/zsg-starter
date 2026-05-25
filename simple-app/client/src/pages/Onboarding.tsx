@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle, Search, Loader2, Building2, ChevronDown } from "lucide-react";
 import { ZaneLogo } from "../components/ZaneLogo";
-import { createCompany, savePlaybookRules, saveContacts, detectRegulations, searchCompany, enrichCompanyData, saveGovernanceThresholds, saveGovernanceTriggers, sendTeamInvites } from "../lib/api";
+import { createCompany, savePlaybookRules, saveContacts, detectRegulations, searchCompany, enrichCompanyData, saveGovernanceThresholds, saveGovernanceTriggers, sendTeamInvites, getMe } from "../lib/api";
 import type { CompanyCandidate, EnrichedCompany } from "../lib/api";
 import {
   CLAUSE_CATEGORIES,
@@ -341,6 +341,8 @@ export default function Onboarding() {
    *  useMutation state with handleFinish. Returns full regulation objects
    *  so Step 6 can display jurisdiction + industry groupings. */
   async function runDetection(): Promise<CompanyRegulation[]> {
+    // Refresh Bearer token before the auth-required calls below.
+    await getMe().catch(() => {});
     await createCompany({ ...companyForm, persona, workflowType });
     return detectRegulations();
   }
@@ -349,6 +351,12 @@ export default function Onboarding() {
     setSaving(true);
     setFinishError("");
     try {
+      // Step 0: Refresh the Bearer token so it is current before any auth-required
+      // API call. This guards against the token being wiped by a transient background
+      // refetch failure (e.g. window-focus re-fetch while on a slow connection).
+      // We swallow errors here — if getMe fails, we still try with the cookie.
+      await getMe().catch(() => {});
+
       // Step 1: Always (re)create the company - idempotent because POST /api/company
       // deletes any existing company first (single-company mode).
       try {
