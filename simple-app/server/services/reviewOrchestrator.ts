@@ -14,6 +14,7 @@ import { sendEscalationEmail } from "./emailService.js";
 import { anonymise, deanonymise, buildKnownEntities } from "./piiAnonymiser.js";
 import { audit } from "./auditLogger.js";
 import { persistOutcomePatterns } from "./outcomeCapture.js";
+import { runDocumentAudit } from "./documentAudit.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PBRecord = Record<string, any>;
@@ -62,19 +63,54 @@ export function computeMissingSeverity(
   return "OPTIONAL";
 }
 
-// Hard ceiling: if the entire review hasn't completed in 8 minutes, force FAILED.
-// This catches any unforeseen hang that slips past individual timeouts.
-const REVIEW_TIMEOUT_MS = 8 * 60 * 1000;
+// Hard ceiling: if the entire review hasn't completed in 20 minutes, force FAILED.
+// Increased from 8 to 20 minutes to handle large documents (50K+ chars) with many parallel LLM
+// comparisons that may be rate-limited to run somewhat sequentially by the upstream API.
+const REVIEW_TIMEOUT_MS = 20 * 60 * 1000;
 
 export async function runReview(documentId: string): Promise<void> {
-  // Wrap the entire review in a hard timeout
+  // Wrap the entire review in a hard timeout.
+  // We use a flag to short-circuit _runReview if the timeout fires first,
+  // preventing the stale continuation from later overwriting FAILED with COMPLETE.
+  let timedOut = false;
   const timeoutPromise = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error(`Review pipeline timed out after ${REVIEW_TIMEOUT_MS / 60000} minutes`)), REVIEW_TIMEOUT_MS)
+    setTimeout(() => {
+      timedOut = true;
+      reject(new Error(`Review pipeline timed out after ${REVIEW_TIMEOUT_MS / 60000} minutes`));
+    }, REVIEW_TIMEOUT_MS)
   );
-  return Promise.race([_runReview(documentId), timeoutPromise]);
+  return Promise.race([_runReview(documentId, () => timedOut), timeoutPromise]);
 }
 
-async function _runReview(documentId: string): Promise<void> {
+// Concurrency limiter: run at most MAX_CONCURRENT LLM clause comparisons simultaneously.
+// This prevents hammering the upstream API with 10+ simultaneous requests which can cause
+// rate-limit errors that silently kill individual comparisons.
+const MAX_CONCURRENT_COMPARISONS = 4;
+
+async function runWithConcurrencyLimit<T>(
+  tasks: Array<() => Promise<T>>,
+  limit: number
+): Promise<PromiseSettledResult<T>[]> {
+  const results: PromiseSettledResult<T>[] = new Array(tasks.length);
+  let nextIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (nextIndex < tasks.length) {
+      const idx = nextIndex++;
+      try {
+        results[idx] = { status: "fulfilled", value: await tasks[idx]() };
+      } catch (reason) {
+        results[idx] = { status: "rejected", reason };
+      }
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(limit, tasks.length) }, () => worker());
+  await Promise.all(workers);
+  return results;
+}
+
+async function _runReview(documentId: string, isTimedOut: () => boolean = () => false): Promise<void> {
   // Load document and company sequentially (each depends on the previous).
   // Playbook rules, approval thresholds, and governance triggers all depend on
   // company.id — fetch them in parallel once company is known.
@@ -254,6 +290,12 @@ async function _runReview(documentId: string): Promise<void> {
       founderCopyPaste: string;
       founderFundraisingRelevance: string;
       founderIfIgnored: string;
+      iracIssue: string;
+      iracRule: string;
+      iracApplication: string;
+      iracConclusion: string;
+      urgencyLevel: string;
+      errorCategory: string;
     };
 
     // ── Shared state for streaming progress ───────────────────────────────────
@@ -299,6 +341,12 @@ async function _runReview(documentId: string): Promise<void> {
         founderCopyPaste: r.founderCopyPaste ?? "",
         founderFundraisingRelevance: r.founderFundraisingRelevance ?? "",
         founderIfIgnored: r.founderIfIgnored ?? "",
+        iracIssue: r.iracIssue ?? "",
+        iracRule: r.iracRule ?? "",
+        iracApplication: r.iracApplication ?? "",
+        iracConclusion: r.iracConclusion ?? "",
+        urgencyLevel: r.urgencyLevel ?? "BACKGROUND",
+        errorCategory: r.errorCategory ?? "SUBSTANTIVE_RISK",
       }).catch((err: unknown) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         console.error(`[review] review_results.create FAILED for ${documentId}/${r.clauseCategory}:`, (err as any)?.message, JSON.stringify((err as any)?.response));
@@ -328,8 +376,8 @@ async function _runReview(documentId: string): Promise<void> {
       ? `\n\nContract governing law: ${docGoverningLaw}${docJurisdiction ? ` (jurisdiction: ${docJurisdiction})` : ""}. Apply the law of this jurisdiction when assessing the clause.`
       : "";
 
-    const settled = await Promise.allSettled(
-      playbookRules.map(async (rule) => {
+    // Build clause comparison tasks — wrapped as thunks so the concurrency limiter controls launch order
+    const clauseTasks = playbookRules.map((rule) => async () => {
         const category = rule["clauseCategory"] as string;
         const match = bestByCategory.get(category);
 
@@ -361,6 +409,12 @@ async function _runReview(documentId: string): Promise<void> {
             founderCopyPaste: absent.founderCopyPaste,
             founderFundraisingRelevance: absent.founderFundraisingRelevance,
             founderIfIgnored: absent.founderIfIgnored,
+            iracIssue: absent.iracIssue ?? "",
+            iracRule: absent.iracRule ?? "",
+            iracApplication: absent.iracApplication ?? "",
+            iracConclusion: absent.iracConclusion ?? "",
+            urgencyLevel: absent.urgencyLevel ?? "BACKGROUND",
+            errorCategory: absent.errorCategory ?? "SUBSTANTIVE_RISK",
           };
           await persistResult(r);
           results.push(r);
@@ -419,6 +473,10 @@ async function _runReview(documentId: string): Promise<void> {
           founderCopyPaste:            deAnon(comparison.founderCopyPaste),
           founderFundraisingRelevance: deAnon(comparison.founderFundraisingRelevance),
           founderIfIgnored:            deAnon(comparison.founderIfIgnored),
+          iracIssue:                   deAnon(comparison.iracIssue),
+          iracRule:                    deAnon(comparison.iracRule),
+          iracApplication:             deAnon(comparison.iracApplication),
+          iracConclusion:              deAnon(comparison.iracConclusion),
         };
 
         void audit({
@@ -455,13 +513,22 @@ async function _runReview(documentId: string): Promise<void> {
           founderCopyPaste: deanonComparison.founderCopyPaste,
           founderFundraisingRelevance: deanonComparison.founderFundraisingRelevance,
           founderIfIgnored: deanonComparison.founderIfIgnored,
+          iracIssue: deAnon(deanonComparison.iracIssue) ?? "",
+          iracRule: deAnon(deanonComparison.iracRule) ?? "",
+          iracApplication: deAnon(deanonComparison.iracApplication) ?? "",
+          iracConclusion: deAnon(deanonComparison.iracConclusion) ?? "",
+          urgencyLevel: deanonComparison.urgencyLevel ?? "BACKGROUND",
+          errorCategory: deanonComparison.errorCategory ?? "SUBSTANTIVE_RISK",
         };
 
         // Write to PocketBase immediately — frontend poll picks this up within 3s.
         await persistResult(r);
         results.push(r);
-      })
-    );
+    });
+
+    // Run at most MAX_CONCURRENT_COMPARISONS clause LLM calls simultaneously.
+    // This prevents overwhelming the upstream API with 10+ requests at once.
+    const settled = await runWithConcurrencyLimit(clauseTasks, MAX_CONCURRENT_COMPARISONS);
 
     // Log any individual clause failures (they don't abort the review).
     const clauseFailures = settled.filter((s) => s.status === "rejected");
@@ -502,11 +569,41 @@ async function _runReview(documentId: string): Promise<void> {
       }
     }
 
-    // Persist contradictions on the document record
+    // Persist contradictions on the document record (non-fatal — never abort the review for this)
     if (contradictions.length > 0) {
       await pb.collection("uploaded_documents").update(documentId, {
         contradictions: JSON.stringify(contradictions),
+      }).catch((e: unknown) => {
+        console.warn("[review] Could not persist contradictions (non-fatal):", (e as Error)?.message);
       });
+    }
+
+    // ── Multi-pass document audit (passes 2-5) ─────────────────────────────────
+    // Run all 4 additional analytical passes on the raw document text.
+    // These run after clause comparison is complete. Findings are stored as JSON
+    // on the document record. Non-fatal — never abort the review for audit failures.
+    console.log(`[review] AUDITING ${documentId}: running document audit passes 2-5`);
+    try {
+      const auditResult = await runDocumentAudit(
+        rawText,
+        company["name"] as string,
+        (doc["contractType"] as string) ?? "COMMERCIAL_CONTRACT"
+      );
+      console.log(`[review] AUDIT ${documentId}: ${auditResult.totalFindings} findings (${auditResult.highSeverityCount} high severity)`);
+      await pb.collection("uploaded_documents").update(documentId, {
+        auditFindings: JSON.stringify(auditResult),
+      }).catch((e: unknown) => {
+        console.warn("[review] Could not persist audit findings (non-fatal):", (e as Error)?.message);
+      });
+    } catch (err) {
+      console.error("[review] Document audit failed (non-fatal):", (err as Error)?.message);
+    }
+
+    // If the hard timeout fired while we were running, do not override the FAILED status
+    // that the timeout handler already wrote. Simply return without setting COMPLETE.
+    if (isTimedOut()) {
+      console.warn(`[review] ${documentId}: timeout detected before COMPLETE — skipping status update`);
+      return;
     }
 
     // NOTE: individual review_results records are already persisted inline above
@@ -568,17 +665,23 @@ async function _runReview(documentId: string): Promise<void> {
   } catch (err) {
     const errMsg = (err as Error)?.message ?? String(err);
     console.error(`[review] FAILED ${documentId}: ${errMsg}`);
-    // Best-effort status update — if PB is down this also fails, but that's acceptable
-    await pb.collection("uploaded_documents").update(documentId, { status: "FAILED" }).catch((e: unknown) =>
+    // Best-effort status update — store lastError so the UI can surface it
+    await pb.collection("uploaded_documents").update(documentId, {
+      status: "FAILED",
+      lastError: errMsg.slice(0, 2000),
+    }).catch((e: unknown) =>
       console.error("[review] Could not set FAILED status:", (e as Error)?.message)
     );
-    void audit({
-      action: "review_failed",
-      entityType: "uploaded_document",
-      entityId: documentId,
-      companyId: company.id,
-      detail: { error: errMsg },
-    });
+    // company may be undefined if failure happened before company was loaded (line 82)
+    if (company?.id) {
+      void audit({
+        action: "review_failed",
+        entityType: "uploaded_document",
+        entityId: documentId,
+        companyId: company.id,
+        detail: { error: errMsg },
+      });
+    }
     throw err;
   }
 }

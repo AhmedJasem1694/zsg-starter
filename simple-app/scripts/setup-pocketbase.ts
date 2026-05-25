@@ -783,7 +783,8 @@ async function main() {
 
   // ── uploaded_documents ────────────────────────────────────────────────────
   const uploadedDocumentsId = await ensureCollection("uploaded_documents", [
-    relationField("company", companiesId),
+    // cascadeDelete MUST be false: deleting a company must not wipe user documents
+    relationField("company", companiesId, { cascadeDelete: false }),
     textField("filename", { required: true }),
     textField("originalName", { required: true }),
     textField("contractType"),
@@ -806,6 +807,7 @@ async function main() {
     textField("signedAt"),
     textField("outcomeNotes"),
     textField("contradictions"),
+    textField("auditFindings"),
     // Extraction metadata written by reviewOrchestrator after parsing
     textField("extractionMethod"),
     boolField("ocrUsed"),
@@ -849,6 +851,12 @@ async function main() {
     textField("founderCopyPaste"),
     textField("founderFundraisingRelevance"),
     textField("founderIfIgnored"),
+    textField("iracIssue"),
+    textField("iracRule"),
+    textField("iracApplication"),
+    textField("iracConclusion"),
+    textField("urgencyLevel"),
+    textField("errorCategory"),
   ]);
 
   // ── litigation_intakes ────────────────────────────────────────────────────

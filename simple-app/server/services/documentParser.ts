@@ -25,22 +25,48 @@ export async function parseDocument(filePath: string): Promise<ParseResult> {
   if (ext === ".docx" || ext === ".doc") {
     try {
       const result = await mammoth.extractRawText({ buffer });
+      const text = result.value ?? "";
+
+      // Warn if mammoth returned warnings (e.g. unsupported elements)
+      if (result.messages && result.messages.length > 0) {
+        console.warn(`[documentParser] mammoth warnings for ${filePath}:`,
+          result.messages.slice(0, 3).map((m) => m.message).join("; "));
+      }
+
+      // If text is suspiciously short, it may be a protected doc or only tracked changes
+      if (text.length < 200) {
+        const reason = text.length === 0
+          ? "Could not extract text from this Word document. It may be password-protected or in an unsupported format. Please try saving as PDF and uploading again."
+          : "Very little text was extracted from this document. It may be protected, in an unsupported format, or contain only tracked changes. Please accept all changes, remove protection, and re-upload.";
+        console.warn(`[documentParser] DOCX sparse text (${text.length} chars): ${reason}`);
+        return {
+          text,
+          extractionMethod: text.length === 0 ? "failed" : "docx",
+          ocrUsed: false,
+          pageCount: 1,
+          textLength: text.length,
+          errorMessage: reason,
+        };
+      }
+
       return {
-        text: result.value,
+        text,
         extractionMethod: "docx",
         ocrUsed: false,
         pageCount: 1,
-        textLength: result.value.length,
+        textLength: text.length,
         errorMessage: null,
       };
     } catch (err) {
+      const errMsg = (err as Error).message ?? String(err);
+      console.error(`[documentParser] mammoth FAILED for ${filePath}:`, errMsg);
       return {
         text: "",
         extractionMethod: "failed",
         ocrUsed: false,
         pageCount: 0,
         textLength: 0,
-        errorMessage: (err as Error).message,
+        errorMessage: `Could not extract text from this Word document: ${errMsg}. Please try saving as PDF and uploading again.`,
       };
     }
   }

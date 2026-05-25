@@ -1,3 +1,24 @@
+export type UrgencyLevel = "IMMEDIATE" | "MATERIAL" | "BACKGROUND";
+export type ErrorCategory = "SUBSTANTIVE_RISK" | "DRAFTING_ERROR" | "MECHANICAL_ERROR";
+
+export interface AuditFinding {
+  pass: "DEFINED_TERMS" | "CROSS_REFERENCES" | "NUMBERS_DATES" | "INTERNAL_CONSISTENCY";
+  severity: "HIGH" | "MEDIUM" | "LOW";
+  type: string;
+  description: string;
+  location: string;
+  recommendation: string;
+}
+
+export interface DocumentAuditResult {
+  definedTerms: AuditFinding[];
+  crossReferences: AuditFinding[];
+  numbersDates: AuditFinding[];
+  internalConsistency: AuditFinding[];
+  totalFindings: number;
+  highSeverityCount: number;
+}
+
 export type RiskAppetite = "CONSERVATIVE" | "MODERATE" | "COMMERCIAL";
 export type DeltaOutcome = "PREFERRED" | "FALLBACK" | "BELOW_FALLBACK" | "NO_CHANGE" | "REMOVED";
 export type CompanyRuleStatus = "PENDING" | "ACTIVE" | "REJECTED";
@@ -650,6 +671,8 @@ export interface UploadedDocument {
   outcomeNotes?: string;
   /** JSON array of contradiction findings from the second LLM pass */
   contradictions?: ContradictionFinding[];
+  /** Parsed audit findings from passes 2-5 (defined terms, cross-refs, numbers, consistency) */
+  auditFindings?: DocumentAuditResult | null;
   /** Total number of playbook rules being compared (set at start of COMPARING stage) */
   clausesTotal?: number;
   /** Number of clause results written so far — incremented as each comparison completes */
@@ -702,6 +725,12 @@ export interface ReviewResult {
   founderCopyPaste?: string;
   founderFundraisingRelevance?: string;
   founderIfIgnored?: string;
+  iracIssue?: string;
+  iracRule?: string;
+  iracApplication?: string;
+  iracConclusion?: string;
+  urgencyLevel?: UrgencyLevel;
+  errorCategory?: ErrorCategory;
 }
 
 export interface CompanyRegulation {

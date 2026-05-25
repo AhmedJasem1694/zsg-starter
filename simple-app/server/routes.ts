@@ -109,7 +109,12 @@ function mapDoc(d: PBRecord) {
   try {
     if (d["contradictions"]) contradictions = JSON.parse(d["contradictions"] as string);
   } catch { /* malformed */ }
-  return { ...d, companyId: d.company, uploadedAt: d.created, contradictions };
+  const auditFindings = (() => {
+    const raw = d["auditFindings"];
+    if (!raw) return null;
+    try { return typeof raw === "string" ? JSON.parse(raw) : raw; } catch { return null; }
+  })();
+  return { ...d, companyId: d.company, uploadedAt: d.created, contradictions, auditFindings };
 }
 
 function mapResult(r: PBRecord) {
@@ -127,6 +132,12 @@ function mapResult(r: PBRecord) {
     ruleId: r.rule ?? null,
     createdAt: r.created,
     regulatoryCitations,
+    iracIssue: r["iracIssue"] ?? "",
+    iracRule: r["iracRule"] ?? "",
+    iracApplication: r["iracApplication"] ?? "",
+    iracConclusion: r["iracConclusion"] ?? "",
+    urgencyLevel: r["urgencyLevel"] ?? "BACKGROUND",
+    errorCategory: r["errorCategory"] ?? "SUBSTANTIVE_RISK",
   };
 }
 
@@ -213,13 +224,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (pbErr.status === 400) {
         const data = pbErr.response?.data ?? {};
         if ("email" in data) {
-          sendError(res, 409, "An account with this email already exists"); return;
+          sendError(res, 409, "An account with this email already exists."); return;
         }
         // Surface the actual PocketBase validation message if present
-        const detail = pbErr.response?.message ?? "Invalid registration data";
+        const detail = pbErr.response?.message ?? "Account creation failed. Please try again.";
         sendError(res, 400, detail); return;
       }
-      throw err;
+      sendError(res, 500, "Account creation failed. Please try again."); return;
     }
   }));
 
@@ -236,6 +247,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use a fresh client so authWithPassword doesn't overwrite the admin token
       // stored on the shared `pb` singleton.
       const userClient = newPBClient();
+
+      // Check if the user exists first (to distinguish "not found" from "wrong password")
+      const existingUsers = await pb.collection("users").getFullList({
+        filter: `email = "${email.replace(/"/g, '\\"')}"`,
+        fields: "id",
+      }).catch(() => []);
+
+      if (existingUsers.length === 0) {
+        sendError(res, 401, "No account found with this email address."); return;
+      }
+
       const authData = await userClient.collection("users").authWithPassword(email, password);
       const user = authData.record;
       const token = signToken({ userId: user.id, email: user["email"] as string });
@@ -243,8 +265,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await audit({ action: "user_login", userId: user.id, ipAddress: req.ip });
       // Include token in body so clients can use Authorization: Bearer as fallback
       res.json({ userId: user.id, name: user["name"], email: user["email"], token });
-    } catch {
-      sendError(res, 401, "Invalid email or password");
+    } catch (err: unknown) {
+      const pbErr = err as { status?: number };
+      if (pbErr.status === 400 || pbErr.status === 401) {
+        sendError(res, 401, "Email or password is incorrect. Please try again."); return;
+      }
+      sendError(res, 500, "Sign-in failed. Please try again."); return;
     }
   }));
 
@@ -1222,7 +1248,8 @@ ${rawText}`,
     const ACTIVE_STATUSES = ["PROCESSING", "PARSING", "ANONYMISING", "CLASSIFYING", "COMPARING"];
     if (ACTIVE_STATUSES.includes(doc["status"] as string)) { sendError(res, 409, "Review already in progress"); return; }
 
-    if (doc["status"] === "COMPLETE") {
+    // On retry (COMPLETE or FAILED), clear previous results so there are no duplicates
+    if (doc["status"] === "COMPLETE" || doc["status"] === "FAILED") {
       const [existingResults, existingClauses] = await Promise.all([
         pb.collection("review_results").getFullList({
           filter: `document = "${doc.id}"`,
@@ -1233,10 +1260,13 @@ ${rawText}`,
           fields: "id",
         }),
       ]);
-      await Promise.all([
-        ...existingResults.map((r) => pb.collection("review_results").delete(r.id)),
-        ...existingClauses.map((c) => pb.collection("extracted_clauses").delete(c.id)),
-      ]);
+      if (existingResults.length > 0 || existingClauses.length > 0) {
+        console.log(`[review] Retry cleanup: deleting ${existingResults.length} results + ${existingClauses.length} clauses for ${doc.id}`);
+        await Promise.allSettled([
+          ...existingResults.map((r) => pb.collection("review_results").delete(r.id)),
+          ...existingClauses.map((c) => pb.collection("extracted_clauses").delete(c.id)),
+        ]);
+      }
     }
 
     // Guard: refuse to start review if no playbook rules exist — would produce empty results
@@ -1253,11 +1283,15 @@ ${rawText}`,
     }
 
     // Set PROCESSING synchronously before returning so the 409 guard works for concurrent requests
-    await pb.collection("uploaded_documents").update(doc.id, { status: "PROCESSING" });
-    // Fire-and-forget: ensure any uncaught error sets status to FAILED
+    await pb.collection("uploaded_documents").update(doc.id, { status: "PROCESSING", lastError: "" });
+    // Fire-and-forget: ensure any uncaught error sets status to FAILED and stores the error message
     runReview(doc.id).catch(async (err: unknown) => {
-      console.error(`[review] Unhandled error for ${doc.id}:`, (err as Error)?.message ?? err);
-      await pb.collection("uploaded_documents").update(doc.id, { status: "FAILED" }).catch(() => {/* ignore */});
+      const errMsg = (err as Error)?.message ?? String(err);
+      console.error(`[review] Unhandled error for ${doc.id}:`, errMsg);
+      await pb.collection("uploaded_documents").update(doc.id, {
+        status: "FAILED",
+        lastError: errMsg.slice(0, 2000),
+      }).catch(() => {/* ignore */});
     });
     res.json({ status: "started", documentId: doc.id });
   }));

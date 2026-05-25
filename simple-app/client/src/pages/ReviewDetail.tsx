@@ -261,11 +261,23 @@ export default function ReviewDetail() {
     GREY_OPTIONAL: results.filter((r) => r.ragStatus === "GREY" && r.missingSeverity !== "CRITICAL").length,
   };
   const overallRag: RagStatus = counts.RED > 0 ? "RED" : counts.AMBER > 0 ? "AMBER" : "GREEN";
-  const filtered =
-    filter === "ALL"           ? results :
-    filter === "GREY_CRITICAL" ? results.filter((r) => r.ragStatus === "GREY" && r.missingSeverity === "CRITICAL") :
-    filter === "GREY_OPTIONAL" ? results.filter((r) => r.ragStatus === "GREY" && r.missingSeverity !== "CRITICAL") :
-                                 results.filter((r) => r.ragStatus === filter);
+  const URGENCY_ORDER: Record<string, number> = { IMMEDIATE: 0, MATERIAL: 1, BACKGROUND: 2 };
+
+  const filtered = (() => {
+    const base =
+      filter === "ALL"           ? results :
+      filter === "GREY_CRITICAL" ? results.filter((r) => r.ragStatus === "GREY" && r.missingSeverity === "CRITICAL") :
+      filter === "GREY_OPTIONAL" ? results.filter((r) => r.ragStatus === "GREY" && r.missingSeverity !== "CRITICAL") :
+                                   results.filter((r) => r.ragStatus === filter);
+    // Sort by urgency (IMMEDIATE first), then by RAG severity (RED > AMBER > GREY > GREEN)
+    const RAG_ORDER: Record<string, number> = { RED: 0, AMBER: 1, GREY: 2, GREEN: 3 };
+    return [...base].sort((a, b) => {
+      const ua = URGENCY_ORDER[a.urgencyLevel ?? "BACKGROUND"] ?? 2;
+      const ub = URGENCY_ORDER[b.urgencyLevel ?? "BACKGROUND"] ?? 2;
+      if (ua !== ub) return ua - ub;
+      return (RAG_ORDER[a.ragStatus] ?? 3) - (RAG_ORDER[b.ragStatus] ?? 3);
+    });
+  })();
 
   const renewalDaysUntil = doc.renewalDate
     ? Math.ceil((new Date(doc.renewalDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
@@ -477,6 +489,11 @@ export default function ReviewDetail() {
               </div>
             )}
 
+            {/* Document audit findings (passes 2-5) */}
+            {doc.auditFindings && doc.auditFindings.totalFindings > 0 && (
+              <DocumentAuditPanel audit={doc.auditFindings} />
+            )}
+
             {/* Filter pills */}
             <div className="flex flex-wrap gap-2">
               {/* All */}
@@ -535,6 +552,16 @@ export default function ReviewDetail() {
                   {counts.GREY_OPTIONAL}
                 </span>
               </button>
+
+              {/* Immediate urgency filter */}
+              {results.some(r => r.urgencyLevel === "IMMEDIATE") && (
+                <button
+                  onClick={() => setFilter("ALL")}
+                  className="px-3 py-1 rounded-full text-xs font-medium border border-[#450A0A] bg-[#1F0A0A] text-[#FCA5A5] hover:bg-[#2A0808]"
+                >
+                  ⚡ {results.filter(r => r.urgencyLevel === "IMMEDIATE").length} Immediate
+                </button>
+              )}
             </div>
 
             {/* Clause cards */}
@@ -894,6 +921,92 @@ function IntelligenceSignals({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// ─── Document Audit Panel ─────────────────────────────────────────────────────
+
+function DocumentAuditPanel({ audit }: { audit: import("../lib/types").DocumentAuditResult }) {
+  const [expanded, setExpanded] = useState(false);
+  const allFindings = [
+    ...audit.definedTerms,
+    ...audit.crossReferences,
+    ...audit.numbersDates,
+    ...audit.internalConsistency,
+  ];
+  if (allFindings.length === 0) return null;
+
+  const PASS_LABELS: Record<string, string> = {
+    DEFINED_TERMS: "Defined Terms",
+    CROSS_REFERENCES: "Cross-References",
+    NUMBERS_DATES: "Numbers & Dates",
+    INTERNAL_CONSISTENCY: "Internal Consistency",
+  };
+
+  const SEVERITY_CONFIG = {
+    HIGH:   { classes: "bg-[#1F0A0A] border-[#450A0A] text-[#FCA5A5]", label: "High" },
+    MEDIUM: { classes: "bg-[#1C0F00] border-[#431407] text-[#FCD34D]", label: "Medium" },
+    LOW:    { classes: "bg-[#0F172A] border-[#334155] text-[#94A3B8]", label: "Low" },
+  };
+
+  return (
+    <div className="rounded-xl border border-[#1E3A5F] bg-[#0C1929] overflow-hidden">
+      <button
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#0E1E3A] transition-colors"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <div className="flex items-center gap-2.5">
+          <Scale size={13} className="text-[#60A5FA] shrink-0" />
+          <span className="text-sm font-semibold text-[#93C5FD]">Document Audit</span>
+          <span className="text-[10px] bg-[#1D4ED8]/30 text-[#60A5FA] border border-[#1D4ED8]/40 rounded-full px-2 py-0.5 font-semibold">
+            {allFindings.length} finding{allFindings.length !== 1 ? "s" : ""}
+          </span>
+          {audit.highSeverityCount > 0 && (
+            <span className="text-[10px] bg-[#1F0A0A] text-[#FCA5A5] border border-[#450A0A] rounded-full px-2 py-0.5 font-semibold">
+              {audit.highSeverityCount} high
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
+          <span>Passes 2–5: defined terms · cross-refs · numbers · consistency</span>
+          {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+        </div>
+      </button>
+      {expanded && (
+        <div className="border-t border-[#1E293B] px-4 py-4 space-y-4">
+          {[
+            { key: "definedTerms",        findings: audit.definedTerms },
+            { key: "crossReferences",     findings: audit.crossReferences },
+            { key: "numbersDates",        findings: audit.numbersDates },
+            { key: "internalConsistency", findings: audit.internalConsistency },
+          ].filter(g => g.findings.length > 0).map(({ key, findings }) => (
+            <div key={key} className="space-y-2">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+                {PASS_LABELS[findings[0].pass] ?? key}
+              </div>
+              {findings.map((f, i) => {
+                const sev = SEVERITY_CONFIG[f.severity] ?? SEVERITY_CONFIG.LOW;
+                return (
+                  <div key={i} className={`rounded-lg border px-3 py-2.5 space-y-1.5 ${sev.classes}`}>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border ${sev.classes}`}>
+                        {sev.label}
+                      </span>
+                      <span className="text-xs font-semibold">{f.type}</span>
+                      {f.location && (
+                        <span className="text-[10px] opacity-60 ml-auto">{f.location}</span>
+                      )}
+                    </div>
+                    <p className="text-xs opacity-85">{f.description}</p>
+                    <p className="text-xs font-medium opacity-75">→ {f.recommendation}</p>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1284,6 +1397,22 @@ function ClauseCard({
         </div>
         <div className="flex items-center gap-2 shrink-0 pt-0.5">
           {!isMock && <LearningIndicator clauseCategory={result.clauseCategory} />}
+          {/* Urgency badge */}
+          {result.urgencyLevel && result.urgencyLevel !== "BACKGROUND" && (
+            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${
+              result.urgencyLevel === "IMMEDIATE"
+                ? "bg-[#1F0A0A] text-[#FCA5A5] border-[#450A0A]"
+                : "bg-[#1C0F00] text-[#FCD34D] border-[#431407]"
+            }`}>
+              {result.urgencyLevel === "IMMEDIATE" ? "⚡ Immediate" : "Material"}
+            </span>
+          )}
+          {/* Error category badge */}
+          {result.errorCategory && result.errorCategory !== "SUBSTANTIVE_RISK" && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-[#0F172A] text-[#94A3B8] border-[#334155]">
+              {result.errorCategory === "DRAFTING_ERROR" ? "Drafting" : "Mechanical"}
+            </span>
+          )}
           {result.ragStatus === "GREY" ? (
             <span className={result.missingSeverity === "CRITICAL" ? "rag-red" : "rag-grey"}>
               {result.missingSeverity === "CRITICAL" ? "Missing — Critical" : "Missing — Optional"}
@@ -1299,36 +1428,89 @@ function ClauseCard({
       {expanded && (
         <div className="border-t border-[#1E293B] px-5 py-5 space-y-5 bg-[#080F18]">
 
-          {/* Decision summary */}
-          <div className="rounded-xl border border-[#1E293B] bg-[#0D1521] p-4 space-y-3">
-            <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-              Decision summary
-            </div>
-
-            {result.isAbsent && (
-              <div className="flex items-start gap-2 rounded-lg border border-[#334155] bg-[#0F172A] px-3 py-2">
-                <Info size={12} className="text-[#94A3B8] shrink-0 mt-0.5" />
-                <span className="text-xs text-[#94A3B8]">
-                  This clause was not identified in the contract. Review whether your playbook requires it to be present.
-                </span>
+          {/* IRAC Analysis */}
+          {(result.iracIssue || result.iracConclusion) ? (
+            <div className="rounded-xl border border-[#1E293B] bg-[#0D1521] p-4 space-y-4">
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                Legal Analysis (IRAC)
               </div>
-            )}
 
-            <div className="text-sm font-semibold text-foreground leading-snug">
-              {result.recommendedAction}
+              {result.isAbsent && (
+                <div className="flex items-start gap-2 rounded-lg border border-[#334155] bg-[#0F172A] px-3 py-2">
+                  <Info size={12} className="text-[#94A3B8] shrink-0 mt-0.5" />
+                  <span className="text-xs text-[#94A3B8]">
+                    This clause was not identified in the contract. Review whether your playbook requires it to be present.
+                  </span>
+                </div>
+              )}
+
+              {result.iracIssue && (
+                <div className="space-y-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA]/70">Issue</div>
+                  <p className="text-sm font-semibold text-foreground leading-snug">{result.iracIssue}</p>
+                </div>
+              )}
+
+              {result.iracRule && (
+                <div className="space-y-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA]/70">Rule</div>
+                  <div className="rounded-lg border border-[#1E293B] bg-[#050A10] px-3 py-2.5 text-xs leading-relaxed text-[#94A3B8]">
+                    {result.iracRule}
+                  </div>
+                </div>
+              )}
+
+              {result.iracApplication && (
+                <div className="space-y-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA]/70">Application</div>
+                  <p className="text-sm text-foreground/80 leading-relaxed">{result.iracApplication}</p>
+                </div>
+              )}
+
+              {result.iracConclusion && (
+                <div className="space-y-1">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]/70">Conclusion</div>
+                  <div className="rounded-lg border border-[#312E81] bg-[#1E1B4B]/50 px-3 py-2.5 text-sm font-medium text-[#C4B5FD] leading-relaxed">
+                    {result.iracConclusion}
+                  </div>
+                </div>
+              )}
+
+              {result.escalationRequired && result.escalationTrigger && (
+                <div className="flex items-start gap-2 rounded-lg border border-[#450A0A] bg-[#1F0A0A] px-3 py-2">
+                  <AlertTriangle size={12} className="shrink-0 mt-0.5 text-[#FCA5A5]" />
+                  <span className="text-xs text-[#FCA5A5]">{result.escalationTrigger}</span>
+                </div>
+              )}
             </div>
-
-            <div className="text-xs text-muted-foreground leading-relaxed">
-              {result.businessSummary}
-            </div>
-
-            {result.escalationRequired && result.escalationTrigger && (
-              <div className="flex items-start gap-2 rounded-lg border border-[#450A0A] bg-[#1F0A0A] px-3 py-2">
-                <AlertTriangle size={12} className="shrink-0 mt-0.5 text-[#FCA5A5]" />
-                <span className="text-xs text-[#FCA5A5]">{result.escalationTrigger}</span>
+          ) : (
+            /* Legacy fallback: show old decision summary for results without IRAC */
+            <div className="rounded-xl border border-[#1E293B] bg-[#0D1521] p-4 space-y-3">
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+                Decision summary
               </div>
-            )}
-          </div>
+              {result.isAbsent && (
+                <div className="flex items-start gap-2 rounded-lg border border-[#334155] bg-[#0F172A] px-3 py-2">
+                  <Info size={12} className="text-[#94A3B8] shrink-0 mt-0.5" />
+                  <span className="text-xs text-[#94A3B8]">
+                    This clause was not identified in the contract. Review whether your playbook requires it to be present.
+                  </span>
+                </div>
+              )}
+              <div className="text-sm font-semibold text-foreground leading-snug">
+                {result.recommendedAction}
+              </div>
+              <div className="text-xs text-muted-foreground leading-relaxed">
+                {result.businessSummary}
+              </div>
+              {result.escalationRequired && result.escalationTrigger && (
+                <div className="flex items-start gap-2 rounded-lg border border-[#450A0A] bg-[#1F0A0A] px-3 py-2">
+                  <AlertTriangle size={12} className="shrink-0 mt-0.5 text-[#FCA5A5]" />
+                  <span className="text-xs text-[#FCA5A5]">{result.escalationTrigger}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Confidence */}
           {result.confidenceLabel && (

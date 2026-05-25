@@ -49,6 +49,14 @@ export interface ComparisonResult {
   founderCopyPaste: string;
   founderFundraisingRelevance: string;
   founderIfIgnored: string;
+  // ── IRAC framework fields ──
+  iracIssue: string;        // One sentence: the exact legal question this clause raises
+  iracRule: string;         // What the contract says + applicable legal principle
+  iracApplication: string;  // How the rule applies to this clause; strongest counterargument addressed
+  iracConclusion: string;   // Three-level: legal answer, risk probability/materiality, specific recommendation
+  // ── Classification ──
+  urgencyLevel: "IMMEDIATE" | "MATERIAL" | "BACKGROUND";
+  errorCategory: "SUBSTANTIVE_RISK" | "DRAFTING_ERROR" | "MECHANICAL_ERROR";
 }
 
 type Persona = "CORPORATE" | "FOUNDER";
@@ -129,6 +137,8 @@ export async function compareClauseToPlaybook(
 ${ctx.audienceNote}
 ${ctx.actionStyle}
 
+RECOMMENDATION DISCIPLINE: Never give a conclusion that says it could go either way without providing a view. Always commit to a recommendation while noting material uncertainty. Structure every conclusion as: "My recommendation is [X] because [Y]. The risk of this being wrong is [Z]. If [Z] materialises, the consequence is [W]." Remove any hedging that does not add specific information. Phrases like "it may" or "it could" or "depending on the circumstances" are only acceptable if followed immediately by the specific condition that would change the recommendation.
+
 Playbook Rule for ${rule.clauseCategory}:
 - Preferred position: ${rule.preferredPosition}
 - Acceptable fallback: ${rule.acceptableFallback}
@@ -162,7 +172,13 @@ Return ONLY valid JSON with this exact structure:
   "founderAskFor": "Specific and direct ask - the exact change to request from the counterparty",
   "founderCopyPaste": "Exact wording a founder can paste into an email or negotiation - ready to send",
   "founderFundraisingRelevance": "How this clause affects fundraising, investor diligence, or future deal terms - or 'Not relevant to fundraising' if it does not",
-  "founderIfIgnored": "What happens commercially and legally if the founder signs without negotiating this"
+  "founderIfIgnored": "What happens commercially and legally if the founder signs without negotiating this",
+  "iracIssue": "One precise sentence stating the exact legal question this clause raises - not a summary of the clause but the specific legal question to be answered",
+  "iracRule": "What the contract says PLUS the applicable legal principle in 1-2 sentences. Quote or paraphrase the relevant clause. Cite the regulatory provision where applicable.",
+  "iracApplication": "How the rule applies to this specific clause against the company's playbook position. Go through each element systematically. Acknowledge the strongest counterargument and explain why it does not change the conclusion. Identify genuine uncertainty.",
+  "iracConclusion": "Three-level conclusion: (1) Legal answer - what the position is. (2) Risk assessment - probability and materiality of the risk. (3) Specific recommendation - what to do, in what order, before what deadline.",
+  "urgencyLevel": "IMMEDIATE" | "MATERIAL" | "BACKGROUND",
+  "errorCategory": "SUBSTANTIVE_RISK" | "DRAFTING_ERROR" | "MECHANICAL_ERROR"
 }
 
 RAG rules:
@@ -175,7 +191,17 @@ Confidence rules:
 - MEDIUM: clause is ambiguous or partially overlapping - some interpretation required
 - LOW: clause is unclear, heavily cross-referenced, or you cannot confirm the position from the text alone; flag for mandatory lawyer review
 
-Regulatory citations: include only citations where you can name the specific article or rule number. If none apply, return an empty array.`;
+Regulatory citations: include only citations where you can name the specific article or rule number. If none apply, return an empty array.
+
+Urgency rules:
+- IMMEDIATE: requires action before the contract can proceed. A red line breach, a governance trigger requiring board sign-off, or a regulatory compliance issue that could invalidate the contract.
+- MATERIAL: determines the commercial outcome. High-value clauses, IP ownership, liability exposure, key commercial terms.
+- BACKGROUND: important but not blocking. Audit rights, notice periods, minor deviations from playbook.
+
+Error category rules:
+- SUBSTANTIVE_RISK: the clause creates a legal or commercial risk based on its content.
+- DRAFTING_ERROR: the clause or document contains a structural error that could undermine legal effectiveness (undefined terms, broken cross-references, missing subjects).
+- MECHANICAL_ERROR: typographical or transcription error that may be legally material (inconsistent numbers, ambiguous date formats, party name errors).`;
 
   return await llmJsonCall<ComparisonResult>({
     messages: [
@@ -186,6 +212,15 @@ Regulatory citations: include only citations where you can name the specific art
     description: `playbook comparison for ${rule.clauseCategory}`,
   });
 }
+
+const ABSENT_CLAUSE_CRITICAL_CATEGORIES = new Set([
+  "LIABILITY_CAP",
+  "DATA_PRIVACY",
+  "GOVERNING_LAW",
+  "TERMINATION",
+  "CONFIDENTIALITY",
+  "INDEMNITY",
+]);
 
 export function buildAbsentClauseResult(
   category: string,
@@ -216,5 +251,11 @@ export function buildAbsentClauseResult(
     founderCopyPaste: rule.fallbackTemplate ?? rule.preferredPosition,
     founderFundraisingRelevance: `Investors will expect standard ${label} protections. A contract silent on this point may require renegotiation before a deal closes.`,
     founderIfIgnored: `If you sign without a ${label} clause, you accept whatever default applies under the governing law - typically the counterparty's interpretation. This could create liability or remove protection you assumed you had.`,
+    iracIssue: `Whether the contract's silence on ${label} creates a legal gap that defaults to the counterparty's favour.`,
+    iracRule: `The contract contains no ${label} clause. Under English law, the absence of an express provision leaves the parties subject to common law defaults or implied terms, typically those that favour the party that drafted the agreement.`,
+    iracApplication: `Without an express ${label} clause, the counterparty's position becomes the default. The strongest counterargument is that common law provides some implied terms — but these are narrower than express contractual protection and vary by jurisdiction.`,
+    iracConclusion: `My recommendation is to request insertion of a ${label} clause before signing. The risk of proceeding without one is that the counterparty's interpretation prevails. If this materialises, the company has no contractual basis to enforce its preferred position.`,
+    urgencyLevel: (ABSENT_CLAUSE_CRITICAL_CATEGORIES.has(category) ? "IMMEDIATE" : "BACKGROUND") as "IMMEDIATE" | "MATERIAL" | "BACKGROUND",
+    errorCategory: "SUBSTANTIVE_RISK" as "SUBSTANTIVE_RISK" | "DRAFTING_ERROR" | "MECHANICAL_ERROR",
   };
 }

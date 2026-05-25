@@ -363,7 +363,8 @@ const STATUS_TO_STAGE: Record<string, number> = {
 
 function ReviewProcessingCard({ doc }: { doc: UploadedDocument }) {
   const statusStage = STATUS_TO_STAGE[doc.status] ?? 0;
-  const elapsedSec = (Date.now() - new Date(doc.uploadedAt).getTime()) / 1000;
+  const uploadTime = doc.uploadedAt ? new Date(doc.uploadedAt).getTime() : Date.now();
+  const elapsedSec = (Date.now() - (isNaN(uploadTime) ? Date.now() : uploadTime)) / 1000;
   const timeIdx = PROCESSING_STAGES.findIndex((s) => elapsedSec < s.maxSec);
   const timeStage = timeIdx === -1 ? PROCESSING_STAGES.length - 1 : timeIdx;
   // Use whichever is further along
@@ -1046,7 +1047,9 @@ export default function Dashboard() {
                               {doc.contractType.replace(/_/g, " ")}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {new Date(doc.uploadedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                              {doc.uploadedAt && !isNaN(new Date(doc.uploadedAt).getTime())
+                                ? new Date(doc.uploadedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+                                : "Date not specified"}
                             </span>
                             {docWithMeta.contractValue && (
                               <span className="text-xs text-muted-foreground">
