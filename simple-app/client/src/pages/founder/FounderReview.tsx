@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   ArrowLeft, AlertTriangle, CheckCircle, AlertCircle,
   Copy, ChevronDown, ChevronUp, Sparkles, Mail, Loader2,
+  FileText, Plus, Check, X, Download, ExternalLink,
 } from "lucide-react";
-import { getReview, saveFeedback, generateReply } from "../../lib/api";
+import {
+  getReview, saveFeedback, generateReply,
+  generateNegotiationEmail, generateAmendedClause, suggestMissingClause,
+} from "../../lib/api";
 import AppLayout from "../../components/layout/AppLayout";
 import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, FounderStatus } from "../../lib/types";
 import { CLAUSE_LABELS } from "../../lib/types";
@@ -18,12 +22,10 @@ type Verdict = "safe" | "caution" | "danger" | "pending";
 
 function getVerdict(results: ReviewResult[]): Verdict {
   if (results.length === 0) return "pending";
-  // Prefer LLM-generated founderStatus - use worst across all results
   const statuses = results.map((r) => r.founderStatus).filter(Boolean) as FounderStatus[];
   if (statuses.includes("DO NOT SIGN YET")) return "danger";
   if (statuses.includes("CAUTION"))         return "caution";
   if (statuses.length > 0)                  return "safe";
-  // Fallback: derive from RAG counts
   const red   = results.filter((r) => r.ragStatus === "RED").length;
   const amber = results.filter((r) => r.ragStatus === "AMBER").length;
   if (red >= 1)   return "danger";
@@ -62,7 +64,7 @@ function founderRagDot(s: RagStatus): string {
   }[s];
 }
 
-// ── Fundraising relevance mapping ────────────────────────────────────────────
+// ── Fundraising relevance mapping ─────────────────────────────────────────────
 
 type FundraisingRelevance = "High investor concern" | "Standard diligence item" | "Worth noting";
 
@@ -92,6 +94,244 @@ const FUNDRAISING_RELEVANCE_COLOR: Record<FundraisingRelevance, string> = {
   "Worth noting":            "text-[#94A3B8] bg-[#0F172A] border-[#334155]",
 };
 
+// ── Negotiation Email Modal ───────────────────────────────────────────────────
+
+function NegotiationEmailModal({
+  subject: initialSubject,
+  body: initialBody,
+  onClose,
+}: {
+  subject: string;
+  body: string;
+  onClose: () => void;
+}) {
+  const [subject, setSubject] = useState(initialSubject);
+  const [body, setBody]       = useState(initialBody);
+  const [copied, setCopied]   = useState(false);
+
+  function handleCopy() {
+    const full = `Subject: ${subject}\n\n${body}`;
+    void navigator.clipboard.writeText(full).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function handleDownload() {
+    const full = `Subject: ${subject}\n\n${body}`;
+    const blob = new Blob([full], { type: "text/plain" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = "negotiation-email.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleMailto() {
+    const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailto, "_blank");
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8 bg-black/70 backdrop-blur-sm">
+      <div className="w-full max-w-2xl rounded-2xl border border-[#1E293B] bg-[#0B1118] flex flex-col max-h-[90vh] shadow-2xl">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1E293B] shrink-0">
+          <div className="flex items-center gap-2.5">
+            <Mail size={16} className="text-[#60A5FA]" />
+            <span className="font-semibold text-[#93C5FD]">Negotiation email draft</span>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 min-h-0">
+          {/* Subject */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Subject line
+            </label>
+            <input
+              className="w-full rounded-lg border border-[#1E293B] bg-[#050A10] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#3B82F6] transition-colors"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+            />
+          </div>
+
+          {/* Body */}
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Email body
+            </label>
+            <textarea
+              className="w-full rounded-lg border border-[#1E293B] bg-[#050A10] px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#3B82F6] transition-colors resize-none leading-relaxed"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              rows={18}
+            />
+          </div>
+
+          <p className="text-[11px] text-muted-foreground/60">
+            Edit freely — this is your email. Zane has drafted it based on the issues you flagged.
+          </p>
+        </div>
+
+        {/* Footer actions */}
+        <div className="flex flex-wrap items-center gap-2 px-6 py-4 border-t border-[#1E293B] shrink-0">
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1D4ED8] text-white text-sm font-medium hover:bg-[#2563EB] transition-colors"
+          >
+            {copied ? <Check size={13} /> : <Copy size={13} />}
+            {copied ? "Copied!" : "Copy email"}
+          </button>
+          <button
+            onClick={handleMailto}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#1E293B] bg-[#0D1521] text-sm text-foreground hover:border-[#334155] transition-colors"
+          >
+            <ExternalLink size={13} className="text-muted-foreground" />
+            Open in email client
+          </button>
+          <button
+            onClick={handleDownload}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#1E293B] bg-[#0D1521] text-sm text-foreground hover:border-[#334155] transition-colors"
+          >
+            <Download size={13} className="text-muted-foreground" />
+            Download
+          </button>
+          <button
+            onClick={onClose}
+            className="ml-auto text-sm text-muted-foreground hover:text-foreground px-3 py-2 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Amended Clause Panel ──────────────────────────────────────────────────────
+
+function AmendedClausePanel({
+  original,
+  revised,
+  explanation,
+  onClose,
+}: {
+  original: string;
+  revised: string;
+  explanation: string;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    void navigator.clipboard.writeText(revised).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="rounded-xl border border-[#1E293B] bg-[#080F18] overflow-hidden space-y-0">
+      {/* Original */}
+      <div className="px-4 pt-4 pb-3 space-y-2">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-[#FCA5A5]/70">Original clause</div>
+        <div className="rounded-lg border border-[#450A0A] bg-[#1F0A0A] px-3 py-2.5 text-xs leading-relaxed text-[#FCA5A5]/80 font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
+          {original || "(Original text not available — paste the original clause here when sending)"}
+        </div>
+      </div>
+
+      {/* Revised */}
+      <div className="px-4 pb-3 space-y-2">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-[#86EFAC]/70">Revised clause</div>
+        <div className="rounded-lg border border-[#14532D] bg-[#052E16] px-3 py-2.5 text-xs leading-relaxed text-[#86EFAC]/90 font-mono whitespace-pre-wrap">
+          {revised}
+        </div>
+      </div>
+
+      {/* Explanation + actions */}
+      <div className="px-4 pb-4 space-y-3">
+        {explanation && (
+          <p className="text-xs text-muted-foreground italic">{explanation}</p>
+        )}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#14532D] text-[#86EFAC] text-xs font-medium hover:bg-[#166534] transition-colors"
+          >
+            {copied ? <Check size={11} /> : <Copy size={11} />}
+            {copied ? "Copied!" : "Copy revised clause"}
+          </button>
+          <button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1.5">
+            ×
+          </button>
+        </div>
+        <p className="text-[11px] text-muted-foreground/60">
+          Paste this into your reply or negotiation email where you reference this clause.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── Suggest Clause Panel ──────────────────────────────────────────────────────
+
+function SuggestClausePanel({
+  clauseText,
+  explanation,
+  onClose,
+}: {
+  clauseText: string;
+  explanation: string;
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    void navigator.clipboard.writeText(clauseText).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="rounded-xl border border-[#1E3A5F] bg-[#0C1929] overflow-hidden">
+      <div className="px-4 pt-4 pb-3 space-y-2">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-[#60A5FA]/70">Suggested clause to add</div>
+        <div className="rounded-lg border border-[#1E3A5F] bg-[#050A14] px-3 py-2.5 text-xs leading-relaxed text-[#93C5FD]/90 font-mono whitespace-pre-wrap">
+          {clauseText}
+        </div>
+      </div>
+      <div className="px-4 pb-4 space-y-3">
+        {explanation && (
+          <p className="text-xs text-muted-foreground italic">{explanation}</p>
+        )}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleCopy}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1D4ED8]/30 text-[#60A5FA] text-xs font-medium hover:bg-[#1D4ED8]/50 transition-colors border border-[#1D4ED8]/40"
+          >
+            {copied ? <Check size={11} /> : <Copy size={11} />}
+            {copied ? "Copied!" : "Copy clause"}
+          </button>
+          <button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1.5">
+            ×
+          </button>
+        </div>
+        <p className="text-[11px] text-muted-foreground/60">
+          Ask the counterparty to add this clause to the agreement.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ── Risk card ─────────────────────────────────────────────────────────────────
 
 function FounderClauseCard({
@@ -99,27 +339,38 @@ function FounderClauseCard({
   expanded,
   onToggle,
   onFeedback,
+  selected,
+  onToggleSelect,
 }: {
   result: ReviewResult;
   expanded: boolean;
   onToggle: () => void;
   onFeedback: (action: FeedbackAction, finalClauseText?: string) => void;
+  selected: boolean;
+  onToggleSelect: () => void;
 }) {
-  const [copied, setCopied] = useState(false);
-  const [copiedReply, setCopiedReply] = useState(false);
+  const [copied, setCopied]               = useState(false);
+  const [copiedReply, setCopiedReply]     = useState(false);
   const [generatedReply, setGeneratedReply] = useState<string | null>(null);
   const [showWhatAgreed, setShowWhatAgreed] = useState(false);
-  const [agreedText, setAgreedText] = useState("");
+  const [agreedText, setAgreedText]         = useState("");
 
-  const label = CLAUSE_LABELS[result.clauseCategory] ?? result.clauseCategory.replace(/_/g, " ");
-  const tagBg = founderRagBg(result.ragStatus);
-  const tagColor = founderRagColor(result.ragStatus);
-  // Use LLM fundraising relevance text if available; fall back to hardcoded map for legacy results
+  // Feature 2 — amended clause
+  const [amendedData, setAmendedData]         = useState<{ original: string; revised: string; explanation: string } | null>(null);
+  const [generatingAmended, setGeneratingAmended] = useState(false);
+
+  // Feature 3 — suggest missing clause
+  const [suggestedData, setSuggestedData]         = useState<{ clauseText: string; explanation: string } | null>(null);
+  const [generatingSuggested, setGeneratingSuggested] = useState(false);
+
+  const label              = CLAUSE_LABELS[result.clauseCategory] ?? result.clauseCategory.replace(/_/g, " ");
+  const tagBg              = founderRagBg(result.ragStatus);
+  const tagColor           = founderRagColor(result.ragStatus);
   const fundraisingRelevance = (FUNDRAISING_RELEVANCE[result.clauseCategory] as FundraisingRelevance | undefined);
-  const frColor = fundraisingRelevance ? FUNDRAISING_RELEVANCE_COLOR[fundraisingRelevance] : null;
-  // Prefer founder-specific copy if LLM produced it
-  const displaySummary = result.founderPlainEnglish || result.businessSummary || result.clauseSummary;
-  const copyPasteText  = result.founderCopyPaste || result.suggestedFallback;
+  const frColor            = fundraisingRelevance ? FUNDRAISING_RELEVANCE_COLOR[fundraisingRelevance] : null;
+  const displaySummary     = result.founderPlainEnglish || result.businessSummary || result.clauseSummary;
+  const copyPasteText      = result.founderCopyPaste || result.suggestedFallback;
+  const isNegotiable       = result.ragStatus !== "GREEN";
 
   const replyMutation = useMutation({
     mutationFn: () => generateReply(result.id, "friendly but firm"),
@@ -142,40 +393,86 @@ function FounderClauseCard({
     });
   }
 
+  async function handleGenerateAmended() {
+    setGeneratingAmended(true);
+    try {
+      const data = await generateAmendedClause(result.id);
+      setAmendedData(data);
+    } catch {
+      /* silent */
+    } finally {
+      setGeneratingAmended(false);
+    }
+  }
+
+  async function handleSuggestClause() {
+    setGeneratingSuggested(true);
+    try {
+      const data = await suggestMissingClause(result.id);
+      setSuggestedData(data);
+    } catch {
+      /* silent */
+    } finally {
+      setGeneratingSuggested(false);
+    }
+  }
+
   return (
     <div className={`card border rounded-xl ${tagBg} overflow-hidden`}>
-      <button
-        className="w-full px-5 py-4 flex items-start gap-4 text-left"
-        onClick={onToggle}
-      >
-        <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${founderRagDot(result.ragStatus)}`} />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-xs font-semibold uppercase tracking-wide ${tagColor}`}>
-              {founderRagLabel(result.ragStatus)}
-            </span>
-            <span className="text-sm font-medium text-foreground">{label}</span>
-            {fundraisingRelevance && frColor && (
-              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${frColor}`}>
-                {fundraisingRelevance}
+      {/* ── Collapsed header ──────────────────────────────────────────── */}
+      <div className="flex items-start gap-0">
+        <button
+          className="flex-1 px-5 py-4 flex items-start gap-4 text-left min-w-0"
+          onClick={onToggle}
+        >
+          <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${founderRagDot(result.ragStatus)}`} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`text-xs font-semibold uppercase tracking-wide ${tagColor}`}>
+                {founderRagLabel(result.ragStatus)}
               </span>
-            )}
+              <span className="text-sm font-medium text-foreground">{label}</span>
+              {fundraisingRelevance && frColor && (
+                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${frColor}`}>
+                  {fundraisingRelevance}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-sm text-foreground/80 line-clamp-2">
+              {displaySummary}
+            </p>
           </div>
-          <p className="mt-1 text-sm text-foreground/80 line-clamp-2">
-            {displaySummary}
-          </p>
-        </div>
-        {expanded ? (
-          <ChevronUp size={16} className="text-muted-foreground shrink-0 mt-1" />
-        ) : (
-          <ChevronDown size={16} className="text-muted-foreground shrink-0 mt-1" />
-        )}
-      </button>
+          {expanded ? (
+            <ChevronUp size={16} className="text-muted-foreground shrink-0 mt-1" />
+          ) : (
+            <ChevronDown size={16} className="text-muted-foreground shrink-0 mt-1" />
+          )}
+        </button>
 
+        {/* Selection toggle — only for negotiable clauses */}
+        {isNegotiable && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}
+            title={selected ? "Remove from negotiation email" : "Include in negotiation email"}
+            className={`shrink-0 self-stretch px-3 flex items-center border-l transition-colors ${
+              selected
+                ? "border-current/20 bg-current/10 text-current"
+                : "border-current/10 text-muted-foreground/40 hover:text-muted-foreground"
+            }`}
+          >
+            {selected
+              ? <Check size={14} className={tagColor} />
+              : <Plus size={14} />
+            }
+          </button>
+        )}
+      </div>
+
+      {/* ── Expanded detail ───────────────────────────────────────────── */}
       {expanded && (
         <div className="px-5 pb-5 space-y-4 border-t border-current/10 pt-4">
 
-          {/* Absent clause - specific playbook guidance */}
+          {/* Absent clause notice */}
           {result.isAbsent && (
             <div className="flex items-start gap-2 rounded-lg bg-[#0F172A] border border-[#334155] px-3 py-2.5">
               <AlertCircle size={13} className="text-[#94A3B8] mt-0.5 shrink-0" />
@@ -188,7 +485,7 @@ function FounderClauseCard({
             </div>
           )}
 
-          {/* Business impact (founder-specific) */}
+          {/* Business impact */}
           {result.founderBusinessImpact && (
             <div>
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
@@ -197,8 +494,6 @@ function FounderClauseCard({
               <p className="text-sm text-foreground/90">{result.founderBusinessImpact}</p>
             </div>
           )}
-
-          {/* Why it matters - shown when no founder-specific impact text */}
           {!result.founderBusinessImpact && result.whyItMatters && (
             <div>
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
@@ -208,7 +503,7 @@ function FounderClauseCard({
             </div>
           )}
 
-          {/* What to ask for (founder-specific) */}
+          {/* What to ask for */}
           {result.founderAskFor && result.ragStatus !== "GREEN" && (
             <div>
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
@@ -217,8 +512,6 @@ function FounderClauseCard({
               <p className="text-sm text-foreground/90">{result.founderAskFor}</p>
             </div>
           )}
-
-          {/* What to do - shown when no founder-specific ask */}
           {!result.founderAskFor && result.recommendedAction && (
             <div>
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">
@@ -252,7 +545,56 @@ function FounderClauseCard({
             </div>
           )}
 
-          {/* Fundraising relevance - LLM text */}
+          {/* ── Feature 2: Amended clause ────────────────────────────── */}
+          {!result.isAbsent && result.ragStatus !== "GREEN" && (
+            <div className="space-y-2">
+              {!amendedData ? (
+                <button
+                  className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
+                  onClick={handleGenerateAmended}
+                  disabled={generatingAmended}
+                >
+                  {generatingAmended
+                    ? <><Loader2 size={11} className="animate-spin" /> Writing amended clause…</>
+                    : <><FileText size={11} /> Amended clause</>
+                  }
+                </button>
+              ) : (
+                <AmendedClausePanel
+                  original={amendedData.original}
+                  revised={amendedData.revised}
+                  explanation={amendedData.explanation}
+                  onClose={() => setAmendedData(null)}
+                />
+              )}
+            </div>
+          )}
+
+          {/* ── Feature 3: Suggest missing clause ───────────────────── */}
+          {result.isAbsent && (
+            <div className="space-y-2">
+              {!suggestedData ? (
+                <button
+                  className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
+                  onClick={handleSuggestClause}
+                  disabled={generatingSuggested}
+                >
+                  {generatingSuggested
+                    ? <><Loader2 size={11} className="animate-spin" /> Writing clause…</>
+                    : <><Plus size={11} /> Generate clause to request</>
+                  }
+                </button>
+              ) : (
+                <SuggestClausePanel
+                  clauseText={suggestedData.clauseText}
+                  explanation={suggestedData.explanation}
+                  onClose={() => setSuggestedData(null)}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Fundraising relevance */}
           {result.founderFundraisingRelevance && result.founderFundraisingRelevance !== "Not relevant to fundraising" && (
             <div className="rounded-lg bg-[#0F172A] border border-[#334155] px-3 py-2.5">
               <div className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wide mb-0.5">Fundraising note</div>
@@ -268,7 +610,7 @@ function FounderClauseCard({
             </div>
           )}
 
-          {/* Generate reply email */}
+          {/* Generate reply email (per-clause) */}
           {result.ragStatus !== "GREEN" && (
             <div className="space-y-2">
               {!generatedReply ? (
@@ -277,18 +619,17 @@ function FounderClauseCard({
                   onClick={() => replyMutation.mutate()}
                   disabled={replyMutation.isPending}
                 >
-                  {replyMutation.isPending ? (
-                    <><Loader2 size={11} className="animate-spin" /> Writing reply…</>
-                  ) : (
-                    <><Mail size={11} /> Generate email reply</>
-                  )}
+                  {replyMutation.isPending
+                    ? <><Loader2 size={11} className="animate-spin" /> Writing reply…</>
+                    : <><Mail size={11} /> Generate email reply</>
+                  }
                 </button>
               ) : (
                 <div className="copy-block rounded-lg p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <Mail size={12} className="text-[#60A5FA]" />
-                      <span className="text-xs font-semibold text-[#60A5FA]">Email reply - copy and send</span>
+                      <span className="text-xs font-semibold text-[#60A5FA]">Email reply — copy and send</span>
                     </div>
                     <div className="flex gap-1.5">
                       <button
@@ -324,7 +665,7 @@ function FounderClauseCard({
           <div className="flex flex-wrap gap-2 pt-1">
             <button
               className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"
-              onClick={() => { setShowWhatAgreed(true); }}
+              onClick={() => setShowWhatAgreed(true)}
             >
               <CheckCircle size={11} /> Accept as-is
             </button>
@@ -342,7 +683,7 @@ function FounderClauseCard({
             </button>
           </div>
 
-          {/* "What was actually agreed" optional capture */}
+          {/* "What was actually agreed" capture */}
           {showWhatAgreed && (
             <div className="rounded-lg border border-[#14532D] bg-[#052E16] p-3 space-y-2">
               <div className="text-xs font-medium text-[#86EFAC]">
@@ -385,11 +726,17 @@ function FounderClauseCard({
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function FounderReview() {
-  const { id }    = useParams<{ id: string }>();
-  const navigate  = useNavigate();
+  const { id }      = useParams<{ id: string }>();
+  const navigate    = useNavigate();
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [filter, setFilter] = useState<RagStatus | "ALL">("ALL");
+  const [filter, setFilter]         = useState<RagStatus | "ALL">("ALL");
+
+  // Negotiation email state — all hooks must be before early returns
+  const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
+  const [emailModal, setEmailModal]       = useState<{ subject: string; body: string } | null>(null);
+  const [generatingEmail, setGeneratingEmail] = useState(false);
+  const docIdRef = useRef<string | undefined>(undefined);
 
   const ACTIVE_STATUSES = ["PROCESSING", "PARSING", "ANONYMISING", "CLASSIFYING", "COMPARING"];
 
@@ -402,12 +749,47 @@ export default function FounderReview() {
     },
   });
 
+  // Auto-select all non-GREEN results when doc first loads
+  useEffect(() => {
+    if (doc && doc.id !== docIdRef.current) {
+      docIdRef.current = doc.id;
+      setSelectedIds(new Set(
+        (doc.reviewResults ?? []).filter((r) => r.ragStatus !== "GREEN").map((r) => r.id)
+      ));
+    }
+  }, [doc]);
+
   async function handleFeedback(resultId: string, action: FeedbackAction, finalClauseText?: string) {
     await saveFeedback(resultId, { userAction: action, finalClauseText });
     await queryClient.invalidateQueries({ queryKey: ["review", id] });
   }
 
+  function toggleSelected(resultId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(resultId)) next.delete(resultId);
+      else next.add(resultId);
+      return next;
+    });
+  }
+
+  async function handleDraftEmail() {
+    if (!id) return;
+    setGeneratingEmail(true);
+    try {
+      const selected = Array.from(selectedIds);
+      const data = await generateNegotiationEmail(id, selected.length > 0 ? selected : undefined);
+      setEmailModal(data);
+    } catch {
+      /* silent */
+    } finally {
+      setGeneratingEmail(false);
+    }
+  }
+
   const backPath = "/app/founder/dashboard";
+
+  // ── Early returns ──────────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
@@ -510,8 +892,13 @@ export default function FounderReview() {
     );
   }
 
-  const results = doc.reviewResults ?? [];
-  const verdict = getVerdict(results);
+  // ── Complete state ─────────────────────────────────────────────────────────
+
+  const results  = doc.reviewResults ?? [];
+  const verdict  = getVerdict(results);
+  const issueCount = Array.from(selectedIds).filter(
+    (id) => results.some((r) => r.id === id)
+  ).length;
 
   const counts = {
     RED:   results.filter((r) => r.ragStatus === "RED").length,
@@ -520,7 +907,6 @@ export default function FounderReview() {
     GREY:  results.filter((r) => r.ragStatus === "GREY").length,
   };
 
-  // Top risks = RED first, then AMBER, max 3 for "priority" section
   const topRisks = [
     ...results.filter((r) => r.ragStatus === "RED"),
     ...results.filter((r) => r.ragStatus === "AMBER"),
@@ -529,17 +915,26 @@ export default function FounderReview() {
   const filtered = filter === "ALL" ? results : results.filter((r) => r.ragStatus === filter);
 
   const VERDICT_BANNER = {
-    safe:    { label: "Looks good - you can proceed",             color: "text-[#86EFAC]", bg: "bg-[#052E16] border-[#14532D]", icon: CheckCircle   },
-    caution: { label: "Worth a closer look before signing",       color: "text-[#FCD34D]", bg: "bg-[#1C0F00] border-[#431407]", icon: AlertCircle   },
-    danger:  { label: "Don't sign yet - fix these first",         color: "text-[#FCA5A5]", bg: "bg-[#1F0A0A] border-[#450A0A]", icon: AlertTriangle },
-    pending: { label: "No playbook clauses matched this contract", color: "text-[#94A3B8]", bg: "bg-[#0F172A] border-[#334155]", icon: AlertCircle   },
+    safe:    { label: "Looks good — you can proceed",              color: "text-[#86EFAC]", bg: "bg-[#052E16] border-[#14532D]", icon: CheckCircle   },
+    caution: { label: "Worth a closer look before signing",        color: "text-[#FCD34D]", bg: "bg-[#1C0F00] border-[#431407]", icon: AlertCircle   },
+    danger:  { label: "Don't sign yet — fix these first",          color: "text-[#FCA5A5]", bg: "bg-[#1F0A0A] border-[#450A0A]", icon: AlertTriangle },
+    pending: { label: "No playbook clauses matched this contract",  color: "text-[#94A3B8]", bg: "bg-[#0F172A] border-[#334155]", icon: AlertCircle   },
   } as const;
 
-  const banner = VERDICT_BANNER[verdict];
+  const banner    = VERDICT_BANNER[verdict];
   const BannerIcon = banner.icon;
 
   return (
     <AppLayout>
+      {/* Email modal overlay */}
+      {emailModal && (
+        <NegotiationEmailModal
+          subject={emailModal.subject}
+          body={emailModal.body}
+          onClose={() => setEmailModal(null)}
+        />
+      )}
+
       <div className="px-6 py-8 max-w-3xl mx-auto space-y-6">
 
         {/* Back + title */}
@@ -567,7 +962,7 @@ export default function FounderReview() {
           </div>
         </div>
 
-        {/* Top risks - only if there are any */}
+        {/* Top risks */}
         {topRisks.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -600,13 +995,7 @@ export default function FounderReview() {
         <div className="flex flex-wrap gap-2">
           {(["ALL", "RED", "AMBER", "GREEN", "GREY"] as const).map((f) => {
             const count = f === "ALL" ? results.length : counts[f as RagStatus];
-            const labels: Record<string, string> = {
-              ALL: "All",
-              RED: "Problems",
-              AMBER: "Negotiate",
-              GREEN: "Fine",
-              GREY: "Missing",
-            };
+            const labels: Record<string, string> = { ALL: "All", RED: "Problems", AMBER: "Negotiate", GREEN: "Fine", GREY: "Missing" };
             return (
               <button
                 key={f}
@@ -623,6 +1012,17 @@ export default function FounderReview() {
           })}
         </div>
 
+        {/* Selection hint — shown when there are negotiable items */}
+        {results.some((r) => r.ragStatus !== "GREEN") && (
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60 -mt-2">
+            <Check size={11} />
+            <span>
+              {issueCount} issue{issueCount !== 1 ? "s" : ""} selected for negotiation email — tap the{" "}
+              <span className="font-semibold text-foreground/50">+</span> on any clause to include or exclude it
+            </span>
+          </div>
+        )}
+
         {/* Clause cards */}
         <div className="space-y-3">
           {filtered.map((result) => (
@@ -632,6 +1032,8 @@ export default function FounderReview() {
               expanded={expandedId === result.id}
               onToggle={() => setExpandedId(expandedId === result.id ? null : result.id)}
               onFeedback={(action, finalClauseText) => void handleFeedback(result.id, action, finalClauseText)}
+              selected={selectedIds.has(result.id)}
+              onToggleSelect={() => toggleSelected(result.id)}
             />
           ))}
           {filtered.length === 0 && (
@@ -641,6 +1043,45 @@ export default function FounderReview() {
           )}
         </div>
 
+        {/* ── Feature 4: Draft full negotiation response ─────────────── */}
+        {(counts.RED + counts.AMBER + counts.GREY) > 0 && (
+          <div className="rounded-2xl border border-[#1E3A5F] bg-[#0C1929] px-6 py-5 space-y-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Mail size={16} className="text-[#60A5FA]" />
+                <span className="font-semibold text-[#93C5FD]">Draft full negotiation response</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Zane writes one professional email covering all the issues you want to raise — ready to edit and send.
+              </p>
+            </div>
+
+            {issueCount > 0 && (
+              <p className="text-xs text-[#60A5FA]/80">
+                Will cover {issueCount} selected issue{issueCount !== 1 ? "s" : ""}.
+                Use the <strong>+</strong> button on each clause card to add or remove issues.
+              </p>
+            )}
+
+            <button
+              onClick={handleDraftEmail}
+              disabled={generatingEmail || issueCount === 0}
+              className="w-full flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl bg-[#1D4ED8] text-white font-semibold text-sm hover:bg-[#2563EB] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {generatingEmail ? (
+                <><Loader2 size={15} className="animate-spin" /> Writing your email…</>
+              ) : (
+                <><Mail size={15} /> Draft negotiation email{issueCount > 0 ? ` (${issueCount} issue${issueCount !== 1 ? "s" : ""})` : ""}</>
+              )}
+            </button>
+
+            {issueCount === 0 && (
+              <p className="text-xs text-muted-foreground/60 text-center">
+                Select at least one issue using the + button on a clause card.
+              </p>
+            )}
+          </div>
+        )}
 
       </div>
     </AppLayout>

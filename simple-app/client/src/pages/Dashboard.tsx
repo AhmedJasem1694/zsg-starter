@@ -16,6 +16,27 @@ import type { DocumentStatus } from "../lib/types";
 import { MOCK_MODE, MOCK_DOCUMENTS, MOCK_URGENCY_SIGNALS } from "../lib/mockData";
 import type { UploadedDocument } from "../lib/types";
 
+// ─── Format lastError for display ────────────────────────────────────────────
+
+function formatLastError(raw: string): string {
+  if (raw.includes("timed out") || raw.includes("timeout")) {
+    return "This document took too long to process. Try again or split it into smaller sections.";
+  }
+  if (raw.includes("Could not extract text") || raw.includes("mammoth") || raw.includes("docx")) {
+    return "Zane could not read this Word document. Try saving it as a PDF and uploading again.";
+  }
+  if (raw.includes("pdf-parse") || raw.includes("scanned") || raw.includes("no text")) {
+    return "This looks like a scanned document. Please try a text-based PDF or Word document.";
+  }
+  if (raw.includes("LLM returned invalid JSON") || raw.includes("OpenRouter")) {
+    return "Zane could not complete the analysis. Please retry — this is usually a temporary issue.";
+  }
+  if (raw.includes("not found on disk") || raw.includes("uploads directory")) {
+    return "The uploaded file could not be found. Please upload the document again.";
+  }
+  return "Review failed. Please retry or contact support@zanelegal.ai if this persists.";
+}
+
 // ─── Pilot safety notice ──────────────────────────────────────────────────────
 
 function PilotNoticeBanner() {
@@ -618,7 +639,7 @@ export default function Dashboard() {
 
   const ACTIVE_STATUSES: DocumentStatus[] = ["PROCESSING", "PARSING", "ANONYMISING", "CLASSIFYING", "COMPARING"];
 
-  const { data: realDocuments = [] } = useQuery({
+  const { data: realDocuments = [], error: docsError, refetch: refetchDocs } = useQuery({
     queryKey: ["documents"],
     queryFn: () => getDocuments(),
     refetchInterval: (query) => {
@@ -690,12 +711,16 @@ export default function Dashboard() {
     } catch (e) {
       console.error(e);
       const msg = e instanceof Error ? e.message : "Upload failed";
-      if (msg.includes("413") || msg.toLowerCase().includes("too large") || msg.toLowerCase().includes("20mb")) {
-        setUploadError("File is too large - maximum size is 20 MB.");
-      } else if (msg.includes("415") || msg.toLowerCase().includes("not supported")) {
-        setUploadError("Only PDF and Word (.docx) files are supported.");
+      const status = e instanceof Error && (e as { status?: number }).status;
+
+      if (msg.includes("413") || status === 413 || msg.toLowerCase().includes("too large") || msg.toLowerCase().includes("50mb") || msg.toLowerCase().includes("20mb")) {
+        setUploadError("This file exceeds the 50MB limit. Very large documents like litigation bundles can be split into sections before uploading. Contact support@zanelegal.ai if you need help.");
+      } else if (msg.includes("415") || status === 415 || msg.toLowerCase().includes("not supported") || msg.toLowerCase().includes("unsupported")) {
+        setUploadError("Zane only accepts PDF and Word documents (.pdf, .docx).\nPlease upload one of these formats.");
+      } else if (msg.includes("401")) {
+        setUploadError("Your session has expired. Please log in again.");
       } else {
-        setUploadError("Upload failed - please check your connection and try again.");
+        setUploadError("Upload failed — please check your connection and try again.");
       }
     } finally {
       setUploading(false);
@@ -808,7 +833,7 @@ export default function Dashboard() {
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <h2 className="text-base font-semibold">Upload a contract</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">PDF or DOCX · Max 20 MB</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">PDF or DOCX · Max 50 MB</p>
                   </div>
                 </div>
                 {/* Quick metadata fields */}
@@ -1002,12 +1027,20 @@ export default function Dashboard() {
               <div className="card-header">
                 <h2 className="text-base font-semibold">Recent reviews</h2>
               </div>
-              {documents.length === 0 ? (
+              {docsError ? (
+                <div className="card-body text-center py-8">
+                  <AlertCircle size={24} className="text-[#FCA5A5] mx-auto mb-2" />
+                  <p className="text-sm text-[#FCA5A5]">Your contracts could not be loaded.</p>
+                  <button className="text-xs text-[#FCA5A5]/70 underline mt-1" onClick={() => void refetchDocs()}>
+                    Retry
+                  </button>
+                </div>
+              ) : documents.length === 0 ? (
                 <div className="card-body text-center py-12">
                   <FileText size={32} className="text-muted-foreground/30 mx-auto mb-3" />
                   <div className="text-sm font-medium text-muted-foreground">No contracts reviewed yet</div>
                   <div className="text-xs text-muted-foreground mt-2 max-w-xs mx-auto leading-relaxed">
-                    Upload your first contract to generate a structured risk review against your playbook.
+                    Upload your first contract above to generate a structured risk review against your playbook.
                   </div>
                 </div>
               ) : (
@@ -1020,11 +1053,14 @@ export default function Dashboard() {
                     const isClickable = doc.status === "COMPLETE" && (!useMock || doc.id === "mock-1");
                     const red   = results.filter((r) => r.ragStatus === "RED").length;
                     const amber = results.filter((r) => r.ragStatus === "AMBER").length;
-                    const docWithMeta = doc as DocWithRag & { counterpartyName?: string; contractValue?: number };
+                    const docWithMeta = doc as DocWithRag & { counterpartyName?: string; contractValue?: number; lastError?: string };
+                    const isStuck = ACTIVE_STATUSES.includes(doc.status as DocumentStatus) &&
+                      doc.uploadedAt &&
+                      (Date.now() - new Date(doc.uploadedAt).getTime()) > 10 * 60 * 1000;
 
                     return (
+                      <div key={doc.id}>
                       <div
-                        key={doc.id}
                         className={`px-5 py-4 flex items-center gap-4 transition-colors
                           ${isClickable ? "hover:bg-muted/20 cursor-pointer" : ""}`}
                         onClick={isClickable ? () => navigate(`/app/legal/review/${doc.id}`) : undefined}
@@ -1077,11 +1113,23 @@ export default function Dashboard() {
                           {readinessLabel}
                         </div>
 
-                        {ACTIVE_STATUSES.includes(doc.status as DocumentStatus) && (
+                        {/* Stuck or reviewing indicator */}
+                        {isStuck ? (
+                          <div className="text-xs text-[#FCA5A5] text-right shrink-0">
+                            <div>Stuck — took too long</div>
+                            <button
+                              className="text-[10px] underline"
+                              onClick={(e) => { e.stopPropagation(); reviewMutation.mutate(doc.id); }}
+                            >
+                              Retry
+                            </button>
+                          </div>
+                        ) : ACTIVE_STATUSES.includes(doc.status as DocumentStatus) ? (
                           <span className="flex items-center gap-1 text-xs text-[#FCD34D] shrink-0">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D] animate-pulse" /> Reviewing
                           </span>
-                        )}
+                        ) : null}
+
                         {doc.status === "FAILED" && (
                           <button
                             className="btn-ghost text-xs px-2 py-1 gap-1 shrink-0"
@@ -1094,6 +1142,17 @@ export default function Dashboard() {
                         {useMock && doc.status === "COMPLETE" && (
                           <ChevronRight size={15} className="text-muted-foreground/40 shrink-0" />
                         )}
+                      </div>
+                      {/* Failed doc lastError message */}
+                      {doc.status === "FAILED" && (
+                        <div className="px-5 pb-3">
+                          <p className="text-[11px] text-[#FCA5A5]/70 leading-relaxed">
+                            {docWithMeta.lastError
+                              ? formatLastError(docWithMeta.lastError)
+                              : "Review failed — retry or contact support if this persists."}
+                          </p>
+                        </div>
+                      )}
                       </div>
                     );
                   })}

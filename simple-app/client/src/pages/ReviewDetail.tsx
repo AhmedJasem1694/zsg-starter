@@ -13,6 +13,27 @@ import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, Confide
 import { CLAUSE_LABELS } from "../lib/types";
 import { MOCK_REVIEW_DETAIL } from "../lib/mockData";
 
+// ─── Format lastError for display ────────────────────────────────────────────
+
+function formatLastError(raw: string): string {
+  if (raw.includes("timed out") || raw.includes("timeout")) {
+    return "This document took too long to process. Try again or split it into smaller sections.";
+  }
+  if (raw.includes("Could not extract text") || raw.includes("mammoth") || raw.includes("docx")) {
+    return "Zane could not read this Word document. Try saving it as a PDF and uploading again.";
+  }
+  if (raw.includes("pdf-parse") || raw.includes("scanned") || raw.includes("no text")) {
+    return "This looks like a scanned document. Please try a text-based PDF or Word document.";
+  }
+  if (raw.includes("LLM returned invalid JSON") || raw.includes("OpenRouter")) {
+    return "Zane could not complete the analysis. Please retry — this is usually a temporary issue.";
+  }
+  if (raw.includes("not found on disk") || raw.includes("uploads directory")) {
+    return "The uploaded file could not be found. Please upload the document again.";
+  }
+  return "Review failed. Please retry or contact support@zanelegal.ai if this persists.";
+}
+
 // ─── RAG styling ─────────────────────────────────────────────────────────────
 
 const RAG_BADGE: Record<RagStatus, string> = {
@@ -104,9 +125,20 @@ export default function ReviewDetail() {
   if (!doc) {
     return (
       <AppLayout>
-        <div className="px-6 py-8 max-w-6xl mx-auto">
+        <div className="px-6 py-8 max-w-6xl mx-auto space-y-4">
           <BackButton onClick={() => navigate("/app/legal/dashboard")} />
-          <div className="text-sm text-destructive mt-8">Document not found.</div>
+          <div className="card p-8 text-center space-y-4">
+            <AlertTriangle size={24} className="text-[#FCA5A5] mx-auto" />
+            <div className="font-semibold text-[#FCA5A5]">Document not found</div>
+            <div className="flex items-center justify-center gap-3">
+              <button className="btn-secondary text-sm px-4 py-2" onClick={() => window.history.back()}>
+                Go back
+              </button>
+              <button className="btn-primary text-sm px-4 py-2" onClick={() => navigate("/app/legal/dashboard")}>
+                Back to dashboard
+              </button>
+            </div>
+          </div>
         </div>
       </AppLayout>
     );
@@ -129,6 +161,48 @@ export default function ReviewDetail() {
   const isComparing    = doc.status === "COMPARING";
   const partialResults = doc.reviewResults ?? [];
   const hasPartial     = partialResults.length > 0;
+
+  // Stuck review detection — if processing for more than 10 minutes, show a warning
+  const processingTooLong = isActiveStatus && doc.uploadedAt &&
+    (Date.now() - new Date(doc.uploadedAt).getTime()) > 10 * 60 * 1000;
+
+  if (processingTooLong) {
+    return (
+      <AppLayout>
+        <div className="px-6 py-8 max-w-6xl mx-auto space-y-4">
+          <BackButton onClick={() => navigate("/app/legal/dashboard")} />
+          <div className="card p-12 text-center space-y-4">
+            <AlertTriangle size={28} className="text-[#FCA5A5] mx-auto" />
+            <div className="space-y-2">
+              <div className="font-semibold text-[#FCA5A5]">This review has been processing longer than expected</div>
+              <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                Something may have gone wrong. You can retry the review or contact support if this keeps happening.
+              </p>
+            </div>
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex items-center gap-3">
+                <button
+                  className="btn-secondary text-sm px-4 py-2"
+                  onClick={() => window.history.back()}
+                >
+                  Go back
+                </button>
+                <button
+                  className="btn-primary text-sm px-4 py-2"
+                  onClick={() => navigate("/app/legal/dashboard")}
+                >
+                  Back to dashboard
+                </button>
+              </div>
+              <a href="mailto:support@zanelegal.ai" className="text-xs text-muted-foreground underline">
+                Contact support
+              </a>
+            </div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   // Show full-page loading screen while pre-comparison stages run, or during
   // COMPARING before the first result arrives (so the page is never empty).
@@ -184,14 +258,39 @@ export default function ReviewDetail() {
   }
 
   if (doc.status === "FAILED") {
+    const lastError = (doc as UploadedDocument & { lastError?: string }).lastError;
     return (
       <AppLayout>
         <div className="px-6 py-8 max-w-6xl mx-auto space-y-4">
           <BackButton onClick={() => navigate("/app/legal/dashboard")} />
-          <div className="card p-12 text-center space-y-3">
-            <AlertTriangle size={32} className="text-destructive mx-auto" />
-            <div className="font-semibold text-destructive">Review failed</div>
-            <div className="text-sm text-muted-foreground">Go back to the dashboard and retry.</div>
+          <div className="card border-[#450A0A] p-8 space-y-4" style={{ background: "#120404" }}>
+            <AlertTriangle size={28} className="text-[#FCA5A5] mx-auto" />
+            <div className="text-center space-y-2">
+              <div className="font-semibold text-[#FCA5A5]">Review failed</div>
+              <p className="text-sm text-[#FCA5A5]/80 max-w-sm mx-auto">
+                {lastError ? formatLastError(lastError) : "Zane could not complete the analysis for this document."}
+              </p>
+            </div>
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex items-center gap-3">
+                <button
+                  className="btn-secondary text-sm px-4 py-2"
+                  onClick={() => window.history.back()}
+                >
+                  Go back
+                </button>
+                <button
+                  className="btn-primary text-sm px-4 py-2"
+                  onClick={() => navigate("/app/legal/dashboard")}
+                >
+                  Back to dashboard
+                </button>
+              </div>
+              <a href="mailto:support@zanelegal.ai" className="text-xs text-muted-foreground underline">
+                Contact support@zanelegal.ai
+              </a>
+              <p className="text-xs text-muted-foreground">Include the document name: "{doc.originalName}"</p>
+            </div>
           </div>
         </div>
       </AppLayout>
@@ -467,21 +566,22 @@ export default function ReviewDetail() {
                 <div className="space-y-2">
                   {doc.contradictions.map((c, i) => {
                     const finding = c as import("../lib/types").ContradictionFinding;
-                    const severityColor = finding.severity === "HIGH"
+                    const sev = finding.severity ?? "LOW";
+                    const severityColor = sev === "HIGH"
                       ? "text-[#FCA5A5] bg-[#1F0A0A] border-[#450A0A]"
-                      : finding.severity === "MEDIUM"
+                      : sev === "MEDIUM"
                       ? "text-[#FCD34D] bg-[#1C0F00] border-[#431407]"
                       : "text-[#94A3B8] bg-[#0F172A] border-[#334155]";
                     return (
                       <div key={i} className={`rounded-lg border px-3 py-2 space-y-1 ${severityColor}`}>
                         <div className="flex items-center gap-2">
                           <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded border ${severityColor}`}>
-                            {finding.severity}
+                            {sev}
                           </span>
-                          <span className="text-xs font-semibold">{finding.title}</span>
+                          <span className="text-xs font-semibold">{finding.title ?? "Contradiction"}</span>
                         </div>
-                        <p className="text-xs opacity-80">{finding.explanation}</p>
-                        <p className="text-xs font-medium opacity-90 pt-0.5">→ {finding.recommendation}</p>
+                        {finding.explanation && <p className="text-xs opacity-80">{finding.explanation}</p>}
+                        {finding.recommendation && <p className="text-xs font-medium opacity-90 pt-0.5">→ {finding.recommendation}</p>}
                       </div>
                     );
                   })}
@@ -566,21 +666,33 @@ export default function ReviewDetail() {
 
             {/* Clause cards */}
             <div className="space-y-2 card-enter-stagger">
-              {filtered.map((result, i) => (
-                <ClauseCard
-                  key={result.id}
-                  result={result}
-                  index={i}
-                  expanded={expandedId === result.id}
-                  onToggle={() => setExpandedId(expandedId === result.id ? null : result.id)}
-                  onFeedback={(action, finalClauseText) => handleFeedback(result.id, action, finalClauseText)}
-                  isMock={isMock}
-                />
-              ))}
-              {filtered.length === 0 && (
-                <div className="text-sm text-muted-foreground py-10 text-center">
-                  No clauses in this category.
+              {results.length === 0 && doc.status === "COMPLETE" ? (
+                <div className="card p-8 text-center space-y-2">
+                  <AlertTriangle size={24} className="text-[#FCA5A5] mx-auto" />
+                  <div className="font-semibold text-[#FCA5A5]">No clauses were analysed</div>
+                  <p className="text-sm text-muted-foreground">
+                    Zane could not find any relevant clauses in this document. Try uploading a clearer version or a different format.
+                  </p>
                 </div>
+              ) : (
+                <>
+                  {filtered.map((result, i) => (
+                    <ClauseCard
+                      key={result.id}
+                      result={result}
+                      index={i}
+                      expanded={expandedId === result.id}
+                      onToggle={() => setExpandedId(expandedId === result.id ? null : result.id)}
+                      onFeedback={(action, finalClauseText) => handleFeedback(result.id, action, finalClauseText)}
+                      isMock={isMock}
+                    />
+                  ))}
+                  {filtered.length === 0 && (
+                    <div className="text-sm text-muted-foreground py-10 text-center">
+                      No clauses in this category.
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -649,7 +761,7 @@ function ContractHeader({
               <span className="font-medium text-foreground/80">{doc.counterpartyName}</span>
             )}
             {doc.counterpartyName && <span className="text-muted-foreground/40">·</span>}
-            <span>{doc.contractType.replace(/_/g, " ")}</span>
+            <span>{(doc.contractType ?? "").replace(/_/g, " ")}</span>
             <span className="text-muted-foreground/40">·</span>
             <span>Reviewed {date}</span>
           </div>
@@ -930,10 +1042,10 @@ function IntelligenceSignals({
 function DocumentAuditPanel({ audit }: { audit: import("../lib/types").DocumentAuditResult }) {
   const [expanded, setExpanded] = useState(false);
   const allFindings = [
-    ...audit.definedTerms,
-    ...audit.crossReferences,
-    ...audit.numbersDates,
-    ...audit.internalConsistency,
+    ...(audit.definedTerms ?? []),
+    ...(audit.crossReferences ?? []),
+    ...(audit.numbersDates ?? []),
+    ...(audit.internalConsistency ?? []),
   ];
   if (allFindings.length === 0) return null;
 
@@ -976,10 +1088,10 @@ function DocumentAuditPanel({ audit }: { audit: import("../lib/types").DocumentA
       {expanded && (
         <div className="border-t border-[#1E293B] px-4 py-4 space-y-4">
           {[
-            { key: "definedTerms",        findings: audit.definedTerms },
-            { key: "crossReferences",     findings: audit.crossReferences },
-            { key: "numbersDates",        findings: audit.numbersDates },
-            { key: "internalConsistency", findings: audit.internalConsistency },
+            { key: "definedTerms",        findings: audit.definedTerms ?? [] },
+            { key: "crossReferences",     findings: audit.crossReferences ?? [] },
+            { key: "numbersDates",        findings: audit.numbersDates ?? [] },
+            { key: "internalConsistency", findings: audit.internalConsistency ?? [] },
           ].filter(g => g.findings.length > 0).map(({ key, findings }) => (
             <div key={key} className="space-y-2">
               <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
@@ -1942,7 +2054,7 @@ function exportReviewAsText(doc: UploadedDocument) {
     "",
     `Contract:    ${doc.originalName}`,
     `Counterparty: ${doc.counterpartyName ?? "-"}`,
-    `Type:        ${doc.contractType.replace(/_/g, " ")}`,
+    `Type:        ${(doc.contractType ?? "").replace(/_/g, " ")}`,
     `Reviewed:    ${date}`,
     `Overall RAG: ${overallRag}`,
     doc.contractValue ? `Value:       £${doc.contractValue.toLocaleString("en-GB")}` : "",

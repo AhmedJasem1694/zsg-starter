@@ -113,8 +113,8 @@ export default function FounderDashboard() {
       console.error("[upload]", e);
       const msg = e instanceof Error ? e.message : String(e);
       // Classify and surface errors clearly — show the actual server message where possible
-      if (msg.includes("413") || msg.toLowerCase().includes("too large") || msg.toLowerCase().includes("20mb")) {
-        setUploadError("File is too large — maximum size is 20 MB.");
+      if (msg.includes("413") || msg.toLowerCase().includes("too large") || msg.toLowerCase().includes("50mb") || msg.toLowerCase().includes("20mb")) {
+        setUploadError("This file exceeds the 50MB limit. Very large documents can be split into sections before uploading.");
       } else if (msg.includes("415") || msg.toLowerCase().includes("not supported")) {
         setUploadError("Only PDF and Word (.docx) files are supported.");
       } else if (msg.includes("422") || msg.toLowerCase().includes("playbook")) {
@@ -209,7 +209,7 @@ export default function FounderDashboard() {
               <div className="card-header space-y-3">
                 <div>
                   <h2 className="text-base font-semibold">Upload a contract to review</h2>
-                  <p className="text-xs text-muted-foreground mt-0.5">PDF or Word document · up to 20 MB</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">PDF or Word document · up to 50 MB</p>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-2">
                   <input

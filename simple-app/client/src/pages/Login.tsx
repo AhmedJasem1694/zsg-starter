@@ -3,11 +3,17 @@ import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { login } from "../lib/api";
 
+type ErrorType = "wrong_password" | "not_found" | "expired" | "generic" | null;
+
 export default function Login() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form, setForm] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
+  const [errorType, setErrorType] = useState<ErrorType>(null);
+
+  // Read the ?return= param so we can redirect back after login
+  const searchParams = new URLSearchParams(window.location.search);
+  const returnPath = searchParams.get("return");
 
   const mut = useMutation({
     mutationFn: login,
@@ -19,15 +25,30 @@ export default function Login() {
       await queryClient.refetchQueries({ queryKey: ["company"] }).catch(() => {
         // company 404 means no company yet → /dashboard will send to /onboarding
       });
-      navigate("/dashboard");
+      navigate(returnPath ?? "/dashboard");
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => {
+      const msg = e.message;
+      if (msg.includes("No account found")) {
+        setErrorType("not_found");
+      } else if (msg.includes("incorrect") || msg.includes("Invalid") || msg.includes("401")) {
+        setErrorType("wrong_password");
+      } else if (msg.includes("expired") || msg.includes("session")) {
+        setErrorType("expired");
+      } else {
+        setErrorType("generic");
+      }
+    },
   });
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
+    setErrorType(null);
     mut.mutate(form);
+  }
+
+  function clearError() {
+    setErrorType(null);
   }
 
   return (
@@ -53,7 +74,7 @@ export default function Login() {
               className="input"
               placeholder="you@company.com"
               value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              onChange={(e) => { setForm({ ...form, email: e.target.value }); clearError(); }}
               required
               autoFocus
             />
@@ -65,14 +86,30 @@ export default function Login() {
               className="input"
               placeholder="••••••••"
               value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              onChange={(e) => { setForm({ ...form, password: e.target.value }); clearError(); }}
               required
             />
           </div>
 
-          {error && (
-            <div className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
-              {error}
+          {errorType && (
+            <div className="text-xs bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2 space-y-1">
+              {errorType === "wrong_password" && (
+                <p className="text-destructive">Email or password is incorrect. Please try again.</p>
+              )}
+              {errorType === "not_found" && (
+                <>
+                  <p className="text-destructive">No account found with this email address.</p>
+                  <Link to="/register" className="text-primary hover:underline font-medium block mt-1">
+                    Register instead →
+                  </Link>
+                </>
+              )}
+              {errorType === "expired" && (
+                <p className="text-destructive">Your session has expired. Please log in again.</p>
+              )}
+              {errorType === "generic" && (
+                <p className="text-destructive">Sign-in failed. Please check your connection and try again.</p>
+              )}
             </div>
           )}
 

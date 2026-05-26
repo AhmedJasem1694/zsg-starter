@@ -362,7 +362,7 @@ export default function Onboarding() {
       try {
         await companyMutation.mutateAsync({ ...companyForm, persona, workflowType });
       } catch (e) {
-        throw new Error(`Company setup failed: ${e instanceof Error ? e.message : String(e)}`);
+        throw new Error(`Account setup failed. Please try again or contact support@zanelegal.ai (${e instanceof Error ? e.message : String(e)})`);
       }
 
       // Step 2: Save playbook rules - filter out any entries missing required fields
@@ -376,7 +376,7 @@ export default function Onboarding() {
       try {
         await savePlaybookRules(validRules);
       } catch (e) {
-        throw new Error(`Playbook save failed: ${e instanceof Error ? e.message : String(e)}`);
+        throw new Error(`Your playbook could not be saved. Please check your connection and try again. (${e instanceof Error ? e.message : String(e)})`);
       }
 
       // Step 3: Save contacts (optional)
@@ -1977,7 +1977,7 @@ function Step7Regulations({ companyForm, detected, onDetected, onBack, onNext, d
       onDetected();
     } catch (e) {
       console.error("[detect]", e);
-      setError("Could not detect frameworks - skip for now and detect later from the Regulations page.");
+      setError("Could not detect regulatory frameworks automatically. You can add them manually from the Regulations page after setup.");
     } finally {
       setDetecting(false);
     }

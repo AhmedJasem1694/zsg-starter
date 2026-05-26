@@ -815,7 +815,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
     (req: Request, res: Response, next: NextFunction) => {
       upload.single("contract")(req, res, (err) => {
         if (err instanceof multer.MulterError) {
-          if (err.code === "LIMIT_FILE_SIZE") return sendError(res, 413, "File exceeds the 20 MB maximum. Please compress or split the document.");
+          if (err.code === "LIMIT_FILE_SIZE") return sendError(res, 413, "This file exceeds the 50MB limit. Very large documents like litigation bundles can be split into sections before uploading. Contact support if you need help with this.");
           return sendError(res, 400, `Upload error: ${err.message}`);
         }
         if (err) return sendError(res, 415, "Only PDF and DOCX files are supported.");
@@ -830,11 +830,11 @@ Each field should be 1-3 sentences of clear, practical legal language.
       const file = req.file;
       if (!file) { sendError(res, 400, "No file uploaded"); return; }
 
-      // File size check (20MB max)
-      const MAX_SIZE_BYTES = 20 * 1024 * 1024;
+      // File size check (50MB max)
+      const MAX_SIZE_BYTES = 50 * 1024 * 1024;
       if (file.size > MAX_SIZE_BYTES) {
         try { fs.unlinkSync(file.path); } catch { /* ignore cleanup errors */ }
-        sendError(res, 413, "File exceeds the 20MB maximum. Please compress or split the document.");
+        sendError(res, 413, "This file exceeds the 50MB limit. Very large documents like litigation bundles can be split into sections before uploading. Contact support if you need help with this.");
         return;
       }
 
@@ -1721,6 +1721,242 @@ Write the negotiation email paragraph.`;
     ], 300);
 
     res.json({ reply: reply.trim() });
+  }));
+
+  // ── Founder negotiation: full negotiation email ────────────────────────────
+
+  app.post("/api/review/:documentId/negotiation-email", requireAuth, ah(async (req: Request, res: Response) => {
+    const { documentId } = req.params;
+    const { resultIds } = req.body as { resultIds?: string[] };
+
+    const doc = await pb.collection("uploaded_documents").getOne(documentId).catch(() => null);
+    if (!doc) { sendError(res, 404, "Document not found"); return; }
+
+    const company = await getCompany();
+    const riskAppetite = (company?.["riskAppetite"] as string | undefined) ?? "MODERATE";
+    const companyName  = (company?.["name"] as string | undefined) ?? "us";
+
+    // Fetch the results to include in the email
+    let included: PBRecord[];
+    if (resultIds && resultIds.length > 0) {
+      included = await pb.collection("review_results").getFullList({
+        filter: resultIds.map((id) => `id = "${id}"`).join(" || "),
+      });
+    } else {
+      included = (await pb.collection("review_results").getFullList({
+        filter: `document = "${documentId}"`,
+      })).filter((r) => r["ragStatus"] !== "GREEN");
+    }
+
+    if (included.length === 0) {
+      const ct = (doc["contractType"] as string | undefined) ?? "agreement";
+      res.json({ subject: `Re: ${ct.replace(/_/g, " ")} - looks good`, body: "Everything in the agreement looks fine to us. Happy to proceed." });
+      return;
+    }
+
+    const tonePhrase = riskAppetite === "CONSERVATIVE" ? "professional and precise"
+      : riskAppetite === "AGGRESSIVE"    ? "confident and direct"
+      : "friendly and collaborative";
+
+    const counterparty  = (doc["counterpartyName"] as string | undefined) ?? "you";
+    const contractType  = ((doc["contractType"] as string | undefined) ?? "agreement").replace(/_/g, " ").toLowerCase();
+
+    const issueList = included.map((r, i) => {
+      const clauseLabel = (r["clauseCategory"] as string).replace(/_/g, " ");
+      const isAbsent    = r["isAbsent"] as boolean;
+      const ask         = (r["founderAskFor"] as string | undefined) || (r["recommendedAction"] as string | undefined) || "";
+      const fallback    = (r["founderCopyPaste"] as string | undefined) || (r["suggestedFallback"] as string | undefined) || "";
+      if (isAbsent) {
+        return `Issue ${i + 1} – Add ${clauseLabel}:\n${ask}`;
+      }
+      const verb = r["ragStatus"] === "RED" ? "needs to change" : "worth discussing";
+      return `Issue ${i + 1} – ${clauseLabel} (${verb}):\n${ask}${fallback ? `\nSuggested wording: "${fallback}"` : ""}`;
+    }).join("\n\n");
+
+    const systemPrompt = `You are helping a founder draft a negotiation email to a counterparty about a contract.
+
+Write a ${tonePhrase} email that:
+- Opens by thanking them for sending the agreement and noting you have reviewed it
+- Raises each issue by name (use the issue heading as a natural part of the sentence)
+- States clearly what change is being requested for each
+- Includes any suggested wording naturally in the text where provided
+- Uses plain English — no Latin, no legal jargon, no clause number references like "14.2(b)" unless the counterparty used them
+- Is not aggressive or adversarial
+- Closes collaboratively (e.g. "Happy to jump on a call to talk through any of this")
+- Reads as if the founder is writing it themselves, not a lawyer
+
+Return plain text only.
+First line must be: Subject: [subject line]
+Then a blank line.
+Then the email body.
+No preamble. No explanation. No markdown.`;
+
+    const userPrompt = `Contract type: ${contractType}
+Counterparty: ${counterparty}
+Our company: ${companyName}
+
+Issues to raise:
+${issueList}`;
+
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    let subject: string;
+    let body: string;
+
+    if (!apiKey || apiKey === "your-api-key-here") {
+      subject = `Re: ${contractType} – proposed amendments`;
+      body = `Hi,\n\nThanks for sending across the ${contractType}. We've had a chance to review it and have a few points we'd like to raise before we proceed.\n\n${included.map((r) => {
+        const label = (r["clauseCategory"] as string).replace(/_/g, " ");
+        const ask   = (r["founderAskFor"] as string | undefined) || (r["recommendedAction"] as string | undefined) || "We'd like to discuss this further.";
+        return `${label}: ${ask}`;
+      }).join("\n\n")}\n\nHappy to jump on a call to walk through these – let us know what works.\n\nBest,\n${companyName}`;
+    } else {
+      const raw = await chatComplete([
+        { role: "system", content: systemPrompt },
+        { role: "user",   content: userPrompt },
+      ], 1400);
+
+      const lines = raw.trim().split("\n");
+      const subIdx = lines.findIndex((l) => /^subject:/i.test(l.trim()));
+      if (subIdx !== -1) {
+        subject = lines[subIdx].replace(/^subject:\s*/i, "").trim();
+        body    = lines.slice(subIdx + 1).join("\n").trim();
+      } else {
+        subject = `Re: ${contractType} – proposed amendments`;
+        body    = raw.trim();
+      }
+    }
+
+    res.json({ subject, body });
+  }));
+
+  // ── Founder negotiation: amended clause ────────────────────────────────────
+
+  app.post("/api/review/result/:resultId/amended-clause", requireAuth, ah(async (req: Request, res: Response) => {
+    const { resultId } = req.params;
+
+    let result: PBRecord;
+    try { result = await pb.collection("review_results").getOne(resultId); }
+    catch { sendError(res, 404, "Result not found"); return; }
+
+    // Try to get the raw clause text from extracted_clauses
+    const clauseId = result["clause"] as string | undefined;
+    let originalText = "";
+    if (clauseId) {
+      const extracted = await pb.collection("extracted_clauses").getOne(clauseId).catch(() => null);
+      originalText = (extracted?.["rawText"] as string | undefined) ?? "";
+    }
+    if (!originalText) originalText = (result["clauseSummary"] as string | undefined) ?? "";
+
+    const clauseLabel = (result["clauseCategory"] as string).replace(/_/g, " ");
+    const ask      = (result["founderAskFor"] as string | undefined) || (result["recommendedAction"] as string | undefined) || "";
+    const fallback = (result["founderCopyPaste"] as string | undefined) || (result["suggestedFallback"] as string | undefined) || "";
+
+    const doc = await pb.collection("uploaded_documents").getOne(result["document"] as string).catch(() => null);
+    const contractType = ((doc?.["contractType"] as string | undefined) ?? "commercial agreement").replace(/_/g, " ").toLowerCase();
+
+    const systemPrompt = `You are a commercial contracts expert rewriting a clause to be more founder-friendly.
+Use plain English. No Latin. Minimal legal jargon.
+Return ONLY valid JSON with no markdown fences:
+{"revised":"the full revised clause text as proper contract language","explanation":"one plain English sentence explaining the key change"}`;
+
+    const userPrompt = `Contract type: ${contractType}
+Clause: ${clauseLabel}
+
+Original clause text:
+${originalText}
+
+What needs to change:
+${ask}
+${fallback ? `\nSuggested wording to incorporate:\n"${fallback}"` : ""}
+
+Rewrite the full clause incorporating the change. Keep it professional and complete.`;
+
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    let revised: string;
+    let explanation: string;
+
+    if (!apiKey || apiKey === "your-api-key-here") {
+      revised     = fallback || `[Revised ${clauseLabel} clause incorporating: ${ask}]`;
+      explanation = "The revised clause incorporates the requested change to better protect your position.";
+    } else {
+      try {
+        const raw   = await chatComplete([{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }], 900);
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error("no JSON");
+        const parsed = JSON.parse(match[0]) as { revised?: string; explanation?: string };
+        revised     = parsed.revised     ?? fallback ?? "";
+        explanation = parsed.explanation ?? "";
+      } catch {
+        revised     = fallback || `[Revised ${clauseLabel} clause]`;
+        explanation = "Unable to generate revised clause. Please try again.";
+      }
+    }
+
+    res.json({ original: originalText, revised, explanation });
+  }));
+
+  // ── Founder negotiation: suggest missing clause ────────────────────────────
+
+  app.post("/api/review/result/:resultId/suggest-clause", requireAuth, ah(async (req: Request, res: Response) => {
+    const { resultId } = req.params;
+
+    let result: PBRecord;
+    try { result = await pb.collection("review_results").getOne(resultId); }
+    catch { sendError(res, 404, "Result not found"); return; }
+
+    const clauseLabel  = (result["clauseCategory"] as string).replace(/_/g, " ");
+    const ask          = (result["recommendedAction"] as string | undefined) ?? "";
+    const fallback     = (result["suggestedFallback"] as string | undefined) ?? "";
+
+    const doc          = await pb.collection("uploaded_documents").getOne(result["document"] as string).catch(() => null);
+    const contractType = ((doc?.["contractType"] as string | undefined) ?? "commercial agreement").replace(/_/g, " ").toLowerCase();
+
+    const company      = await getCompany();
+    const riskAppetite = (company?.["riskAppetite"] as string | undefined) ?? "MODERATE";
+    const riskDesc     = riskAppetite === "CONSERVATIVE" ? "protective and precise, favouring the founder"
+      : riskAppetite === "AGGRESSIVE" ? "commercially assertive, maximising the founder's rights"
+      : "balanced and commercially reasonable";
+
+    const systemPrompt = `You are a commercial contracts expert. Draft a standalone contract clause that a founder can ask the counterparty to add.
+
+The clause should be:
+- Written in plain commercial English (minimal Latin, no excessive jargon)
+- Complete and self-contained with a clause heading
+- ${riskDesc} in tone
+- Appropriate for a ${contractType}
+
+Return ONLY valid JSON with no markdown fences:
+{"clauseText":"the full clause text starting with a short heading in ALL CAPS followed by the clause body","explanation":"one plain English sentence explaining what this clause does and why the founder needs it"}`;
+
+    const userPrompt = `Missing clause: ${clauseLabel}
+Contract type: ${contractType}
+Why it matters: ${ask}
+${fallback ? `Reference wording: "${fallback}"` : ""}
+
+Draft the complete clause.`;
+
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    let clauseText: string;
+    let explanation: string;
+
+    if (!apiKey || apiKey === "your-api-key-here") {
+      clauseText  = fallback || `[${clauseLabel.toUpperCase()}\n\n${ask}]`;
+      explanation = `This clause covers ${clauseLabel.toLowerCase()} and should be added to protect your position.`;
+    } else {
+      try {
+        const raw   = await chatComplete([{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }], 800);
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error("no JSON");
+        const parsed = JSON.parse(match[0]) as { clauseText?: string; explanation?: string };
+        clauseText  = parsed.clauseText  ?? fallback ?? "";
+        explanation = parsed.explanation ?? "";
+      } catch {
+        clauseText  = fallback || `[${clauseLabel} clause — unable to generate, please try again]`;
+        explanation = "Unable to generate clause. Please try again.";
+      }
+    }
+
+    res.json({ clauseText, explanation });
   }));
 
   // ── Stats ────────────────────────────────────────────────────────────────────

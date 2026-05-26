@@ -247,16 +247,32 @@ export default function BulkReview() {
   const processingDocs = (allDocs as DocWithResults[]).filter((d) => d.status === "PROCESSING");
 
   // Add files to queue
+  const MAX_BULK_FILE_SIZE = 50 * 1024 * 1024; // 50MB per file
+
   const addFiles = useCallback((files: FileList | File[]) => {
-    const newItems: QueuedFile[] = Array.from(files).map((file) => ({
-      id: nanoid8(),
-      file,
-      contractType: "SUPPLIER_AGREEMENT",
-      counterpartyName: "",
-      contractValue: "",
-      folder: "",
-      status: "queued" as const,
-    }));
+    const newItems: QueuedFile[] = Array.from(files).map((file) => {
+      if (file.size > MAX_BULK_FILE_SIZE) {
+        return {
+          id: nanoid8(),
+          file,
+          contractType: "SUPPLIER_AGREEMENT",
+          counterpartyName: "",
+          contractValue: "",
+          folder: "",
+          status: "error" as const,
+          error: `This file exceeds the 50MB limit. Very large documents like litigation bundles can be split into sections before uploading.`,
+        };
+      }
+      return {
+        id: nanoid8(),
+        file,
+        contractType: "SUPPLIER_AGREEMENT",
+        counterpartyName: "",
+        contractValue: "",
+        folder: "",
+        status: "queued" as const,
+      };
+    });
     setQueue((prev) => [...prev, ...newItems]);
   }, []);
 

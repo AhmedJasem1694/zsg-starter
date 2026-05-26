@@ -42,7 +42,7 @@ export function classifyFileType(filename: string): string {
 
 export const upload = multer({
   storage,
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
   fileFilter: (_req, file, cb) => {
     const allowed = [".pdf", ".docx", ".doc"];
     const ext = path.extname(file.originalname).toLowerCase();

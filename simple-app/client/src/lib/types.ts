@@ -677,6 +677,8 @@ export interface UploadedDocument {
   clausesTotal?: number;
   /** Number of clause results written so far — incremented as each comparison completes */
   clausesCompleted?: number;
+  /** Error message from the last failed processing attempt */
+  lastError?: string;
   uploadedAt: string;
   reviewResults?: ReviewResult[];
 }

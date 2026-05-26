@@ -49,11 +49,42 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
+// Recover documents stuck in processing state from a previous crash
+async function recoverStuckDocuments() {
+  try {
+    const { pb } = await import("./pb.js");
+    const processingStatuses = ["PROCESSING", "PARSING", "ANONYMISING", "CLASSIFYING", "COMPARING"];
+    const stuckThreshold = new Date(Date.now() - 25 * 60 * 1000).toISOString(); // 25 minutes ago
+
+    for (const status of processingStatuses) {
+      const docs = await pb.collection("uploaded_documents").getFullList({
+        filter: `status = "${status}" && updated < "${stuckThreshold}"`,
+        fields: "id,originalName,status,updated",
+      }).catch(() => [] as Array<{ id: string; originalName: string; status: string; updated: string }>);
+
+      for (const doc of docs) {
+        console.warn(`[recovery] Document ${doc.id} (${doc.originalName}) stuck in ${status} since ${doc.updated} — marking FAILED`);
+        await pb.collection("uploaded_documents").update(doc.id, {
+          status: "FAILED",
+          lastError: `Review did not complete (stuck in ${status} state). The server may have restarted during processing. Please retry.`,
+        }).catch((e: unknown) => console.error("[recovery] Failed to update stuck doc:", e));
+      }
+    }
+  } catch (err) {
+    console.error("[recovery] Stuck document check failed:", err);
+  }
+}
+
 (async () => {
   // Ensure uploads directory exists (Railway ephemeral disk may not have it)
   fs.mkdirSync(path.join(process.cwd(), "uploads"), { recursive: true });
 
   await initPocketBase();
+
+  // Run recovery on startup
+  recoverStuckDocuments().catch(console.error);
+  // Also run every 30 minutes to catch any newly-stuck documents
+  setInterval(() => { recoverStuckDocuments().catch(console.error); }, 30 * 60 * 1000);
 
   const server = await registerRoutes(app);
 

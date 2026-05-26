@@ -235,8 +235,35 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
     );
     // ────────────────────────────────────────────────────────────────────────
 
-    const chunks = chunkText(anonymisedText);
-    console.log(`[review] CLASSIFYING ${documentId}: ${chunks.length} chunks, ${playbookRules.length} playbook rules`);
+    // ── Large-document detection ──────────────────────────────────────────────
+    // Documents over 100,000 characters are split into overlapping 50,000-char
+    // sections before classification. Each section is classified independently
+    // and the results merged — ensuring the full document is searched even when
+    // it would otherwise overflow the classification prompt.
+    const LARGE_DOC_THRESHOLD = 100_000; // chars
+    const SECTION_SIZE        = 50_000;  // chars per section
+    const SECTION_OVERLAP     = 5_000;   // overlap to avoid missing clauses near boundaries
+
+    let textSections: string[];
+    if (anonymisedText.length > LARGE_DOC_THRESHOLD) {
+      console.log(`[review] LARGE DOCUMENT ${documentId}: ${anonymisedText.length} chars — splitting into sections of ${SECTION_SIZE} chars (${SECTION_OVERLAP} overlap)`);
+      textSections = [];
+      let pos = 0;
+      while (pos < anonymisedText.length) {
+        textSections.push(anonymisedText.slice(pos, pos + SECTION_SIZE));
+        pos += SECTION_SIZE - SECTION_OVERLAP;
+        if (pos >= anonymisedText.length) break;
+      }
+      console.log(`[review] Split into ${textSections.length} sections for classification`);
+    } else {
+      textSections = [anonymisedText];
+    }
+
+    // Chunk each section independently
+    const allChunksBySection = textSections.map((section) => chunkText(section));
+    const chunks = allChunksBySection.flat();
+
+    console.log(`[review] CLASSIFYING ${documentId}: ${chunks.length} chunks across ${textSections.length} section(s), ${playbookRules.length} playbook rules`);
 
     if (chunks.length === 0) {
       console.warn(`[review] No text chunks produced for ${documentId}. Text length: ${rawText.length} chars. Document may be a scanned image or empty.`);
@@ -248,15 +275,30 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
     // Derive active categories from the company's playbook rules
     const playbookCategories = Array.from(new Set(playbookRules.map((r) => r["clauseCategory"] as string)));
 
-    // Classify clauses and fetch global regulatory context in parallel —
-    // they are completely independent of each other.
+    // ── Classification: run per section, merge results ─────────────────────────
+    // For large documents we classify each section separately so no single LLM
+    // call receives hundreds of chunk snippets. For normal documents there is
+    // only one section so this is identical to the original behaviour.
+    const classifyAllSections = async (): Promise<Awaited<ReturnType<typeof classifyClauses>>> => {
+      const sectionResults = await Promise.all(
+        allChunksBySection.map((sectionChunks, sIdx) => {
+          if (sectionChunks.length === 0) return Promise.resolve([] as Awaited<ReturnType<typeof classifyClauses>>);
+          console.log(`[review] Classifying section ${sIdx + 1}/${allChunksBySection.length} (${sectionChunks.length} chunks)`);
+          // classifyClauses returns rawText strings directly — no index remapping needed
+          return classifyClauses(sectionChunks, company["workflowType"] as string, playbookCategories);
+        })
+      );
+      return sectionResults.flat();
+    };
+
+    // Classify and fetch regulatory context in parallel
     const [classified, regulatoryContext] = await Promise.all([
-      classifyClauses(chunks, company["workflowType"] as string, playbookCategories),
+      classifyAllSections(),
       getRegulationSummaryForLLM(company.id),
     ]);
     console.log(`[review] CLASSIFIED ${documentId}: ${classified.length} clauses matched out of ${playbookCategories.length} categories`);
 
-    // Deduplicate - keep highest-confidence chunk per category
+    // Deduplicate - keep highest-confidence chunk per category (merges across all sections)
     const bestByCategory = new Map<string, (typeof classified)[0]>();
     for (const item of classified) {
       const existing = bestByCategory.get(item.category);

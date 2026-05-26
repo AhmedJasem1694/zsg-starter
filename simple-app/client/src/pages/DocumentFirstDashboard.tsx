@@ -97,8 +97,8 @@ export default function DocumentFirstDashboard() {
       setStage("error");
       return;
     }
-    if (file.size > 20 * 1024 * 1024) {
-      setErrorMsg("File is larger than 20 MB. Please compress or split the document.");
+    if (file.size > 50 * 1024 * 1024) {
+      setErrorMsg("This file exceeds the 50MB limit. Very large documents like litigation bundles can be split into sections before uploading. Contact support@zanelegal.ai if you need help.");
       setStage("error");
       return;
     }
@@ -258,7 +258,7 @@ export default function DocumentFirstDashboard() {
               <p className="text-sm font-semibold text-white/80">
                 {dragOver ? "Release to upload" : "Drag & drop or click to upload"}
               </p>
-              <p className="text-xs text-white/35 mt-1">PDF or DOCX · max 20 MB</p>
+              <p className="text-xs text-white/35 mt-1">PDF or DOCX · max 50 MB</p>
             </div>
           </button>
           <input

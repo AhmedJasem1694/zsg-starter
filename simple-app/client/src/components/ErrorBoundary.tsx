@@ -33,12 +33,20 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
                 </a>
               </p>
             </div>
-            <button
-              onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#450A0A] text-[#FCA5A5] text-sm font-semibold hover:bg-[#5A0E0E] transition-colors"
-            >
-              Refresh page
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => window.history.back()}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-[#450A0A] bg-transparent text-[#FCA5A5] text-sm font-semibold hover:bg-[#450A0A]/30 transition-colors"
+              >
+                Go back
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#450A0A] text-[#FCA5A5] text-sm font-semibold hover:bg-[#5A0E0E] transition-colors"
+              >
+                Refresh page
+              </button>
+            </div>
           </div>
         </div>
       );

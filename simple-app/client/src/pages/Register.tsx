@@ -3,11 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { register } from "../lib/api";
 
+type ErrorType = "already_exists" | "generic" | null;
+
 export default function Register() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form, setForm] = useState({ name: "", email: "", password: "", confirm: "" });
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ErrorType>(null);
+  const [validationError, setValidationError] = useState("");
 
   const mut = useMutation({
     mutationFn: () => register({ name: form.name, email: form.email, password: form.password }),
@@ -16,18 +19,26 @@ export default function Register() {
       await queryClient.refetchQueries({ queryKey: ["auth-me"] });
       navigate("/onboarding");
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => {
+      const msg = e.message;
+      if (msg.includes("already exists") || msg.includes("409")) {
+        setError("already_exists");
+      } else {
+        setError("generic");
+      }
+    },
   });
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
+    setError(null);
+    setValidationError("");
     if (form.password !== form.confirm) {
-      setError("Passwords do not match");
+      setValidationError("Passwords do not match");
       return;
     }
     if (form.password.length < 8) {
-      setError("Password must be at least 8 characters");
+      setValidationError("Password must be at least 8 characters");
       return;
     }
     mut.mutate();
@@ -68,7 +79,7 @@ export default function Register() {
               className="input"
               placeholder="jane@company.com"
               value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              onChange={(e) => { setForm({ ...form, email: e.target.value }); setError(null); }}
               required
             />
           </div>
@@ -95,9 +106,27 @@ export default function Register() {
             />
           </div>
 
-          {error && (
+          {/* Inline validation errors (password mismatch etc.) */}
+          {validationError && (
             <div className="text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2">
-              {error}
+              {validationError}
+            </div>
+          )}
+
+          {/* API errors */}
+          {error && (
+            <div className="text-xs bg-destructive/10 border border-destructive/20 rounded-md px-3 py-2 space-y-1">
+              {error === "already_exists" && (
+                <>
+                  <p className="text-destructive">An account with this email already exists.</p>
+                  <Link to="/login" className="text-primary hover:underline font-medium block mt-1">
+                    Log in instead →
+                  </Link>
+                </>
+              )}
+              {error === "generic" && (
+                <p className="text-destructive">Account creation failed. Please check your connection and try again.</p>
+              )}
             </div>
           )}
 

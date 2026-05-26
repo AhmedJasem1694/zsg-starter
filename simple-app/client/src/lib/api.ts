@@ -51,7 +51,15 @@ export async function req<T>(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new ApiError((err as { error?: string }).error ?? res.statusText, res.status);
+    const message = (err as { error?: string }).error ?? res.statusText;
+    // Session expired — redirect to login silently (only for non-auth endpoints)
+    if (res.status === 401 && !url.includes("/api/auth/")) {
+      const returnPath = typeof window !== "undefined" ? window.location.pathname : "/";
+      if (typeof window !== "undefined") {
+        window.location.href = `/login?return=${encodeURIComponent(returnPath)}`;
+      }
+    }
+    throw new ApiError(message, res.status);
   }
   return res.json() as Promise<T>;
 }
@@ -209,6 +217,14 @@ export const startReview = (documentId: string) =>
   req<{ status: string; documentId: string }>("POST", `/api/review/${documentId}`);
 export const getReview = (documentId: string) =>
   req<UploadedDocument>("GET", `/api/review/${documentId}`);
+
+// Founder negotiation
+export const generateNegotiationEmail = (documentId: string, resultIds?: string[]) =>
+  req<{ subject: string; body: string }>("POST", `/api/review/${documentId}/negotiation-email`, { resultIds });
+export const generateAmendedClause = (resultId: string) =>
+  req<{ original: string; revised: string; explanation: string }>("POST", `/api/review/result/${resultId}/amended-clause`);
+export const suggestMissingClause = (resultId: string) =>
+  req<{ clauseText: string; explanation: string }>("POST", `/api/review/result/${resultId}/suggest-clause`);
 
 // Stats
 export const getStats = () => req<{
