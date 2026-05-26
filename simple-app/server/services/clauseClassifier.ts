@@ -148,6 +148,10 @@ export interface ClassifiedChunk {
   category: ClauseCategory;
   rawText: string;
   confidence: number;
+  /** Whether the category is a dedicated clause (PRESENT) or addressed within another clause (INDIRECT) */
+  presenceState: "PRESENT" | "INDIRECT";
+  /** Brief location reference, e.g. "clause 16", "general obligations section", "expressly excluded in clause 3" */
+  clauseReference?: string;
 }
 
 export async function classifyClauses(
@@ -168,7 +172,13 @@ export async function classifyClauses(
 
   const categoriesDesc = activeCategories.join(" | ");
 
-  type ClassifyItem = { chunkIndex: number; category: string; confidence: number };
+  type ClassifyItem = {
+    chunkIndex: number;
+    category: string;
+    confidence: number;
+    presenceState?: "PRESENT" | "INDIRECT";
+    clauseReference?: string;
+  };
 
   // If there are no chunks (empty/unreadable document), return empty without an LLM call
   if (chunks.length === 0) {
@@ -176,10 +186,9 @@ export async function classifyClauses(
     return [];
   }
 
-  // For classification we only need the first ~400 chars of each chunk — the
-  // clause type is always identifiable from the heading and opening sentences.
-  // Sending full 2000-char chunks multiplies prompt size 5× with no accuracy gain.
-  const CLASSIFY_SNIPPET_CHARS = 400;
+  // Send up to 1500 chars of each chunk — enough to capture headings buried mid-paragraph
+  // and indirect references that only become apparent from the full clause text.
+  const CLASSIFY_SNIPPET_CHARS = 1500;
   const snippets = chunks.map((c, i) => `[${i}] ${c.slice(0, CLASSIFY_SNIPPET_CHARS)}`);
 
   // Propagate errors: callers must handle failure explicitly so the pipeline
@@ -189,16 +198,42 @@ export async function classifyClauses(
       {
         role: "system",
         content: `You are a legal clause classifier. Classify contract text chunks into these categories: ${categoriesDesc}.
-Return ONLY a JSON array. Each element: {"chunkIndex": number, "category": string, "confidence": number (0-1)}.
-If a chunk clearly matches a category, set confidence >= 0.8. If uncertain, set confidence 0.5-0.79.
-If a chunk does not match any category, omit it from results.`,
+
+For each match, determine the presence state:
+- "PRESENT": a dedicated clause with matching heading or primary subject matter
+- "INDIRECT": the subject matter is addressed within another clause (not the primary focus), or is expressly excluded/negated
+
+When checking each category, look for ALL of the following:
+1. Dedicated clauses with matching headings (PRESENT)
+2. Subject matter addressed within other clauses (INDIRECT)
+3. Clauses that expressly exclude or negate the subject matter — mark as INDIRECT, not absent
+4. Defined terms or recitals that address the subject matter (INDIRECT)
+
+Category-specific detection rules (apply these strictly):
+- AUTO_RENEWAL: if a clause states the agreement does NOT auto-renew or requires active renewal, mark INDIRECT with clauseReference noting "expressly excluded"
+- FORCE_MAJEURE: any provision giving relief for events outside a party's control is PRESENT even without that exact heading (e.g. "Act of God", "circumstances beyond control")
+- CHANGE_OF_CONTROL: an assignment restriction prohibiting transfer without consent is INDIRECT for CHANGE_OF_CONTROL even if the heading says "Assignment"
+- CONFIDENTIALITY: confidentiality obligations embedded within a general obligations clause are INDIRECT
+- GOVERNING_LAW: a choice of law or jurisdiction clause anywhere in the document is PRESENT
+
+Return ONLY a JSON array. Each element must have these exact fields:
+{
+  "chunkIndex": number,
+  "category": string,
+  "confidence": number (0-1),
+  "presenceState": "PRESENT" | "INDIRECT",
+  "clauseReference": string (brief location, e.g. "clause 16", "section 18.6", "general obligations clause", "expressly excluded in clause 3")
+}
+
+Confidence rules: >= 0.8 = clear match, 0.5-0.79 = uncertain. Omit chunks with no match.
+NEVER mark a category as absent — simply omit it if genuinely not found anywhere.`,
       },
       {
         role: "user",
         content: `Classify these contract text chunks:\n\n${snippets.join("\n\n---\n\n")}`,
       },
     ],
-    maxTokens: 2048,
+    maxTokens: 3072,
     description: "clause classification",
   });
 
@@ -228,5 +263,7 @@ If a chunk does not match any category, omit it from results.`,
       category: item.category as ClauseCategory,
       rawText: chunks[item.chunkIndex],
       confidence: item.confidence,
+      presenceState: item.presenceState === "INDIRECT" ? "INDIRECT" as const : "PRESENT" as const,
+      clauseReference: item.clauseReference,
     }));
 }

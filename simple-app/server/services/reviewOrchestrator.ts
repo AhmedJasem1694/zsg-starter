@@ -6,6 +6,8 @@ import { classifyClauses } from "./clauseClassifier.js";
 import {
   compareClauseToPlaybook,
   buildAbsentClauseResult,
+  buildFavourableAbsentResult,
+  FAVOURABLE_WHEN_ABSENT,
 } from "./playbookComparison.js";
 import { detectContradictions } from "./contradictionDetector.js";
 import { getRegulationSummaryForLLM } from "./regulatoryDetection.js";
@@ -236,13 +238,15 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
     // ────────────────────────────────────────────────────────────────────────
 
     // ── Large-document detection ──────────────────────────────────────────────
-    // Documents over 100,000 characters are split into overlapping 50,000-char
+    // Documents over 30,000 characters are split into overlapping 30,000-char
     // sections before classification. Each section is classified independently
-    // and the results merged — ensuring the full document is searched even when
-    // it would otherwise overflow the classification prompt.
-    const LARGE_DOC_THRESHOLD = 100_000; // chars
-    const SECTION_SIZE        = 50_000;  // chars per section
-    const SECTION_OVERLAP     = 5_000;   // overlap to avoid missing clauses near boundaries
+    // and the results merged — ensuring the full document is searched even for
+    // clauses appearing in the second half of long contracts.
+    const LARGE_DOC_THRESHOLD = 30_000; // chars — typical 15-page contract threshold
+    const SECTION_SIZE        = 30_000; // chars per section
+    const SECTION_OVERLAP     = 5_000;  // overlap to avoid missing clauses near boundaries
+
+    console.log(`[review] TEXT LENGTH ${documentId}: rawText=${rawText.length} chars, anonymised=${anonymisedText.length} chars`);
 
     let textSections: string[];
     if (anonymisedText.length > LARGE_DOC_THRESHOLD) {
@@ -424,23 +428,23 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
         const match = bestByCategory.get(category);
 
         if (!match) {
-          // ── Absent clause — no LLM call needed ──────────────────────────────
-          const absent = buildAbsentClauseResult(
-            category,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            rule as any,
-            (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER"
-          );
-          const missingSeverity = computeMissingSeverity(
-            category,
-            (doc["contractType"] as string) ?? ""
-          );
+          // ── Absent clause — check if absence is favourable before flagging missing ─
+          const persona = (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER";
+          const absent = FAVOURABLE_WHEN_ABSENT.has(category)
+            ? buildFavourableAbsentResult(category, rule as any, persona)
+            : buildAbsentClauseResult(category, rule as any, persona);
+
+          // Favourable-absent clauses get GREEN + no missingSeverity
+          const isFavourableAbsent = FAVOURABLE_WHEN_ABSENT.has(category);
+          const missingSeverity = isFavourableAbsent
+            ? null
+            : computeMissingSeverity(category, (doc["contractType"] as string) ?? "");
           const r: LocalResult = {
             clauseCategory: category,
             ...absent,
             regulatoryCitations: JSON.stringify(absent.regulatoryCitations),
             escalationTrigger: absent.escalationTrigger || null,
-            isAbsent: true,
+            isAbsent: !isFavourableAbsent,
             missingSeverity,
             clauseId: null,
             ruleId: rule.id,
@@ -484,6 +488,11 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
         });
         const combinedRegContext = regulatoryContext + formatRegulatoryContextForPrompt(clauseRegDocs);
 
+        const isIndirect = match.presenceState === "INDIRECT";
+        if (isIndirect) {
+          console.log(`[review] INDIRECT match for ${category} at "${match.clauseReference ?? "unknown location"}" in ${documentId}`);
+        }
+
         const comparison = await compareClauseToPlaybook(
           match.rawText,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -495,7 +504,9 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
           doc["workflowType"] as string || "COMMERCIAL_CONTRACT",
           company.id,
           doc["counterpartyType"] as string || "",
-          doc["contractType"] as string || ""
+          doc["contractType"] as string || "",
+          isIndirect,
+          match.clauseReference ?? ""
         );
 
         console.log(`[review] compared ${category}: ${comparison.ragStatus} (${comparison.confidenceLabel})`);

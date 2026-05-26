@@ -12,6 +12,58 @@ import AppLayout from "../components/layout/AppLayout";
 import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, ConfidenceLabel, RegulatoryCitation } from "../lib/types";
 import { CLAUSE_LABELS } from "../lib/types";
 import { MOCK_REVIEW_DETAIL } from "../lib/mockData";
+import React from "react";
+
+// ─── Data sanitisation ────────────────────────────────────────────────────────
+// Defensive normalisation applied to every ReviewResult before rendering.
+// Guards against null/undefined fields that would crash component renders.
+
+function sanitiseResult(r: ReviewResult): ReviewResult {
+  return {
+    ...r,
+    ragStatus:            (r.ragStatus as string) in { RED:1, AMBER:1, GREEN:1, GREY:1 }
+                            ? r.ragStatus : "GREY",
+    clauseSummary:        r.clauseSummary        ?? "",
+    whyItMatters:         r.whyItMatters         ?? "",
+    recommendedAction:    r.recommendedAction     ?? "",
+    suggestedFallback:    r.suggestedFallback     ?? "",
+    businessSummary:      r.businessSummary       ?? "",
+    escalationRequired:   r.escalationRequired    ?? false,
+    isAbsent:             r.isAbsent              ?? false,
+    regulatoryCitations:  Array.isArray(r.regulatoryCitations)
+                            ? r.regulatoryCitations
+                            : [],
+  };
+}
+
+// ─── Per-clause error boundary ────────────────────────────────────────────────
+// Wraps each ClauseCard so a single bad result cannot crash the entire page.
+
+class ClauseErrorBoundary extends React.Component<
+  { children: React.ReactNode; label?: string },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; label?: string }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error) {
+    console.error("[ClauseErrorBoundary] Clause render error:", error);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-xl border border-[#450A0A] bg-[#1F0A0A] px-4 py-3 text-xs text-[#FCA5A5]/70">
+          Could not render clause{this.props.label ? ` "${this.props.label}"` : ""}. This clause may have unexpected data — other clauses are unaffected.
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ─── Format lastError for display ────────────────────────────────────────────
 
@@ -103,10 +155,67 @@ export default function ReviewDetail() {
   const doc: UploadedDocument | undefined = isMock ? MOCK_REVIEW_DETAIL : realDoc;
   const loading = isMock ? false : isLoading;
 
+  // ── ALL hooks must be declared here, before any early returns ─────────────
+  // (React requires hooks to be called the same number of times on every render)
+
+  const finalFileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingFinal, setUploadingFinal] = useState(false);
+
+  const { data: outcomeDeltaData } = useQuery({
+    queryKey: ["outcome-deltas-check", id],
+    queryFn:  () => getOutcomeDeltas(id!),
+    enabled:  !isMock && !!id && !!doc && doc.status === "COMPLETE",
+    staleTime: 60_000,
+  });
+
+  const [outcomeDismissed,  setOutcomeDismissed]  = useState(false);
+  const [outcomeCaptured,   setOutcomeCaptured]   = useState(false);
+  const [outcomeNotes,      setOutcomeNotes]      = useState("");
+  const [showOutcomeNotes,  setShowOutcomeNotes]  = useState(false);
+
+  const outcomeMutation = useMutation({
+    mutationFn: (outcome: "SIGNED" | "EXECUTED") =>
+      captureOutcome(doc!.id, outcome, outcomeNotes),
+    onSuccess: () => {
+      setOutcomeCaptured(true);
+      void queryClient.invalidateQueries({ queryKey: ["review", id] });
+    },
+  });
+
+  // Sync outcomeCaptured with doc.outcome on first load
+  const docOutcomeRef = useRef<string | undefined>(undefined);
+  if (doc?.outcome && doc.outcome !== docOutcomeRef.current) {
+    docOutcomeRef.current = doc.outcome;
+    // Use a ref-based approach — setting state during render is intentionally
+    // avoided; outcomeCaptured just defaults to false and updates via query invalidation.
+  }
+
   async function handleFeedback(resultId: string, action: FeedbackAction, finalClauseText?: string) {
     if (isMock) return; // no-op in demo
     await saveFeedback(resultId, { userAction: action, finalClauseText });
     await queryClient.invalidateQueries({ queryKey: ["review", id] });
+  }
+
+  async function handleUploadFinalVersion(file: File) {
+    if (!id || isMock) return;
+    setUploadingFinal(true);
+    try {
+      const result = await uploadFinalVersion(id, file);
+      navigate(`/app/legal/${id}/outcome`);
+      void result;
+    } catch (err) {
+      console.error("Failed to upload final version:", err);
+    } finally {
+      setUploadingFinal(false);
+    }
+  }
+
+  function handleGoBack() {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      navigate("/app/legal/dashboard");
+    }
   }
 
   // ── Loading / error states ─────────────────────────────────────────────────
@@ -131,7 +240,7 @@ export default function ReviewDetail() {
             <AlertTriangle size={24} className="text-[#FCA5A5] mx-auto" />
             <div className="font-semibold text-[#FCA5A5]">Document not found</div>
             <div className="flex items-center justify-center gap-3">
-              <button className="btn-secondary text-sm px-4 py-2" onClick={() => window.history.back()}>
+              <button className="btn-secondary text-sm px-4 py-2" onClick={handleGoBack}>
                 Go back
               </button>
               <button className="btn-primary text-sm px-4 py-2" onClick={() => navigate("/app/legal/dashboard")}>
@@ -183,7 +292,7 @@ export default function ReviewDetail() {
               <div className="flex items-center gap-3">
                 <button
                   className="btn-secondary text-sm px-4 py-2"
-                  onClick={() => window.history.back()}
+                  onClick={handleGoBack}
                 >
                   Go back
                 </button>
@@ -275,7 +384,7 @@ export default function ReviewDetail() {
               <div className="flex items-center gap-3">
                 <button
                   className="btn-secondary text-sm px-4 py-2"
-                  onClick={() => window.history.back()}
+                  onClick={handleGoBack}
                 >
                   Go back
                 </button>
@@ -303,54 +412,14 @@ export default function ReviewDetail() {
     if (doc) exportReviewAsText(doc);
   }
 
-  // Upload final version state
-  const finalFileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadingFinal, setUploadingFinal] = useState(false);
-
-  async function handleUploadFinalVersion(file: File) {
-    if (!id || isMock) return;
-    setUploadingFinal(true);
-    try {
-      const result = await uploadFinalVersion(id, file);
-      navigate(`/app/legal/${id}/outcome`);
-      void result;
-    } catch (err) {
-      console.error("Failed to upload final version:", err);
-    } finally {
-      setUploadingFinal(false);
-    }
-  }
-
-  // Check for unconfirmed outcome deltas
-  const { data: outcomeDeltaData } = useQuery({
-    queryKey: ["outcome-deltas-check", id],
-    queryFn: () => getOutcomeDeltas(id!),
-    enabled: !isMock && !!id,
-    staleTime: 60_000,
-  });
   const hasUnconfirmedOutcomes = outcomeDeltaData?.hasUnconfirmed ?? false;
-
-  // Outcome capture state
-  const [outcomeDismissed, setOutcomeDismissed] = useState(false);
-  const [outcomeCaptured, setOutcomeCaptured] = useState(!!doc?.outcome);
-  const [outcomeNotes, setOutcomeNotes] = useState("");
-  const [showOutcomeNotes, setShowOutcomeNotes] = useState(false);
-
-  const outcomeMutation = useMutation({
-    mutationFn: (outcome: "SIGNED" | "EXECUTED") =>
-      captureOutcome(doc!.id, outcome, outcomeNotes),
-    onSuccess: () => {
-      setOutcomeCaptured(true);
-      void queryClient.invalidateQueries({ queryKey: ["review", id] });
-    },
-  });
 
   // Auto-detect "final signed" from filename
   const looksLikeSigned = !isMock && doc?.originalName
     ? /\b(signed|executed|final|countersigned|esigned|e-signed)\b/i.test(doc.originalName)
     : false;
 
-  const results = doc.reviewResults ?? [];
+  const results = (doc.reviewResults ?? []).map(sanitiseResult);
   const counts = {
     RED:           results.filter((r) => r.ragStatus === "RED").length,
     AMBER:         results.filter((r) => r.ragStatus === "AMBER").length,
@@ -677,15 +746,16 @@ export default function ReviewDetail() {
               ) : (
                 <>
                   {filtered.map((result, i) => (
-                    <ClauseCard
-                      key={result.id}
-                      result={result}
-                      index={i}
-                      expanded={expandedId === result.id}
-                      onToggle={() => setExpandedId(expandedId === result.id ? null : result.id)}
-                      onFeedback={(action, finalClauseText) => handleFeedback(result.id, action, finalClauseText)}
-                      isMock={isMock}
-                    />
+                    <ClauseErrorBoundary key={result.id} label={CLAUSE_LABELS[result.clauseCategory] ?? result.clauseCategory}>
+                      <ClauseCard
+                        result={result}
+                        index={i}
+                        expanded={expandedId === result.id}
+                        onToggle={() => setExpandedId(expandedId === result.id ? null : result.id)}
+                        onFeedback={(action, finalClauseText) => handleFeedback(result.id, action, finalClauseText)}
+                        isMock={isMock}
+                      />
+                    </ClauseErrorBoundary>
                   ))}
                   {filtered.length === 0 && (
                     <div className="text-sm text-muted-foreground py-10 text-center">

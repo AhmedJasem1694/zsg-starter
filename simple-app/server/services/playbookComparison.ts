@@ -109,7 +109,9 @@ export async function compareClauseToPlaybook(
   workflowType: string = "COMMERCIAL_CONTRACT",
   companyId: string = "",
   counterpartyType: string = "",
-  contractType: string = ""
+  contractType: string = "",
+  isIndirectReference: boolean = false,
+  indirectClauseRef: string = ""
 ): Promise<ComparisonResult> {
   const wfCtx = workflowContext(workflowType as WorkflowType);
   const ctx = wfCtx ?? personaContext(persona, companyName, sector);
@@ -133,9 +135,17 @@ export async function compareClauseToPlaybook(
     ? `\n\n--- ACCUMULATED COMPANY SIGNALS ---\n${accumulatedSignals}\n--- END SIGNALS ---`
     : "";
 
+  const indirectNote = isIndirectReference
+    ? `\n\nNOTE — INDIRECT REFERENCE: The subject matter of ${rule.clauseCategory.replace(/_/g, " ")} is not present as a dedicated clause. It is addressed indirectly${indirectClauseRef ? ` at ${indirectClauseRef}` : " within another clause"}. Your analysis must:
+1. Begin clauseSummary with "${rule.clauseCategory.replace(/_/g, " ")} — Addressed indirectly${indirectClauseRef ? ` at ${indirectClauseRef}` : ""}: " then explain what the contract actually says
+2. Begin comparisonStatement with "${rule.clauseCategory.replace(/_/g, " ")} — Addressed indirectly: "
+3. Assess whether this indirect treatment adequately meets, falls below, or breaches the playbook position
+4. Set ragStatus based on that assessment (GREEN if adequate, AMBER if below preferred, RED if it breaches the red line or critical protections are missing)`
+    : "";
+
   const systemPrompt = `${ctx.role}
 ${ctx.audienceNote}
-${ctx.actionStyle}
+${ctx.actionStyle}${indirectNote}
 
 RECOMMENDATION DISCIPLINE: Never give a conclusion that says it could go either way without providing a view. Always commit to a recommendation while noting material uncertainty. Structure every conclusion as: "My recommendation is [X] because [Y]. The risk of this being wrong is [Z]. If [Z] materialises, the consequence is [W]." Remove any hedging that does not add specific information. Phrases like "it may" or "it could" or "depending on the circumstances" are only acceptable if followed immediately by the specific condition that would change the recommendation.
 
@@ -211,6 +221,57 @@ Error category rules:
     maxTokens: 4000,
     description: `playbook comparison for ${rule.clauseCategory}`,
   });
+}
+
+// ─── Favourable-when-absent logic ────────────────────────────────────────────
+// Some clause categories are actually better for the reviewing party when absent.
+// Example: no AUTO_RENEWAL clause = no lock-in without active renewal choice.
+
+export const FAVOURABLE_WHEN_ABSENT = new Set([
+  "AUTO_RENEWAL",       // no auto-renewal = cannot be locked in
+  "NON_SOLICITATION",   // no restriction = free to hire counterparty staff
+  "LIQUIDATED_DAMAGES", // no pre-set penalties = service provider not exposed to fixed damages
+]);
+
+const FAVOURABLE_ABSENT_REASONS: Record<string, string> = {
+  AUTO_RENEWAL:       "No auto-renewal clause means the contract cannot renew without your active agreement — you cannot be locked in. This is favourable to the customer/buyer.",
+  NON_SOLICITATION:   "No non-solicitation restriction means you are free to hire staff from the counterparty's team without penalty.",
+  LIQUIDATED_DAMAGES: "No liquidated damages clause means you are not exposed to pre-set financial penalties for delay or breach. Liability is limited to proven actual loss.",
+};
+
+export function buildFavourableAbsentResult(
+  category: string,
+  rule: PlaybookRule,
+  persona: Persona = "CORPORATE"
+): ComparisonResult {
+  const label = category.replace(/_/g, " ").toLowerCase();
+  const reason = FAVOURABLE_ABSENT_REASONS[category] ?? `The absence of a ${label} clause is favourable in this context.`;
+  return {
+    ragStatus: "GREEN",
+    comparisonStatement: `${label} — Absent and favourable: ${reason}`,
+    clauseSummary: `No ${label} clause found. Absence is favourable: ${reason}`,
+    whyItMatters: reason,
+    recommendedAction: "No action required. The absence of this clause works in your favour — do not request it be added.",
+    suggestedFallback: "",
+    escalationRequired: false,
+    escalationTrigger: "",
+    businessSummary: reason,
+    confidenceLabel: "HIGH" as ConfidenceLabel,
+    regulatoryCitations: [],
+    founderStatus: "SAFE" as FounderStatus,
+    founderPlainEnglish: reason,
+    founderBusinessImpact: `The absence of this clause benefits you. ${reason}`,
+    founderAskFor: "No change needed — leave this clause absent.",
+    founderCopyPaste: "",
+    founderFundraisingRelevance: "Not relevant to fundraising.",
+    founderIfIgnored: "No action needed — you are protected by the absence of this clause.",
+    iracIssue: `Whether the absence of a ${label} clause is favourable or unfavourable to the reviewing party.`,
+    iracRule: `The contract contains no ${label} clause.`,
+    iracApplication: reason,
+    iracConclusion: `My recommendation is to leave this clause absent. The risk of requesting it is that you introduce an obligation that currently does not exist. ${reason}`,
+    urgencyLevel: "BACKGROUND" as "IMMEDIATE" | "MATERIAL" | "BACKGROUND",
+    errorCategory: "SUBSTANTIVE_RISK" as "SUBSTANTIVE_RISK" | "DRAFTING_ERROR" | "MECHANICAL_ERROR",
+  };
 }
 
 const ABSENT_CLAUSE_CRITICAL_CATEGORIES = new Set([
