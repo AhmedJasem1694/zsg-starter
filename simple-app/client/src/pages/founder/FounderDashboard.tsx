@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { formatDateShort } from "../../lib/dateUtils";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -392,7 +393,7 @@ export default function FounderDashboard() {
                           </div>
                           <div className="flex items-center gap-3 mt-1">
                             <span className="text-xs text-muted-foreground">
-                              {new Date(doc.uploadedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                              {formatDateShort(doc.uploadedAt)}
                             </span>
                             {d.contractValue && (
                               <span className="text-xs text-muted-foreground">

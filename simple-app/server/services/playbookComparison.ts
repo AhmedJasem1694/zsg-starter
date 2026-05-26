@@ -191,10 +191,11 @@ Return ONLY valid JSON with this exact structure:
   "errorCategory": "SUBSTANTIVE_RISK" | "DRAFTING_ERROR" | "MECHANICAL_ERROR"
 }
 
-RAG rules:
+RAG rules (CRITICAL — follow exactly):
 - GREEN: clause meets preferred position or acceptable fallback
 - AMBER: clause is below preferred but above red line; negotiation needed
 - RED: clause breaches red line or is missing a required protection
+- NEVER return GREY — GREY is reserved exclusively for absent clauses and is handled separately. If you are uncertain, return AMBER.
 
 Confidence rules:
 - HIGH: clause text is clear and your comparison is definitive
@@ -283,12 +284,67 @@ const ABSENT_CLAUSE_CRITICAL_CATEGORIES = new Set([
   "INDEMNITY",
 ]);
 
+// Contract types that are SaaS or technology services — insurance is optional/standard absent
+const SAAS_CONTRACT_TYPES = new Set([
+  "SaaS_AGREEMENT", "SAAS_AGREEMENT", "TECH_AGREEMENT",
+  "SOFTWARE_LICENSE", "IP_LICENSE_AGREEMENT", "PROFESSIONAL_SERVICES",
+  "MSA",
+]);
+
+// Physical/industrial contract types where insurance IS typically required
+const PHYSICAL_CONTRACT_TYPES = new Set([
+  "COMMERCIAL_LEASE", "CONSTRUCTION", "LOGISTICS_CONTRACT", "DISTRIBUTION_AGREEMENT",
+  "MANUFACTURING", "EMPLOYMENT", "CONTRACTOR_AGREEMENT",
+]);
+
+function isSaasContract(contractType: string): boolean {
+  if (!contractType) return true;  // Unknown contract type → default to SaaS-style (most platform users)
+  const upper = contractType.toUpperCase().replace(/[- ]/g, "_");
+  if (PHYSICAL_CONTRACT_TYPES.has(contractType) || PHYSICAL_CONTRACT_TYPES.has(upper)) return false;
+  return SAAS_CONTRACT_TYPES.has(contractType) || SAAS_CONTRACT_TYPES.has(upper) ||
+    /saas|software.as.a.service|technology.service|tech.*service/i.test(contractType);
+}
+
 export function buildAbsentClauseResult(
   category: string,
   rule: PlaybookRule,
-  persona: Persona = "CORPORATE"
+  persona: Persona = "CORPORATE",
+  contractType: string = "",
+  companyName: string = "Your company"
 ): ComparisonResult {
   const label = category.replace(/_/g, " ").toLowerCase();
+
+  // ── Context-aware: INSURANCE in SaaS/tech contracts ───────────────────────
+  if (category === "INSURANCE" && isSaasContract(contractType)) {
+    const saasInsuranceNote = `No insurance requirements are specified in this contract. This is standard for SaaS agreements — most SaaS providers do not include insurance clauses unless the customer specifically requires them. If ${companyName} requires the counterparty to maintain specific insurance levels (such as cyber liability or professional indemnity), request insertion of a clause specifying minimum coverage amounts and evidence requirements.`;
+    return {
+      ragStatus: "GREY",
+      comparisonStatement: `INSURANCE — Missing Optional: No insurance requirements specified. Standard for SaaS agreements.`,
+      clauseSummary: `No insurance clause found. This is standard for SaaS contracts.`,
+      whyItMatters: saasInsuranceNote,
+      recommendedAction: `Optional: if ${companyName} requires minimum insurance coverage from the counterparty, request insertion of an insurance clause specifying coverage types and minimum amounts. No action required if insurance is not a requirement.`,
+      suggestedFallback: rule.fallbackTemplate ?? rule.preferredPosition,
+      escalationRequired: false,
+      escalationTrigger: "",
+      businessSummary: saasInsuranceNote,
+      confidenceLabel: "HIGH" as ConfidenceLabel,
+      regulatoryCitations: [],
+      founderStatus: "SAFE" as FounderStatus,
+      founderPlainEnglish: `This contract doesn't specify any insurance requirements. That's normal for a SaaS agreement — don't worry about it unless you specifically need them to carry cyber or professional indemnity insurance.`,
+      founderBusinessImpact: `No immediate impact. If the counterparty causes you loss through a cyber incident or professional error, you would need to rely on general legal remedies rather than their insurance. For a typical SaaS tool, this is an acceptable risk.`,
+      founderAskFor: `Only request this if you have a specific reason to require the counterparty to hold insurance — for example, if your own clients require you to ensure your suppliers are insured.`,
+      founderCopyPaste: rule.fallbackTemplate ?? rule.preferredPosition,
+      founderFundraisingRelevance: `Not relevant to fundraising.`,
+      founderIfIgnored: `No action needed. The absence of an insurance clause in a SaaS agreement is market standard.`,
+      iracIssue: `Whether the absence of an insurance clause in this SaaS agreement creates an unacceptable risk for ${companyName}.`,
+      iracRule: `The contract contains no insurance clause. For SaaS agreements, this is standard market practice — most SaaS providers do not accept mandatory insurance requirements unless negotiated by enterprise customers.`,
+      iracApplication: `The absence is standard for the contract type. The risk is limited to scenarios where the counterparty causes loss through a cyber incident or professional error and lacks insurance to cover that loss. For most SaaS relationships, this risk is accepted as part of standard terms.`,
+      iracConclusion: `My recommendation is to treat this as Missing Optional. No action is required unless ${companyName} has a specific policy requiring counterparty insurance.`,
+      urgencyLevel: "BACKGROUND" as "IMMEDIATE" | "MATERIAL" | "BACKGROUND",
+      errorCategory: "SUBSTANTIVE_RISK" as "SUBSTANTIVE_RISK" | "DRAFTING_ERROR" | "MECHANICAL_ERROR",
+    };
+  }
+
   const businessSummaries: Record<Persona, string> = {
     CORPORATE: `The contract doesn't include a ${label} clause. This gap needs to be filled before signing - ask the counterparty to add one.`,
     FOUNDER: `This document is silent on ${label}. That silence typically works in the counterparty's favour. Before signing, request that a clause is added reflecting your position.`,

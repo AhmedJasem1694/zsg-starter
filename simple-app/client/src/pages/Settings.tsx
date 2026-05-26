@@ -10,10 +10,11 @@ import {
   AlertCircle,
   Clock,
   ChevronDown,
+  Trash2,
 } from "lucide-react";
 import AppLayout from "../components/layout/AppLayout";
 import IntegrationStatusBadge from "../components/IntegrationStatusBadge";
-import { req } from "../lib/api";
+import { req, clearAllContracts } from "../lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -369,10 +370,21 @@ function IntegrationCard({
 
 // ── Settings page ─────────────────────────────────────────────────────────────
 
-type Tab = "integrations";
+type Tab = "integrations" | "danger";
 
 export default function Settings() {
-  const [activeTab] = useState<Tab>("integrations");
+  const [activeTab, setActiveTab] = useState<Tab>("integrations");
+  const [clearConfirm, setClearConfirm] = useState(false);
+  const queryClient = useQueryClient();
+
+  const clearMutation = useMutation({
+    mutationFn: clearAllContracts,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["documents"] });
+      void queryClient.invalidateQueries({ queryKey: ["document-stats"] });
+      setClearConfirm(false);
+    },
+  });
 
   const { data: gDriveConfig, isLoading: gDriveLoading } = useQuery({
     queryKey: ["google_driveStatus"],
@@ -406,6 +418,7 @@ export default function Settings() {
         {/* Tabs */}
         <div className="flex gap-1 mb-6 border-b border-white/5 pb-0">
           <button
+            onClick={() => setActiveTab("integrations")}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
               activeTab === "integrations"
                 ? "border-blue-500 text-blue-400"
@@ -413,6 +426,16 @@ export default function Settings() {
             }`}
           >
             Integrations
+          </button>
+          <button
+            onClick={() => setActiveTab("danger")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
+              activeTab === "danger"
+                ? "border-[#FCA5A5] text-[#FCA5A5]"
+                : "border-transparent text-muted-foreground/50 hover:text-muted-foreground"
+            }`}
+          >
+            Danger Zone
           </button>
         </div>
 
@@ -446,6 +469,60 @@ export default function Settings() {
             {syncLog.length > 0 && (
               <SyncLogTable entries={syncLog} />
             )}
+          </div>
+        )}
+
+        {/* Danger Zone tab */}
+        {activeTab === "danger" && (
+          <div className="flex flex-col gap-5">
+            <div className="rounded-xl border border-[#450A0A] bg-[#1F0A0A] p-5 space-y-4">
+              <div className="flex items-start gap-3">
+                <Trash2 size={18} className="text-[#FCA5A5] mt-0.5 shrink-0" />
+                <div>
+                  <div className="text-sm font-semibold text-[#FCA5A5]">Clear all contracts</div>
+                  <p className="text-xs text-[#FCA5A5]/70 mt-1 leading-relaxed">
+                    Remove all uploaded contracts and their analysis results. Your playbook and company
+                    settings will not be affected. Use this to reset your workspace during testing.
+                  </p>
+                </div>
+              </div>
+
+              {!clearConfirm ? (
+                <button
+                  onClick={() => setClearConfirm(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-[#450A0A] bg-transparent text-[#FCA5A5] text-sm font-semibold hover:bg-[#450A0A]/40 transition-colors"
+                >
+                  <Trash2 size={14} />
+                  Clear all contracts
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-xs text-[#FCA5A5] font-medium">
+                    This will permanently remove all contracts and their analysis results. This cannot be undone.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      autoFocus
+                      onClick={() => setClearConfirm(false)}
+                      disabled={clearMutation.isPending}
+                      className="px-4 py-2 rounded-lg border border-[#450A0A] text-[#FCA5A5]/70 text-sm font-semibold hover:text-[#FCA5A5] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => clearMutation.mutate()}
+                      disabled={clearMutation.isPending}
+                      className="px-4 py-2 rounded-lg bg-[#450A0A] hover:bg-[#5A0E0E] text-[#FCA5A5] text-sm font-semibold transition-colors disabled:opacity-50"
+                    >
+                      {clearMutation.isPending ? "Clearing…" : "Clear all contracts"}
+                    </button>
+                  </div>
+                  {clearMutation.isSuccess && (
+                    <p className="text-xs text-[#86EFAC]">All contracts cleared successfully.</p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

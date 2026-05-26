@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { formatContractDate } from "../../lib/dateUtils";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
@@ -947,7 +948,7 @@ export default function FounderReview() {
           </button>
           <h1 className="text-xl font-semibold truncate">{doc.originalName}</h1>
           <div className="text-sm text-muted-foreground">
-            {new Date(doc.uploadedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}
+            {formatContractDate(doc.uploadedAt)}
           </div>
         </div>
 

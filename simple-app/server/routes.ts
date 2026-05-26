@@ -915,7 +915,9 @@ Each field should be 1-3 sentences of clear, practical legal language.
     let rawText = "";
     try {
       const parsed = await parseDocument(filePath);
-      rawText = parsed.text.slice(0, 3000);
+      // Use first 8000 chars — covers parties section, definitions, and opening recitals
+      // even in contracts with long preambles before the substantive clauses
+      rawText = parsed.text.slice(0, 8000);
     } catch {
       // Return empty extraction rather than erroring — the modal can still work
       res.json({});
@@ -933,7 +935,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
 
 {
   "contract_type": "one of: SUPPLIER_AGREEMENT | CUSTOMER_AGREEMENT | MSA | NDA | SaaS_AGREEMENT | PROFESSIONAL_SERVICES | EMPLOYMENT | CONTRACTOR_AGREEMENT | IP_LICENSE_AGREEMENT | JV_AGREEMENT | SHARE_PURCHASE | COMMERCIAL_LEASE | LOAN_AGREEMENT | DISTRIBUTION_AGREEMENT | OTHER — or null",
-  "counterparty_name": "name of the counterparty company or individual, or null",
+  "counterparty_name": "full legal name of the counterparty company or individual — look in: (1) the opening 'between X and Y' parties clause, (2) the definitions section where 'Supplier', 'Service Provider', 'Vendor', 'Customer', or 'Client' is defined, (3) the agreement title or header, (4) the signature block. Return the full legal entity name (e.g. 'Attio Limited' not just 'Attio'). Return null only if genuinely not identifiable.",
   "governing_law": "full jurisdiction name (e.g. England and Wales, New York, Singapore), or null",
   "contract_value": contract value as a plain number (no currency symbol) or null,
   "currency": "ISO currency code (GBP/USD/EUR/SGD etc.) or null",
@@ -1233,6 +1235,111 @@ ${rawText}`,
     }));
 
     res.json({ ...mapDoc(doc), reviewResults });
+  }));
+
+  // ── Contract deletion ────────────────────────────────────────────────────────
+
+  /** Cascade-delete one document and all records that reference it. */
+  async function cascadeDeleteDocument(documentId: string, userId?: string): Promise<void> {
+    let doc: PBRecord;
+    try {
+      doc = await pb.collection("uploaded_documents").getOne(documentId);
+    } catch {
+      return; // Already gone — treat as success
+    }
+
+    // Collect all review result IDs first (needed to delete signals linked to results)
+    const results = await pb.collection("review_results").getFullList({
+      filter: `document = "${documentId}"`,
+      fields: "id",
+    }).catch(() => [] as PBRecord[]);
+
+    const resultIds = results.map((r) => r.id as string);
+
+    // Parallel cascade: all child collections linked to this document
+    await Promise.allSettled([
+      // Directly linked to document
+      pb.collection("extracted_clauses").getFullList({ filter: `document = "${documentId}"`, fields: "id" })
+        .then((rows) => Promise.allSettled(rows.map((r) => pb.collection("extracted_clauses").delete(r.id)))),
+      pb.collection("ancillary_documents").getFullList({ filter: `document = "${documentId}"`, fields: "id" })
+        .then((rows) => Promise.allSettled(rows.map((r) => pb.collection("ancillary_documents").delete(r.id)))),
+      pb.collection("pii_sessions").getFullList({ filter: `documentId = "${documentId}"`, fields: "id" })
+        .then((rows) => Promise.allSettled(rows.map((r) => pb.collection("pii_sessions").delete(r.id)))).catch(() => {}),
+      pb.collection("outcome_deltas").getFullList({ filter: `document = "${documentId}"`, fields: "id" })
+        .then((rows) => Promise.allSettled(rows.map((r) => pb.collection("outcome_deltas").delete(r.id)))).catch(() => {}),
+      // Results and everything linked to them
+      ...resultIds.flatMap((rid) => [
+        pb.collection("user_feedback").getFullList({ filter: `result = "${rid}"`, fields: "id" })
+          .then((rows) => Promise.allSettled(rows.map((r) => pb.collection("user_feedback").delete(r.id)))).catch(() => {}),
+        pb.collection("override_signals").getFullList({ filter: `result = "${rid}"`, fields: "id" })
+          .then((rows) => Promise.allSettled(rows.map((r) => pb.collection("override_signals").delete(r.id)))).catch(() => {}),
+        pb.collection("false_positive_signals").getFullList({ filter: `result = "${rid}"`, fields: "id" })
+          .then((rows) => Promise.allSettled(rows.map((r) => pb.collection("false_positive_signals").delete(r.id)))).catch(() => {}),
+      ]),
+    ]);
+
+    // Delete review_results after their children are gone
+    await Promise.allSettled(resultIds.map((rid) => pb.collection("review_results").delete(rid)));
+
+    // Delete the physical file from disk (best-effort)
+    const filename = doc["filename"] as string | undefined;
+    if (filename) {
+      const filePath = path.join(process.cwd(), "uploads", filename);
+      try { fs.unlinkSync(filePath); } catch { /* file may already be gone */ }
+    }
+
+    // Delete the document record itself
+    await pb.collection("uploaded_documents").delete(documentId);
+
+    // Audit entry — fire-and-forget
+    void audit({
+      action: "contract_deleted",
+      entityType: "uploaded_document",
+      entityId: documentId,
+      companyId: doc["company"] as string,
+      userId,
+      detail: { originalName: doc["originalName"], contractType: doc["contractType"] },
+    });
+  }
+
+  app.delete("/api/documents/:id", requireAuth, ah(async (req: Request, res: Response) => {
+    const { id } = req.params as { id: string };
+    const { userId } = req.user!;
+    const company = await getCompany();
+    if (!company) { sendError(res, 404, "Company not found"); return; }
+    try {
+      await assertOwnsDocument(userId, id, company.id as string);
+    } catch {
+      sendError(res, 403, "Forbidden"); return;
+    }
+    await cascadeDeleteDocument(id, userId);
+    res.json({ ok: true });
+  }));
+
+  app.delete("/api/documents", requireAuth, ah(async (req: Request, res: Response) => {
+    const { userId } = req.user!;
+    const { ids } = req.body as { ids?: string[] };
+    if (!Array.isArray(ids) || ids.length === 0) {
+      sendError(res, 400, "ids array required"); return;
+    }
+    const company = await getCompany();
+    if (!company) { sendError(res, 404, "Company not found"); return; }
+    // Verify ownership of all before deleting any
+    await Promise.all(ids.map((id) => assertOwnsDocument(userId, id, company.id as string)));
+    await Promise.allSettled(ids.map((id) => cascadeDeleteDocument(id, userId)));
+    res.json({ ok: true, deleted: ids.length });
+  }));
+
+  app.delete("/api/company/contracts", requireAuth, ah(async (req: Request, res: Response) => {
+    const { userId } = req.user!;
+    const company = await getCompany();
+    if (!company) { sendError(res, 404, "Company not found"); return; }
+    const allDocs = await pb.collection("uploaded_documents").getFullList({
+      filter: `company = "${company.id}"`,
+      fields: "id",
+    });
+    await Promise.allSettled(allDocs.map((d) => cascadeDeleteDocument(d.id as string, userId)));
+    res.json({ ok: true, deleted: allDocs.length });
   }));
 
   // ── Review ───────────────────────────────────────────────────────────────────

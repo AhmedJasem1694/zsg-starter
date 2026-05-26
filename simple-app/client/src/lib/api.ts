@@ -212,6 +212,15 @@ export async function getDocumentStats(): Promise<{
   ).catch(() => ({ totalContracts: 0, totalValue: 0, redContracts: 0, renewalsDue: 0 }));
 }
 
+export const deleteDocument = (id: string) =>
+  req<{ ok: boolean }>("DELETE", `/api/documents/${id}`);
+
+export const deleteDocuments = (ids: string[]) =>
+  req<{ ok: boolean; deleted: number }>("DELETE", `/api/documents`, { ids });
+
+export const clearAllContracts = () =>
+  req<{ ok: boolean; deleted: number }>("DELETE", `/api/company/contracts`);
+
 // Review
 export const startReview = (documentId: string) =>
   req<{ status: string; documentId: string }>("POST", `/api/review/${documentId}`);

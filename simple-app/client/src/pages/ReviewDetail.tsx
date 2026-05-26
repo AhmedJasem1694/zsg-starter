@@ -13,6 +13,7 @@ import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, Confide
 import { CLAUSE_LABELS } from "../lib/types";
 import { MOCK_REVIEW_DETAIL } from "../lib/mockData";
 import React from "react";
+import { formatContractDate, formatDateShort } from "../lib/dateUtils";
 
 // ─── Data sanitisation ────────────────────────────────────────────────────────
 // Defensive normalisation applied to every ReviewResult before rendering.
@@ -816,9 +817,7 @@ function ContractHeader({
     counts.AMBER >= 2 ? "review" : "ready";
   const readinessCfg = READINESS_CONFIG[readiness];
 
-  const date = new Date(doc.uploadedAt).toLocaleDateString("en-GB", {
-    day: "numeric", month: "short", year: "numeric",
-  });
+  const date = formatDateShort(doc.uploadedAt);
 
   return (
     <div className="rounded-xl border border-[#1E293B] bg-[#0B1521] px-6 py-5 space-y-4">
@@ -1572,10 +1571,12 @@ function ClauseCard({
               </span>
             )}
           </div>
-          {/* Business summary - always visible */}
-          <div className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
-            {result.businessSummary || result.clauseSummary}
-          </div>
+          {/* Business summary - only shown when expanded (RED/AMBER show a hint) */}
+          {(result.ragStatus === "RED" || result.ragStatus === "AMBER") && !expanded && (
+            <div className="text-xs text-muted-foreground/70 mt-1 line-clamp-1 leading-relaxed">
+              {result.businessSummary || result.clauseSummary}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0 pt-0.5">
           {!isMock && <LearningIndicator clauseCategory={result.clauseCategory} />}
@@ -2116,7 +2117,7 @@ function exportReviewAsText(doc: UploadedDocument) {
     GREY_OPTIONAL: results.filter((r) => r.ragStatus === "GREY" && r.missingSeverity !== "CRITICAL").length,
   };
   const overallRag = counts.RED > 0 ? "RED" : counts.AMBER > 0 ? "AMBER" : "GREEN";
-  const date = new Date(doc.uploadedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const date = formatContractDate(doc.uploadedAt);
 
   const lines: string[] = [
     "ZANE REVIEW SUMMARY",

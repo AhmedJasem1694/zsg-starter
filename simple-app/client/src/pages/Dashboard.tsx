@@ -1,12 +1,13 @@
 import React, { useState, useRef } from "react";
+import { formatDateShort } from "../lib/dateUtils";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Upload, FileText, AlertTriangle, CheckCircle, Clock,
   RotateCcw, Shield, ChevronRight, AlertCircle, LayoutGrid, ArrowRight,
-  CalendarClock, Bell, Lock, Activity, X,
+  CalendarClock, Bell, Lock, Activity, X, Trash2,
 } from "lucide-react";
-import { getDocuments, uploadDocument, startReview, getCompany, getDocumentStats } from "../lib/api";
+import { getDocuments, uploadDocument, startReview, getCompany, getDocumentStats, deleteDocument, deleteDocuments } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import ZaneNoticedPanel from "../components/ZaneNoticedPanel";
 import MissingDocsPanel from "../components/MissingDocsPanel";
@@ -57,6 +58,58 @@ function PilotNoticeBanner() {
       >
         <X size={14} />
       </button>
+    </div>
+  );
+}
+
+// ─── Delete confirmation modal ────────────────────────────────────────────────
+
+interface DeleteModalProps {
+  count: number;
+  name?: string; // single contract name
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading: boolean;
+}
+
+function DeleteConfirmModal({ count, name, onConfirm, onCancel, loading }: DeleteModalProps) {
+  const isBulk = count > 1;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+      <div className="bg-[#0D1521] border border-[#1E293B] rounded-xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+        <div className="space-y-1">
+          <div className="text-base font-semibold text-foreground">
+            {isBulk ? `Delete ${count} contracts?` : "Delete this contract?"}
+          </div>
+          {!isBulk && name && (
+            <div className="text-sm text-muted-foreground truncate">{name}</div>
+          )}
+        </div>
+        <p className="text-sm text-muted-foreground/70 leading-relaxed">
+          {isBulk
+            ? `This will permanently remove ${count} contracts and all their analysis results.`
+            : "This will permanently remove the contract, its analysis results, and all associated data."}
+          {" "}This cannot be undone.
+        </p>
+        <div className="flex items-center gap-3 pt-1">
+          {/* Cancel is focused by default so Enter doesn't accidentally confirm */}
+          <button
+            autoFocus
+            onClick={onCancel}
+            disabled={loading}
+            className="flex-1 btn-secondary text-sm py-2"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#450A0A] hover:bg-[#5A0E0E] text-[#FCA5A5] text-sm font-semibold transition-colors disabled:opacity-50"
+          >
+            {loading ? "Deleting…" : isBulk ? `Delete ${count} contracts` : "Delete permanently"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -653,6 +706,29 @@ export default function Dashboard() {
     onSuccess: () => { void queryClient.invalidateQueries({ queryKey: ["documents"] }); },
   });
 
+  // ── Delete state ────────────────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleteModal, setDeleteModal] = useState<{ ids: string[]; name?: string } | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: (ids: string[]) =>
+      ids.length === 1 ? deleteDocument(ids[0]) : deleteDocuments(ids),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["documents"] });
+      void queryClient.invalidateQueries({ queryKey: ["document-stats"] });
+      setDeleteModal(null);
+      setSelectedIds(new Set());
+    },
+  });
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
   // Computed dropdown options based on workflowType
   const contractTypeOptions = workflowType === "INSURANCE_LITIGATION"
     ? INSURANCE_CLAIM_TYPES
@@ -763,6 +839,7 @@ export default function Dashboard() {
     : computeUrgencySignals(filteredDocuments as DocWithRag[]);
 
   return (
+    <>
     <AppLayout>
       <div className="px-6 py-8 max-w-5xl mx-auto space-y-6">
 
@@ -1024,8 +1101,28 @@ export default function Dashboard() {
 
             {/* Recent reviews */}
             <div className="card">
-              <div className="card-header">
-                <h2 className="text-base font-semibold">Recent reviews</h2>
+              <div className="card-header flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {!useMock && filteredDocuments.length > 0 && (
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4 rounded accent-blue-500 cursor-pointer"
+                      checked={selectedIds.size > 0 && selectedIds.size === filteredDocuments.length}
+                      ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < filteredDocuments.length; }}
+                      onChange={(e) => setSelectedIds(e.target.checked ? new Set(filteredDocuments.map((d) => d.id)) : new Set())}
+                    />
+                  )}
+                  <h2 className="text-base font-semibold">Recent reviews</h2>
+                </div>
+                {selectedIds.size > 0 && (
+                  <button
+                    onClick={() => setDeleteModal({ ids: Array.from(selectedIds) })}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#450A0A]/60 hover:bg-[#450A0A] text-[#FCA5A5] text-xs font-semibold transition-colors"
+                  >
+                    <Trash2 size={12} />
+                    Delete {selectedIds.size} selected
+                  </button>
+                )}
               </div>
               {docsError ? (
                 <div className="card-body text-center py-8">
@@ -1059,12 +1156,22 @@ export default function Dashboard() {
                       (Date.now() - new Date(doc.uploadedAt).getTime()) > 10 * 60 * 1000;
 
                     return (
-                      <div key={doc.id}>
+                      <div key={doc.id} className="group">
                       <div
                         className={`px-5 py-4 flex items-center gap-4 transition-colors
                           ${isClickable ? "hover:bg-muted/20 cursor-pointer" : ""}`}
                         onClick={isClickable ? () => navigate(`/app/legal/review/${doc.id}`) : undefined}
                       >
+                        {/* Per-row checkbox (only in real mode) */}
+                        {!useMock && (
+                          <input
+                            type="checkbox"
+                            className="w-4 h-4 rounded accent-blue-500 cursor-pointer shrink-0"
+                            checked={selectedIds.has(doc.id)}
+                            onChange={() => toggleSelect(doc.id)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        )}
                         <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
                           <FileText size={15} className="text-muted-foreground" />
                         </div>
@@ -1083,9 +1190,7 @@ export default function Dashboard() {
                               {doc.contractType.replace(/_/g, " ")}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {doc.uploadedAt && !isNaN(new Date(doc.uploadedAt).getTime())
-                                ? new Date(doc.uploadedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })
-                                : "Date not specified"}
+                              {formatDateShort(doc.uploadedAt)}
                             </span>
                             {docWithMeta.contractValue && (
                               <span className="text-xs text-muted-foreground">
@@ -1141,6 +1246,19 @@ export default function Dashboard() {
                         {isClickable && <ChevronRight size={15} className="text-muted-foreground shrink-0" />}
                         {useMock && doc.status === "COMPLETE" && (
                           <ChevronRight size={15} className="text-muted-foreground/40 shrink-0" />
+                        )}
+                        {/* Delete button — revealed on row hover, never shown in mock mode */}
+                        {!useMock && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeleteModal({ ids: [doc.id], name: doc.originalName });
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-[#450A0A]/60 text-muted-foreground hover:text-[#FCA5A5] shrink-0"
+                            title="Delete contract"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         )}
                       </div>
                       {/* Failed doc lastError message */}
@@ -1252,5 +1370,17 @@ export default function Dashboard() {
         </div>
       </div>
     </AppLayout>
+
+    {/* Delete confirmation modal — rendered outside AppLayout so it overlays everything */}
+    {deleteModal && (
+      <DeleteConfirmModal
+        count={deleteModal.ids.length}
+        name={deleteModal.name}
+        loading={deleteMutation.isPending}
+        onConfirm={() => deleteMutation.mutate(deleteModal.ids)}
+        onCancel={() => setDeleteModal(null)}
+      />
+    )}
+    </>
   );
 }

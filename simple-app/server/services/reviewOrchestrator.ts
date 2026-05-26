@@ -145,7 +145,10 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
     return trigger ? (trigger["escalateTo"] as string) : null;
   }
 
-  console.log(`[review] START documentId=${documentId} file="${doc["filename"] as string}" company=${company.id}`);
+  // Ensure company name is never empty — fall back to "Your company" so LLM output is never blank
+  const effectiveCompanyName = ((company["name"] as string) ?? "").trim() || "Your company";
+
+  console.log(`[review] START documentId=${documentId} file="${doc["filename"] as string}" company=${company.id} name="${effectiveCompanyName}"`);
 
   // Status is already set to PROCESSING by the route handler before runReview() is called.
   // Audit: fire-and-forget — never block the pipeline on audit writes
@@ -193,6 +196,32 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
       console.warn(`[review] Very sparse text (${parseResult.textLength} chars) for ${documentId} - review quality may be low`);
     }
 
+    // ── Auto-extract counterparty name if blank ──────────────────────────────
+    // If the user didn't go through the metadata extraction modal, the counterparty
+    // name stored on the document will be empty. Extract it now from the first
+    // 6000 chars before we anonymise so the entity map is correct.
+    let resolvedCounterpartyName = ((doc["counterpartyName"] as string) ?? "").trim();
+    if (!resolvedCounterpartyName && rawText.length > 20) {
+      try {
+        const { chatComplete } = await import("./openrouter.js");
+        const snippet = rawText.slice(0, 6000);
+        const cpResponse = await chatComplete([{
+          role: "user",
+          content: `Extract the counterparty company or individual name from this contract. Look in: (1) the opening "between X and Y" parties clause, (2) definitions of "Supplier", "Vendor", "Customer", "Client", "Service Provider", (3) the agreement title/header, (4) the signature block. Return ONLY the full legal entity name (e.g. "Attio Limited") — no explanation, no JSON, just the name. If genuinely not identifiable return the single word: unknown\n\n${snippet}`,
+        }], 60);
+        const extracted = cpResponse.trim().replace(/^["']|["']$/g, "");
+        if (extracted && extracted.toLowerCase() !== "unknown" && extracted.length < 120) {
+          resolvedCounterpartyName = extracted;
+          // Persist back so the UI shows it and future requests find it
+          pb.collection("uploaded_documents").update(documentId, { counterpartyName: extracted })
+            .catch((e: unknown) => console.warn("[review] Could not persist extracted counterpartyName:", (e as Error)?.message));
+          console.log(`[review] Auto-extracted counterpartyName="${extracted}" for ${documentId}`);
+        }
+      } catch (err) {
+        console.warn("[review] Counterparty auto-extraction failed (non-fatal):", (err as Error)?.message);
+      }
+    }
+
     // Granular status: ANONYMISING
     await pb.collection("uploaded_documents").update(documentId, { status: "ANONYMISING" });
     console.log(`[review] ANONYMISING ${documentId}`);
@@ -209,7 +238,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
 
     const knownEntities = buildKnownEntities(
       company["name"] as string,
-      doc["counterpartyName"] as string | undefined,
+      resolvedCounterpartyName || undefined,
     );
 
     const { anonymisedText, entityMap, sessionId } = await anonymise(
@@ -432,7 +461,13 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
           const persona = (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER";
           const absent = FAVOURABLE_WHEN_ABSENT.has(category)
             ? buildFavourableAbsentResult(category, rule as any, persona)
-            : buildAbsentClauseResult(category, rule as any, persona);
+            : buildAbsentClauseResult(
+                category,
+                rule as any,
+                persona,
+                (doc["contractType"] as string) ?? "",
+                effectiveCompanyName
+              );
 
           // Favourable-absent clauses get GREEN + no missingSeverity
           const isFavourableAbsent = FAVOURABLE_WHEN_ABSENT.has(category);
@@ -497,7 +532,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
           match.rawText,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           rule as any,
-          company["name"] as string,
+          effectiveCompanyName,
           company["sector"] as string,
           combinedRegContext + govLawSuffix,
           (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER",
@@ -508,6 +543,26 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
           isIndirect,
           match.clauseReference ?? ""
         );
+
+        // ── Fix 1: Guard against GREY or empty fields from the LLM ─────────────
+        // If the LLM returns GREY (which it should never do for a present clause)
+        // or any critical display field is empty, fill from the absent template
+        // and force AMBER so the card renders with meaningful content.
+        const hasMissingFields = !comparison.clauseSummary || !comparison.whyItMatters || !comparison.recommendedAction;
+        if (comparison.ragStatus === "GREY" || hasMissingFields) {
+          console.warn(`[review] LLM returned GREY or empty fields for present clause ${category} in ${documentId} — backfilling from absent template`);
+          const fallback = buildAbsentClauseResult(
+            category, rule as any,
+            (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER",
+            (doc["contractType"] as string) ?? "",
+            effectiveCompanyName
+          );
+          if (comparison.ragStatus === "GREY") (comparison as { ragStatus: string }).ragStatus = "AMBER";
+          if (!comparison.clauseSummary)     (comparison as { clauseSummary: string }).clauseSummary = fallback.clauseSummary;
+          if (!comparison.whyItMatters)      (comparison as { whyItMatters: string }).whyItMatters = fallback.whyItMatters;
+          if (!comparison.recommendedAction) (comparison as { recommendedAction: string }).recommendedAction = fallback.recommendedAction;
+          if (!comparison.businessSummary)   (comparison as { businessSummary: string }).businessSummary = fallback.businessSummary;
+        }
 
         console.log(`[review] compared ${category}: ${comparison.ragStatus} (${comparison.confidenceLabel})`);
 
@@ -604,7 +659,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
       try {
         const findings = await detectContradictions(
           clauseTextMap,
-          company["name"] as string,
+          effectiveCompanyName,
           company["workflowType"] as string
         );
         contradictions = findings;
@@ -639,7 +694,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
     try {
       const auditResult = await runDocumentAudit(
         rawText,
-        company["name"] as string,
+        effectiveCompanyName,
         (doc["contractType"] as string) ?? "COMMERCIAL_CONTRACT"
       );
       console.log(`[review] AUDIT ${documentId}: ${auditResult.totalFindings} findings (${auditResult.highSeverityCount} high severity)`);
@@ -709,7 +764,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
           escalationTrigger: esc.escalationTrigger ?? "Approval required per playbook rule.",
           recommendedAction: esc.recommendedAction,
           businessSummary:   esc.businessSummary,
-          companyName:       company["name"] as string,
+          companyName:       effectiveCompanyName,
         }).catch((err: unknown) => {
           console.error(`[Zane] Escalation email failed for ${esc.clauseCategory}:`, err);
         });
