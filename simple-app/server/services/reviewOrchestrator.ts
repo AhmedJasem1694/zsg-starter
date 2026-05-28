@@ -25,6 +25,21 @@ function toTitleCase(s: string) {
   return s.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+// ── Pipeline timing helpers ───────────────────────────────────────────────────
+function makeTiming(docId: string) {
+  const origin = Date.now();
+  let last = origin;
+  return {
+    mark(label: string): void {
+      const now = Date.now();
+      const sinceOrigin = now - origin;
+      const sinceLast  = now - last;
+      last = now;
+      console.log(`[timing] ${docId} | ${label} | +${sinceLast}ms | total ${sinceOrigin}ms`);
+    },
+  };
+}
+
 // ── Missing-clause severity classification ────────────────────────────────────
 // Hardcoded v1 classification for commercial contracts.
 // A clause absent from the document is CRITICAL if its absence creates genuine
@@ -85,9 +100,9 @@ export async function runReview(documentId: string): Promise<void> {
 }
 
 // Concurrency limiter: run at most MAX_CONCURRENT LLM clause comparisons simultaneously.
-// This prevents hammering the upstream API with 10+ simultaneous requests which can cause
-// rate-limit errors that silently kill individual comparisons.
-const MAX_CONCURRENT_COMPARISONS = 4;
+// 8 is the sweet spot: covers a typical NDA (5-8 clauses) in a single parallel batch
+// while staying under OpenRouter's per-minute rate limit for claude-sonnet.
+const MAX_CONCURRENT_COMPARISONS = 8;
 
 async function runWithConcurrencyLimit<T>(
   tasks: Array<() => Promise<T>>,
@@ -148,7 +163,9 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
   // Ensure company name is never empty — fall back to "Your company" so LLM output is never blank
   const effectiveCompanyName = ((company["name"] as string) ?? "").trim() || "Your company";
 
+  const t = makeTiming(documentId);
   console.log(`[review] START documentId=${documentId} file="${doc["filename"] as string}" company=${company.id} name="${effectiveCompanyName}"`);
+  t.mark("pipeline start — setup complete (doc + company + playbook loaded)");
 
   // Status is already set to PROCESSING by the route handler before runReview() is called.
   // Audit: fire-and-forget — never block the pipeline on audit writes
@@ -178,6 +195,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
     const extractionMethod = parseResult.extractionMethod;
 
     console.log(`[review] PARSED ${documentId}: method=${extractionMethod} chars=${parseResult.textLength} ocrUsed=${ocrUsed}${parseResult.errorMessage ? ` warn="${parseResult.errorMessage}"` : ""}`);
+    t.mark(`text extraction complete — ${parseResult.textLength} chars via ${extractionMethod}`);
 
     // Store extraction metadata on the document (best-effort - fields may not exist in older schemas)
     pb.collection("uploaded_documents").update(documentId, {
@@ -205,10 +223,11 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
       try {
         const { chatComplete } = await import("./openrouter.js");
         const snippet = rawText.slice(0, 6000);
+        // 60 max tokens (just a name), 20s timeout — this is a fast auxiliary call
         const cpResponse = await chatComplete([{
           role: "user",
           content: `Extract the counterparty company or individual name from this contract. Look in: (1) the opening "between X and Y" parties clause, (2) definitions of "Supplier", "Vendor", "Customer", "Client", "Service Provider", (3) the agreement title/header, (4) the signature block. Return ONLY the full legal entity name (e.g. "Attio Limited") — no explanation, no JSON, just the name. If genuinely not identifiable return the single word: unknown\n\n${snippet}`,
-        }], 60);
+        }], 60, 20_000);
         const extracted = cpResponse.trim().replace(/^["']|["']$/g, "");
         if (extracted && extracted.toLowerCase() !== "unknown" && extracted.length < 120) {
           resolvedCounterpartyName = extracted;
@@ -217,8 +236,10 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
             .catch((e: unknown) => console.warn("[review] Could not persist extracted counterpartyName:", (e as Error)?.message));
           console.log(`[review] Auto-extracted counterpartyName="${extracted}" for ${documentId}`);
         }
+        t.mark(`counterparty extraction — ${resolvedCounterpartyName ? `found "${resolvedCounterpartyName}"` : "not found"}`);
       } catch (err) {
         console.warn("[review] Counterparty auto-extraction failed (non-fatal):", (err as Error)?.message);
+        t.mark("counterparty extraction — failed (non-fatal)");
       }
     }
 
@@ -248,6 +269,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
     );
 
     console.log(`[review] ANONYMISED ${documentId}: session=${sessionId} entities=${entityMap.length}`);
+    t.mark(`PII anonymisation complete — ${entityMap.length} entities masked`);
 
     void audit({
       action: "pii_anonymisation_completed",
@@ -330,6 +352,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
       getRegulationSummaryForLLM(company.id),
     ]);
     console.log(`[review] CLASSIFIED ${documentId}: ${classified.length} clauses matched out of ${playbookCategories.length} categories`);
+    t.mark(`clause classification complete — ${classified.length}/${playbookCategories.length} categories matched`);
 
     // Deduplicate - keep highest-confidence chunk per category (merges across all sections)
     const bestByCategory = new Map<string, (typeof classified)[0]>();
@@ -503,31 +526,33 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
         }
 
         // ── Present clause — LLM comparison ─────────────────────────────────
-        // Store extracted clause text (de-anonymised for user-facing display).
-        const extractedClause = await pb.collection("extracted_clauses").create({
-          document: documentId,
-          clauseCategory: category,
-          rawText: deanonymise(match.rawText, entityMap),
-          confidence: match.confidence,
-        }).catch((err: unknown) => {
-          console.error(`[review] extracted_clauses.create FAILED for ${documentId}/${category}:`, (err as any)?.message, JSON.stringify((err as any)?.response));
-          throw err;
-        });
-
-        // Per-clause regulatory context (runs in parallel with the LLM call via
-        // the outer Promise.allSettled — each rule fetches its own context).
-        const clauseRegDocs = await getRegulatoryContext({
-          clauseCategory: category,
-          jurisdiction: company["jurisdiction"] as string,
-          sector: company["sector"] as string,
-        });
-        const combinedRegContext = regulatoryContext + formatRegulatoryContextForPrompt(clauseRegDocs);
-
+        // Run the PocketBase write (extracted_clauses) and the regulatory context
+        // lookup in parallel — neither depends on the other, and both must complete
+        // before the LLM comparison call can use their results.
         const isIndirect = match.presenceState === "INDIRECT";
         if (isIndirect) {
           console.log(`[review] INDIRECT match for ${category} at "${match.clauseReference ?? "unknown location"}" in ${documentId}`);
         }
+        t.mark(`${category}: starting PB write + reg context fetch in parallel`);
+        const [extractedClause, clauseRegDocs] = await Promise.all([
+          pb.collection("extracted_clauses").create({
+            document: documentId,
+            clauseCategory: category,
+            rawText: deanonymise(match.rawText, entityMap),
+            confidence: match.confidence,
+          }).catch((err: unknown) => {
+            console.error(`[review] extracted_clauses.create FAILED for ${documentId}/${category}:`, (err as any)?.message, JSON.stringify((err as any)?.response));
+            throw err;
+          }),
+          getRegulatoryContext({
+            clauseCategory: category,
+            jurisdiction: company["jurisdiction"] as string,
+            sector: company["sector"] as string,
+          }),
+        ]);
+        const combinedRegContext = regulatoryContext + formatRegulatoryContextForPrompt(clauseRegDocs);
 
+        t.mark(`${category}: LLM comparison starting`);
         const comparison = await compareClauseToPlaybook(
           match.rawText,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -565,6 +590,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
         }
 
         console.log(`[review] compared ${category}: ${comparison.ragStatus} (${comparison.confidenceLabel})`);
+        t.mark(`${category}: LLM comparison complete — ${comparison.ragStatus}`);
 
         // De-anonymise LLM output fields before persisting.
         const deanonComparison = {
@@ -644,8 +670,14 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
       console.error(`[review] ${clauseFailures.length} clause(s) failed during parallel comparison:`,
         clauseFailures.map((s) => (s as PromiseRejectedResult).reason?.message ?? s));
     }
+    t.mark(`playbook comparison complete — ${results.length} clauses (${clauseFailures.length} failed)`);
 
-    // ── Contradiction detection (second LLM pass) ──────────────────────────────
+    // ── Contradiction detection + document audit run in PARALLEL ──────────────
+    // Both are independent post-processing LLM passes — neither depends on the
+    // other, so they run simultaneously. This saves 10-15s vs. running them one
+    // after the other.
+    //
+    // Contradiction detection (second LLM pass) ──────────────────────────────
     // Build a map of category → clause summary for the detector.
     const clauseTextMap = new Map<string, string>();
     for (const r of results) {
@@ -655,7 +687,9 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
     }
 
     let contradictions: unknown[] = [];
-    if (clauseTextMap.size >= 2) {
+
+    const runContradictions = async () => {
+      if (clauseTextMap.size < 2) return;
       try {
         const findings = await detectContradictions(
           clauseTextMap,
@@ -663,6 +697,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
           company["workflowType"] as string
         );
         contradictions = findings;
+        t.mark(`contradiction detection complete — ${findings.length} findings`);
         if (findings.length > 0) {
           void audit({
             action: "contradiction_detected",
@@ -671,41 +706,44 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
             companyId: company.id,
             detail: { count: findings.length, findings: findings.map((f) => f.title) },
           });
+          await pb.collection("uploaded_documents").update(documentId, {
+            contradictions: JSON.stringify(findings),
+          }).catch((e: unknown) => {
+            console.warn("[review] Could not persist contradictions (non-fatal):", (e as Error)?.message);
+          });
         }
       } catch (err) {
         console.error("[contradiction detection] failed (non-fatal):", err);
+        t.mark("contradiction detection — failed (non-fatal)");
       }
-    }
-
-    // Persist contradictions on the document record (non-fatal — never abort the review for this)
-    if (contradictions.length > 0) {
-      await pb.collection("uploaded_documents").update(documentId, {
-        contradictions: JSON.stringify(contradictions),
-      }).catch((e: unknown) => {
-        console.warn("[review] Could not persist contradictions (non-fatal):", (e as Error)?.message);
-      });
-    }
+    };
 
     // ── Multi-pass document audit (passes 2-5) ─────────────────────────────────
-    // Run all 4 additional analytical passes on the raw document text.
-    // These run after clause comparison is complete. Findings are stored as JSON
-    // on the document record. Non-fatal — never abort the review for audit failures.
+    // Runs in parallel with contradiction detection. All 4 internal audit passes
+    // already run in parallel inside runDocumentAudit().
     console.log(`[review] AUDITING ${documentId}: running document audit passes 2-5`);
-    try {
-      const auditResult = await runDocumentAudit(
-        rawText,
-        effectiveCompanyName,
-        (doc["contractType"] as string) ?? "COMMERCIAL_CONTRACT"
-      );
-      console.log(`[review] AUDIT ${documentId}: ${auditResult.totalFindings} findings (${auditResult.highSeverityCount} high severity)`);
-      await pb.collection("uploaded_documents").update(documentId, {
-        auditFindings: JSON.stringify(auditResult),
-      }).catch((e: unknown) => {
-        console.warn("[review] Could not persist audit findings (non-fatal):", (e as Error)?.message);
-      });
-    } catch (err) {
-      console.error("[review] Document audit failed (non-fatal):", (err as Error)?.message);
-    }
+    const runAudit = async () => {
+      try {
+        const auditResult = await runDocumentAudit(
+          rawText,
+          effectiveCompanyName,
+          (doc["contractType"] as string) ?? "COMMERCIAL_CONTRACT"
+        );
+        console.log(`[review] AUDIT ${documentId}: ${auditResult.totalFindings} findings (${auditResult.highSeverityCount} high severity)`);
+        t.mark(`document audit complete — ${auditResult.totalFindings} findings (${auditResult.highSeverityCount} high)`);
+        await pb.collection("uploaded_documents").update(documentId, {
+          auditFindings: JSON.stringify(auditResult),
+        }).catch((e: unknown) => {
+          console.warn("[review] Could not persist audit findings (non-fatal):", (e as Error)?.message);
+        });
+      } catch (err) {
+        console.error("[review] Document audit failed (non-fatal):", (err as Error)?.message);
+        t.mark("document audit — failed (non-fatal)");
+      }
+    };
+
+    // Fire both passes simultaneously — neither depends on the other
+    await Promise.all([runContradictions(), runAudit()]);
 
     // If the hard timeout fired while we were running, do not override the FAILED status
     // that the timeout handler already wrote. Simply return without setting COMPLETE.
@@ -718,6 +756,8 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
     // (streaming). No batch write needed here.
 
     await pb.collection("uploaded_documents").update(documentId, { status: "COMPLETE" });
+
+    t.mark("COMPLETE — total pipeline time");
 
     console.log(`[review] COMPLETE ${documentId}: ${results.length} clauses (RED=${results.filter((r) => r.ragStatus === "RED").length} AMBER=${results.filter((r) => r.ragStatus === "AMBER").length} GREEN=${results.filter((r) => r.ragStatus === "GREEN").length} GREY=${results.filter((r) => r.ragStatus === "GREY").length})`);
 
