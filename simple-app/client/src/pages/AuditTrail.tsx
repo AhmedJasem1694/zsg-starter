@@ -4,6 +4,7 @@ import { ClipboardList, ChevronLeft, ChevronRight, Download, Search, X } from "l
 import AppLayout from "../components/layout/AppLayout";
 import { getAuditLog, exportAuditLogCSV } from "../lib/api";
 import type { AuditEntry } from "../lib/api";
+import { formatDateTime } from "../lib/dateUtils";
 
 const AUDIT_ACTION_OPTIONS = [
   "contract_uploaded",
@@ -67,9 +68,7 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
     >
       <div className="flex items-center gap-3 min-w-0">
         <div className="text-[11px] text-muted-foreground/50 shrink-0 w-32 font-mono">
-          {new Date(entry.createdAt).toLocaleString("en-GB", {
-            day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
-          })}
+          {formatDateTime(entry.createdAt)}
         </div>
         <span className={`text-xs font-semibold shrink-0 ${actionColor(entry.action)}`}>
           {actionLabel(entry.action)}

@@ -17,7 +17,6 @@ const LEGAL_NAV = [
   { to: "/app/legal/library",     icon: Library,          label: "Library" },
   { to: "/app/legal/playbook",    icon: BookOpen,         label: "Playbook" },
   { to: "/app/legal/portfolio",   icon: PieChart,         label: "Portfolio Risk" },
-  { to: "/app/legal/regulations", icon: Shield,           label: "Regulatory Profile" },
   { to: "/app/legal/bulk-review", icon: LayoutGrid,       label: "Bulk Review" },
 ];
 
@@ -28,9 +27,10 @@ const LEGAL_NAV_DATA_DEPENDENT = [
 ];
 
 const LEGAL_NAV_SECONDARY = [
-  { to: "/app/legal/team",   icon: Users,         label: "Team" },
-  { to: "/app/legal/audit",  icon: ClipboardList, label: "Audit Trail" },
-  { to: "/security",         icon: Lock,          label: "Security" },
+  { to: "/app/legal/team",        icon: Users,         label: "Team" },
+  { to: "/app/legal/audit",       icon: ClipboardList, label: "Audit Trail" },
+  { to: "/app/legal/regulations", icon: Shield,        label: "Regulatory Profile" },
+  { to: "/security",              icon: Lock,          label: "Security" },
 ];
 
 // ── Founder nav ───────────────────────────────────────────────────────────────

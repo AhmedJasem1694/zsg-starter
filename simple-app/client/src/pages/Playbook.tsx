@@ -77,22 +77,24 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
       >
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <span className="text-sm font-semibold">{CLAUSE_LABELS[rule.clauseCategory as ClauseCategory]}</span>
-          {/* Drift indicator */}
-          {outcome && outcome.total > 0 && (
-            <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
-              <span className="bg-muted px-1.5 py-0.5 rounded-full">{outcome.total} reviews</span>
-              {outcome.redCount > 0 && outcome.accepted > 0 && (
+          {/* Variance indicator */}
+          <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
+            {outcome && outcome.total > 0 ? (
+              <>
+                <span className="text-[#86EFAC] bg-[#052E16] border border-[#14532D] px-1.5 py-0.5 rounded-full">
+                  Preferred {Math.round((outcome.greenCount / outcome.total) * 100)}%
+                </span>
                 <span className="text-[#FCD34D] bg-[#1C0F00] border border-[#431407] px-1.5 py-0.5 rounded-full">
-                  {outcome.accepted} accepted
+                  Fallback {Math.round((outcome.amberCount / outcome.total) * 100)}%
                 </span>
-              )}
-              {outcome.escalated > 0 && (
-                <span className="text-[#60A5FA] bg-[#172B4D] border border-[#1E3A5F] px-1.5 py-0.5 rounded-full">
-                  {outcome.escalated} escalated
+                <span className="text-[#FCA5A5] bg-[#1F0A0A] border border-[#450A0A] px-1.5 py-0.5 rounded-full">
+                  Below fallback {Math.round((outcome.redCount / outcome.total) * 100)}%
                 </span>
-              )}
-            </div>
-          )}
+              </>
+            ) : (
+              <span className="bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground/50">No outcomes yet</span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           {rule.approvalRequired && (

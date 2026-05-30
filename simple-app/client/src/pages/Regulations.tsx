@@ -5,6 +5,7 @@ import {
   AlertTriangle, TrendingUp, CheckCircle, Loader2,
 } from "lucide-react";
 import { getRegulations, detectRegulations, getCompany, getRegulatoryUpdates, synthesiseRegulation } from "../lib/api";
+import { formatContractDate } from "../lib/dateUtils";
 import AppLayout from "../components/layout/AppLayout";
 import type { CompanyRegulation } from "../lib/types";
 
@@ -104,7 +105,7 @@ function SynthesisPanel({ regId }: { regId: string }) {
           </div>
           {createdAt && (
             <div className="text-[9px] text-foreground/30">
-              Synthesised {new Date(createdAt).toLocaleDateString()}
+              Synthesised {formatContractDate(createdAt)}
             </div>
           )}
         </div>

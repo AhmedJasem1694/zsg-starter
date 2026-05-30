@@ -7,7 +7,7 @@ import {
   TrendingDown, Layers, CalendarClock, FileCheck, Users, BarChart2, ChevronRight,
   MessageSquare, Shield, Edit2, Flag, Upload, Brain, Dot,
 } from "lucide-react";
-import { getReview, saveFeedback, generateReply, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary } from "../lib/api";
+import { getReview, saveFeedback, generateReply, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, ConfidenceLabel, RegulatoryCitation } from "../lib/types";
 import { CLAUSE_LABELS } from "../lib/types";
@@ -161,6 +161,12 @@ export default function ReviewDetail() {
 
   const finalFileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingFinal, setUploadingFinal] = useState(false);
+
+  const { data: companyData } = useQuery({
+    queryKey: ["company"],
+    queryFn:  getCompany,
+    staleTime: 300_000,
+  });
 
   const { data: outcomeDeltaData } = useQuery({
     queryKey: ["outcome-deltas-check", id],
@@ -771,7 +777,7 @@ export default function ReviewDetail() {
           {/* Right - sticky sidebar */}
           <div className="space-y-4 lg:sticky lg:top-4 slide-in-left">
             <SignOffTracker doc={doc} results={results} />
-            <IntelligenceSignals doc={doc} results={results} isMock={isMock} />
+            <IntelligenceSignals doc={doc} results={results} isMock={isMock} companyName={companyData?.name} />
             <RiskDistribution counts={counts} total={results.length} />
           </div>
         </div>
@@ -1008,10 +1014,12 @@ function IntelligenceSignals({
   doc,
   results,
   isMock,
+  companyName,
 }: {
   doc: UploadedDocument;
   results: ReviewResult[];
   isMock: boolean;
+  companyName?: string;
 }) {
   const signals: Array<{
     icon: React.ElementType;
@@ -1026,17 +1034,30 @@ function IntelligenceSignals({
     ? Math.ceil((new Date(doc.renewalDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null;
 
+  // Derive highest approver role from escalation triggers
+  function getHighestApprover(): string {
+    const escalatingResults = results.filter((r) => r.escalationRequired && r.escalationTrigger);
+    if (!escalatingResults.length) return "GC";
+    const trigger = escalatingResults[0].escalationTrigger?.toUpperCase() ?? "";
+    if (trigger.includes("BOARD")) return "Board";
+    if (trigger.includes("CFO")) return "CFO";
+    if (trigger.includes("CEO")) return "CEO";
+    if (trigger.includes("GC") || trigger.includes("GENERAL")) return "GC";
+    return "Legal";
+  }
+
   // Pattern signal from red clauses
   if (redResults.length > 0) {
-    const cats = redResults.map((r) => CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory).join(" and ");
+    const approverRole = getHighestApprover();
+    const co = companyName ?? "your organisation";
     signals.push({
       icon: TrendingDown,
       color: "#FCA5A5",
       bgColor: "#1A0404",
       borderColor: "#450A0A",
       text: isMock
-        ? `${cats} flagged RED across all prior Acme Corp reviews - consistent counterparty negotiation posture.`
-        : `${cats} flagged as high risk in this agreement.`,
+        ? `${redResults.length} clauses flagged RED across all prior Acme Corp reviews - consistent counterparty negotiation posture.`
+        : `These ${redResults.length} clause${redResults.length !== 1 ? "s" : ""} exceed ${co}'s accepted risk thresholds and trigger mandatory ${approverRole} approval before this contract can proceed.`,
     });
   }
 

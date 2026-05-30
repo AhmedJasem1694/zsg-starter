@@ -5,6 +5,7 @@ import {
   Shield, BookOpen, Upload, BarChart2, ChevronRight,
 } from "lucide-react";
 import { getTeamInvites, sendTeamInvites, cancelTeamInvite } from "../lib/api";
+import { formatDateShort } from "../lib/dateUtils";
 import AppLayout from "../components/layout/AppLayout";
 
 // ── Role options ──────────────────────────────────────────────────────────────
@@ -238,7 +239,7 @@ export default function TeamManagement() {
                     <div className="text-sm font-medium truncate">{invite.email}</div>
                     <div className="text-[10px] text-foreground/40">
                       {ROLES.find((r) => r.value === invite.role)?.label ?? invite.role} ·
-                      {" "}Invited {new Date(invite.created).toLocaleDateString()}
+                      {" "}Invited {formatDateShort(invite.created)}
                     </div>
                   </div>
                   <InviteStatusBadge status={invite.status} />

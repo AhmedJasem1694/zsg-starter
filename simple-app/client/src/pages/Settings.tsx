@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { formatDateTime } from "../lib/dateUtils";
 import {
   HardDrive,
   Building2,
@@ -265,12 +266,7 @@ function IntegrationCard({
       {config?.lastSyncAt && (
         <div className="text-xs text-muted-foreground/40">
           Last sync:{" "}
-          {new Date(config.lastSyncAt).toLocaleString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+          {formatDateTime(config.lastSyncAt)}
         </div>
       )}
 
@@ -566,12 +562,7 @@ function SyncLogTable({ entries }: { entries: SyncLogEntry[] }) {
               {syncStatusLabel(entry.status)}
             </span>
             <span className="shrink-0 text-muted-foreground/30 font-mono text-[10px]">
-              {new Date(entry.created).toLocaleString("en-GB", {
-                day: "2-digit",
-                month: "short",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {formatDateTime(entry.created)}
             </span>
           </div>
         ))}

@@ -288,7 +288,7 @@ export default function Landing() {
             className="text-base sm:text-lg text-white/55 leading-relaxed max-w-2xl mx-auto"
             {...(shouldReduce ? {} : fadeUpHero(0.4))}
           >
-            Review contracts against your real negotiation history, escalation thresholds, and commercial risk positions. Not generic market standard. Yours.
+            Most legal teams spend hours reviewing the same clauses, escalating the same risks, and negotiating the same positions — because nobody documented what was decided last time. Zane reviews contracts against your actual playbook, negotiation history, approval thresholds and regulatory obligations. In minutes. Not hours.
           </motion.p>
 
           {/* CTA */}
@@ -311,10 +311,10 @@ export default function Landing() {
             {...(shouldReduce ? {} : fadeUpHero(0.64))}
           >
             {[
-              { value: "50+",     label: "Clause types" },
-              { value: "14",      label: "Jurisdictions" },
-              { value: "minutes", label: "Not hours" },
-              { value: "100%",    label: "Playbook-calibrated" },
+              { value: "11 minutes",      label: "Average review time" },
+              { value: "Zero",            label: "Sessions starting from scratch" },
+              { value: "Every decision",  label: "Remembered and applied" },
+              { value: "1 to 5 lawyers",  label: "The team size we are built for" },
             ].map(({ value, label }) => (
               <div key={label} className="text-center space-y-0.5">
                 <div className="text-lg font-bold text-white">{value}</div>
@@ -339,18 +339,29 @@ export default function Landing() {
         <div className="max-w-3xl mx-auto px-6 space-y-8">
           <motion.div className="space-y-4" {...headingReveal}>
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-              Most legal teams renegotiate the same risks over and over again.
+              Most legal teams get this wrong every day.
             </h2>
           </motion.div>
           <motion.div className="space-y-5 text-gray-600 leading-relaxed text-sm" {...fadeUp(0.1)}>
             <p>
-              Because the reasoning behind prior negotiations is never captured. A new contract lands. The team analyses it from scratch. They accept a position they have accepted seven times before without knowing it. Or they push back on something they have always conceded, wasting everyone's time.
+              They review the same clauses repeatedly because nobody documented the last decision. They make inconsistent risk calls because the playbook lives in one person's head. They miss approval thresholds because there is no system enforcing them. And when someone leaves the team, everything they knew leaves with them.
             </p>
             <p>
-              The problem is not speed. It is that legal knowledge lives in one person's head, in old email threads, in contracts nobody reads until something goes wrong.
+              The problem is not speed. It is that legal knowledge was never captured in the first place.
             </p>
-            <p>
-              When that person leaves, the knowledge leaves with them. When the team grows, consistency disappears. When a regulator asks why a decision was made, nobody can answer.
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─── KIRKLAND CALLOUT ────────────────────────────────────────────────── */}
+      <section className="py-12 bg-[#F7F6F3] border-t border-black/5">
+        <div className="max-w-3xl mx-auto px-6">
+          <motion.div
+            className="rounded-xl border border-gray-900/15 bg-gray-900 px-8 py-6"
+            {...fadeUp(0)}
+          >
+            <p className="text-sm text-white/70 leading-relaxed">
+              Kirkland and Ellis is spending $500 million to encode their lawyers' collective intelligence into a platform they own. Zane does the same thing for your legal team. Automatically. From day one.
             </p>
           </motion.div>
         </div>

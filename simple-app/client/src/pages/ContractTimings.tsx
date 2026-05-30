@@ -1,4 +1,5 @@
 import { CalendarClock, AlertTriangle, Clock, Upload } from "lucide-react";
+import { formatDateShort } from "../lib/dateUtils";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getTimings } from "../lib/api";
@@ -119,7 +120,7 @@ function TimingsContent({ data }: { data: TimingsData }) {
                     <span>·</span>
                     <span>{item.contractType}</span>
                     <span>·</span>
-                    <span>Reviewed {new Date(item.uploadedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
+                    <span>Reviewed {formatDateShort(item.uploadedAt)}</span>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{item.summary}</p>
                 </div>

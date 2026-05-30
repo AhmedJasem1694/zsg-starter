@@ -132,7 +132,11 @@ function PortfolioContent({ data }: { data: PortfolioData }) {
         <KpiCard
           label="RED clause rate"
           value={`${redPct}%`}
-          sub={`${data.totalRedResults} red flags`}
+          sub={
+            data.escalationsOpen > 0
+              ? `${data.escalationsOpen} contract${data.escalationsOpen !== 1 ? "s" : ""} require approval${data.valueAtRisk?.RED > 0 ? ` — ${fmt(data.valueAtRisk.RED)} at risk` : ""}`
+              : `${data.totalRedResults} clause${data.totalRedResults !== 1 ? "s" : ""} outside risk tolerance`
+          }
           icon={AlertTriangle}
           color={redPct > 30 ? "text-red-400" : redPct > 15 ? "text-amber-400" : "text-green-400"}
         />
