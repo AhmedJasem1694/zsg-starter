@@ -13,6 +13,7 @@ import {
   INVESTMENT_CLAUSE_CATEGORIES,
   INSURANCE_CLAUSE_CATEGORIES,
   LOGISTICS_CLAUSE_CATEGORIES,
+  HEALTHCARE_PROCUREMENT_CATEGORIES,
   INDUSTRY_LABELS,
   getIndustryClauseCategories,
   type ClauseCategory,
@@ -226,6 +227,9 @@ export default function Onboarding() {
     }
     if (wfType === "LOGISTICS_CONTRACT") {
       return LOGISTICS_CLAUSE_CATEGORIES.map((cat) => ({ clauseCategory: cat, ...defaults[cat], riskWeight: 3 }));
+    }
+    if (wfType === "HEALTHCARE_PROCUREMENT") {
+      return HEALTHCARE_PROCUREMENT_CATEGORIES.map((cat) => ({ clauseCategory: cat, ...defaults[cat], riskWeight: 3 }));
     }
     const PROPERTY_ONLY: ClauseCategory[] = ["RENT_REVIEW", "BREAK_CLAUSE", "REPAIR_OBLIGATIONS", "SERVICE_CHARGE"];
     const coreCategories = CLAUSE_CATEGORIES
@@ -544,6 +548,11 @@ const WORKFLOW_OPTIONS: { value: WorkflowType; label: string; description: strin
     value: "INSURANCE_LITIGATION",
     label: "Litigation",
     description: "Triage and manage claims across insurance, commercial civil, property, employment, and professional indemnity. Coverage analysis through to settlement authority and FCA compliance.",
+  },
+  {
+    value: "HEALTHCARE_PROCUREMENT",
+    label: "Healthcare & NHS procurement",
+    description: "Review NHS supplier contracts and healthcare procurement agreements against NHS Standard Contract requirements, CQC obligations, UK GDPR Article 9 (special category health data), and Procurement Act 2023 compliance.",
   },
 ];
 

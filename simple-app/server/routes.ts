@@ -52,6 +52,10 @@ const COOKIE_OPTS = {
   httpOnly: true,
   secure: isProd,
   sameSite: (isProd && crossDomain ? "none" : "lax") as "none" | "lax",
+  // Scope cookie to all zanelegal.ai subdomains in production so auth works
+  // across app.zanelegal.ai → api.zanelegal.ai. In dev (no isProd), omit domain
+  // so localhost cookies work without cross-origin complexity.
+  ...(isProd ? { domain: ".zanelegal.ai" } : {}),
   maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
 };
 
@@ -65,7 +69,7 @@ const companySchema = z.object({
   riskAppetite: z.enum(["CONSERVATIVE", "MODERATE", "COMMERCIAL"]),
   industry: z.string().optional(),
   persona: z.enum(["CORPORATE", "FOUNDER"]).optional(),
-  workflowType: z.enum(["COMMERCIAL_CONTRACT", "INSURANCE_LITIGATION", "LOGISTICS_CONTRACT"]).optional(),
+  workflowType: z.enum(["COMMERCIAL_CONTRACT", "INSURANCE_LITIGATION", "LOGISTICS_CONTRACT", "HEALTHCARE_PROCUREMENT"]).optional(),
 });
 
 const playbookRuleSchema = z.object({

@@ -26,6 +26,9 @@ const app = express();
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  "https://zanelegal.ai",
+  "https://www.zanelegal.ai",
+  "https://app.zanelegal.ai",
   "http://localhost:3000",
   "http://localhost:5173",
 ].filter(Boolean) as string[];

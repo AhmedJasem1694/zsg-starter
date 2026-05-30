@@ -175,7 +175,7 @@ export default function Resources() {
           ))}
         </div>
         <p className="text-xs text-muted-foreground mt-6 text-center">
-          Full guide library coming soon. <a href="mailto:hello@usezane.ai" className="text-primary hover:underline">Email us</a> if you need help with a specific use case.
+          Full guide library coming soon. <a href="mailto:hello@zanelegal.ai" className="text-primary hover:underline">Email us</a> if you need help with a specific use case.
         </p>
       </section>
 

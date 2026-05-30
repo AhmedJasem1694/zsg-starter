@@ -22,7 +22,7 @@ export interface DocumentAuditResult {
 export type RiskAppetite = "CONSERVATIVE" | "MODERATE" | "COMMERCIAL";
 export type DeltaOutcome = "PREFERRED" | "FALLBACK" | "BELOW_FALLBACK" | "NO_CHANGE" | "REMOVED";
 export type CompanyRuleStatus = "PENDING" | "ACTIVE" | "REJECTED";
-export type WorkflowType = "COMMERCIAL_CONTRACT" | "INSURANCE_LITIGATION" | "LOGISTICS_CONTRACT";
+export type WorkflowType = "COMMERCIAL_CONTRACT" | "INSURANCE_LITIGATION" | "LOGISTICS_CONTRACT" | "HEALTHCARE_PROCUREMENT";
 export type CompanyRole = "BUYER" | "SUPPLIER" | "BOTH" | "INSURER_INHOUSE" | "PANEL_FIRM" | "TPA" | "CLAIMANT_FIRM" | "DEFENDANT_FIRM";
 export type ApprovalRole = "LEGAL" | "GC" | "CFO" | "BOARD";
 export type RagStatus = "RED" | "AMBER" | "GREEN" | "GREY";
@@ -197,7 +197,18 @@ export type ClauseCategory =
   | "PS_ENGAGEMENT_SCOPE"
   | "PS_FEE_BILLING"
   | "PS_CONFLICTS_INTEREST"
-  | "PS_PROFESSIONAL_LIABILITY";
+  | "PS_PROFESSIONAL_LIABILITY"
+  // Healthcare Procurement workflow
+  | "HC_NHS_CONTRACT_TERMS"
+  | "HC_PATIENT_DATA_ARTICLE9"
+  | "HC_CLINICAL_LIABILITY"
+  | "HC_CQC_COMPLIANCE"
+  | "HC_PROCUREMENT_LAW"
+  | "HC_NHS_PRICING"
+  | "HC_HEALTHCARE_ANTIBRIBERY"
+  | "HC_MODERN_SLAVERY_SUPPLY"
+  | "HC_REGULATORY_BREACH_TERM"
+  | "HC_HEALTHCARE_INSURANCE";
 
 export const CLAUSE_CATEGORIES: ClauseCategory[] = [
   "LIABILITY_CAP",
@@ -424,6 +435,17 @@ export const CLAUSE_LABELS: Record<ClauseCategory, string> = {
   PS_FEE_BILLING: "Fee Arrangements & Billing Practices",
   PS_CONFLICTS_INTEREST: "Conflicts of Interest & Independence",
   PS_PROFESSIONAL_LIABILITY: "Professional Liability & PI Insurance",
+  // Healthcare Procurement workflow
+  HC_NHS_CONTRACT_TERMS: "NHS Contract Terms & Standard Provisions",
+  HC_PATIENT_DATA_ARTICLE9: "Patient Data & Special Category Data (Article 9)",
+  HC_CLINICAL_LIABILITY: "Clinical Liability & Indemnity",
+  HC_CQC_COMPLIANCE: "CQC Compliance Obligations",
+  HC_PROCUREMENT_LAW: "Procurement Law Compliance (PCR 2015 / PA 2023)",
+  HC_NHS_PRICING: "NHS Pricing & Payment Mechanisms",
+  HC_HEALTHCARE_ANTIBRIBERY: "Healthcare Anti-Bribery",
+  HC_MODERN_SLAVERY_SUPPLY: "Modern Slavery & Supply Chain",
+  HC_REGULATORY_BREACH_TERM: "Termination for Regulatory Breach",
+  HC_HEALTHCARE_INSURANCE: "Insurance for Healthcare Activities",
 };
 
 // Property-specific clause types (shown only for real estate / property contracts)
@@ -515,6 +537,20 @@ export const FINANCIAL_SERVICES_CLAUSE_CATEGORIES: ClauseCategory[] = [
 export const HEALTHCARE_CLAUSE_CATEGORIES: ClauseCategory[] = [
   "HEALTH_PATIENT_DATA", "HEALTH_REGULATORY_APPROVAL", "HEALTH_PHARMACOVIGILANCE",
   "HEALTH_CLINICAL_PROTOCOL", "HEALTH_NHS_TERMS", "HEALTH_PRODUCT_LIABILITY",
+];
+
+// Healthcare Procurement workflow — dedicated clause set for NHS/healthcare procurement teams
+export const HEALTHCARE_PROCUREMENT_CATEGORIES: ClauseCategory[] = [
+  "HC_NHS_CONTRACT_TERMS",
+  "HC_PATIENT_DATA_ARTICLE9",
+  "HC_CLINICAL_LIABILITY",
+  "HC_CQC_COMPLIANCE",
+  "HC_PROCUREMENT_LAW",
+  "HC_NHS_PRICING",
+  "HC_HEALTHCARE_ANTIBRIBERY",
+  "HC_MODERN_SLAVERY_SUPPLY",
+  "HC_REGULATORY_BREACH_TERM",
+  "HC_HEALTHCARE_INSURANCE",
 ];
 
 export const MANUFACTURING_CLAUSE_CATEGORIES: ClauseCategory[] = [
@@ -1514,6 +1550,57 @@ export const PLAYBOOK_DEFAULTS: Record<
       acceptableFallback: "PI insurance minimum £1M per claim. Run-off cover confirmed. Certificate on request. No exclusion of professional negligence liability.",
       hardRedLine: "No PI insurance for regulated professional services; or exclusion of liability for professional negligence.",
     },
+    // ── Healthcare Procurement categories ─────────────────────────────────────
+    HC_NHS_CONTRACT_TERMS: {
+      preferredPosition: "Contract explicitly references and incorporates NHS Standard Contract provisions where applicable. Quality schedules, data sharing schedules, and performance monitoring provisions are present and consistent with NHS England standard form. All deviations from NHS standard terms are expressly identified and, where required, have received NHS approval.",
+      acceptableFallback: "Contract includes equivalent protections to NHS standard terms for quality, performance, and data sharing. Any deviations from standard form are documented and justified.",
+      hardRedLine: "Contract purports to exclude or materially limit NHS standard contract provisions without NHS approval, or fails to include any performance monitoring or quality schedule where patient services are being delivered.",
+    },
+    HC_PATIENT_DATA_ARTICLE9: {
+      preferredPosition: "Full UK GDPR-compliant DPA in place. Explicit provisions for special category health data under Article 9, including documented lawful basis. Data Protection Impact Assessment required and completed before processing. Sub-processor restrictions expressly prohibit transfer of patient data outside NHS-approved arrangements. Audit rights included. Breach notification within 24 hours to controller.",
+      acceptableFallback: "DPA in place with Article 9 provisions. DPIA confirmed. Sub-processor restrictions appropriate for health data. Audit on 10 business days' notice.",
+      hardRedLine: "No DPA where patient data is processed. Supplier claims controller status over patient data. No sub-processor restrictions for health data. Processing based on legitimate interests for Article 9 special category data.",
+    },
+    HC_CLINICAL_LIABILITY: {
+      preferredPosition: "Mutual indemnity. Clinical negligence and patient data breach indemnities are uncapped. Supplier indemnifies NHS body against all losses arising from clinical negligence, failure of care, or regulatory breach. NHS indemnity scheme interactions addressed expressly. Supplier maintains CNST membership or equivalent where required.",
+      acceptableFallback: "Indemnity for clinical negligence and patient data breach uncapped. Other indemnities capped at 12 months' fees. NHS indemnity scheme position confirmed.",
+      hardRedLine: "Any contractual cap applied to clinical negligence indemnity. Any attempt to exclude or limit liability for harm to patients or data subjects arising from clinical care.",
+    },
+    HC_CQC_COMPLIANCE: {
+      preferredPosition: "Supplier warrants current CQC registration for all regulated activities performed under the contract. Supplier obligated to notify NHS body immediately upon any CQC inspection, enforcement notice, or material change to registration. Termination right triggered on loss of relevant CQC registration. Fundamental standards of care compliance warranted throughout.",
+      acceptableFallback: "CQC registration confirmed at contract commencement. Prompt notification of any CQC enforcement action. Termination on 30 days' notice if registration lapses without remedy.",
+      hardRedLine: "No obligation to maintain CQC registration. No notification obligation on CQC enforcement action. No termination right on loss of CQC registration for regulated activities.",
+    },
+    HC_PROCUREMENT_LAW: {
+      preferredPosition: "Contract explicitly confirms that appropriate procurement process was followed under the Public Contracts Regulations 2015 or the Procurement Act 2023. Where direct award is used, the applicable exception is identified and documented. No provision permits extension or variation beyond the awarded scope that would constitute a material change requiring a fresh procurement.",
+      acceptableFallback: "Procurement basis confirmed. Direct award exceptions, where relied upon, are documented with reference to the applicable statutory ground.",
+      hardRedLine: "Direct award without documented statutory basis. Material contract variations that extend scope or value beyond awarded parameters without re-procurement. Provisions that purport to waive procurement law compliance.",
+    },
+    HC_NHS_PRICING: {
+      preferredPosition: "Payment terms reference applicable NHS pricing mechanism explicitly (national tariff, payment by results, block contract, or locally agreed prices). All prices are consistent with NHS payment guidance for the relevant financial year. Invoicing and payment terms comply with NHS standard payment timelines (30 days). No uplift or variation mechanism that would deviate from approved NHS prices without NHS England approval.",
+      acceptableFallback: "NHS pricing mechanism identified. Invoice and payment within 45 days. Price variation requires 30 days' notice and NHS approval where tariff-controlled.",
+      hardRedLine: "Payment terms that deviate from national tariff or NHS-approved pricing without documented authority. Automatic price escalation clauses not linked to NHS payment guidance.",
+    },
+    HC_HEALTHCARE_ANTIBRIBERY: {
+      preferredPosition: "Anti-bribery provisions specifically address healthcare context: no gifts, hospitality, or promotional spending to healthcare professionals above NHS-permitted thresholds. Interactions with healthcare professionals conducted in compliance with the ABPI Code and NHS Commercial Framework. Annual training certification required. Speak-up obligations include NHS fraud reporting routes (NHS Counter Fraud Authority).",
+      acceptableFallback: "Anti-bribery provisions reference healthcare-specific obligations including HCP interaction rules and NHS fraud reporting. Annual compliance certification.",
+      hardRedLine: "Generic Bribery Act 2010 clause only with no healthcare-specific provisions where the contract involves interactions with healthcare professionals or NHS staff.",
+    },
+    HC_MODERN_SLAVERY_SUPPLY: {
+      preferredPosition: "Supplier warrants modern slavery compliance throughout supply chain. Audit rights extend to tier 2 suppliers providing services under this contract. Annual modern slavery statement required if turnover threshold met. NHS-specific supply chain standards referenced. Immediate termination right for modern slavery breach.",
+      acceptableFallback: "Modern slavery warranty and annual statement. Audit rights for direct suppliers. Termination on material breach.",
+      hardRedLine: "No modern slavery clause. No audit rights on supply chain. No termination right on modern slavery breach.",
+    },
+    HC_REGULATORY_BREACH_TERM: {
+      preferredPosition: "Termination for convenience on 60 days' written notice. Immediate termination right on: (a) loss of CQC registration for regulated activities; (b) NHS contract breach triggering service failure regime; (c) FCA enforcement action where relevant; (d) any regulatory action materially affecting the supplier's ability to deliver patient care. Supplier obligations continue during notice period.",
+      acceptableFallback: "Termination for convenience on 90 days' notice. Immediate termination on loss of CQC registration or NHS contract default. Transition obligations during notice.",
+      hardRedLine: "No termination right triggered by regulatory breach, CQC enforcement, or NHS contract failure. Convenience termination notice exceeding 6 months with no regulatory breach carve-out.",
+    },
+    HC_HEALTHCARE_INSURANCE: {
+      preferredPosition: "Supplier maintains: Clinical Negligence cover via CNST membership or equivalent minimum £10M per claim; Employers' Liability £10M per occurrence (statutory minimum for clinical staff); Public Liability £10M per occurrence appropriate for hospital/clinical operations; Professional Indemnity £5M per claim. Evidence of cover provided annually and on request within 5 business days.",
+      acceptableFallback: "Clinical negligence cover maintained via CNST or equivalent. Employers' and public liability at statutory minima. Professional indemnity £2M. Annual evidence.",
+      hardRedLine: "No clinical negligence cover for clinical activities. No public liability insurance appropriate to healthcare operating environment. Unilateral reduction of cover without notice.",
+    },
   },
   MODERATE: {
     LIABILITY_CAP: {
@@ -2261,6 +2348,57 @@ export const PLAYBOOK_DEFAULTS: Record<
       acceptableFallback: "PI insurance minimum £1M per claim. Run-off cover confirmed. Certificate on request. No exclusion of professional negligence liability.",
       hardRedLine: "No PI insurance for regulated professional services; or exclusion of liability for professional negligence.",
     },
+    // ── Healthcare Procurement categories ─────────────────────────────────────
+    HC_NHS_CONTRACT_TERMS: {
+      preferredPosition: "Contract explicitly references and incorporates NHS Standard Contract provisions where applicable. Quality schedules, data sharing schedules, and performance monitoring provisions are present and consistent with NHS England standard form. All deviations from NHS standard terms are expressly identified and, where required, have received NHS approval.",
+      acceptableFallback: "Contract includes equivalent protections to NHS standard terms for quality, performance, and data sharing. Any deviations from standard form are documented and justified.",
+      hardRedLine: "Contract purports to exclude or materially limit NHS standard contract provisions without NHS approval, or fails to include any performance monitoring or quality schedule where patient services are being delivered.",
+    },
+    HC_PATIENT_DATA_ARTICLE9: {
+      preferredPosition: "Full UK GDPR-compliant DPA in place. Explicit provisions for special category health data under Article 9, including documented lawful basis. Data Protection Impact Assessment required and completed before processing. Sub-processor restrictions expressly prohibit transfer of patient data outside NHS-approved arrangements. Audit rights included. Breach notification within 24 hours to controller.",
+      acceptableFallback: "DPA in place with Article 9 provisions. DPIA confirmed. Sub-processor restrictions appropriate for health data. Audit on 10 business days' notice.",
+      hardRedLine: "No DPA where patient data is processed. Supplier claims controller status over patient data. No sub-processor restrictions for health data. Processing based on legitimate interests for Article 9 special category data.",
+    },
+    HC_CLINICAL_LIABILITY: {
+      preferredPosition: "Mutual indemnity. Clinical negligence and patient data breach indemnities are uncapped. Supplier indemnifies NHS body against all losses arising from clinical negligence, failure of care, or regulatory breach. NHS indemnity scheme interactions addressed expressly.",
+      acceptableFallback: "Indemnity for clinical negligence and patient data breach uncapped. Other indemnities capped at 12 months' fees. NHS indemnity scheme position confirmed.",
+      hardRedLine: "Any contractual cap applied to clinical negligence indemnity. Any attempt to exclude or limit liability for harm to patients or data subjects arising from clinical care.",
+    },
+    HC_CQC_COMPLIANCE: {
+      preferredPosition: "Supplier warrants current CQC registration for all regulated activities performed under the contract. Supplier obligated to notify NHS body immediately upon any CQC inspection, enforcement notice, or material change to registration. Termination right triggered on loss of relevant CQC registration.",
+      acceptableFallback: "CQC registration confirmed at contract commencement. Prompt notification of any CQC enforcement action. Termination on 30 days' notice if registration lapses without remedy.",
+      hardRedLine: "No obligation to maintain CQC registration. No notification obligation on CQC enforcement action. No termination right on loss of CQC registration for regulated activities.",
+    },
+    HC_PROCUREMENT_LAW: {
+      preferredPosition: "Contract explicitly confirms that appropriate procurement process was followed under the Public Contracts Regulations 2015 or the Procurement Act 2023. Where direct award is used, the applicable exception is identified and documented. No provision permits extension or variation beyond the awarded scope that would constitute a material change requiring a fresh procurement.",
+      acceptableFallback: "Procurement basis confirmed. Direct award exceptions, where relied upon, are documented with reference to the applicable statutory ground.",
+      hardRedLine: "Direct award without documented statutory basis. Material contract variations that extend scope or value beyond awarded parameters without re-procurement.",
+    },
+    HC_NHS_PRICING: {
+      preferredPosition: "Payment terms reference applicable NHS pricing mechanism explicitly (national tariff, payment by results, block contract, or locally agreed prices). All prices are consistent with NHS payment guidance for the relevant financial year. No uplift or variation mechanism that would deviate from approved NHS prices without NHS England approval.",
+      acceptableFallback: "NHS pricing mechanism identified. Price variation requires NHS approval where tariff-controlled.",
+      hardRedLine: "Payment terms that deviate from national tariff or NHS-approved pricing without documented authority. Automatic price escalation clauses not linked to NHS payment guidance.",
+    },
+    HC_HEALTHCARE_ANTIBRIBERY: {
+      preferredPosition: "Anti-bribery provisions specifically address healthcare context: no gifts, hospitality, or promotional spending to healthcare professionals above NHS-permitted thresholds. Interactions with healthcare professionals conducted in compliance with the ABPI Code and NHS Commercial Framework. Annual training certification required. Speak-up obligations include NHS fraud reporting routes.",
+      acceptableFallback: "Anti-bribery provisions reference healthcare-specific obligations including HCP interaction rules and NHS fraud reporting. Annual compliance certification.",
+      hardRedLine: "Generic Bribery Act 2010 clause only with no healthcare-specific provisions where the contract involves interactions with healthcare professionals or NHS staff.",
+    },
+    HC_MODERN_SLAVERY_SUPPLY: {
+      preferredPosition: "Supplier warrants modern slavery compliance throughout supply chain. Audit rights extend to tier 2 suppliers providing services under this contract. Annual modern slavery statement required if turnover threshold met. NHS-specific supply chain standards referenced. Immediate termination right for modern slavery breach.",
+      acceptableFallback: "Modern slavery warranty and annual statement. Audit rights for direct suppliers. Termination on material breach.",
+      hardRedLine: "No modern slavery clause. No audit rights on supply chain. No termination right on modern slavery breach.",
+    },
+    HC_REGULATORY_BREACH_TERM: {
+      preferredPosition: "Termination for convenience on 60 days' written notice. Immediate termination right on: (a) loss of CQC registration; (b) NHS contract breach triggering service failure regime; (c) FCA enforcement action where relevant; (d) any regulatory action materially affecting the supplier's ability to deliver patient care.",
+      acceptableFallback: "Termination for convenience on 90 days' notice. Immediate termination on loss of CQC registration or NHS contract default.",
+      hardRedLine: "No termination right triggered by regulatory breach, CQC enforcement, or NHS contract failure. Convenience termination notice exceeding 6 months with no regulatory breach carve-out.",
+    },
+    HC_HEALTHCARE_INSURANCE: {
+      preferredPosition: "Supplier maintains: Clinical Negligence cover via CNST membership or equivalent minimum £10M per claim; Employers' Liability £10M per occurrence; Public Liability £10M per occurrence appropriate for hospital/clinical operations; Professional Indemnity £5M per claim. Evidence of cover provided annually and on request within 5 business days.",
+      acceptableFallback: "Clinical negligence cover maintained via CNST or equivalent. Employers' and public liability at statutory minima. Professional indemnity £2M. Annual evidence.",
+      hardRedLine: "No clinical negligence cover for clinical activities. No public liability insurance appropriate to healthcare operating environment.",
+    },
   },
   COMMERCIAL: {
     LIABILITY_CAP: {
@@ -3006,6 +3144,57 @@ export const PLAYBOOK_DEFAULTS: Record<
       preferredPosition: "Supplier maintains professional indemnity insurance appropriate to the risk of the engagement: minimum £2M per claim for regulated professional services. PI policy maintained for minimum 6 years post-engagement (run-off cover). Certificate of insurance provided annually on request. No exclusion of liability for professional negligence causing financial loss.",
       acceptableFallback: "PI insurance minimum £1M per claim. Run-off cover confirmed. Certificate on request. No exclusion of professional negligence liability.",
       hardRedLine: "No PI insurance for regulated professional services; or exclusion of liability for professional negligence.",
+    },
+    // ── Healthcare Procurement categories ─────────────────────────────────────
+    HC_NHS_CONTRACT_TERMS: {
+      preferredPosition: "Contract explicitly references and incorporates NHS Standard Contract provisions where applicable. Quality schedules, data sharing schedules, and performance monitoring provisions are present and consistent with NHS England standard form. All deviations from NHS standard terms are expressly identified and, where required, have received NHS approval.",
+      acceptableFallback: "Contract includes equivalent protections to NHS standard terms for quality, performance, and data sharing. Any deviations from standard form are documented and justified.",
+      hardRedLine: "Contract purports to exclude or materially limit NHS standard contract provisions without NHS approval, or fails to include any performance monitoring or quality schedule where patient services are being delivered.",
+    },
+    HC_PATIENT_DATA_ARTICLE9: {
+      preferredPosition: "Full UK GDPR-compliant DPA in place. Explicit provisions for special category health data under Article 9, including documented lawful basis. Data Protection Impact Assessment required and completed before processing. Sub-processor restrictions expressly prohibit transfer of patient data outside NHS-approved arrangements. Audit rights included. Breach notification within 24 hours to controller.",
+      acceptableFallback: "DPA in place with Article 9 provisions. DPIA confirmed. Sub-processor restrictions appropriate for health data. Audit on 10 business days' notice.",
+      hardRedLine: "No DPA where patient data is processed. Supplier claims controller status over patient data. No sub-processor restrictions for health data.",
+    },
+    HC_CLINICAL_LIABILITY: {
+      preferredPosition: "Mutual indemnity. Clinical negligence and patient data breach indemnities are uncapped. Supplier indemnifies NHS body against all losses arising from clinical negligence, failure of care, or regulatory breach.",
+      acceptableFallback: "Indemnity for clinical negligence and patient data breach uncapped. Other indemnities capped at 12 months' fees.",
+      hardRedLine: "Any contractual cap applied to clinical negligence indemnity. Any attempt to limit liability for harm to patients arising from clinical care.",
+    },
+    HC_CQC_COMPLIANCE: {
+      preferredPosition: "Supplier warrants current CQC registration for all regulated activities. Immediate notification on any CQC inspection or enforcement notice. Termination right triggered on loss of relevant CQC registration.",
+      acceptableFallback: "CQC registration confirmed. Notification of CQC enforcement within 5 days. Termination on 30 days' notice if registration lapses.",
+      hardRedLine: "No obligation to maintain CQC registration. No termination right on loss of CQC registration for regulated activities.",
+    },
+    HC_PROCUREMENT_LAW: {
+      preferredPosition: "Contract confirms appropriate procurement process followed under PCR 2015 or Procurement Act 2023. Direct award exceptions documented. No variation permitted beyond awarded scope without re-procurement.",
+      acceptableFallback: "Procurement basis confirmed. Direct award exceptions documented.",
+      hardRedLine: "Direct award without documented statutory basis. Material variations beyond awarded scope without re-procurement.",
+    },
+    HC_NHS_PRICING: {
+      preferredPosition: "Payment terms reference applicable NHS pricing mechanism explicitly. All prices consistent with NHS payment guidance. No automatic price escalation outside NHS-approved mechanisms.",
+      acceptableFallback: "NHS pricing mechanism identified. Price variation requires NHS approval where tariff-controlled.",
+      hardRedLine: "Deviation from national tariff or NHS-approved pricing without documented authority.",
+    },
+    HC_HEALTHCARE_ANTIBRIBERY: {
+      preferredPosition: "Anti-bribery provisions address healthcare context: HCP interaction rules, ABPI Code compliance, NHS Commercial Framework, NHS fraud reporting routes.",
+      acceptableFallback: "Healthcare-specific anti-bribery provisions including HCP interaction rules. Annual compliance certification.",
+      hardRedLine: "Generic Bribery Act clause only with no healthcare-specific provisions where contract involves HCP interactions.",
+    },
+    HC_MODERN_SLAVERY_SUPPLY: {
+      preferredPosition: "Modern slavery compliance warranted. Supply chain audit rights. Annual modern slavery statement. Immediate termination for breach.",
+      acceptableFallback: "Modern slavery warranty. Audit rights for direct suppliers. Termination on material breach.",
+      hardRedLine: "No modern slavery clause. No termination right on modern slavery breach.",
+    },
+    HC_REGULATORY_BREACH_TERM: {
+      preferredPosition: "Termination for convenience on 60 days' notice. Immediate termination on CQC loss, NHS contract breach, or regulatory enforcement materially affecting patient care delivery.",
+      acceptableFallback: "Termination for convenience on 90 days' notice. Immediate termination on CQC loss or NHS contract default.",
+      hardRedLine: "No termination right triggered by regulatory breach or CQC enforcement.",
+    },
+    HC_HEALTHCARE_INSURANCE: {
+      preferredPosition: "Clinical Negligence via CNST or equivalent (£10M per claim). Employers' Liability £10M. Public Liability £10M. Professional Indemnity £5M. Annual evidence.",
+      acceptableFallback: "Clinical negligence cover via CNST or equivalent. Statutory minima for EL and PL. PI £2M.",
+      hardRedLine: "No clinical negligence cover for clinical activities. No public liability appropriate to healthcare environment.",
     },
   },
 };

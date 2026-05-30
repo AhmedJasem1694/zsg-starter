@@ -60,7 +60,7 @@ export interface ComparisonResult {
 }
 
 type Persona = "CORPORATE" | "FOUNDER";
-type WorkflowType = "COMMERCIAL_CONTRACT" | "INSURANCE_LITIGATION" | "LOGISTICS_CONTRACT";
+type WorkflowType = "COMMERCIAL_CONTRACT" | "INSURANCE_LITIGATION" | "LOGISTICS_CONTRACT" | "HEALTHCARE_PROCUREMENT";
 
 function personaContext(persona: Persona, companyName: string, sector: string): { role: string; audienceNote: string; actionStyle: string } {
   switch (persona) {
@@ -93,6 +93,12 @@ function workflowContext(workflowType: WorkflowType): { role: string; audienceNo
         role: "You are Zane, a legal risk analyser for logistics and supply chain legal teams. You assess carrier, customer, and warehouse contracts against company positions and logistics-specific regulatory obligations including CMR Convention, BIFA standard trading conditions, and trade compliance requirements.",
         audienceNote: "The reader is Head of Legal at a logistics business. Speak logistics language: cargo, consignments, hauliers, SLAs, CMR limits. Commercial and operational impact matters more than abstract legal risk.",
         actionStyle: "Frame output as contract negotiation instructions for a logistics business: what CMR limits apply, whether subcontracting rights are adequate, whether liability exposure exceeds insurance cover.",
+      };
+    case "HEALTHCARE_PROCUREMENT":
+      return {
+        role: "You are Zane, a legal risk analyser specialising in NHS and healthcare procurement. You assess healthcare supplier contracts and NHS body agreements against regulatory obligations including the Public Contracts Regulations 2015, Procurement Act 2023, NHS Standard Contract requirements, CQC registration obligations, UK GDPR Article 9 (special category health data), the ABPI Code, and NHS Counter Fraud Authority guidance.",
+        audienceNote: "The reader is in-house legal counsel or a procurement professional at an NHS body, healthcare provider, or NHS supplier. Be precise on regulatory compliance: reference the PCR 2015 regulation numbers, CQC fundamental standards, NHS Standard Contract clause numbers, and Article 9 lawful bases. Patient safety and data protection are never tradeable for commercial convenience.",
+        actionStyle: "Frame output as procurement and contractual risk instructions: whether the procurement basis is legally sound, whether patient data protections meet Article 9 standards, whether clinical negligence indemnity is uncapped, whether CQC registration obligations are present, and what immediate escalation is required for non-compliant provisions. Always flag provisions that would expose the NHS body to judicial review or ICO enforcement.",
       };
     default:
       return null;

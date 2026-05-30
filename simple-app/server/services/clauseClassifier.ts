@@ -144,6 +144,34 @@ export const LOGISTICS_CATEGORIES = [
   "LOG_DRIVER_COMPLIANCE",
 ] as const;
 
+export const HEALTHCARE_PROCUREMENT_CATEGORIES = [
+  "HC_NHS_CONTRACT_TERMS",
+  "HC_PATIENT_DATA_ARTICLE9",
+  "HC_CLINICAL_LIABILITY",
+  "HC_CQC_COMPLIANCE",
+  "HC_PROCUREMENT_LAW",
+  "HC_NHS_PRICING",
+  "HC_HEALTHCARE_ANTIBRIBERY",
+  "HC_MODERN_SLAVERY_SUPPLY",
+  "HC_REGULATORY_BREACH_TERM",
+  "HC_HEALTHCARE_INSURANCE",
+] as const;
+
+// Detailed descriptions injected into the classifier prompt for healthcare procurement.
+// These explain to the LLM what to look for in each HC_* category.
+const HEALTHCARE_CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  HC_NHS_CONTRACT_TERMS: "NHS Contract Terms — whether this is an NHS standard contract or a contract with an NHS body; presence of performance monitoring, quality schedules, data sharing schedules, and standard NHS termination provisions; any deviation from NHS standard terms",
+  HC_PATIENT_DATA_ARTICLE9: "Patient Data and Special Category Data — data protection provisions against the higher standard required for special category health data under UK GDPR Article 9; explicit consent mechanisms or alternative lawful bases; Data Protection Impact Assessment requirements; sub-processor restrictions appropriate for health data",
+  HC_CLINICAL_LIABILITY: "Clinical Liability and Indemnity — indemnity provisions in the context of clinical risk; any attempt to limit liability for clinical negligence; NHS indemnity scheme interactions; CNST membership obligations",
+  HC_CQC_COMPLIANCE: "CQC Compliance Obligations — contractual provisions interacting with CQC registration requirements or fundamental standards of care; supplier obligation to maintain relevant CQC registration; notification obligations on CQC enforcement",
+  HC_PROCUREMENT_LAW: "Procurement Law Compliance — whether the contract value or nature suggests a procurement exercise was required under the Public Contracts Regulations 2015 or Procurement Act 2023; direct award provisions and their compliance basis",
+  HC_NHS_PRICING: "NHS Pricing and Payment Mechanisms — whether payment terms reference national tariff, payment by results, block contract, or other NHS pricing mechanisms; deviations from standard NHS payment terms",
+  HC_HEALTHCARE_ANTIBRIBERY: "Healthcare Anti-Bribery — anti-bribery provisions against the specific requirements for healthcare interactions including gifts, hospitality, interactions with healthcare professionals (HCPs), ABPI Code compliance, NHS Commercial Framework, NHS Counter Fraud Authority reporting",
+  HC_MODERN_SLAVERY_SUPPLY: "Modern Slavery and Supply Chain — modern slavery obligations and supply chain audit rights appropriate for an NHS supplier relationship",
+  HC_REGULATORY_BREACH_TERM: "Termination for Regulatory Breach — termination rights triggered by regulatory action including CQC enforcement, NHS contract breach, FCA action; convenience termination notice period",
+  HC_HEALTHCARE_INSURANCE: "Insurance for Healthcare Activities — clinical negligence cover (CNST or equivalent), employers' liability for clinical staff, public liability appropriate for hospital or clinical operations, professional indemnity",
+};
+
 export interface ClassifiedChunk {
   category: ClauseCategory;
   rawText: string;
@@ -166,9 +194,20 @@ export async function classifyClauses(
     activeCategories = INSURANCE_CATEGORIES;
   } else if (workflowType === "LOGISTICS_CONTRACT") {
     activeCategories = LOGISTICS_CATEGORIES;
+  } else if (workflowType === "HEALTHCARE_PROCUREMENT") {
+    activeCategories = HEALTHCARE_PROCUREMENT_CATEGORIES;
   } else {
     activeCategories = CLAUSE_CATEGORIES;
   }
+
+  // For healthcare procurement, inject per-category descriptions into the prompt
+  // so the LLM knows what NHS/CQC/procurement-specific signals to look for.
+  const healthcareDescriptionBlock = workflowType === "HEALTHCARE_PROCUREMENT" && !categoriesOverride
+    ? "\n\nHealthcare Procurement clause definitions:\n" +
+      Object.entries(HEALTHCARE_CATEGORY_DESCRIPTIONS)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join("\n")
+    : "";
 
   const categoriesDesc = activeCategories.join(" | ");
 
@@ -197,7 +236,7 @@ export async function classifyClauses(
     messages: [
       {
         role: "system",
-        content: `You are a legal clause classifier. Classify contract text chunks into these categories: ${categoriesDesc}.
+        content: `You are a legal clause classifier. Classify contract text chunks into these categories: ${categoriesDesc}.${healthcareDescriptionBlock}
 
 For each match, determine the presence state:
 - "PRESENT": a dedicated clause with matching heading or primary subject matter

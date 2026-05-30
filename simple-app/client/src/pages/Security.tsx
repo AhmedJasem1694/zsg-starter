@@ -297,11 +297,11 @@ export default function Security() {
           We commit to acknowledging reports within 24 hours and providing a fix timeline within 72 hours.
         </p>
         <a
-          href="mailto:security@usezane.ai"
+          href="mailto:security@zanelegal.ai"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg border border-border bg-card text-sm font-medium hover:bg-accent transition-colors"
         >
           <Shield size={14} />
-          security@usezane.ai
+          security@zanelegal.ai
         </a>
       </section>
 
