@@ -86,112 +86,6 @@ function CyclingPhrase() {
   );
 }
 
-// ─── Animated product preview - matches real dark dashboard ──────────────────
-const MOCK_CLAUSES = [
-  { label: "Limitation of Liability", status: "RED",   summary: "Cap below 3 months' fees - breaches red line",   action: "Negotiate" },
-  { label: "Data & Privacy",          status: "RED",   summary: "No DPA in place - GDPR exposure",                action: "Escalate"  },
-  { label: "Indemnity",               status: "AMBER", summary: "One-sided indemnity - negotiate scope",           action: "Review"    },
-  { label: "Auto-Renewal",            status: "AMBER", summary: "No notice provision - push back",                action: "Review"    },
-  { label: "Confidentiality",         status: "GREEN", summary: "Mutual 2-year - meets preferred position",       action: "Accept"    },
-  { label: "Governing Law",           status: "GREEN", summary: "English law - acceptable",                       action: "Accept"    },
-];
-
-const STATUS_CFG = {
-  RED:   { bar: "#F87171", badge: "rgba(239,68,68,0.15)",   text: "#FCA5A5", border: "rgba(239,68,68,0.3)"   },
-  AMBER: { bar: "#FBBF24", badge: "rgba(251,191,36,0.12)",  text: "#FCD34D", border: "rgba(251,191,36,0.25)" },
-  GREEN: { bar: "#4ADE80", badge: "rgba(74,222,128,0.12)",  text: "#86EFAC", border: "rgba(74,222,128,0.25)" },
-};
-
-function ProductPreview() {
-  const clauseDelays = [0.5, 0.9, 1.3, 1.7, 2.1, 2.5];
-
-  return (
-    <motion.div
-      className="relative w-full max-w-md mx-auto"
-      initial={{ opacity: 0, y: 40 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.25 }}
-      transition={{ ...SPRING_SNAP, delay: 0.2 }}
-    >
-      {/* Glow */}
-      <div className="absolute inset-0 rounded-2xl blur-2xl scale-95 opacity-50" style={{ background: "radial-gradient(ellipse at 50% 60%, rgba(96,165,250,0.18), transparent 70%)" }} />
-
-      {/* Window chrome */}
-      <div className="relative rounded-2xl shadow-2xl overflow-hidden" style={{ background: "#0D1117", border: "1px solid rgba(255,255,255,0.08)" }}>
-
-        {/* Top bar */}
-        <motion.div
-          className="flex items-center gap-3 px-4 py-3"
-          style={{ background: "#161B22", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25, duration: 0.35 }}
-        >
-          <div className="flex gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-400/70" />
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/70" />
-          </div>
-          <div className="flex-1 text-center">
-            <span className="text-[10px] text-white/30">Acme Corp - Supplier MSA.pdf</span>
-          </div>
-          <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-        </motion.div>
-
-        {/* Risk summary bar */}
-        <motion.div
-          className="px-4 py-2.5 flex items-center gap-3"
-          style={{ background: "rgba(239,68,68,0.07)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4, duration: 0.35 }}
-        >
-          <span className="text-[11px] font-bold text-red-400 uppercase tracking-wide">HIGH RISK</span>
-          <div className="flex gap-1.5 ml-auto text-[10px] font-semibold">
-            <span className="px-1.5 py-0.5 rounded" style={{ background: "rgba(239,68,68,0.18)", color: "#FCA5A5" }}>2 RED</span>
-            <span className="px-1.5 py-0.5 rounded" style={{ background: "rgba(251,191,36,0.15)", color: "#FCD34D" }}>2 AMBER</span>
-            <span className="px-1.5 py-0.5 rounded" style={{ background: "rgba(74,222,128,0.15)", color: "#86EFAC" }}>2 GREEN</span>
-          </div>
-        </motion.div>
-
-        {/* Clause rows */}
-        <div className="divide-y divide-white/[0.05]">
-          {MOCK_CLAUSES.map((c, i) => {
-            const cfg = STATUS_CFG[c.status as keyof typeof STATUS_CFG];
-            return (
-              <motion.div
-                key={c.label}
-                className="flex items-center gap-3 px-4 py-3"
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ type: "spring", bounce: 0.15, duration: 0.45, delay: clauseDelays[i] }}
-              >
-                <div className="w-0.5 h-8 rounded-full shrink-0" style={{ background: cfg.bar }} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[11px] font-semibold text-white/80">{c.label}</div>
-                  <div className="text-[10px] text-white/35 mt-0.5 truncate">{c.summary}</div>
-                </div>
-                <span
-                  className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0"
-                  style={{ background: cfg.badge, color: cfg.text, border: `1px solid ${cfg.border}` }}
-                >
-                  {c.status}
-                </span>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* Footer */}
-        <motion.div
-          className="px-4 py-2.5 flex items-center justify-between"
-          style={{ background: "#161B22", borderTop: "1px solid rgba(255,255,255,0.06)" }}
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 3.0, duration: 0.35 }}
-        >
-          <span className="text-[10px] text-white/25">Reviewed in 1m 43s · UK GDPR flagged</span>
-          <span className="text-[10px] font-medium" style={{ color: "#60A5FA" }}>Do not sign yet →</span>
-        </motion.div>
-      </div>
-    </motion.div>
-  );
-}
-
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Landing() {
   const shouldReduce = useReducedMotion();
@@ -516,16 +410,6 @@ export default function Landing() {
               ))}
             </motion.div>
 
-            <motion.p className="text-center text-sm font-medium text-gray-700 max-w-lg mx-auto" {...fadeUp(0.1)}>
-              Not a memo. Not a summary. A decision with a routing instruction.
-            </motion.p>
-
-            <div className="max-w-sm mx-auto pt-4">
-              <motion.p className="text-center text-xs text-gray-500 uppercase tracking-widest mb-6" {...fadeUp(0)}>
-                What the report looks like
-              </motion.p>
-              <ProductPreview />
-            </div>
           </div>
         </div>
       </section>
@@ -534,7 +418,8 @@ export default function Landing() {
       <section className="py-20 bg-[#F2F1EE] border-t border-black/5">
         <div className="max-w-3xl mx-auto px-6 space-y-8">
           <motion.div className="text-center space-y-3" {...headingReveal}>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">See it in action.</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">This is what Zane produces.</h2>
+            <p className="text-gray-600 text-sm max-w-xl mx-auto">Real output from a real contract reviewed against a real playbook.</p>
           </motion.div>
 
           <motion.div
