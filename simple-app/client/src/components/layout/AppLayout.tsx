@@ -15,6 +15,7 @@ import type { Persona } from "../../lib/types";
 const LEGAL_NAV = [
   { to: "/app/legal/dashboard",   icon: LayoutDashboard, label: "Dashboard" },
   { to: "/app/legal/library",     icon: Library,          label: "Library" },
+  { to: "/app/legal/patterns",    icon: Activity,         label: "Negotiation Intelligence" },
   { to: "/app/legal/playbook",    icon: BookOpen,         label: "Playbook" },
   { to: "/app/legal/portfolio",   icon: PieChart,         label: "Portfolio Risk" },
   { to: "/app/legal/bulk-review", icon: LayoutGrid,       label: "Bulk Review" },
@@ -22,8 +23,7 @@ const LEGAL_NAV = [
 
 // Items that require populated data - shown dimmer in secondary section
 const LEGAL_NAV_DATA_DEPENDENT = [
-  { to: "/app/legal/timings",  icon: CalendarClock, label: "Renewals" },
-  { to: "/app/legal/patterns", icon: Activity,      label: "Patterns" },
+  { to: "/app/legal/timings",  icon: CalendarClock, label: "Timings and Obligations" },
 ];
 
 const LEGAL_NAV_SECONDARY = [

@@ -1630,91 +1630,78 @@ function ClauseCard({
 
       {/* ── Expanded detail ───────────────────────────────────────────── */}
       {expanded && (
-        <div className="border-t border-[#1E293B] px-5 py-5 space-y-5 bg-[#080F18]">
+        <div className="border-t border-[#1E293B] px-5 py-5 space-y-4 bg-[#080F18]">
 
-          {/* IRAC Analysis */}
-          {(result.iracIssue || result.iracConclusion) ? (
-            <div className="rounded-xl border border-[#1E293B] bg-[#0D1521] p-4 space-y-4">
-              <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-                Legal Analysis (IRAC)
-              </div>
-
-              {result.isAbsent && (
-                <div className="flex items-start gap-2 rounded-lg border border-[#334155] bg-[#0F172A] px-3 py-2">
-                  <Info size={12} className="text-[#94A3B8] shrink-0 mt-0.5" />
-                  <span className="text-xs text-[#94A3B8]">
-                    This clause was not identified in the contract. Review whether your playbook requires it to be present.
-                  </span>
-                </div>
-              )}
-
-              {result.iracIssue && (
-                <div className="space-y-1">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA]/70">Issue</div>
-                  <p className="text-sm font-semibold text-foreground leading-snug">{result.iracIssue}</p>
-                </div>
-              )}
-
-              {result.iracRule && (
-                <div className="space-y-1">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA]/70">Rule</div>
-                  <div className="rounded-lg border border-[#1E293B] bg-[#050A10] px-3 py-2.5 text-xs leading-relaxed text-[#94A3B8]">
-                    {result.iracRule}
-                  </div>
-                </div>
-              )}
-
-              {result.iracApplication && (
-                <div className="space-y-1">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA]/70">Application</div>
-                  <p className="text-sm text-foreground/80 leading-relaxed">{result.iracApplication}</p>
-                </div>
-              )}
-
-              {result.iracConclusion && (
-                <div className="space-y-1">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]/70">Conclusion</div>
-                  <div className="rounded-lg border border-[#312E81] bg-[#1E1B4B]/50 px-3 py-2.5 text-sm font-medium text-[#C4B5FD] leading-relaxed">
-                    {result.iracConclusion}
-                  </div>
-                </div>
-              )}
-
-              {result.escalationRequired && result.escalationTrigger && (
-                <div className="flex items-start gap-2 rounded-lg border border-[#450A0A] bg-[#1F0A0A] px-3 py-2">
-                  <AlertTriangle size={12} className="shrink-0 mt-0.5 text-[#FCA5A5]" />
-                  <span className="text-xs text-[#FCA5A5]">{result.escalationTrigger}</span>
-                </div>
-              )}
-            </div>
-          ) : (
-            /* Legacy fallback: show old decision summary for results without IRAC */
-            <div className="rounded-xl border border-[#1E293B] bg-[#0D1521] p-4 space-y-3">
-              <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
-                Decision summary
-              </div>
-              {result.isAbsent && (
-                <div className="flex items-start gap-2 rounded-lg border border-[#334155] bg-[#0F172A] px-3 py-2">
-                  <Info size={12} className="text-[#94A3B8] shrink-0 mt-0.5" />
-                  <span className="text-xs text-[#94A3B8]">
-                    This clause was not identified in the contract. Review whether your playbook requires it to be present.
-                  </span>
-                </div>
-              )}
-              <div className="text-sm font-semibold text-foreground leading-snug">
-                {result.recommendedAction}
-              </div>
-              <div className="text-xs text-muted-foreground leading-relaxed">
-                {result.businessSummary}
-              </div>
-              {result.escalationRequired && result.escalationTrigger && (
-                <div className="flex items-start gap-2 rounded-lg border border-[#450A0A] bg-[#1F0A0A] px-3 py-2">
-                  <AlertTriangle size={12} className="shrink-0 mt-0.5 text-[#FCA5A5]" />
-                  <span className="text-xs text-[#FCA5A5]">{result.escalationTrigger}</span>
-                </div>
-              )}
+          {/* Absent clause notice */}
+          {result.isAbsent && (
+            <div className="flex items-start gap-2 rounded-lg border border-[#334155] bg-[#0F172A] px-3 py-2">
+              <Info size={12} className="text-[#94A3B8] shrink-0 mt-0.5" />
+              <span className="text-xs text-[#94A3B8]">
+                This clause was not identified in the contract. Review whether your playbook requires it to be present.
+              </span>
             </div>
           )}
+
+          {/* Four-box layout */}
+          <div className="grid sm:grid-cols-2 gap-3">
+            {/* Issue */}
+            <div className="rounded-lg border border-[#1E293B] bg-[#0D1521] px-4 py-3 space-y-1.5">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA]/70">Issue</div>
+              <p className="text-sm leading-snug font-medium">
+                {result.iracIssue || result.recommendedAction || result.clauseSummary}
+              </p>
+            </div>
+
+            {/* Why it matters */}
+            <div className="rounded-lg border border-[#1E293B] bg-[#0D1521] px-4 py-3 space-y-1.5">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]/70">Why it matters</div>
+              <p className="text-sm leading-snug text-foreground/80">
+                {result.whyItMatters || result.businessSummary}
+              </p>
+            </div>
+
+            {/* Fallback */}
+            <div className="rounded-lg border border-[#1E293B] bg-[#0D1521] px-4 py-3 space-y-1.5">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[#86EFAC]/70">Fallback</div>
+              {result.suggestedFallback ? (
+                <div className="space-y-2">
+                  <p className="text-xs leading-relaxed text-foreground/80 font-mono whitespace-pre-line">
+                    {result.suggestedFallback}
+                  </p>
+                  <FallbackCopyButton text={result.suggestedFallback} />
+                </div>
+              ) : (
+                <p className="text-xs text-foreground/40">No fallback wording available for this clause.</p>
+              )}
+            </div>
+
+            {/* Escalation */}
+            <div className={`rounded-lg border px-4 py-3 space-y-1.5 ${
+              result.escalationRequired
+                ? "border-[#450A0A] bg-[#1F0A0A]"
+                : "border-[#1E293B] bg-[#0D1521]"
+            }`}>
+              <div className={`text-[10px] font-bold uppercase tracking-wider ${result.escalationRequired ? "text-[#FCA5A5]/70" : "text-foreground/40"}`}>
+                Escalation
+              </div>
+              {result.escalationRequired ? (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-[#FCA5A5]">
+                    <AlertTriangle size={11} className="shrink-0" />
+                    Sign-off required
+                  </div>
+                  {result.escalationTrigger && (
+                    <p className="text-xs text-[#FCA5A5]/80 leading-relaxed">{result.escalationTrigger}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-xs text-foreground/40">
+                  <CheckCircle size={11} className="shrink-0" />
+                  No escalation required
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Confidence */}
           {result.confidenceLabel && (
@@ -1736,14 +1723,6 @@ function ClauseCard({
             </Detail>
           )}
 
-          <Detail title="What this clause says">
-            <p className="text-sm leading-relaxed">{result.clauseSummary}</p>
-          </Detail>
-
-          <Detail title="Why it matters">
-            <p className="text-sm leading-relaxed">{result.whyItMatters}</p>
-          </Detail>
-
           {/* Regulatory citations */}
           {result.regulatoryCitations && result.regulatoryCitations.length > 0 && (
             <Detail title="Regulatory references">
@@ -1757,18 +1736,6 @@ function ClauseCard({
                     </div>
                   </div>
                 ))}
-              </div>
-            </Detail>
-          )}
-
-          {/* Suggested fallback */}
-          {result.suggestedFallback && (
-            <Detail title="Suggested fallback language">
-              <div className="space-y-2">
-                <div className="clause-block text-sm leading-relaxed">
-                  {result.suggestedFallback}
-                </div>
-                <FallbackCopyButton text={result.suggestedFallback} />
               </div>
             </Detail>
           )}

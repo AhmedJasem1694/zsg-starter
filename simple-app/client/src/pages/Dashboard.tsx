@@ -838,22 +838,44 @@ export default function Dashboard() {
     ? MOCK_URGENCY_SIGNALS
     : computeUrgencySignals(filteredDocuments as DocWithRag[]);
 
+  // ── Next Actions derivation ────────────────────────────────────────────────
+  const completedDocs = (realDocuments as UploadedDocument[]).filter((d) => d.status === "COMPLETE");
+
+  const redActionDocs = (completedDocs as (UploadedDocument & DocWithRag)[]).filter((d) =>
+    (d.reviewResults ?? []).some((r) => r.ragStatus === "RED")
+  );
+
+  const escalationDocs = (completedDocs as (UploadedDocument & DocWithRag)[]).filter((d) =>
+    (d.reviewResults ?? []).some((r) => r.escalationRequired && r.feedback?.userAction !== "ESCALATED")
+  );
+
+  const now30 = Date.now();
+  const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+  const renewalActionDocs = (realDocuments as (UploadedDocument & { renewalDate?: string; counterpartyName?: string })[]).filter((d) => {
+    if (!d.renewalDate) return false;
+    const diff = new Date(d.renewalDate).getTime() - now30;
+    return diff > 0 && diff <= thirtyDays;
+  });
+
+  const hasActions = redActionDocs.length > 0 || escalationDocs.length > 0 || renewalActionDocs.length > 0;
+
+  // Last 5 completed for Recent Reviews
+  const recentDocs = [...(realDocuments as UploadedDocument[])]
+    .filter((d) => d.status === "COMPLETE")
+    .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
+    .slice(0, 5);
+
   return (
     <>
     <AppLayout>
-      <div className="px-6 py-8 max-w-5xl mx-auto space-y-6">
+      <div className="px-6 py-8 max-w-4xl mx-auto space-y-10">
 
         {/* Page header */}
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold">Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Upload a contract and Zane reviews it in minutes, not hours
-              {useMock && (
-                <span className="ml-2 text-xs bg-[#1C0F00] text-[#FCD34D] border border-[#431407] rounded-full px-2 py-0.5">
-                  Demo data
-                </span>
-              )}
+              {useMock ? "Demo data" : `${company?.name ?? ""}`}
             </p>
           </div>
           {processing && (
@@ -864,346 +886,195 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Pilot safety notice */}
         <PilotNoticeBanner />
 
-        {/* Next best action - single most important item */}
-        <NextBestAction documents={filteredDocuments as DocWithRag[]} isMock={useMock} />
+        {/* Processing stage cards */}
+        {(realDocuments as UploadedDocument[])
+          .filter((d) => ACTIVE_STATUSES.includes(d.status))
+          .map((d) => (
+            <ReviewProcessingCard key={d.id} doc={d} />
+          ))}
 
-        {/* Urgency panel */}
-        {urgencySignals.length > 0 && (
-          <div className="card-enter">
-            <UrgencyPanel signals={urgencySignals} />
-          </div>
-        )}
+        {/* ── Section 1: Next Actions ─────────────────────────────────────── */}
+        <div className="space-y-3">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Next Actions</h2>
 
-        {/* Stats bar */}
-        {stats && realDocuments.length > 0 && (
+          {!hasActions && !useMock && (
+            <div className="card px-5 py-8 text-center space-y-2">
+              <CheckCircle size={22} className="text-[#86EFAC] mx-auto" />
+              <div className="text-sm font-medium">No actions required today.</div>
+              <div className="text-xs text-muted-foreground">All contracts are up to date.</div>
+            </div>
+          )}
+
+          {useMock && (
+            <a href="/app/legal/review/mock-1"
+              className="flex items-start gap-4 px-5 py-4 rounded-xl border border-[#450A0A] bg-[#1A0404] hover:bg-[#200505] transition-colors group">
+              <div className="w-8 h-8 rounded-lg bg-[#450A0A] flex items-center justify-center shrink-0">
+                <AlertTriangle size={14} className="text-[#FCA5A5]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-bold uppercase tracking-widest text-[#FCA5A5]/60 mb-0.5">Red clauses — do not sign yet</div>
+                <div className="text-sm font-semibold text-foreground">Acme Corp MSA</div>
+                <div className="text-xs text-muted-foreground mt-0.5">3 red clauses · GC sign-off required</div>
+              </div>
+              <span className="text-xs font-semibold text-[#FCA5A5] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
+            </a>
+          )}
+
+          {redActionDocs.map((d) => {
+            const redCount = (d.reviewResults ?? []).filter((r) => r.ragStatus === "RED").length;
+            const cp = (d as UploadedDocument & { counterpartyName?: string }).counterpartyName;
+            return (
+              <a key={d.id} href={`/app/legal/review/${d.id}`}
+                className="flex items-start gap-4 px-5 py-4 rounded-xl border border-[#450A0A] bg-[#1A0404] hover:bg-[#200505] transition-colors group">
+                <div className="w-8 h-8 rounded-lg bg-[#450A0A] flex items-center justify-center shrink-0">
+                  <AlertTriangle size={14} className="text-[#FCA5A5]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold uppercase tracking-widest text-[#FCA5A5]/60 mb-0.5">Red clauses — do not sign yet</div>
+                  <div className="text-sm font-semibold text-foreground truncate">{cp ?? d.originalName}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{redCount} red clause{redCount !== 1 ? "s" : ""}</div>
+                </div>
+                <span className="text-xs font-semibold text-[#FCA5A5] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
+              </a>
+            );
+          })}
+
+          {escalationDocs.map((d) => {
+            const escResults = (d.reviewResults ?? []).filter((r) => r.escalationRequired && r.feedback?.userAction !== "ESCALATED");
+            const trigger = escResults[0]?.escalationTrigger ?? "Approval required";
+            const cp = (d as UploadedDocument & { counterpartyName?: string }).counterpartyName;
+            return (
+              <a key={`esc-${d.id}`} href={`/app/legal/review/${d.id}`}
+                className="flex items-start gap-4 px-5 py-4 rounded-xl border border-[#431407] bg-[#1A1000] hover:bg-[#201300] transition-colors group">
+                <div className="w-8 h-8 rounded-lg bg-[#431407] flex items-center justify-center shrink-0">
+                  <Bell size={14} className="text-[#FCD34D]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold uppercase tracking-widest text-[#FCD34D]/60 mb-0.5">Pending escalation</div>
+                  <div className="text-sm font-semibold text-foreground truncate">{cp ?? d.originalName}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5 truncate">{trigger}</div>
+                </div>
+                <span className="text-xs font-semibold text-[#FCD34D] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
+              </a>
+            );
+          })}
+
+          {renewalActionDocs.map((d) => {
+            const daysLeft = Math.ceil((new Date(d.renewalDate!).getTime() - now30) / (1000 * 60 * 60 * 24));
+            return (
+              <a key={`ren-${d.id}`} href={`/app/legal/review/${d.id}`}
+                className="flex items-start gap-4 px-5 py-4 rounded-xl border border-[#1B2D4A] bg-[#0C1929] hover:bg-[#0F1E35] transition-colors group">
+                <div className="w-8 h-8 rounded-lg bg-[#1B2D4A] flex items-center justify-center shrink-0">
+                  <CalendarClock size={14} className="text-[#60A5FA]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-bold uppercase tracking-widest text-[#60A5FA]/60 mb-0.5">Renewal window closing</div>
+                  <div className="text-sm font-semibold text-foreground truncate">{d.counterpartyName ?? d.originalName}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{daysLeft} days remaining</div>
+                </div>
+                <span className="text-xs font-semibold text-[#60A5FA] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
+              </a>
+            );
+          })}
+        </div>
+
+        {/* ── Section 2: Executive Overview ──────────────────────────────── */}
+        <div className="space-y-3">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Overview</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Contracts", value: stats.totalContracts.toString() },
               {
-                label: "Portfolio value",
-                value: stats.totalValue > 0
-                  ? `£${stats.totalValue >= 1_000_000 ? `${(stats.totalValue / 1_000_000).toFixed(1)}M` : stats.totalValue >= 1000 ? `${Math.round(stats.totalValue / 1000)}k` : stats.totalValue.toFixed(0)}`
-                  : "-",
+                label: "Contracts reviewed this month",
+                value: stats ? stats.totalContracts.toString() : "-",
+                highlight: false,
               },
-              { label: "Red clauses", value: stats.redContracts > 0 ? `${stats.redContracts} contracts` : "None", highlight: stats.redContracts > 0 },
-              { label: "Renewals in 90 days", value: stats.renewalsDue > 0 ? `${stats.renewalsDue} due` : "None" },
+              {
+                label: "Escalations open",
+                value: escalationDocs.length > 0 ? escalationDocs.length.toString() : (stats ? (stats as { escalationsOpen?: number }).escalationsOpen?.toString() ?? "0" : "0"),
+                highlight: escalationDocs.length > 0,
+              },
+              {
+                label: "Value at risk from red clauses",
+                value: stats && (stats as { valueAtRisk?: { RED?: number } }).valueAtRisk?.RED
+                  ? `£${(((stats as unknown as { valueAtRisk: { RED: number } }).valueAtRisk.RED) / 1000).toFixed(0)}k`
+                  : "£0",
+                highlight: !!(stats && (stats as { valueAtRisk?: { RED?: number } }).valueAtRisk?.RED),
+              },
+              {
+                label: "Renewals due in 90 days",
+                value: stats ? (stats.renewalsDue ?? 0).toString() : "0",
+                highlight: false,
+              },
             ].map((s) => (
-              <div key={s.label} className="card px-4 py-3">
-                <div className={`text-lg font-semibold ${s.highlight ? "text-[#FCA5A5]" : ""}`}>{s.value}</div>
-                <div className="text-xs text-muted-foreground mt-0.5">{s.label}</div>
+              <div key={s.label} className="card px-4 py-4 space-y-1">
+                <div className={`text-2xl font-bold ${s.highlight ? "text-[#FCA5A5]" : ""}`}>{s.value}</div>
+                <div className="text-xs text-muted-foreground leading-snug">{s.label}</div>
               </div>
             ))}
           </div>
-        )}
+        </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        {/* ── Section 3: Recent Reviews ───────────────────────────────────── */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Recent Reviews</h2>
+            <Link to="/app/legal/library" className="text-xs text-primary hover:opacity-80 transition-opacity">View all →</Link>
+          </div>
 
-          {/* Left col - upload + list */}
-          <div className="lg:col-span-2 space-y-5">
-
-            {/* Upload */}
-            <div className="card">
-              <div className="card-header space-y-3">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <h2 className="text-base font-semibold">Upload a contract</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">PDF or DOCX · Max 50 MB</p>
-                  </div>
-                </div>
-                {/* Quick metadata fields */}
-                <div className="grid sm:grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    className="input text-sm py-1.5"
-                    placeholder="Counterparty name (optional)"
-                    value={counterpartyName}
-                    onChange={(e) => setCounterpartyName(e.target.value)}
-                  />
-                  <select
-                    className="input text-sm py-1.5"
-                    value={selectedType}
-                    onChange={(e) => setSelectedType(e.target.value)}
-                  >
-                    {contractTypeOptions.map((ct) => (
-                      <option key={ct.value} value={ct.value}>{ct.label}</option>
-                    ))}
-                  </select>
-                  <select
-                    className="input text-sm py-1.5"
-                    value={counterpartyType}
-                    onChange={(e) => setCounterpartyType(e.target.value)}
-                  >
-                    <option value="">
-                      {workflowType === "INSURANCE_LITIGATION" ? "Claimant type…" : "Counterparty type…"}
-                    </option>
-                    {counterpartyTypeOptions.map((ct) => (
-                      <option key={ct.value} value={ct.value}>{ct.label}</option>
-                    ))}
-                  </select>
-                  <select
-                    className="input text-sm py-1.5"
-                    value={reviewType}
-                    onChange={(e) => setReviewType(e.target.value)}
-                  >
-                    {reviewTypeOptions.map((rt) => (
-                      <option key={rt.value} value={rt.value}>{rt.label}</option>
-                    ))}
-                  </select>
-                </div>
-                {/* Value + term row */}
-                <div className="grid sm:grid-cols-3 gap-2">
-                  <div className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">£</span>
-                    <input
-                      type="number"
-                      className="input text-sm py-1.5 pl-6"
-                      placeholder="Contract value"
-                      value={contractValue}
-                      onChange={(e) => setContractValue(e.target.value)}
-                    />
-                  </div>
-                  <input
-                    type="number"
-                    className="input text-sm py-1.5"
-                    placeholder="Term (months)"
-                    value={contractTermMonths}
-                    onChange={(e) => setContractTermMonths(e.target.value)}
-                  />
-                  <input
-                    type="date"
-                    className="input text-sm py-1.5"
-                    placeholder="Renewal date"
-                    value={renewalDate}
-                    onChange={(e) => setRenewalDate(e.target.value)}
-                  />
-                </div>
-                {/* Governing law + jurisdiction row */}
-                <div className="grid sm:grid-cols-2 gap-2">
-                  <input
-                    type="text"
-                    className="input text-sm py-1.5"
-                    placeholder="Governing law (e.g. English law)"
-                    value={governingLaw}
-                    onChange={(e) => setGoverningLaw(e.target.value)}
-                  />
-                  <select
-                    className="input text-sm py-1.5"
-                    value={jurisdiction}
-                    onChange={(e) => setJurisdiction(e.target.value)}
-                  >
-                    <option value="">Jurisdiction (optional)</option>
-                    <option value="GB">United Kingdom</option>
-                    <option value="EU">European Union</option>
-                    <option value="IE">Ireland</option>
-                    <option value="US">United States</option>
-                    <option value="CA">Canada</option>
-                    <option value="SG">Singapore</option>
-                    <option value="AE">United Arab Emirates</option>
-                    <option value="AU">Australia</option>
-                    <option value="NZ">New Zealand</option>
-                  </select>
+          <div className="card">
+            {docsError ? (
+              <div className="card-body text-center py-8">
+                <AlertCircle size={24} className="text-[#FCA5A5] mx-auto mb-2" />
+                <p className="text-sm text-[#FCA5A5]">Contracts could not be loaded.</p>
+                <button className="text-xs text-[#FCA5A5]/70 underline mt-1" onClick={() => void refetchDocs()}>Retry</button>
+              </div>
+            ) : recentDocs.length === 0 && !useMock ? (
+              <div className="card-body text-center py-12">
+                <FileText size={32} className="text-muted-foreground/30 mx-auto mb-3" />
+                <div className="text-sm font-medium text-muted-foreground">No contracts reviewed yet</div>
+                <div className="text-xs text-muted-foreground mt-2 max-w-xs mx-auto">
+                  Go to <Link to="/app/legal/library" className="text-primary underline">Library</Link> to upload your first contract.
                 </div>
               </div>
-              <div className="card-body space-y-3">
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/60 bg-muted/30 rounded-lg px-3 py-2">
-                  <Lock size={10} className="shrink-0 text-muted-foreground/50" />
-                  Documents are anonymised before model review. Known entities and sensitive identifiers are replaced with placeholders and restored in your final output.
-                </div>
-                <div
-                  className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer
-                    ${dragOver ? "border-primary bg-accent scale-[1.01]" : "border-border hover:border-primary/60 hover:bg-accent/30"}
-                    ${uploading ? "opacity-60 pointer-events-none" : ""}`}
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={onDrop}
-                >
-                  <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.docx,.doc" onChange={onFileChange} />
-                  {uploading ? (
-                    <div className="space-y-3">
-                      <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto" />
-                      <div className="text-sm font-medium">Uploading and starting review…</div>
-                      <div className="text-xs text-muted-foreground">Classifying clauses and checking your playbook</div>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center mx-auto">
-                        <Upload size={22} className="text-primary" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold">Drop your contract here</div>
-                        <div className="text-xs text-muted-foreground mt-1">or click to browse</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+            ) : (
+              <div className="divide-y divide-card-border">
+                {(useMock ? filteredDocuments.slice(0, 5) : recentDocs).map((doc) => {
+                  const results = (doc as DocWithRag).reviewResults ?? [];
+                  const readiness = doc.status === "COMPLETE" ? getSignReadiness(results) : "pending";
+                  const { label: readinessLabel, color: readinessColor, bg: readinessBg, icon: ReadinessIcon } = READINESS_CONFIG[readiness];
+                  const isClickable = doc.status === "COMPLETE" && (!useMock || doc.id === "mock-1");
+                  const red   = results.filter((r) => r.ragStatus === "RED").length;
+                  const amber = results.filter((r) => r.ragStatus === "AMBER").length;
+                  const docWithMeta = doc as DocWithRag & { counterpartyName?: string; contractValue?: number; lastError?: string };
+                  const isStuck = ACTIVE_STATUSES.includes(doc.status as DocumentStatus) &&
+                    doc.uploadedAt &&
+                    (Date.now() - new Date(doc.uploadedAt).getTime()) > 10 * 60 * 1000;
 
-                {/* Upload error */}
-                {uploadError && (
-                  <div className="mt-3 flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/8 px-3 py-2.5">
-                    <AlertCircle size={14} className="text-destructive shrink-0 mt-0.5" />
-                    <p className="text-xs text-destructive leading-snug">{uploadError}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Processing stage cards */}
-            {(realDocuments as UploadedDocument[])
-              .filter((d) => ACTIVE_STATUSES.includes(d.status))
-              .map((d) => (
-                <ReviewProcessingCard key={d.id} doc={d} />
-              ))}
-
-            {/* Search and filter */}
-            {realDocuments.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                <input
-                  type="text"
-                  className="input text-sm py-1.5 flex-1 min-w-[160px]"
-                  placeholder="Search by counterparty name…"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <select
-                  className="input text-sm py-1.5 w-auto"
-                  value={filterRag}
-                  onChange={(e) => setFilterRag(e.target.value)}
-                >
-                  <option value="">All statuses</option>
-                  <option value="RED">Red flagged</option>
-                  <option value="AMBER">Amber flagged</option>
-                  <option value="GREEN">Green only</option>
-                </select>
-                <select
-                  className="input text-sm py-1.5 w-auto"
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                >
-                  <option value="">All types</option>
-                  {contractTypeOptions.map((ct) => (
-                    <option key={ct.value} value={ct.value}>{ct.label}</option>
-                  ))}
-                </select>
-                {(searchQuery || filterRag || filterType) && (
-                  <button
-                    className="text-xs text-muted-foreground hover:text-foreground"
-                    onClick={() => { setSearchQuery(""); setFilterRag(""); setFilterType(""); }}
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Recent reviews */}
-            <div className="card">
-              <div className="card-header flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {!useMock && filteredDocuments.length > 0 && (
-                    <input
-                      type="checkbox"
-                      className="w-4 h-4 rounded accent-blue-500 cursor-pointer"
-                      checked={selectedIds.size > 0 && selectedIds.size === filteredDocuments.length}
-                      ref={(el) => { if (el) el.indeterminate = selectedIds.size > 0 && selectedIds.size < filteredDocuments.length; }}
-                      onChange={(e) => setSelectedIds(e.target.checked ? new Set(filteredDocuments.map((d) => d.id)) : new Set())}
-                    />
-                  )}
-                  <h2 className="text-base font-semibold">Recent reviews</h2>
-                </div>
-                {selectedIds.size > 0 && (
-                  <button
-                    onClick={() => setDeleteModal({ ids: Array.from(selectedIds) })}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#450A0A]/60 hover:bg-[#450A0A] text-[#FCA5A5] text-xs font-semibold transition-colors"
-                  >
-                    <Trash2 size={12} />
-                    Delete {selectedIds.size} selected
-                  </button>
-                )}
-              </div>
-              {docsError ? (
-                <div className="card-body text-center py-8">
-                  <AlertCircle size={24} className="text-[#FCA5A5] mx-auto mb-2" />
-                  <p className="text-sm text-[#FCA5A5]">Your contracts could not be loaded.</p>
-                  <button className="text-xs text-[#FCA5A5]/70 underline mt-1" onClick={() => void refetchDocs()}>
-                    Retry
-                  </button>
-                </div>
-              ) : documents.length === 0 ? (
-                <div className="card-body text-center py-12">
-                  <FileText size={32} className="text-muted-foreground/30 mx-auto mb-3" />
-                  <div className="text-sm font-medium text-muted-foreground">No contracts reviewed yet</div>
-                  <div className="text-xs text-muted-foreground mt-2 max-w-xs mx-auto leading-relaxed">
-                    Upload your first contract above to generate a structured risk review against your playbook.
-                  </div>
-                </div>
-              ) : (
-                <div className="divide-y divide-card-border">
-                  {filteredDocuments.map((doc) => {
-                    const results = (doc as DocWithRag).reviewResults ?? [];
-                    const readiness = doc.status === "COMPLETE" ? getSignReadiness(results) : "pending";
-                    const { label: readinessLabel, color: readinessColor, bg: readinessBg, icon: ReadinessIcon } = READINESS_CONFIG[readiness];
-                    // mock-1 is always clickable - it has a full demo review
-                    const isClickable = doc.status === "COMPLETE" && (!useMock || doc.id === "mock-1");
-                    const red   = results.filter((r) => r.ragStatus === "RED").length;
-                    const amber = results.filter((r) => r.ragStatus === "AMBER").length;
-                    const docWithMeta = doc as DocWithRag & { counterpartyName?: string; contractValue?: number; lastError?: string };
-                    const isStuck = ACTIVE_STATUSES.includes(doc.status as DocumentStatus) &&
-                      doc.uploadedAt &&
-                      (Date.now() - new Date(doc.uploadedAt).getTime()) > 10 * 60 * 1000;
-
-                    return (
-                      <div key={doc.id} className="group">
+                  return (
+                    <div key={doc.id} className="group">
                       <div
                         className={`px-5 py-4 flex items-center gap-4 transition-colors
                           ${isClickable ? "hover:bg-muted/20 cursor-pointer" : ""}`}
                         onClick={isClickable ? () => navigate(`/app/legal/review/${doc.id}`) : undefined}
                       >
-                        {/* Per-row checkbox (only in real mode) */}
-                        {!useMock && (
-                          <input
-                            type="checkbox"
-                            className="w-4 h-4 rounded accent-blue-500 cursor-pointer shrink-0"
-                            checked={selectedIds.has(doc.id)}
-                            onChange={() => toggleSelect(doc.id)}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        )}
                         <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
                           <FileText size={15} className="text-muted-foreground" />
                         </div>
-
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-semibold truncate">
                             {doc.originalName}
                             {docWithMeta.counterpartyName && (
-                              <span className="ml-2 text-xs font-normal text-muted-foreground">
-                                · {docWithMeta.counterpartyName}
-                              </span>
+                              <span className="ml-2 text-xs font-normal text-muted-foreground">· {docWithMeta.counterpartyName}</span>
                             )}
                           </div>
                           <div className="flex items-center gap-3 mt-1">
-                            <span className="text-xs text-muted-foreground">
-                              {doc.contractType.replace(/_/g, " ")}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {formatDateShort(doc.uploadedAt)}
-                            </span>
-                            {docWithMeta.contractValue && (
-                              <span className="text-xs text-muted-foreground">
-                                £{docWithMeta.contractValue.toLocaleString("en-GB")}
-                              </span>
-                            )}
-                            {doc.status === "COMPLETE" && results.length > 0 && (
-                              <MiniRagBar results={results} />
-                            )}
+                            <span className="text-xs text-muted-foreground">{doc.contractType.replace(/_/g, " ")}</span>
+                            <span className="text-xs text-muted-foreground">{formatDateShort(doc.uploadedAt)}</span>
+                            {doc.status === "COMPLETE" && results.length > 0 && <MiniRagBar results={results} />}
                           </div>
                         </div>
-
-                        {/* Risk pills */}
                         {doc.status === "COMPLETE" && results.length > 0 && (
                           <div className="hidden sm:flex items-center gap-1.5 shrink-0">
                             {red   > 0 && <span className="rag-red">{red} RED</span>}
@@ -1211,163 +1082,50 @@ export default function Dashboard() {
                             {red === 0 && amber === 0 && <span className="rag-green">All clear</span>}
                           </div>
                         )}
-
-                        {/* Sign readiness */}
                         <div className={`hidden md:flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border shrink-0 ${readinessBg} ${readinessColor}`}>
                           <ReadinessIcon size={12} />
                           {readinessLabel}
                         </div>
-
-                        {/* Stuck or reviewing indicator */}
                         {isStuck ? (
                           <div className="text-xs text-[#FCA5A5] text-right shrink-0">
-                            <div>Stuck: took too long</div>
-                            <button
-                              className="text-[10px] underline"
-                              onClick={(e) => { e.stopPropagation(); reviewMutation.mutate(doc.id); }}
-                            >
-                              Retry
-                            </button>
+                            <div>Stuck</div>
+                            <button className="text-[10px] underline" onClick={(e) => { e.stopPropagation(); reviewMutation.mutate(doc.id); }}>Retry</button>
                           </div>
                         ) : ACTIVE_STATUSES.includes(doc.status as DocumentStatus) ? (
                           <span className="flex items-center gap-1 text-xs text-[#FCD34D] shrink-0">
                             <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D] animate-pulse" /> Reviewing
                           </span>
                         ) : null}
-
                         {doc.status === "FAILED" && (
-                          <button
-                            className="btn-ghost text-xs px-2 py-1 gap-1 shrink-0"
-                            onClick={(e) => { e.stopPropagation(); reviewMutation.mutate(doc.id); }}
-                          >
+                          <button className="btn-ghost text-xs px-2 py-1 gap-1 shrink-0"
+                            onClick={(e) => { e.stopPropagation(); reviewMutation.mutate(doc.id); }}>
                             <RotateCcw size={12} /> Retry
                           </button>
                         )}
                         {isClickable && <ChevronRight size={15} className="text-muted-foreground shrink-0" />}
-                        {useMock && doc.status === "COMPLETE" && (
-                          <ChevronRight size={15} className="text-muted-foreground/40 shrink-0" />
-                        )}
-                        {/* Delete button: revealed on row hover, never shown in mock mode */}
                         {!useMock && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDeleteModal({ ids: [doc.id], name: doc.originalName });
-                            }}
+                          <button onClick={(e) => { e.stopPropagation(); setDeleteModal({ ids: [doc.id], name: doc.originalName }); }}
                             className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-[#450A0A]/60 text-muted-foreground hover:text-[#FCA5A5] shrink-0"
-                            title="Delete contract"
-                          >
+                            title="Delete">
                             <Trash2 size={14} />
                           </button>
                         )}
                       </div>
-                      {/* Failed doc lastError message */}
                       {doc.status === "FAILED" && (
                         <div className="px-5 pb-3">
                           <p className="text-[11px] text-[#FCA5A5]/70 leading-relaxed">
-                            {docWithMeta.lastError
-                              ? formatLastError(docWithMeta.lastError)
-                              : "Review failed. Please retry, or contact support if this persists."}
+                            {docWithMeta.lastError ? formatLastError(docWithMeta.lastError) : "Review failed. Please retry."}
                           </p>
                         </div>
                       )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right col */}
-          <div className="space-y-5">
-
-            {/* Risk inbox - dynamic, only shows when there's something to flag */}
-            <RiskInbox documents={filteredDocuments as DocWithRag[]} />
-
-            {/* Approval queue - contracts with unresolved escalations */}
-            <ApprovalQueue documents={filteredDocuments as DocWithRag[]} />
-
-            {/* How to read results */}
-            <div className="card bg-accent border-accent-border">
-              <div className="card-body space-y-4">
-                <div className="flex items-center gap-2">
-                  <Shield size={14} className="text-primary" />
-                  <span className="text-sm font-semibold text-accent-foreground">How to read your results</span>
-                </div>
-                <div className="space-y-3 text-xs text-foreground/80">
-                  {[
-                    { badge: "rag-red",   label: "Red",    desc: "Do not sign. Fix this first." },
-                    { badge: "rag-amber", label: "Amber",  desc: "Worth negotiating before signing" },
-                    { badge: "rag-green", label: "Green",  desc: "Looks good against your playbook" },
-                    { badge: "rag-grey",  label: "Absent", desc: "Clause not found. Ask for it." },
-                  ].map(({ badge, label, desc }) => (
-                    <div key={label} className="flex items-start gap-2.5">
-                      <span className={`${badge} mt-0.5 shrink-0`}>{label}</span>
-                      <span className="leading-relaxed">{desc}</span>
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-            </div>
-
-            {/* What Zane checks */}
-            <div className="card">
-              <div className="card-body space-y-3">
-                <div className="flex items-center gap-2">
-                  <Activity size={14} className="text-primary" />
-                  <span className="text-sm font-semibold">What Zane checks</span>
-                </div>
-                <div className="space-y-2 text-xs text-muted-foreground">
-                  {[
-                    "Liability caps and exclusions",
-                    "Indemnity and risk allocation",
-                    "IP ownership and licensing",
-                    "Data privacy obligations",
-                    "Termination rights",
-                    "Payment and auto-renewal terms",
-                    "Governing law",
-                    "Audit rights",
-                  ].map((item) => (
-                    <div key={item} className="flex items-center gap-2">
-                      <div className="w-1 h-1 rounded-full bg-primary/60 shrink-0" />
-                      {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Legal Inheritance */}
-            <div className="card border-[#1E3A5F]" style={{ background: "#172B4D" }}>
-              <div className="card-body space-y-3">
-                <div className="flex items-center gap-2">
-                  <LayoutGrid size={14} className="text-primary shrink-0" />
-                  <span className="text-sm font-semibold">Legal Inheritance</span>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Already have a contract library? Upload your entire back-catalogue in one go. Zane reviews every document against your playbook and surfaces hidden risk across your existing portfolio.
-                </p>
-                <Link
-                  to="/app/legal/bulk-review"
-                  className="inline-flex items-center gap-1.5 text-xs text-primary font-medium hover:opacity-80 transition-opacity"
-                >
-                  Run a bulk review <ArrowRight size={11} />
-                </Link>
-              </div>
-            </div>
-
-            {/* Zane learning (accumulation engine) */}
-            <AccumulationCard />
-
-            {/* Patterns detected (memory layer) */}
-            <ZaneNoticedPanel />
-
-            {/* Missing docs */}
-            <MissingDocsPanel />
-
+            )}
           </div>
         </div>
+
       </div>
     </AppLayout>
 

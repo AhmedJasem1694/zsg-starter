@@ -237,9 +237,9 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
 
 // ── Add clause panel ──────────────────────────────────────────────────────────
 
-function AddClausePanel({ workflowType, onSaved }: { workflowType?: string; onSaved: () => void }) {
-  const [open, setOpen] = useState(false);
-  const [clauseCategory, setClauseCategory] = useState("");
+function AddClausePanel({ workflowType, onSaved, startOpen }: { workflowType?: string; onSaved: () => void; startOpen?: string }) {
+  const [open, setOpen] = useState(!!startOpen);
+  const [clauseCategory, setClauseCategory] = useState(startOpen ?? "");
   const [preferredPosition, setPreferredPosition] = useState("");
   const [acceptableFallback, setAcceptableFallback] = useState("");
   const [hardRedLine, setHardRedLine] = useState("");
@@ -884,9 +884,22 @@ function ExtendedOutcomesView({ outcomes, extendedOutcomes }: { outcomes: Clause
   );
 }
 
+// ── Demo outcome data for Meridian Financial Technologies ────────────────────
+const MERIDIAN_DEMO_OUTCOMES: Record<string, ClauseOutcome> = {
+  LIABILITY_CAP:  { clauseCategory: "LIABILITY_CAP",   total: 6, greenCount: 3, amberCount: 2, redCount: 1, accepted: 1, escalated: 1, dismissed: 0 },
+  INDEMNITY:      { clauseCategory: "INDEMNITY",       total: 4, greenCount: 2, amberCount: 2, redCount: 0, accepted: 0, escalated: 0, dismissed: 0 },
+  PAYMENT_TERMS:  { clauseCategory: "PAYMENT_TERMS",   total: 5, greenCount: 1, amberCount: 3, redCount: 1, accepted: 1, escalated: 0, dismissed: 0 },
+  IP_OWNERSHIP:   { clauseCategory: "IP_OWNERSHIP",    total: 4, greenCount: 4, amberCount: 0, redCount: 0, accepted: 0, escalated: 0, dismissed: 0 },
+  CONFIDENTIALITY:{ clauseCategory: "CONFIDENTIALITY", total: 4, greenCount: 3, amberCount: 1, redCount: 0, accepted: 0, escalated: 0, dismissed: 0 },
+  GOVERNING_LAW:  { clauseCategory: "GOVERNING_LAW",   total: 5, greenCount: 5, amberCount: 0, redCount: 0, accepted: 0, escalated: 0, dismissed: 0 },
+  AUTO_RENEWAL:   { clauseCategory: "AUTO_RENEWAL",    total: 4, greenCount: 0, amberCount: 2, redCount: 2, accepted: 2, escalated: 0, dismissed: 0 },
+  TERMINATION:    { clauseCategory: "TERMINATION",     total: 4, greenCount: 3, amberCount: 1, redCount: 0, accepted: 0, escalated: 0, dismissed: 0 },
+};
+
 export default function Playbook() {
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<"playbook" | "outcomes" | "updates" | "rules">("playbook");
+  const [quickAddCategory, setQuickAddCategory] = useState<string | undefined>(undefined);
 
   const { data: rulesData, isLoading } = useQuery({
     queryKey: ["playbook-rules"],
@@ -932,8 +945,17 @@ export default function Playbook() {
   });
   const workflowType = (company as { workflowType?: string } | undefined)?.workflowType;
 
+  const isMeridianDemo = (company as { name?: string } | undefined)?.name?.toLowerCase().includes("meridian") ?? false;
+  const demoOutcomes: ClauseOutcome[] = isMeridianDemo
+    ? Object.entries(MERIDIAN_DEMO_OUTCOMES).map(([, o]) => ({ ...o }))
+    : [];
+
+  const rawOutcomes = (patternsData?.clauseOutcomes ?? []).length > 0
+    ? (patternsData?.clauseOutcomes ?? [])
+    : demoOutcomes;
+
   const outcomeMap = new Map<string, ClauseOutcome>(
-    (patternsData?.clauseOutcomes ?? []).map((o) => [o.clauseCategory, o])
+    rawOutcomes.map((o) => [o.clauseCategory, o])
   );
 
   // Apply a drift suggestion to a playbook rule in the local state
@@ -1009,9 +1031,39 @@ export default function Playbook() {
           isLoading ? (
             <div className="text-sm text-muted-foreground py-8 text-center">Loading playbook…</div>
           ) : rules.length === 0 ? (
-            <div className="text-center py-16 space-y-3">
-              <div className="text-sm font-medium">Your playbook is empty</div>
-              <div className="text-xs text-muted-foreground">Add your first clause position to start reviewing contracts against your standards.</div>
+            <div className="space-y-8">
+              <div className="text-center py-10 space-y-4">
+                <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center mx-auto">
+                  <BookOpen size={22} className="text-muted-foreground/50" />
+                </div>
+                <div className="space-y-2">
+                  <div className="text-base font-semibold">Your playbook is empty.</div>
+                  <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                    Add your first clause position to start reviewing contracts against your own standards rather than generic market defaults.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                  {[
+                    { cat: "LIABILITY_CAP", label: "Limitation of Liability" },
+                    { cat: "DATA_PRIVACY",  label: "Data and Privacy" },
+                    { cat: "GOVERNING_LAW", label: "Governing Law" },
+                  ].map(({ cat, label }) => (
+                    <button
+                      key={cat}
+                      className="flex items-center gap-1.5 text-sm px-4 py-2 rounded-lg border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                      onClick={() => setQuickAddCategory(cat)}
+                    >
+                      <Plus size={13} />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <AddClausePanel
+                workflowType={workflowType}
+                onSaved={() => { setQuickAddCategory(undefined); void queryClient.invalidateQueries({ queryKey: ["playbook-rules"] }); }}
+                startOpen={quickAddCategory}
+              />
             </div>
           ) : (
             <div className="space-y-3">
@@ -1066,6 +1118,7 @@ export default function Playbook() {
                 workflowType={workflowType}
                 onSaved={() => void queryClient.invalidateQueries({ queryKey: ["playbook-rules"] })}
               />
+
             </div>
           )
         ) : tab === "outcomes" ? (

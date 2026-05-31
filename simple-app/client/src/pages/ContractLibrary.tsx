@@ -2,46 +2,57 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import {
-  Library, Search, ChevronDown, ChevronRight, Folder, FolderOpen,
-  FileText, ExternalLink, GitBranch, Tag, CheckCircle, AlertTriangle, XCircle,
-  Edit2, Check, X,
+  Library, Search, FileText, ExternalLink, GitBranch, Tag,
+  CheckCircle, AlertTriangle, XCircle, Edit2, Check, X,
+  ArrowUpDown, Upload,
 } from "lucide-react";
 import AppLayout from "../components/layout/AppLayout";
 import { getLibrary, setDocumentFolder, linkDocumentVersion } from "../lib/api";
 import type { UploadedDocument } from "../lib/types";
 
-// ── Status badge ──────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-function StatusBadge({ status }: { status?: string }) {
-  if (!status || status === "COMPLETE") return null;
+function formatDate(iso?: string) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+
+// ── Status pill ───────────────────────────────────────────────────────────────
+
+function StatusPill({ status }: { status?: string }) {
+  if (!status || status === "COMPLETE") {
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-500/15 text-green-400 border border-green-500/25">Complete</span>;
+  }
   const map: Record<string, { label: string; cls: string }> = {
     UPLOADED:   { label: "Uploaded",   cls: "bg-foreground/10 text-foreground/50 border-foreground/20" },
-    PROCESSING: { label: "Processing", cls: "bg-amber-500/20 text-amber-400 border-amber-500/30" },
-    FAILED:     { label: "Failed",     cls: "bg-red-500/20 text-red-400 border-red-500/30" },
+    PROCESSING: { label: "Processing", cls: "bg-amber-500/15 text-amber-400 border-amber-500/25" },
+    FAILED:     { label: "Failed",     cls: "bg-red-500/15 text-red-400 border-red-500/25" },
   };
   const entry = map[status];
   if (!entry) return null;
   return (
-    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border ${entry.cls}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${entry.cls}`}>
       {entry.label}
     </span>
   );
 }
 
-// ── Outcome badge ─────────────────────────────────────────────────────────────
+// ── Outcome pill ──────────────────────────────────────────────────────────────
 
-function OutcomeBadge({ outcome }: { outcome?: string }) {
-  if (!outcome || outcome === "DRAFT") return <span className="text-[10px] text-foreground/30">Draft</span>;
+function OutcomePill({ outcome }: { outcome?: string }) {
+  if (!outcome || outcome === "DRAFT") {
+    return <span className="text-[10px] text-foreground/30">Draft</span>;
+  }
   return (
-    <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium border ${
-      outcome === "SIGNED" ? "bg-blue-500/20 text-blue-400 border-blue-500/30" : "bg-purple-500/20 text-purple-400 border-purple-500/30"
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+      outcome === "SIGNED" ? "bg-blue-500/15 text-blue-400 border-blue-500/25" : "bg-purple-500/15 text-purple-400 border-purple-500/25"
     }`}>
       {outcome === "SIGNED" ? "Signed" : "Executed"}
     </span>
   );
 }
 
-// ── Folder edit inline ────────────────────────────────────────────────────────
+// ── Inline folder edit ────────────────────────────────────────────────────────
 
 function InlineFolderEdit({
   documentId,
@@ -56,21 +67,19 @@ function InlineFolderEdit({
   const [value, setValue] = useState(currentFolder ?? "");
 
   const handleSave = () => {
-    if (value.trim()) {
-      onSave(value.trim());
-    }
+    if (value.trim()) onSave(value.trim());
     setEditing(false);
   };
 
   if (!editing) {
     return (
       <button
-        className="inline-flex items-center gap-1 text-[10px] text-foreground/40 hover:text-foreground/70 transition-colors"
+        className="inline-flex items-center gap-1 text-[10px] text-foreground/40 hover:text-foreground/70 transition-colors max-w-[100px] truncate"
         onClick={(e) => { e.preventDefault(); setEditing(true); }}
         title="Edit folder"
       >
-        <Edit2 size={10} />
-        {currentFolder ? currentFolder : "Set folder"}
+        <Edit2 size={9} />
+        <span className="truncate">{currentFolder || "—"}</span>
       </button>
     );
   }
@@ -79,7 +88,7 @@ function InlineFolderEdit({
     <span className="inline-flex items-center gap-1" onClick={(e) => e.preventDefault()}>
       <input
         autoFocus
-        className="text-[11px] bg-card border border-border rounded px-1.5 py-0.5 text-foreground w-28 outline-none focus:border-blue-500"
+        className="text-[11px] bg-card border border-border rounded px-1.5 py-0.5 text-foreground w-24 outline-none focus:border-blue-500"
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
@@ -90,211 +99,203 @@ function InlineFolderEdit({
   );
 }
 
-// ── Document row ──────────────────────────────────────────────────────────────
+// ── Version picker ────────────────────────────────────────────────────────────
 
-function DocumentRow({
+function VersionPickerCell({
   doc,
   allDocs,
-  reviewBase,
-  onFolderChange,
 }: {
   doc: UploadedDocument;
   allDocs: UploadedDocument[];
-  reviewBase: string;
-  onFolderChange: (id: string, folder: string) => void;
 }) {
-  const [showVersionPicker, setShowVersionPicker] = useState(false);
+  const [open, setOpen] = useState(false);
   const linkMutation = useMutation({
     mutationFn: ({ docId, parentId }: { docId: string; parentId: string }) =>
       linkDocumentVersion(docId, parentId),
+    onSuccess: () => setOpen(false),
   });
 
-  const parent = doc.parentDocumentId
-    ? allDocs.find((d) => d.id === doc.parentDocumentId)
-    : null;
-
+  const parent   = doc.parentDocumentId ? allDocs.find((d) => d.id === doc.parentDocumentId) : null;
   const children = allDocs.filter((d) => d.parentDocumentId === doc.id);
 
+  if (parent || children.length > 0) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] text-foreground/40">
+        <GitBranch size={10} />
+        {parent ? "Version" : `${children.length}v`}
+      </span>
+    );
+  }
+
   return (
-    <div className="group relative">
-      <Link
-        to={`${reviewBase}/${doc.id}`}
-        className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-lg transition-colors"
+    <div className="relative">
+      <button
+        className="inline-flex items-center gap-1 text-[10px] text-foreground/20 hover:text-blue-400 transition-colors"
+        title="Link as version"
+        onClick={(e) => { e.preventDefault(); setOpen(!open); }}
       >
-        <FileText size={16} className="shrink-0 text-foreground/40" />
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-foreground truncate max-w-xs">
-              {doc.originalName ?? doc.filename}
-            </span>
-            <StatusBadge status={doc.status} />
-            <OutcomeBadge outcome={doc.outcome} />
-          </div>
-          <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-            {doc.counterpartyName && (
-              <span className="text-[11px] text-foreground/50">{doc.counterpartyName}</span>
-            )}
-            {doc.contractValue != null && (
-              <span className="text-[11px] text-foreground/40">
-                {doc.currency ?? "£"}{doc.contractValue.toLocaleString()}
-              </span>
-            )}
-            {doc.governingLaw && (
-              <span className="text-[11px] text-foreground/40">{doc.governingLaw}</span>
-            )}
-            {doc.contractTags && (
-              <span className="inline-flex items-center gap-1 text-[10px] text-foreground/40">
-                <Tag size={9} />
-                {doc.contractTags}
-              </span>
-            )}
-            <InlineFolderEdit
-              documentId={doc.id}
-              currentFolder={doc.folder}
-              onSave={(folder) => onFolderChange(doc.id, folder)}
-            />
-          </div>
-        </div>
-
-        {/* Version chain indicator */}
-        {(parent || children.length > 0) && (
-          <div className="shrink-0 flex items-center gap-1 text-[10px] text-foreground/40">
-            <GitBranch size={11} />
-            {parent ? `v${(doc.originalName ?? "").match(/v(\d+)/i)?.[1] ?? "?"}` : `${children.length} version${children.length !== 1 ? "s" : ""}`}
-          </div>
-        )}
-
-        <ExternalLink size={12} className="shrink-0 text-foreground/20 group-hover:text-foreground/50 transition-colors" />
-      </Link>
-
-      {/* Version link button - show on hover */}
-      {!doc.parentDocumentId && (
-        <button
-          className="absolute right-8 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center gap-1 text-[10px] text-foreground/40 hover:text-blue-400 transition-colors"
-          title="Link as new version of another document"
-          onClick={(e) => { e.preventDefault(); setShowVersionPicker(!showVersionPicker); }}
-        >
-          <GitBranch size={11} />
-          Link version
-        </button>
-      )}
-
-      {showVersionPicker && (
+        <GitBranch size={10} />
+      </button>
+      {open && (
         <div
-          className="absolute right-0 top-full z-50 mt-1 w-72 bg-card border border-border rounded-xl shadow-xl p-3"
+          className="absolute left-0 top-full z-50 mt-1 w-64 bg-card border border-border rounded-xl shadow-xl p-3"
           onClick={(e) => e.stopPropagation()}
         >
-          <p className="text-[11px] text-foreground/60 mb-2">Select the parent document (older version):</p>
-          <div className="space-y-1 max-h-48 overflow-y-auto">
+          <p className="text-[11px] text-foreground/60 mb-2">Select the parent document:</p>
+          <div className="space-y-1 max-h-40 overflow-y-auto">
             {allDocs
               .filter((d) => d.id !== doc.id && !d.parentDocumentId)
               .map((d) => (
                 <button
                   key={d.id}
                   className="w-full text-left px-2 py-1.5 rounded hover:bg-white/5 text-[11px] text-foreground/80 transition-colors"
-                  onClick={() => {
-                    linkMutation.mutate({ docId: doc.id, parentId: d.id });
-                    setShowVersionPicker(false);
-                  }}
+                  onClick={() => linkMutation.mutate({ docId: doc.id, parentId: d.id })}
                 >
                   {d.originalName ?? d.filename}
                 </button>
               ))}
           </div>
-          <button
-            className="mt-2 text-[11px] text-foreground/40 hover:text-foreground/70"
-            onClick={() => setShowVersionPicker(false)}
-          >
-            Cancel
-          </button>
+          <button className="mt-2 text-[11px] text-foreground/40 hover:text-foreground/70" onClick={() => setOpen(false)}>Cancel</button>
         </div>
       )}
     </div>
   );
 }
 
-// ── Folder accordion ──────────────────────────────────────────────────────────
+// ── Table row ─────────────────────────────────────────────────────────────────
 
-function FolderAccordion({
-  name,
-  documents,
+function TableRow({
+  doc,
   allDocs,
-  reviewBase,
   onFolderChange,
-  defaultOpen = false,
 }: {
-  name: string;
-  documents: UploadedDocument[];
+  doc: UploadedDocument;
   allDocs: UploadedDocument[];
-  reviewBase: string;
   onFolderChange: (id: string, folder: string) => void;
-  defaultOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(defaultOpen);
-
-  const processingCount = documents.filter((d) => d.status === "PROCESSING").length;
-  const failedCount     = documents.filter((d) => d.status === "FAILED").length;
-  const signedCount     = documents.filter((d) => d.outcome === "SIGNED" || d.outcome === "EXECUTED").length;
-
   return (
-    <div className="border border-border rounded-xl overflow-hidden">
-      <button
-        className="w-full flex items-center gap-3 px-4 py-3 bg-card hover:bg-white/5 transition-colors text-left"
-        onClick={() => setOpen(!open)}
-      >
-        <span className="text-foreground/50">
-          {open ? <FolderOpen size={18} className="text-blue-400" /> : <Folder size={18} className="text-foreground/40" />}
-        </span>
-        <span className="flex-1 font-medium text-sm">{name}</span>
+    <tr className="group hover:bg-white/[0.03] transition-colors">
+      {/* Name */}
+      <td className="px-4 py-3 max-w-0 w-[260px]">
+        <Link
+          to={`/app/legal/review/${doc.id}`}
+          className="flex items-center gap-2 group/link"
+        >
+          <FileText size={13} className="shrink-0 text-foreground/30 group-hover/link:text-foreground/60 transition-colors" />
+          <span className="text-sm text-foreground/90 font-medium truncate group-hover/link:text-white transition-colors">
+            {doc.originalName ?? doc.filename}
+          </span>
+          <ExternalLink size={10} className="shrink-0 text-foreground/20 group-hover/link:text-foreground/50 transition-colors" />
+        </Link>
+        {doc.contractTags && (
+          <div className="flex items-center gap-1 mt-0.5 ml-5">
+            <Tag size={8} className="text-foreground/30" />
+            <span className="text-[9px] text-foreground/30 truncate">{doc.contractTags}</span>
+          </div>
+        )}
+      </td>
 
-        <div className="flex items-center gap-2 text-[11px]">
-          {processingCount > 0 && (
-            <span className="flex items-center gap-1 text-amber-400">
-              <AlertTriangle size={11} />{processingCount} processing
-            </span>
-          )}
-          {failedCount > 0 && (
-            <span className="flex items-center gap-1 text-red-400">
-              <XCircle size={11} />{failedCount} failed
-            </span>
-          )}
-          {signedCount > 0 && (
-            <span className="flex items-center gap-1 text-blue-400">
-              <CheckCircle size={11} />{signedCount} signed
-            </span>
-          )}
-          <span className="text-foreground/40">{documents.length} doc{documents.length !== 1 ? "s" : ""}</span>
-        </div>
+      {/* Counterparty */}
+      <td className="px-4 py-3 text-xs text-foreground/60 whitespace-nowrap">
+        {doc.counterpartyName || <span className="text-foreground/20">—</span>}
+      </td>
 
-        {open ? <ChevronDown size={14} className="text-foreground/40" /> : <ChevronRight size={14} className="text-foreground/40" />}
-      </button>
+      {/* Contract type */}
+      <td className="px-4 py-3 text-xs text-foreground/60 whitespace-nowrap">
+        {doc.contractType
+          ? doc.contractType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+          : <span className="text-foreground/20">—</span>}
+      </td>
 
-      {open && (
-        <div className="divide-y divide-border/50 bg-card/50">
-          {documents.map((doc) => (
-            <DocumentRow
-              key={doc.id}
-              doc={doc}
-              allDocs={allDocs}
-              reviewBase={reviewBase}
-              onFolderChange={onFolderChange}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+      {/* Value */}
+      <td className="px-4 py-3 text-xs text-foreground/60 whitespace-nowrap text-right">
+        {doc.contractValue != null
+          ? `${doc.currency ?? "£"}${doc.contractValue.toLocaleString()}`
+          : <span className="text-foreground/20">—</span>}
+      </td>
+
+      {/* Governing law */}
+      <td className="px-4 py-3 text-xs text-foreground/50 whitespace-nowrap">
+        {doc.governingLaw || <span className="text-foreground/20">—</span>}
+      </td>
+
+      {/* Status */}
+      <td className="px-4 py-3 whitespace-nowrap">
+        <StatusPill status={doc.status} />
+      </td>
+
+      {/* Outcome */}
+      <td className="px-4 py-3 whitespace-nowrap">
+        <OutcomePill outcome={doc.outcome} />
+      </td>
+
+      {/* Folder */}
+      <td className="px-4 py-3 whitespace-nowrap">
+        <InlineFolderEdit
+          documentId={doc.id}
+          currentFolder={doc.folder}
+          onSave={(folder) => onFolderChange(doc.id, folder)}
+        />
+      </td>
+
+      {/* Uploaded */}
+      <td className="px-4 py-3 text-[11px] text-foreground/40 whitespace-nowrap">
+        {formatDate(doc.uploadedAt)}
+      </td>
+
+      {/* Version */}
+      <td className="px-4 py-3">
+        <VersionPickerCell doc={doc} allDocs={allDocs} />
+      </td>
+    </tr>
+  );
+}
+
+// ── Column header ─────────────────────────────────────────────────────────────
+
+type SortKey = "name" | "counterparty" | "value" | "uploadedAt" | "status";
+
+function ColHeader({
+  label,
+  sortKey,
+  current,
+  direction,
+  onSort,
+  align = "left",
+}: {
+  label: string;
+  sortKey?: SortKey;
+  current?: SortKey;
+  direction?: "asc" | "desc";
+  onSort?: (k: SortKey) => void;
+  align?: "left" | "right";
+}) {
+  const active = sortKey && current === sortKey;
+  return (
+    <th
+      className={`px-4 py-3 text-[10px] uppercase tracking-wider font-semibold whitespace-nowrap select-none
+        ${align === "right" ? "text-right" : "text-left"}
+        ${sortKey ? "cursor-pointer hover:text-foreground/70" : ""}
+        ${active ? "text-foreground/60" : "text-foreground/30"}`}
+      onClick={() => sortKey && onSort?.(sortKey)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {sortKey && <ArrowUpDown size={9} className={active ? "text-blue-400" : "opacity-30"} />}
+      </span>
+    </th>
   );
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function ContractLibrary() {
-  const [search, setSearch] = useState("");
+  const [search, setSearch]           = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [sortKey, setSortKey]         = useState<SortKey>("uploadedAt");
+  const [sortDir, setSortDir]         = useState<"asc" | "desc">("desc");
   const queryClient = useQueryClient();
 
-  // Debounce search
   const handleSearch = (value: string) => {
     setSearch(value);
     clearTimeout((handleSearch as { _t?: ReturnType<typeof setTimeout> })._t);
@@ -311,38 +312,66 @@ export default function ContractLibrary() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["library"] }),
   });
 
-  // Flatten all docs for version linking
-  const allDocs = data?.folders.flatMap((f) => f.documents) ?? [];
+  // Flatten all docs
+  const allDocs: UploadedDocument[] = data?.folders.flatMap((f) => f.documents) ?? [];
 
-  // Determine review base from first doc (all share same persona)
-  const reviewBase = "/app/legal/review";
+  // Sort
+  const sorted = [...allDocs].sort((a, b) => {
+    let cmp = 0;
+    if (sortKey === "name")          cmp = (a.originalName ?? a.filename).localeCompare(b.originalName ?? b.filename);
+    else if (sortKey === "counterparty") cmp = (a.counterpartyName ?? "").localeCompare(b.counterpartyName ?? "");
+    else if (sortKey === "value")    cmp = (a.contractValue ?? 0) - (b.contractValue ?? 0);
+    else if (sortKey === "uploadedAt")   cmp = new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime();
+    else if (sortKey === "status")   cmp = (a.status ?? "").localeCompare(b.status ?? "");
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("asc"); }
+  }
+
+  // Stats
+  const completeCount = allDocs.filter((d) => d.status === "COMPLETE").length;
+  const signedCount   = allDocs.filter((d) => d.outcome === "SIGNED" || d.outcome === "EXECUTED").length;
 
   return (
     <AppLayout>
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3 mb-1">
               <Library size={22} className="text-blue-400" />
               <h1 className="text-2xl font-bold text-foreground">Contract Library</h1>
             </div>
             <p className="text-sm text-foreground/50">
-              All contracts organised by folder - search, link versions, and track outcomes
+              All contracts in one view — search, sort, and manage outcomes
             </p>
           </div>
 
           {data && (
-            <div className="text-right">
-              <div className="text-2xl font-bold text-foreground">{data.total}</div>
-              <div className="text-xs text-foreground/40">total contracts</div>
+            <div className="flex items-center gap-5 text-right">
+              <div>
+                <div className="text-xl font-bold text-foreground">{data.total}</div>
+                <div className="text-[10px] text-foreground/40 uppercase tracking-wider">Total</div>
+              </div>
+              <div>
+                <div className="text-xl font-bold text-foreground">{completeCount}</div>
+                <div className="text-[10px] text-foreground/40 uppercase tracking-wider">Reviewed</div>
+              </div>
+              <div>
+                <div className="text-xl font-bold text-blue-400">{signedCount}</div>
+                <div className="text-[10px] text-foreground/40 uppercase tracking-wider">Signed</div>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Search bar */}
-        <div className="relative mb-6">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/30" />
+        {/* Search */}
+        <div className="relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/30" />
           <input
             type="text"
             placeholder="Search by name, counterparty, tags, or folder…"
@@ -358,40 +387,68 @@ export default function ContractLibrary() {
         )}
 
         {/* Empty */}
-        {!isLoading && data?.folders.length === 0 && (
-          <div className="text-center py-16">
-            <Library size={40} className="mx-auto mb-3 text-foreground/20" />
+        {!isLoading && allDocs.length === 0 && (
+          <div className="text-center py-16 space-y-3">
+            <Library size={40} className="mx-auto text-foreground/20" />
             <p className="text-foreground/50 text-sm">
               {debouncedSearch ? "No contracts match your search." : "No contracts uploaded yet."}
             </p>
+            {!debouncedSearch && (
+              <Link to="/app/legal/dashboard" className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                <Upload size={12} />
+                Upload your first contract
+              </Link>
+            )}
           </div>
         )}
 
-        {/* Folder list */}
-        {!isLoading && data && data.folders.length > 0 && (
-          <div className="space-y-3">
-            {data.folders.map((folder, i) => (
-              <FolderAccordion
-                key={folder.name}
-                name={folder.name}
-                documents={folder.documents}
-                allDocs={allDocs}
-                reviewBase={reviewBase}
-                defaultOpen={i === 0}
-                onFolderChange={(id, f) => folderMutation.mutate({ id, folder: f })}
-              />
-            ))}
+        {/* Table */}
+        {!isLoading && sorted.length > 0 && (
+          <div className="rounded-xl border border-border overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-border bg-card/80">
+                    <ColHeader label="Name"          sortKey="name"        current={sortKey} direction={sortDir} onSort={handleSort} />
+                    <ColHeader label="Counterparty"  sortKey="counterparty" current={sortKey} direction={sortDir} onSort={handleSort} />
+                    <ColHeader label="Type" />
+                    <ColHeader label="Value"         sortKey="value"       current={sortKey} direction={sortDir} onSort={handleSort} align="right" />
+                    <ColHeader label="Governing Law" />
+                    <ColHeader label="Status"        sortKey="status"      current={sortKey} direction={sortDir} onSort={handleSort} />
+                    <ColHeader label="Outcome" />
+                    <ColHeader label="Folder" />
+                    <ColHeader label="Uploaded"      sortKey="uploadedAt"  current={sortKey} direction={sortDir} onSort={handleSort} />
+                    <ColHeader label="" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40">
+                  {sorted.map((doc) => (
+                    <TableRow
+                      key={doc.id}
+                      doc={doc}
+                      allDocs={allDocs}
+                      onFolderChange={(id, folder) => folderMutation.mutate({ id, folder })}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="px-4 py-3 border-t border-border bg-card/50 flex items-center justify-between">
+              <span className="text-[11px] text-foreground/40">
+                {sorted.length} contract{sorted.length !== 1 ? "s" : ""}
+                {debouncedSearch && " matching search"}
+              </span>
+              <div className="flex items-center gap-4 text-[11px] text-foreground/30">
+                <div className="flex items-center gap-1.5"><CheckCircle size={10} className="text-blue-400" /> Signed/Executed</div>
+                <div className="flex items-center gap-1.5"><AlertTriangle size={10} className="text-amber-400" /> Processing</div>
+                <div className="flex items-center gap-1.5"><XCircle size={10} className="text-red-400" /> Failed</div>
+                <div className="flex items-center gap-1.5"><GitBranch size={10} /> Version chain</div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Legend */}
-        <div className="mt-8 pt-6 border-t border-border flex items-center gap-6 text-[11px] text-foreground/40 flex-wrap">
-          <div className="flex items-center gap-1.5"><CheckCircle size={11} className="text-blue-400" /> Signed/Executed</div>
-          <div className="flex items-center gap-1.5"><AlertTriangle size={11} className="text-amber-400" /> Processing</div>
-          <div className="flex items-center gap-1.5"><XCircle size={11} className="text-red-400" /> Failed</div>
-          <div className="flex items-center gap-1.5"><GitBranch size={11} /> Version chain</div>
-          <div className="flex items-center gap-1.5"><Edit2 size={11} /> Hover to edit folder or link version</div>
-        </div>
       </div>
     </AppLayout>
   );
