@@ -113,7 +113,7 @@ export default function FounderDashboard() {
     } catch (e) {
       console.error("[upload]", e);
       const msg = e instanceof Error ? e.message : String(e);
-      // Classify and surface errors clearly — show the actual server message where possible
+      // Classify and surface errors clearly: show the actual server message where possible
       if (msg.includes("413") || msg.toLowerCase().includes("too large") || msg.toLowerCase().includes("50mb") || msg.toLowerCase().includes("20mb")) {
         setUploadError("This file exceeds the 50MB limit. Very large documents can be split into sections before uploading.");
       } else if (msg.includes("415") || msg.toLowerCase().includes("not supported")) {
@@ -123,12 +123,12 @@ export default function FounderDashboard() {
       } else if (msg.includes("400") || msg.toLowerCase().includes("onboarding")) {
         setUploadError("Please complete onboarding before uploading a contract.");
       } else if (msg.toLowerCase().includes("api key") || msg.toLowerCase().includes("openrouter")) {
-        setUploadError("AI service unavailable — please contact support.");
+        setUploadError("AI service unavailable. Please contact support.");
       } else if (msg.toLowerCase().includes("network") || msg.toLowerCase().includes("fetch")) {
-        setUploadError("Connection error — check your internet connection and try again.");
+        setUploadError("Connection error. Check your internet connection and try again.");
       } else {
         // Show the actual error so it's debuggable, but cap the length
-        setUploadError(msg.length < 120 ? msg : "Upload failed — please try again or contact support.");
+        setUploadError(msg.length < 120 ? msg : "Upload failed. Please try again or contact support.");
       }
     } finally {
       setUploading(false);

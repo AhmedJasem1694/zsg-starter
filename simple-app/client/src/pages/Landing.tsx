@@ -288,7 +288,7 @@ export default function Landing() {
             className="text-base sm:text-lg text-white/55 leading-relaxed max-w-2xl mx-auto"
             {...(shouldReduce ? {} : fadeUpHero(0.4))}
           >
-            Most legal teams spend hours reviewing the same clauses, escalating the same risks, and negotiating the same positions — because nobody documented what was decided last time. Zane reviews contracts against your actual playbook, negotiation history, approval thresholds and regulatory obligations. In minutes. Not hours.
+            Review contracts against your real positions. Not generic market standard. Yours.
           </motion.p>
 
           {/* CTA */}
@@ -697,7 +697,7 @@ export default function Landing() {
                 "Includes one user seat",
               ],
               cta: "Get started",
-              // Relative path — resolves to production domain automatically
+              // Relative path: resolves to production domain automatically
               link: "/register",
               external: false,
             },
@@ -716,7 +716,7 @@ export default function Landing() {
                 "Contradiction detection across your contract library",
               ],
               cta: "Get started",
-              // Relative path — resolves to production domain automatically
+              // Relative path: resolves to production domain automatically
               link: "/register",
               external: false,
             },

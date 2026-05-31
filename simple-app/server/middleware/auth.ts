@@ -30,7 +30,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
   const token = cookieToken ?? bearerToken;
 
   if (!token) {
-    console.warn(`[auth] No token found for ${req.method} ${req.path} — cookie=${!!cookieToken} bearer=${!!bearerToken}`);
+    console.warn(`[auth] No token found for ${req.method} ${req.path}. cookie=${!!cookieToken} bearer=${!!bearerToken}`);
     res.status(401).json({ error: "Not authenticated" });
     return;
   }

@@ -76,7 +76,7 @@ async function recoverStuckDocuments() {
       }).catch(() => [] as Array<{ id: string; originalName: string; status: string; updated: string }>);
 
       for (const doc of docs) {
-        console.warn(`[recovery] Document ${doc.id} (${doc.originalName}) stuck in ${status} since ${doc.updated} — marking FAILED`);
+        console.warn(`[recovery] Document ${doc.id} (${doc.originalName}) stuck in ${status} since ${doc.updated}. Marking FAILED.`);
         await pb.collection("uploaded_documents").update(doc.id, {
           status: "FAILED",
           lastError: `Review did not complete (stuck in ${status} state). The server may have restarted during processing. Please retry.`,

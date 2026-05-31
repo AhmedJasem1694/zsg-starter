@@ -58,7 +58,7 @@ class ClauseErrorBoundary extends React.Component<
     if (this.state.hasError) {
       return (
         <div className="rounded-xl border border-[#450A0A] bg-[#1F0A0A] px-4 py-3 text-xs text-[#FCA5A5]/70">
-          Could not render clause{this.props.label ? ` "${this.props.label}"` : ""}. This clause may have unexpected data — other clauses are unaffected.
+          Could not render clause{this.props.label ? ` "${this.props.label}"` : ""}. This clause may have unexpected data. Other clauses are unaffected.
         </div>
       );
     }
@@ -79,7 +79,7 @@ function formatLastError(raw: string): string {
     return "This looks like a scanned document. Please try a text-based PDF or Word document.";
   }
   if (raw.includes("LLM returned invalid JSON") || raw.includes("OpenRouter")) {
-    return "Zane could not complete the analysis. Please retry — this is usually a temporary issue.";
+    return "Zane could not complete the analysis. Please retry. This is usually a temporary issue.";
   }
   if (raw.includes("not found on disk") || raw.includes("uploads directory")) {
     return "The uploaded file could not be found. Please upload the document again.";
@@ -193,7 +193,7 @@ export default function ReviewDetail() {
   const docOutcomeRef = useRef<string | undefined>(undefined);
   if (doc?.outcome && doc.outcome !== docOutcomeRef.current) {
     docOutcomeRef.current = doc.outcome;
-    // Use a ref-based approach — setting state during render is intentionally
+    // Use a ref-based approach: setting state during render is intentionally
     // avoided; outcomeCaptured just defaults to false and updates via query invalidation.
   }
 
@@ -262,7 +262,7 @@ export default function ReviewDetail() {
 
   // ── Processing state ──────────────────────────────────────────────────────
 
-  // Stage list driven by actual doc.status — more accurate than elapsed time.
+  // Stage list driven by actual doc.status, more accurate than elapsed time.
   const PIPELINE_STAGES: Array<{ label: string; status: string; detail?: string }> = [
     { label: "Parsing document",              status: "PARSING"     },
     { label: "Anonymising sensitive data",    status: "ANONYMISING" },
@@ -278,7 +278,7 @@ export default function ReviewDetail() {
   const partialResults = doc.reviewResults ?? [];
   const hasPartial     = partialResults.length > 0;
 
-  // Stuck review detection — if processing for more than 10 minutes, show a warning
+  // Stuck review detection: if processing for more than 10 minutes, show a warning
   const processingTooLong = isActiveStatus && doc.uploadedAt &&
     (Date.now() - new Date(doc.uploadedAt).getTime()) > 10 * 60 * 1000;
 
@@ -472,7 +472,7 @@ export default function ReviewDetail() {
             <div className="flex-1 min-w-0">
               <span className="text-sm font-medium text-[#93C5FD]">
                 {doc.clausesTotal != null
-                  ? `Analysing clauses — ${partialResults.length} of ${doc.clausesTotal} complete`
+                  ? `Analysing clauses: ${partialResults.length} of ${doc.clausesTotal} complete`
                   : "Analysing clauses…"}
               </span>
               {doc.clausesTotal != null && (
@@ -699,7 +699,7 @@ export default function ReviewDetail() {
                 </button>
               ))}
 
-              {/* Missing — Critical (red badge style) */}
+              {/* Missing: Critical (red badge style) */}
               <button
                 onClick={() => setFilter("GREY_CRITICAL")}
                 className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
@@ -708,13 +708,13 @@ export default function ReviewDetail() {
                     : "border-border text-muted-foreground hover:border-[#475569] hover:text-foreground"
                 }`}
               >
-                Missing — Critical{" "}
+                Missing: Critical{" "}
                 <span className="inline-flex items-center justify-center ml-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#1F0A0A] border border-[#450A0A] text-[#FCA5A5]">
                   {counts.GREY_CRITICAL}
                 </span>
               </button>
 
-              {/* Missing — Optional (slate badge style) */}
+              {/* Missing: Optional (slate badge style) */}
               <button
                 onClick={() => setFilter("GREY_OPTIONAL")}
                 className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
@@ -723,7 +723,7 @@ export default function ReviewDetail() {
                     : "border-border text-muted-foreground hover:border-[#475569] hover:text-foreground"
                 }`}
               >
-                Missing — Optional{" "}
+                Missing: Optional{" "}
                 <span className="inline-flex items-center justify-center ml-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#0F172A] border border-[#334155] text-[#94A3B8]">
                   {counts.GREY_OPTIONAL}
                 </span>
@@ -1619,7 +1619,7 @@ function ClauseCard({
           )}
           {result.ragStatus === "GREY" ? (
             <span className={result.missingSeverity === "CRITICAL" ? "rag-red" : "rag-grey"}>
-              {result.missingSeverity === "CRITICAL" ? "Missing — Critical" : "Missing — Optional"}
+              {result.missingSeverity === "CRITICAL" ? "Missing: Critical" : "Missing: Optional"}
             </span>
           ) : (
             <span className={RAG_BADGE[result.ragStatus]}>{RAG_LABEL[result.ragStatus]}</span>

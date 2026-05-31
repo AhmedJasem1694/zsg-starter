@@ -130,7 +130,7 @@ async function runWithConcurrencyLimit<T>(
 async function _runReview(documentId: string, isTimedOut: () => boolean = () => false): Promise<void> {
   // Load document and company sequentially (each depends on the previous).
   // Playbook rules, approval thresholds, and governance triggers all depend on
-  // company.id — fetch them in parallel once company is known.
+  // company.id: fetch them in parallel once company is known.
   const doc = await pb.collection("uploaded_documents").getOne(documentId);
   const company = await pb.collection("companies").getOne(doc["company"] as string);
   const [playbookRules, approvalThresholds, governanceTriggers] = await Promise.all([
@@ -160,15 +160,15 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
     return trigger ? (trigger["escalateTo"] as string) : null;
   }
 
-  // Ensure company name is never empty — fall back to "Your company" so LLM output is never blank
+  // Ensure company name is never empty. Fall back to "Your company" so LLM output is never blank
   const effectiveCompanyName = ((company["name"] as string) ?? "").trim() || "Your company";
 
   const t = makeTiming(documentId);
   console.log(`[review] START documentId=${documentId} file="${doc["filename"] as string}" company=${company.id} name="${effectiveCompanyName}"`);
-  t.mark("pipeline start — setup complete (doc + company + playbook loaded)");
+  t.mark("pipeline start: setup complete (doc + company + playbook loaded)");
 
   // Status is already set to PROCESSING by the route handler before runReview() is called.
-  // Audit: fire-and-forget — never block the pipeline on audit writes
+  // Audit: fire-and-forget, never block the pipeline on audit writes
   void audit({
     action: "review_started",
     entityType: "uploaded_document",
@@ -195,7 +195,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
     const extractionMethod = parseResult.extractionMethod;
 
     console.log(`[review] PARSED ${documentId}: method=${extractionMethod} chars=${parseResult.textLength} ocrUsed=${ocrUsed}${parseResult.errorMessage ? ` warn="${parseResult.errorMessage}"` : ""}`);
-    t.mark(`text extraction complete — ${parseResult.textLength} chars via ${extractionMethod}`);
+    t.mark(`text extraction complete: ${parseResult.textLength} chars via ${extractionMethod}`);
 
     // Store extraction metadata on the document (best-effort - fields may not exist in older schemas)
     pb.collection("uploaded_documents").update(documentId, {
@@ -223,10 +223,10 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
       try {
         const { chatComplete } = await import("./openrouter.js");
         const snippet = rawText.slice(0, 6000);
-        // 60 max tokens (just a name), 20s timeout — this is a fast auxiliary call
+        // 60 max tokens (just a name), 20s timeout: this is a fast auxiliary call
         const cpResponse = await chatComplete([{
           role: "user",
-          content: `Extract the counterparty company or individual name from this contract. Look in: (1) the opening "between X and Y" parties clause, (2) definitions of "Supplier", "Vendor", "Customer", "Client", "Service Provider", (3) the agreement title/header, (4) the signature block. Return ONLY the full legal entity name (e.g. "Attio Limited") — no explanation, no JSON, just the name. If genuinely not identifiable return the single word: unknown\n\n${snippet}`,
+          content: `Extract the counterparty company or individual name from this contract. Look in: (1) the opening "between X and Y" parties clause, (2) definitions of "Supplier", "Vendor", "Customer", "Client", "Service Provider", (3) the agreement title/header, (4) the signature block. Return ONLY the full legal entity name (e.g. "Attio Limited"), no explanation, no JSON, just the name. If genuinely not identifiable return the single word: unknown\n\n${snippet}`,
         }], 60, 20_000);
         const extracted = cpResponse.trim().replace(/^["']|["']$/g, "");
         if (extracted && extracted.toLowerCase() !== "unknown" && extracted.length < 120) {
@@ -236,10 +236,10 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
             .catch((e: unknown) => console.warn("[review] Could not persist extracted counterpartyName:", (e as Error)?.message));
           console.log(`[review] Auto-extracted counterpartyName="${extracted}" for ${documentId}`);
         }
-        t.mark(`counterparty extraction — ${resolvedCounterpartyName ? `found "${resolvedCounterpartyName}"` : "not found"}`);
+        t.mark(`counterparty extraction: ${resolvedCounterpartyName ? `found "${resolvedCounterpartyName}"` : "not found"}`);
       } catch (err) {
         console.warn("[review] Counterparty auto-extraction failed (non-fatal):", (err as Error)?.message);
-        t.mark("counterparty extraction — failed (non-fatal)");
+        t.mark("counterparty extraction: failed (non-fatal)");
       }
     }
 
@@ -269,7 +269,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
     );
 
     console.log(`[review] ANONYMISED ${documentId}: session=${sessionId} entities=${entityMap.length}`);
-    t.mark(`PII anonymisation complete — ${entityMap.length} entities masked`);
+    t.mark(`PII anonymisation complete: ${entityMap.length} entities masked`);
 
     void audit({
       action: "pii_anonymisation_completed",
@@ -291,9 +291,9 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
     // ── Large-document detection ──────────────────────────────────────────────
     // Documents over 30,000 characters are split into overlapping 30,000-char
     // sections before classification. Each section is classified independently
-    // and the results merged — ensuring the full document is searched even for
+    // and the results merged, ensuring the full document is searched even for
     // clauses appearing in the second half of long contracts.
-    const LARGE_DOC_THRESHOLD = 30_000; // chars — typical 15-page contract threshold
+    const LARGE_DOC_THRESHOLD = 30_000; // chars: typical 15-page contract threshold
     const SECTION_SIZE        = 30_000; // chars per section
     const SECTION_OVERLAP     = 5_000;  // overlap to avoid missing clauses near boundaries
 
@@ -301,7 +301,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
 
     let textSections: string[];
     if (anonymisedText.length > LARGE_DOC_THRESHOLD) {
-      console.log(`[review] LARGE DOCUMENT ${documentId}: ${anonymisedText.length} chars — splitting into sections of ${SECTION_SIZE} chars (${SECTION_OVERLAP} overlap)`);
+      console.log(`[review] LARGE DOCUMENT ${documentId}: ${anonymisedText.length} chars, splitting into sections of ${SECTION_SIZE} chars (${SECTION_OVERLAP} overlap)`);
       textSections = [];
       let pos = 0;
       while (pos < anonymisedText.length) {
@@ -339,7 +339,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
         allChunksBySection.map((sectionChunks, sIdx) => {
           if (sectionChunks.length === 0) return Promise.resolve([] as Awaited<ReturnType<typeof classifyClauses>>);
           console.log(`[review] Classifying section ${sIdx + 1}/${allChunksBySection.length} (${sectionChunks.length} chunks)`);
-          // classifyClauses returns rawText strings directly — no index remapping needed
+          // classifyClauses returns rawText strings directly, no index remapping needed
           return classifyClauses(sectionChunks, company["workflowType"] as string, playbookCategories);
         })
       );
@@ -352,7 +352,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
       getRegulationSummaryForLLM(company.id),
     ]);
     console.log(`[review] CLASSIFIED ${documentId}: ${classified.length} clauses matched out of ${playbookCategories.length} categories`);
-    t.mark(`clause classification complete — ${classified.length}/${playbookCategories.length} categories matched`);
+    t.mark(`clause classification complete: ${classified.length}/${playbookCategories.length} categories matched`);
 
     // Deduplicate - keep highest-confidence chunk per category (merges across all sections)
     const bestByCategory = new Map<string, (typeof classified)[0]>();
@@ -411,7 +411,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
     });
 
     // Helper: write one result record to PocketBase immediately and bump progress.
-    // This is the "streaming" mechanism — the frontend polls and sees results as
+    // This is the "streaming" mechanism: the frontend polls and sees results as
     // they arrive rather than waiting for the full batch to finish.
     const persistResult = async (r: LocalResult): Promise<void> => {
       await pb.collection("review_results").create({
@@ -451,7 +451,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
         throw err;
       });
 
-      // Increment and push progress update — fire-and-forget so it never
+      // Increment and push progress update: fire-and-forget so it never
       // blocks the LLM call pipeline. Out-of-order arrival is fine; the client
       // uses reviewResults.length as the authoritative completed count.
       clausesCompleted++;
@@ -464,7 +464,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
     // wall-clock time is roughly the slowest single LLM call, not the sum of all.
     //
     // Promise.allSettled is used so that a single failing comparison doesn't abort
-    // the rest — failed clauses are logged and skipped.
+    // the rest. Failed clauses are logged and skipped.
     const deAnon = <T extends string | null | undefined>(s: T): T =>
       (s ? deanonymise(s, entityMap) : s) as T;
 
@@ -474,13 +474,13 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
       ? `\n\nContract governing law: ${docGoverningLaw}${docJurisdiction ? ` (jurisdiction: ${docJurisdiction})` : ""}. Apply the law of this jurisdiction when assessing the clause.`
       : "";
 
-    // Build clause comparison tasks — wrapped as thunks so the concurrency limiter controls launch order
+    // Build clause comparison tasks, wrapped as thunks so the concurrency limiter controls launch order
     const clauseTasks = playbookRules.map((rule) => async () => {
         const category = rule["clauseCategory"] as string;
         const match = bestByCategory.get(category);
 
         if (!match) {
-          // ── Absent clause — check if absence is favourable before flagging missing ─
+          // ── Absent clause: check if absence is favourable before flagging missing ─
           const persona = (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER";
           const absent = FAVOURABLE_WHEN_ABSENT.has(category)
             ? buildFavourableAbsentResult(category, rule as any, persona)
@@ -525,9 +525,9 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
           return;
         }
 
-        // ── Present clause — LLM comparison ─────────────────────────────────
+        // ── Present clause: LLM comparison ──────────────────────────────────
         // Run the PocketBase write (extracted_clauses) and the regulatory context
-        // lookup in parallel — neither depends on the other, and both must complete
+        // lookup in parallel, neither depends on the other, and both must complete
         // before the LLM comparison call can use their results.
         const isIndirect = match.presenceState === "INDIRECT";
         if (isIndirect) {
@@ -575,7 +575,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
         // and force AMBER so the card renders with meaningful content.
         const hasMissingFields = !comparison.clauseSummary || !comparison.whyItMatters || !comparison.recommendedAction;
         if (comparison.ragStatus === "GREY" || hasMissingFields) {
-          console.warn(`[review] LLM returned GREY or empty fields for present clause ${category} in ${documentId} — backfilling from absent template`);
+          console.warn(`[review] LLM returned GREY or empty fields for present clause ${category} in ${documentId}. Backfilling from absent template.`);
           const fallback = buildAbsentClauseResult(
             category, rule as any,
             (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER",
@@ -590,7 +590,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
         }
 
         console.log(`[review] compared ${category}: ${comparison.ragStatus} (${comparison.confidenceLabel})`);
-        t.mark(`${category}: LLM comparison complete — ${comparison.ragStatus}`);
+        t.mark(`${category}: LLM comparison complete, ragStatus=${comparison.ragStatus}`);
 
         // De-anonymise LLM output fields before persisting.
         const deanonComparison = {
@@ -655,7 +655,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
           errorCategory: deanonComparison.errorCategory ?? "SUBSTANTIVE_RISK",
         };
 
-        // Write to PocketBase immediately — frontend poll picks this up within 3s.
+        // Write to PocketBase immediately. The frontend poll picks this up within 3s.
         await persistResult(r);
         results.push(r);
     });
@@ -670,10 +670,10 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
       console.error(`[review] ${clauseFailures.length} clause(s) failed during parallel comparison:`,
         clauseFailures.map((s) => (s as PromiseRejectedResult).reason?.message ?? s));
     }
-    t.mark(`playbook comparison complete — ${results.length} clauses (${clauseFailures.length} failed)`);
+    t.mark(`playbook comparison complete: ${results.length} clauses (${clauseFailures.length} failed)`);
 
     // ── Contradiction detection + document audit run in PARALLEL ──────────────
-    // Both are independent post-processing LLM passes — neither depends on the
+    // Both are independent post-processing LLM passes, neither depends on the
     // other, so they run simultaneously. This saves 10-15s vs. running them one
     // after the other.
     //
@@ -697,7 +697,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
           company["workflowType"] as string
         );
         contradictions = findings;
-        t.mark(`contradiction detection complete — ${findings.length} findings`);
+        t.mark(`contradiction detection complete: ${findings.length} findings`);
         if (findings.length > 0) {
           void audit({
             action: "contradiction_detected",
@@ -714,7 +714,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
         }
       } catch (err) {
         console.error("[contradiction detection] failed (non-fatal):", err);
-        t.mark("contradiction detection — failed (non-fatal)");
+        t.mark("contradiction detection: failed (non-fatal)");
       }
     };
 
@@ -730,7 +730,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
           (doc["contractType"] as string) ?? "COMMERCIAL_CONTRACT"
         );
         console.log(`[review] AUDIT ${documentId}: ${auditResult.totalFindings} findings (${auditResult.highSeverityCount} high severity)`);
-        t.mark(`document audit complete — ${auditResult.totalFindings} findings (${auditResult.highSeverityCount} high)`);
+        t.mark(`document audit complete: ${auditResult.totalFindings} findings (${auditResult.highSeverityCount} high)`);
         await pb.collection("uploaded_documents").update(documentId, {
           auditFindings: JSON.stringify(auditResult),
         }).catch((e: unknown) => {
@@ -738,17 +738,17 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
         });
       } catch (err) {
         console.error("[review] Document audit failed (non-fatal):", (err as Error)?.message);
-        t.mark("document audit — failed (non-fatal)");
+        t.mark("document audit: failed (non-fatal)");
       }
     };
 
-    // Fire both passes simultaneously — neither depends on the other
+    // Fire both passes simultaneously, neither depends on the other
     await Promise.all([runContradictions(), runAudit()]);
 
     // If the hard timeout fired while we were running, do not override the FAILED status
     // that the timeout handler already wrote. Simply return without setting COMPLETE.
     if (isTimedOut()) {
-      console.warn(`[review] ${documentId}: timeout detected before COMPLETE — skipping status update`);
+      console.warn(`[review] ${documentId}: timeout detected before COMPLETE, skipping status update`);
       return;
     }
 
@@ -757,7 +757,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
 
     await pb.collection("uploaded_documents").update(documentId, { status: "COMPLETE" });
 
-    t.mark("COMPLETE — total pipeline time");
+    t.mark("COMPLETE: total pipeline time");
 
     console.log(`[review] COMPLETE ${documentId}: ${results.length} clauses (RED=${results.filter((r) => r.ragStatus === "RED").length} AMBER=${results.filter((r) => r.ragStatus === "AMBER").length} GREEN=${results.filter((r) => r.ragStatus === "GREEN").length} GREY=${results.filter((r) => r.ragStatus === "GREY").length})`);
 
@@ -813,7 +813,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
   } catch (err) {
     const errMsg = (err as Error)?.message ?? String(err);
     console.error(`[review] FAILED ${documentId}: ${errMsg}`);
-    // Best-effort status update — store lastError so the UI can surface it
+    // Best-effort status update: store lastError so the UI can surface it
     await pb.collection("uploaded_documents").update(documentId, {
       status: "FAILED",
       lastError: errMsg.slice(0, 2000),

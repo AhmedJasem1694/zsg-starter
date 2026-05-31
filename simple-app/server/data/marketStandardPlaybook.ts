@@ -12,7 +12,7 @@ export interface PlaybookEntry {
   riskWeight: number;
 }
 
-/** Core commercial clauses only — enough to give a meaningful first review. */
+/** Core commercial clauses only. Enough to give a meaningful first review. */
 export const MARKET_STANDARD_PLAYBOOK: PlaybookEntry[] = [
   {
     clauseCategory: "LIABILITY_CAP",

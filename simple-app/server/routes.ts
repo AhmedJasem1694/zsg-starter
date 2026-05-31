@@ -289,7 +289,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // when httpOnly cookies are stripped by a reverse proxy (e.g. Railway).
     //
     // IMPORTANT: jwt.verify() returns the full payload including `exp` and `iat`.
-    // We must pass ONLY the fields we want to re-sign — otherwise jwt.sign throws
+    // We must pass ONLY the fields we want to re-sign, otherwise jwt.sign throws
     // "payload already has an exp property" when combined with expiresIn option.
     const { userId, email } = req.user!;
     const freshToken = signToken({ userId, email });
@@ -919,18 +919,18 @@ Each field should be 1-3 sentences of clear, practical legal language.
     let rawText = "";
     try {
       const parsed = await parseDocument(filePath);
-      // Use first 8000 chars — covers parties section, definitions, and opening recitals
+      // Use first 8000 chars, covering parties section, definitions, and opening recitals
       // even in contracts with long preambles before the substantive clauses
       rawText = parsed.text.slice(0, 8000);
     } catch {
-      // Return empty extraction rather than erroring — the modal can still work
+      // Return empty extraction rather than erroring. The modal can still work.
       res.json({});
       return;
     }
 
     if (!rawText.trim()) { res.json({}); return; }
 
-    // LLM extraction — best-effort, swallow any failure
+    // LLM extraction: best-effort, swallow any failure
     const { chatComplete } = await import("./services/openrouter.js");
     try {
       const response = await chatComplete([{
@@ -938,8 +938,8 @@ Each field should be 1-3 sentences of clear, practical legal language.
         content: `Extract the following information from this contract if present. Return valid JSON only. No preamble. No markdown.
 
 {
-  "contract_type": "one of: SUPPLIER_AGREEMENT | CUSTOMER_AGREEMENT | MSA | NDA | SaaS_AGREEMENT | PROFESSIONAL_SERVICES | EMPLOYMENT | CONTRACTOR_AGREEMENT | IP_LICENSE_AGREEMENT | JV_AGREEMENT | SHARE_PURCHASE | COMMERCIAL_LEASE | LOAN_AGREEMENT | DISTRIBUTION_AGREEMENT | OTHER — or null",
-  "counterparty_name": "full legal name of the counterparty company or individual — look in: (1) the opening 'between X and Y' parties clause, (2) the definitions section where 'Supplier', 'Service Provider', 'Vendor', 'Customer', or 'Client' is defined, (3) the agreement title or header, (4) the signature block. Return the full legal entity name (e.g. 'Attio Limited' not just 'Attio'). Return null only if genuinely not identifiable.",
+  "contract_type": "one of: SUPPLIER_AGREEMENT | CUSTOMER_AGREEMENT | MSA | NDA | SaaS_AGREEMENT | PROFESSIONAL_SERVICES | EMPLOYMENT | CONTRACTOR_AGREEMENT | IP_LICENSE_AGREEMENT | JV_AGREEMENT | SHARE_PURCHASE | COMMERCIAL_LEASE | LOAN_AGREEMENT | DISTRIBUTION_AGREEMENT | OTHER, or null",
+  "counterparty_name": "full legal name of the counterparty company or individual. Look in: (1) the opening 'between X and Y' parties clause, (2) the definitions section where 'Supplier', 'Service Provider', 'Vendor', 'Customer', or 'Client' is defined, (3) the agreement title or header, (4) the signature block. Return the full legal entity name (e.g. 'Attio Limited' not just 'Attio'). Return null only if genuinely not identifiable.",
   "governing_law": "full jurisdiction name (e.g. England and Wales, New York, Singapore), or null",
   "contract_value": contract value as a plain number (no currency symbol) or null,
   "currency": "ISO currency code (GBP/USD/EUR/SGD etc.) or null",
@@ -958,7 +958,7 @@ ${rawText}`,
       const extracted = JSON.parse(match[0]) as Record<string, unknown>;
       res.json(extracted);
     } catch {
-      res.json({}); // best-effort — never block the UX
+      res.json({}); // best-effort: never block the UX
     }
   }));
 
@@ -1010,7 +1010,7 @@ ${rawText}`,
       }
     }
 
-    // Save market-standard playbook rules — must complete before we respond so
+    // Save market-standard playbook rules. Must complete before we respond so
     // that POST /api/review/:id doesn't hit the "no rules" 422 guard immediately.
     const ruleCreates = MARKET_STANDARD_PLAYBOOK.map((entry) =>
       pb.collection("playbook_rules").create({
@@ -1025,7 +1025,7 @@ ${rawText}`,
     );
     await Promise.all(ruleCreates);
 
-    // NOW delete old companies — document is already safe under the new company
+    // NOW delete old companies. Document is already safe under the new company.
     await Promise.allSettled(existingCompanies.map((c) => pb.collection("companies").delete(c.id)));
 
     // Kick off regulatory detection in the background (rules already saved above)
@@ -1049,7 +1049,7 @@ ${rawText}`,
     const { search, ragStatus, contractType: typeFilter } = req.query as Record<string, string>;
 
     // Fetch documents first so we can filter review_results by document ID,
-    // then user_feedback by result ID — avoids chained relation filters like
+    // then user_feedback by result ID, avoiding chained relation filters like
     // document.company which are unreliable across PocketBase versions.
     const docs = await pb.collection("uploaded_documents").getFullList({
       filter: `company = "${company.id}"`,
@@ -1249,7 +1249,7 @@ ${rawText}`,
     try {
       doc = await pb.collection("uploaded_documents").getOne(documentId);
     } catch {
-      return; // Already gone — treat as success
+      return; // Already gone. Treat as success.
     }
 
     // Collect all review result IDs first (needed to delete signals linked to results)
@@ -1295,7 +1295,7 @@ ${rawText}`,
     // Delete the document record itself
     await pb.collection("uploaded_documents").delete(documentId);
 
-    // Audit entry — fire-and-forget
+    // Audit entry: fire-and-forget
     void audit({
       action: "contract_deleted",
       entityType: "uploaded_document",
@@ -1380,7 +1380,7 @@ ${rawText}`,
       }
     }
 
-    // Guard: refuse to start review if no playbook rules exist — would produce empty results
+    // Guard: refuse to start review if no playbook rules exist, as this would produce empty results
     const company = await getCompany();
     if (company) {
       const rules = await pb.collection("playbook_rules").getFullList({
@@ -1891,7 +1891,7 @@ Write a ${tonePhrase} email that:
 - Raises each issue by name (use the issue heading as a natural part of the sentence)
 - States clearly what change is being requested for each
 - Includes any suggested wording naturally in the text where provided
-- Uses plain English — no Latin, no legal jargon, no clause number references like "14.2(b)" unless the counterparty used them
+- Uses plain English, no Latin, no legal jargon, no clause number references like "14.2(b)" unless the counterparty used them
 - Is not aggressive or adversarial
 - Closes collaboratively (e.g. "Happy to jump on a call to talk through any of this")
 - Reads as if the founder is writing it themselves, not a lawyer
@@ -2062,7 +2062,7 @@ Draft the complete clause.`;
         clauseText  = parsed.clauseText  ?? fallback ?? "";
         explanation = parsed.explanation ?? "";
       } catch {
-        clauseText  = fallback || `[${clauseLabel} clause — unable to generate, please try again]`;
+        clauseText  = fallback || `[${clauseLabel} clause: unable to generate, please try again]`;
         explanation = "Unable to generate clause. Please try again.";
       }
     }

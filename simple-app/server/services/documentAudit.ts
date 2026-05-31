@@ -23,7 +23,7 @@ export async function runDocumentAudit(
   companyName: string,
   contractType: string
 ): Promise<DocumentAuditResult> {
-  const systemPrompt = `You are a meticulous contract drafting auditor for ${companyName}. You identify structural, drafting, and mechanical errors in contracts. You are not assessing commercial risk — you are finding errors that could undermine the legal effectiveness of the document.
+  const systemPrompt = `You are a meticulous contract drafting auditor for ${companyName}. You identify structural, drafting, and mechanical errors in contracts. You are not assessing commercial risk. You are finding errors that could undermine the legal effectiveness of the document.
 
 RECOMMENDATION DISCIPLINE: Never give a conclusion that says it could go either way. Always commit to a finding. If you find an issue, state it precisely. If there is no issue, do not hallucinate one.`;
 

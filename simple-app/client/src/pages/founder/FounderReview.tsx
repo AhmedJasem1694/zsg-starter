@@ -177,7 +177,7 @@ function NegotiationEmailModal({
           </div>
 
           <p className="text-[11px] text-muted-foreground/60">
-            Edit freely — this is your email. Zane has drafted it based on the issues you flagged.
+            Edit freely. This is your email. Zane has drafted it based on the issues you flagged.
           </p>
         </div>
 
@@ -244,7 +244,7 @@ function AmendedClausePanel({
       <div className="px-4 pt-4 pb-3 space-y-2">
         <div className="text-[10px] font-bold uppercase tracking-widest text-[#FCA5A5]/70">Original clause</div>
         <div className="rounded-lg border border-[#450A0A] bg-[#1F0A0A] px-3 py-2.5 text-xs leading-relaxed text-[#FCA5A5]/80 font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
-          {original || "(Original text not available — paste the original clause here when sending)"}
+          {original || "(Original text not available. Paste the original clause here when sending.)"}
         </div>
       </div>
 
@@ -356,11 +356,11 @@ function FounderClauseCard({
   const [showWhatAgreed, setShowWhatAgreed] = useState(false);
   const [agreedText, setAgreedText]         = useState("");
 
-  // Feature 2 — amended clause
+  // Feature 2: amended clause
   const [amendedData, setAmendedData]         = useState<{ original: string; revised: string; explanation: string } | null>(null);
   const [generatingAmended, setGeneratingAmended] = useState(false);
 
-  // Feature 3 — suggest missing clause
+  // Feature 3: suggest missing clause
   const [suggestedData, setSuggestedData]         = useState<{ clauseText: string; explanation: string } | null>(null);
   const [generatingSuggested, setGeneratingSuggested] = useState(false);
 
@@ -450,7 +450,7 @@ function FounderClauseCard({
           )}
         </button>
 
-        {/* Selection toggle — only for negotiable clauses */}
+        {/* Selection toggle: only for negotiable clauses */}
         {isNegotiable && (
           <button
             onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}
@@ -630,7 +630,7 @@ function FounderClauseCard({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <Mail size={12} className="text-[#60A5FA]" />
-                      <span className="text-xs font-semibold text-[#60A5FA]">Email reply — copy and send</span>
+                      <span className="text-xs font-semibold text-[#60A5FA]">Email reply: copy and send</span>
                     </div>
                     <div className="flex gap-1.5">
                       <button
@@ -733,7 +733,7 @@ export default function FounderReview() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter]         = useState<RagStatus | "ALL">("ALL");
 
-  // Negotiation email state — all hooks must be before early returns
+  // Negotiation email state: all hooks must be before early returns
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
   const [emailModal, setEmailModal]       = useState<{ subject: string; body: string } | null>(null);
   const [generatingEmail, setGeneratingEmail] = useState(false);
@@ -916,9 +916,9 @@ export default function FounderReview() {
   const filtered = filter === "ALL" ? results : results.filter((r) => r.ragStatus === filter);
 
   const VERDICT_BANNER = {
-    safe:    { label: "Looks good — you can proceed",              color: "text-[#86EFAC]", bg: "bg-[#052E16] border-[#14532D]", icon: CheckCircle   },
+    safe:    { label: "Looks good. You can proceed",              color: "text-[#86EFAC]", bg: "bg-[#052E16] border-[#14532D]", icon: CheckCircle   },
     caution: { label: "Worth a closer look before signing",        color: "text-[#FCD34D]", bg: "bg-[#1C0F00] border-[#431407]", icon: AlertCircle   },
-    danger:  { label: "Don't sign yet — fix these first",          color: "text-[#FCA5A5]", bg: "bg-[#1F0A0A] border-[#450A0A]", icon: AlertTriangle },
+    danger:  { label: "Don't sign yet. Fix these first.",          color: "text-[#FCA5A5]", bg: "bg-[#1F0A0A] border-[#450A0A]", icon: AlertTriangle },
     pending: { label: "No playbook clauses matched this contract",  color: "text-[#94A3B8]", bg: "bg-[#0F172A] border-[#334155]", icon: AlertCircle   },
   } as const;
 
@@ -1013,12 +1013,12 @@ export default function FounderReview() {
           })}
         </div>
 
-        {/* Selection hint — shown when there are negotiable items */}
+        {/* Selection hint: shown when there are negotiable items */}
         {results.some((r) => r.ragStatus !== "GREEN") && (
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60 -mt-2">
             <Check size={11} />
             <span>
-              {issueCount} issue{issueCount !== 1 ? "s" : ""} selected for negotiation email — tap the{" "}
+              {issueCount} issue{issueCount !== 1 ? "s" : ""} selected for negotiation email. Tap the{" "}
               <span className="font-semibold text-foreground/50">+</span> on any clause to include or exclude it
             </span>
           </div>
@@ -1053,7 +1053,7 @@ export default function FounderReview() {
                 <span className="font-semibold text-[#93C5FD]">Draft full negotiation response</span>
               </div>
               <p className="text-sm text-muted-foreground">
-                Zane writes one professional email covering all the issues you want to raise — ready to edit and send.
+                Zane writes one professional email covering all the issues you want to raise, ready to edit and send.
               </p>
             </div>
 

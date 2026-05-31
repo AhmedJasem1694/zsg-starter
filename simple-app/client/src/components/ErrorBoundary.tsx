@@ -48,7 +48,7 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
               </p>
             </div>
 
-            {/* Dev-only error details — shows exact crash on screen */}
+            {/* Dev-only error details: shows exact crash on screen */}
             {isDev && this.state.error && (
               <details className="text-left mt-2">
                 <summary className="text-xs text-[#FCA5A5]/60 cursor-pointer hover:text-[#FCA5A5]/80">

@@ -142,9 +142,9 @@ export async function compareClauseToPlaybook(
     : "";
 
   const indirectNote = isIndirectReference
-    ? `\n\nNOTE — INDIRECT REFERENCE: The subject matter of ${rule.clauseCategory.replace(/_/g, " ")} is not present as a dedicated clause. It is addressed indirectly${indirectClauseRef ? ` at ${indirectClauseRef}` : " within another clause"}. Your analysis must:
-1. Begin clauseSummary with "${rule.clauseCategory.replace(/_/g, " ")} — Addressed indirectly${indirectClauseRef ? ` at ${indirectClauseRef}` : ""}: " then explain what the contract actually says
-2. Begin comparisonStatement with "${rule.clauseCategory.replace(/_/g, " ")} — Addressed indirectly: "
+    ? `\n\nNOTE: INDIRECT REFERENCE. The subject matter of ${rule.clauseCategory.replace(/_/g, " ")} is not present as a dedicated clause. It is addressed indirectly${indirectClauseRef ? ` at ${indirectClauseRef}` : " within another clause"}. Your analysis must:
+1. Begin clauseSummary with "${rule.clauseCategory.replace(/_/g, " ")} (addressed indirectly${indirectClauseRef ? ` at ${indirectClauseRef}` : ""}): " then explain what the contract actually says
+2. Begin comparisonStatement with "${rule.clauseCategory.replace(/_/g, " ")} (addressed indirectly): "
 3. Assess whether this indirect treatment adequately meets, falls below, or breaches the playbook position
 4. Set ragStatus based on that assessment (GREEN if adequate, AMBER if below preferred, RED if it breaches the red line or critical protections are missing)`
     : "";
@@ -197,11 +197,11 @@ Return ONLY valid JSON with this exact structure:
   "errorCategory": "SUBSTANTIVE_RISK" | "DRAFTING_ERROR" | "MECHANICAL_ERROR"
 }
 
-RAG rules (CRITICAL — follow exactly):
+RAG rules (CRITICAL, follow exactly):
 - GREEN: clause meets preferred position or acceptable fallback
 - AMBER: clause is below preferred but above red line; negotiation needed
 - RED: clause breaches red line or is missing a required protection
-- NEVER return GREY — GREY is reserved exclusively for absent clauses and is handled separately. If you are uncertain, return AMBER.
+- NEVER return GREY. GREY is reserved exclusively for absent clauses and is handled separately. If you are uncertain, return AMBER.
 
 Confidence rules:
 - HIGH: clause text is clear and your comparison is definitive
@@ -241,7 +241,7 @@ export const FAVOURABLE_WHEN_ABSENT = new Set([
 ]);
 
 const FAVOURABLE_ABSENT_REASONS: Record<string, string> = {
-  AUTO_RENEWAL:       "No auto-renewal clause means the contract cannot renew without your active agreement — you cannot be locked in. This is favourable to the customer/buyer.",
+  AUTO_RENEWAL:       "No auto-renewal clause means the contract cannot renew without your active agreement. You cannot be locked in. This is favourable to the customer/buyer.",
   NON_SOLICITATION:   "No non-solicitation restriction means you are free to hire staff from the counterparty's team without penalty.",
   LIQUIDATED_DAMAGES: "No liquidated damages clause means you are not exposed to pre-set financial penalties for delay or breach. Liability is limited to proven actual loss.",
 };
@@ -255,10 +255,10 @@ export function buildFavourableAbsentResult(
   const reason = FAVOURABLE_ABSENT_REASONS[category] ?? `The absence of a ${label} clause is favourable in this context.`;
   return {
     ragStatus: "GREEN",
-    comparisonStatement: `${label} — Absent and favourable: ${reason}`,
+    comparisonStatement: `${label}: Absent and favourable. ${reason}`,
     clauseSummary: `No ${label} clause found. Absence is favourable: ${reason}`,
     whyItMatters: reason,
-    recommendedAction: "No action required. The absence of this clause works in your favour — do not request it be added.",
+    recommendedAction: "No action required. The absence of this clause works in your favour. Do not request it be added.",
     suggestedFallback: "",
     escalationRequired: false,
     escalationTrigger: "",
@@ -268,10 +268,10 @@ export function buildFavourableAbsentResult(
     founderStatus: "SAFE" as FounderStatus,
     founderPlainEnglish: reason,
     founderBusinessImpact: `The absence of this clause benefits you. ${reason}`,
-    founderAskFor: "No change needed — leave this clause absent.",
+    founderAskFor: "No change needed. Leave this clause absent.",
     founderCopyPaste: "",
     founderFundraisingRelevance: "Not relevant to fundraising.",
-    founderIfIgnored: "No action needed — you are protected by the absence of this clause.",
+    founderIfIgnored: "No action needed. You are protected by the absence of this clause.",
     iracIssue: `Whether the absence of a ${label} clause is favourable or unfavourable to the reviewing party.`,
     iracRule: `The contract contains no ${label} clause.`,
     iracApplication: reason,
@@ -290,7 +290,7 @@ const ABSENT_CLAUSE_CRITICAL_CATEGORIES = new Set([
   "INDEMNITY",
 ]);
 
-// Contract types that are SaaS or technology services — insurance is optional/standard absent
+// Contract types that are SaaS or technology services: insurance is optional/standard absent
 const SAAS_CONTRACT_TYPES = new Set([
   "SaaS_AGREEMENT", "SAAS_AGREEMENT", "TECH_AGREEMENT",
   "SOFTWARE_LICENSE", "IP_LICENSE_AGREEMENT", "PROFESSIONAL_SERVICES",
@@ -322,10 +322,10 @@ export function buildAbsentClauseResult(
 
   // ── Context-aware: INSURANCE in SaaS/tech contracts ───────────────────────
   if (category === "INSURANCE" && isSaasContract(contractType)) {
-    const saasInsuranceNote = `No insurance requirements are specified in this contract. This is standard for SaaS agreements — most SaaS providers do not include insurance clauses unless the customer specifically requires them. If ${companyName} requires the counterparty to maintain specific insurance levels (such as cyber liability or professional indemnity), request insertion of a clause specifying minimum coverage amounts and evidence requirements.`;
+    const saasInsuranceNote = `No insurance requirements are specified in this contract. This is standard for SaaS agreements. Most SaaS providers do not include insurance clauses unless the customer specifically requires them. If ${companyName} requires the counterparty to maintain specific insurance levels (such as cyber liability or professional indemnity), request insertion of a clause specifying minimum coverage amounts and evidence requirements.`;
     return {
       ragStatus: "GREY",
-      comparisonStatement: `INSURANCE — Missing Optional: No insurance requirements specified. Standard for SaaS agreements.`,
+      comparisonStatement: `INSURANCE: Missing Optional. No insurance requirements specified. Standard for SaaS agreements.`,
       clauseSummary: `No insurance clause found. This is standard for SaaS contracts.`,
       whyItMatters: saasInsuranceNote,
       recommendedAction: `Optional: if ${companyName} requires minimum insurance coverage from the counterparty, request insertion of an insurance clause specifying coverage types and minimum amounts. No action required if insurance is not a requirement.`,
@@ -336,14 +336,14 @@ export function buildAbsentClauseResult(
       confidenceLabel: "HIGH" as ConfidenceLabel,
       regulatoryCitations: [],
       founderStatus: "SAFE" as FounderStatus,
-      founderPlainEnglish: `This contract doesn't specify any insurance requirements. That's normal for a SaaS agreement — don't worry about it unless you specifically need them to carry cyber or professional indemnity insurance.`,
+      founderPlainEnglish: `This contract doesn't specify any insurance requirements. That's normal for a SaaS agreement. Don't worry about it unless you specifically need them to carry cyber or professional indemnity insurance.`,
       founderBusinessImpact: `No immediate impact. If the counterparty causes you loss through a cyber incident or professional error, you would need to rely on general legal remedies rather than their insurance. For a typical SaaS tool, this is an acceptable risk.`,
-      founderAskFor: `Only request this if you have a specific reason to require the counterparty to hold insurance — for example, if your own clients require you to ensure your suppliers are insured.`,
+      founderAskFor: `Only request this if you have a specific reason to require the counterparty to hold insurance, for example if your own clients require you to ensure your suppliers are insured.`,
       founderCopyPaste: rule.fallbackTemplate ?? rule.preferredPosition,
       founderFundraisingRelevance: `Not relevant to fundraising.`,
       founderIfIgnored: `No action needed. The absence of an insurance clause in a SaaS agreement is market standard.`,
       iracIssue: `Whether the absence of an insurance clause in this SaaS agreement creates an unacceptable risk for ${companyName}.`,
-      iracRule: `The contract contains no insurance clause. For SaaS agreements, this is standard market practice — most SaaS providers do not accept mandatory insurance requirements unless negotiated by enterprise customers.`,
+      iracRule: `The contract contains no insurance clause. For SaaS agreements, this is standard market practice. Most SaaS providers do not accept mandatory insurance requirements unless negotiated by enterprise customers.`,
       iracApplication: `The absence is standard for the contract type. The risk is limited to scenarios where the counterparty causes loss through a cyber incident or professional error and lacks insurance to cover that loss. For most SaaS relationships, this risk is accepted as part of standard terms.`,
       iracConclusion: `My recommendation is to treat this as Missing Optional. No action is required unless ${companyName} has a specific policy requiring counterparty insurance.`,
       urgencyLevel: "BACKGROUND" as "IMMEDIATE" | "MATERIAL" | "BACKGROUND",
@@ -376,7 +376,7 @@ export function buildAbsentClauseResult(
     founderIfIgnored: `If you sign without a ${label} clause, you accept whatever default applies under the governing law - typically the counterparty's interpretation. This could create liability or remove protection you assumed you had.`,
     iracIssue: `Whether the contract's silence on ${label} creates a legal gap that defaults to the counterparty's favour.`,
     iracRule: `The contract contains no ${label} clause. Under English law, the absence of an express provision leaves the parties subject to common law defaults or implied terms, typically those that favour the party that drafted the agreement.`,
-    iracApplication: `Without an express ${label} clause, the counterparty's position becomes the default. The strongest counterargument is that common law provides some implied terms — but these are narrower than express contractual protection and vary by jurisdiction.`,
+    iracApplication: `Without an express ${label} clause, the counterparty's position becomes the default. The strongest counterargument is that common law provides some implied terms, but these are narrower than express contractual protection and vary by jurisdiction.`,
     iracConclusion: `My recommendation is to request insertion of a ${label} clause before signing. The risk of proceeding without one is that the counterparty's interpretation prevails. If this materialises, the company has no contractual basis to enforce its preferred position.`,
     urgencyLevel: (ABSENT_CLAUSE_CRITICAL_CATEGORIES.has(category) ? "IMMEDIATE" : "BACKGROUND") as "IMMEDIATE" | "MATERIAL" | "BACKGROUND",
     errorCategory: "SUBSTANTIVE_RISK" as "SUBSTANTIVE_RISK" | "DRAFTING_ERROR" | "MECHANICAL_ERROR",

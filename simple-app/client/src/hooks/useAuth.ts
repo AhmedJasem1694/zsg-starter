@@ -21,7 +21,7 @@ export function useAuth() {
     // Do NOT refetch when the window regains focus. The default refetchOnWindowFocus
     // behaviour would fire getMe() whenever the user alt-tabs back to the app.
     // If that background refetch fails (transient error, proxy glitch), the old
-    // code would wipe _authToken mid-flow — breaking onboarding API calls that
+    // code would wipe _authToken mid-flow, breaking onboarding API calls that
     // rely on the Bearer fallback (e.g. Railway reverse-proxy strips cookies).
     refetchOnWindowFocus: false,
   });

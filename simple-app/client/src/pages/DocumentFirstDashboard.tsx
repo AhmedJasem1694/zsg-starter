@@ -107,7 +107,7 @@ export default function DocumentFirstDashboard() {
     setErrorMsg("");
 
     try {
-      // Upload without contract metadata — we'll fill it in after extraction
+      // Upload without contract metadata. We'll fill it in after extraction.
       const doc = await uploadDocument(file, "SUPPLIER_AGREEMENT");
       setDocId(doc.id);
 
@@ -117,7 +117,7 @@ export default function DocumentFirstDashboard() {
       setExtracted(meta);
 
       // Pre-fill company name from counterparty if we know we're buying
-      // (leave blank — user fills in their own company name, not counterparty)
+      // (leave blank: user fills in their own company name, not counterparty)
 
       // Show persona picker first
       setStage("persona");
@@ -143,7 +143,7 @@ export default function DocumentFirstDashboard() {
   function handlePersonaSelect(chosen: Persona) {
     setPersona(chosen);
     if (chosen === "FOUNDER") {
-      // Founder skips all config — run immediately with market defaults
+      // Founder skips all config: run immediately with market defaults
       void runFounderSetup(chosen);
     } else {
       setStage("confirm");
@@ -333,7 +333,7 @@ export default function DocumentFirstDashboard() {
                 icon: "🚀",
                 title: "Founder reviewing a contract",
                 sub: "Investment terms, commercial deals, or growth contracts. Plain-English output, no config needed.",
-                badge: "Fastest — review in 60 seconds",
+                badge: "Fastest: review in 60 seconds",
                 badgeColor: "text-primary border-primary/30 bg-primary/10",
               },
               {
@@ -399,7 +399,7 @@ export default function DocumentFirstDashboard() {
               Document uploaded
             </div>
             <h2 className="text-xl font-bold text-white tracking-tight text-center">
-              Almost there — just three details
+              Almost there: just three details
             </h2>
             <p className="text-white/40 text-xs text-center">
               We need your company info to compare this contract against market standards.
@@ -503,10 +503,10 @@ export default function DocumentFirstDashboard() {
               </div>
               <p className="text-[10px] text-white/25">
                 {riskAppetite === "CONSERVATIVE"
-                  ? "Tighter caps, longer obligations — protects against downside risk."
+                  ? "Tighter caps, longer obligations. Protects against downside risk."
                   : riskAppetite === "MODERATE"
                   ? "Market-standard positions across all clause categories."
-                  : "More flexibility for deal-doing — lower caps, shorter obligations."}
+                  : "More flexibility for deal-doing: lower caps, shorter obligations."}
               </p>
             </div>
           </div>

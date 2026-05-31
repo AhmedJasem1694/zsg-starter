@@ -134,7 +134,7 @@ function PortfolioContent({ data }: { data: PortfolioData }) {
           value={`${redPct}%`}
           sub={
             data.escalationsOpen > 0
-              ? `${data.escalationsOpen} contract${data.escalationsOpen !== 1 ? "s" : ""} require approval${data.valueAtRisk?.RED > 0 ? ` — ${fmt(data.valueAtRisk.RED)} at risk` : ""}`
+              ? `${data.escalationsOpen} contract${data.escalationsOpen !== 1 ? "s" : ""} require approval${data.valueAtRisk?.RED > 0 ? `. ${fmt(data.valueAtRisk.RED)} at risk` : ""}`
               : `${data.totalRedResults} clause${data.totalRedResults !== 1 ? "s" : ""} outside risk tolerance`
           }
           icon={AlertTriangle}

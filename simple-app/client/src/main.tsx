@@ -15,7 +15,7 @@ const queryClient = new QueryClient({
     queries: {
       retry: false,
       staleTime: 30_000,
-      // Disable window-focus refetch — it triggers re-renders that scroll the page to top
+      // Disable window-focus refetch: it triggers re-renders that scroll the page to top
       refetchOnWindowFocus: false,
     },
   },

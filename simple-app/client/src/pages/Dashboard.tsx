@@ -30,7 +30,7 @@ function formatLastError(raw: string): string {
     return "This looks like a scanned document. Please try a text-based PDF or Word document.";
   }
   if (raw.includes("LLM returned invalid JSON") || raw.includes("OpenRouter")) {
-    return "Zane could not complete the analysis. Please retry — this is usually a temporary issue.";
+    return "Zane could not complete the analysis. Please retry. This is usually a temporary issue.";
   }
   if (raw.includes("not found on disk") || raw.includes("uploads directory")) {
     return "The uploaded file could not be found. Please upload the document again.";
@@ -796,7 +796,7 @@ export default function Dashboard() {
       } else if (msg.includes("401")) {
         setUploadError("Your session has expired. Please log in again.");
       } else {
-        setUploadError("Upload failed — please check your connection and try again.");
+        setUploadError("Upload failed. Please check your connection and try again.");
       }
     } finally {
       setUploading(false);
@@ -1221,7 +1221,7 @@ export default function Dashboard() {
                         {/* Stuck or reviewing indicator */}
                         {isStuck ? (
                           <div className="text-xs text-[#FCA5A5] text-right shrink-0">
-                            <div>Stuck — took too long</div>
+                            <div>Stuck: took too long</div>
                             <button
                               className="text-[10px] underline"
                               onClick={(e) => { e.stopPropagation(); reviewMutation.mutate(doc.id); }}
@@ -1247,7 +1247,7 @@ export default function Dashboard() {
                         {useMock && doc.status === "COMPLETE" && (
                           <ChevronRight size={15} className="text-muted-foreground/40 shrink-0" />
                         )}
-                        {/* Delete button — revealed on row hover, never shown in mock mode */}
+                        {/* Delete button: revealed on row hover, never shown in mock mode */}
                         {!useMock && (
                           <button
                             onClick={(e) => {
@@ -1267,7 +1267,7 @@ export default function Dashboard() {
                           <p className="text-[11px] text-[#FCA5A5]/70 leading-relaxed">
                             {docWithMeta.lastError
                               ? formatLastError(docWithMeta.lastError)
-                              : "Review failed — retry or contact support if this persists."}
+                              : "Review failed. Please retry, or contact support if this persists."}
                           </p>
                         </div>
                       )}
@@ -1371,7 +1371,7 @@ export default function Dashboard() {
       </div>
     </AppLayout>
 
-    {/* Delete confirmation modal — rendered outside AppLayout so it overlays everything */}
+    {/* Delete confirmation modal: rendered outside AppLayout so it overlays everything */}
     {deleteModal && (
       <DeleteConfirmModal
         count={deleteModal.ids.length}

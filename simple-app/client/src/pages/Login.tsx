@@ -19,7 +19,7 @@ export default function Login() {
     mutationFn: login,
     onSuccess: async () => {
       // refetchQueries waits for the data to arrive in cache before navigating.
-      // invalidateQueries only marks stale — if the query was in error state the
+      // invalidateQueries only marks stale. If the query was in error state the
       // cached value stays undefined and /dashboard redirects to /onboarding.
       await queryClient.refetchQueries({ queryKey: ["auth-me"] });
       await queryClient.refetchQueries({ queryKey: ["company"] }).catch(() => {

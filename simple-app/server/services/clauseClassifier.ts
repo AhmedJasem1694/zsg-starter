@@ -160,16 +160,16 @@ export const HEALTHCARE_PROCUREMENT_CATEGORIES = [
 // Detailed descriptions injected into the classifier prompt for healthcare procurement.
 // These explain to the LLM what to look for in each HC_* category.
 const HEALTHCARE_CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  HC_NHS_CONTRACT_TERMS: "NHS Contract Terms — whether this is an NHS standard contract or a contract with an NHS body; presence of performance monitoring, quality schedules, data sharing schedules, and standard NHS termination provisions; any deviation from NHS standard terms",
-  HC_PATIENT_DATA_ARTICLE9: "Patient Data and Special Category Data — data protection provisions against the higher standard required for special category health data under UK GDPR Article 9; explicit consent mechanisms or alternative lawful bases; Data Protection Impact Assessment requirements; sub-processor restrictions appropriate for health data",
-  HC_CLINICAL_LIABILITY: "Clinical Liability and Indemnity — indemnity provisions in the context of clinical risk; any attempt to limit liability for clinical negligence; NHS indemnity scheme interactions; CNST membership obligations",
-  HC_CQC_COMPLIANCE: "CQC Compliance Obligations — contractual provisions interacting with CQC registration requirements or fundamental standards of care; supplier obligation to maintain relevant CQC registration; notification obligations on CQC enforcement",
-  HC_PROCUREMENT_LAW: "Procurement Law Compliance — whether the contract value or nature suggests a procurement exercise was required under the Public Contracts Regulations 2015 or Procurement Act 2023; direct award provisions and their compliance basis",
-  HC_NHS_PRICING: "NHS Pricing and Payment Mechanisms — whether payment terms reference national tariff, payment by results, block contract, or other NHS pricing mechanisms; deviations from standard NHS payment terms",
-  HC_HEALTHCARE_ANTIBRIBERY: "Healthcare Anti-Bribery — anti-bribery provisions against the specific requirements for healthcare interactions including gifts, hospitality, interactions with healthcare professionals (HCPs), ABPI Code compliance, NHS Commercial Framework, NHS Counter Fraud Authority reporting",
-  HC_MODERN_SLAVERY_SUPPLY: "Modern Slavery and Supply Chain — modern slavery obligations and supply chain audit rights appropriate for an NHS supplier relationship",
-  HC_REGULATORY_BREACH_TERM: "Termination for Regulatory Breach — termination rights triggered by regulatory action including CQC enforcement, NHS contract breach, FCA action; convenience termination notice period",
-  HC_HEALTHCARE_INSURANCE: "Insurance for Healthcare Activities — clinical negligence cover (CNST or equivalent), employers' liability for clinical staff, public liability appropriate for hospital or clinical operations, professional indemnity",
+  HC_NHS_CONTRACT_TERMS: "NHS Contract Terms: whether this is an NHS standard contract or a contract with an NHS body; presence of performance monitoring, quality schedules, data sharing schedules, and standard NHS termination provisions; any deviation from NHS standard terms",
+  HC_PATIENT_DATA_ARTICLE9: "Patient Data and Special Category Data: data protection provisions against the higher standard required for special category health data under UK GDPR Article 9; explicit consent mechanisms or alternative lawful bases; Data Protection Impact Assessment requirements; sub-processor restrictions appropriate for health data",
+  HC_CLINICAL_LIABILITY: "Clinical Liability and Indemnity: indemnity provisions in the context of clinical risk; any attempt to limit liability for clinical negligence; NHS indemnity scheme interactions; CNST membership obligations",
+  HC_CQC_COMPLIANCE: "CQC Compliance Obligations: contractual provisions interacting with CQC registration requirements or fundamental standards of care; supplier obligation to maintain relevant CQC registration; notification obligations on CQC enforcement",
+  HC_PROCUREMENT_LAW: "Procurement Law Compliance: whether the contract value or nature suggests a procurement exercise was required under the Public Contracts Regulations 2015 or Procurement Act 2023; direct award provisions and their compliance basis",
+  HC_NHS_PRICING: "NHS Pricing and Payment Mechanisms: whether payment terms reference national tariff, payment by results, block contract, or other NHS pricing mechanisms; deviations from standard NHS payment terms",
+  HC_HEALTHCARE_ANTIBRIBERY: "Healthcare Anti-Bribery: anti-bribery provisions against the specific requirements for healthcare interactions including gifts, hospitality, interactions with healthcare professionals (HCPs), ABPI Code compliance, NHS Commercial Framework, NHS Counter Fraud Authority reporting",
+  HC_MODERN_SLAVERY_SUPPLY: "Modern Slavery and Supply Chain: modern slavery obligations and supply chain audit rights appropriate for an NHS supplier relationship",
+  HC_REGULATORY_BREACH_TERM: "Termination for Regulatory Breach: termination rights triggered by regulatory action including CQC enforcement, NHS contract breach, FCA action; convenience termination notice period",
+  HC_HEALTHCARE_INSURANCE: "Insurance for Healthcare Activities: clinical negligence cover (CNST or equivalent), employers' liability for clinical staff, public liability appropriate for hospital or clinical operations, professional indemnity",
 };
 
 export interface ClassifiedChunk {
@@ -225,7 +225,7 @@ export async function classifyClauses(
     return [];
   }
 
-  // Send up to 1500 chars of each chunk — enough to capture headings buried mid-paragraph
+  // Send up to 1500 chars of each chunk, enough to capture headings buried mid-paragraph
   // and indirect references that only become apparent from the full clause text.
   const CLASSIFY_SNIPPET_CHARS = 1500;
   const snippets = chunks.map((c, i) => `[${i}] ${c.slice(0, CLASSIFY_SNIPPET_CHARS)}`);
@@ -245,7 +245,7 @@ For each match, determine the presence state:
 When checking each category, look for ALL of the following:
 1. Dedicated clauses with matching headings (PRESENT)
 2. Subject matter addressed within other clauses (INDIRECT)
-3. Clauses that expressly exclude or negate the subject matter — mark as INDIRECT, not absent
+3. Clauses that expressly exclude or negate the subject matter: mark as INDIRECT, not absent
 4. Defined terms or recitals that address the subject matter (INDIRECT)
 
 Category-specific detection rules (apply these strictly):
@@ -265,7 +265,7 @@ Return ONLY a JSON array. Each element must have these exact fields:
 }
 
 Confidence rules: >= 0.8 = clear match, 0.5-0.79 = uncertain. Omit chunks with no match.
-NEVER mark a category as absent — simply omit it if genuinely not found anywhere.`,
+NEVER mark a category as absent. Simply omit it if genuinely not found anywhere.`,
       },
       {
         role: "user",
@@ -276,7 +276,7 @@ NEVER mark a category as absent — simply omit it if genuinely not found anywhe
     description: "clause classification",
   });
 
-  // LLMs occasionally wrap arrays in an object like {"items": [...]} — extract the array
+  // LLMs occasionally wrap arrays in an object like {"items": [...]}. Extract the array.
   let parsed: ClassifyItem[];
   if (Array.isArray(rawParsed)) {
     parsed = rawParsed;
@@ -284,7 +284,7 @@ NEVER mark a category as absent — simply omit it if genuinely not found anywhe
     // Try to find an array value inside the returned object
     const nestedArray = Object.values(rawParsed).find(Array.isArray) as ClassifyItem[] | undefined;
     if (nestedArray) {
-      console.warn("[classifyClauses] LLM returned wrapped array — extracting nested array");
+      console.warn("[classifyClauses] LLM returned wrapped array. Extracting nested array.");
       parsed = nestedArray;
     } else {
       console.warn("[classifyClauses] LLM returned non-array, cannot classify:", JSON.stringify(rawParsed).slice(0, 200));

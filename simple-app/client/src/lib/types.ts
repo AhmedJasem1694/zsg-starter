@@ -539,7 +539,7 @@ export const HEALTHCARE_CLAUSE_CATEGORIES: ClauseCategory[] = [
   "HEALTH_CLINICAL_PROTOCOL", "HEALTH_NHS_TERMS", "HEALTH_PRODUCT_LIABILITY",
 ];
 
-// Healthcare Procurement workflow — dedicated clause set for NHS/healthcare procurement teams
+// Healthcare Procurement workflow: dedicated clause set for NHS/healthcare procurement teams
 export const HEALTHCARE_PROCUREMENT_CATEGORIES: ClauseCategory[] = [
   "HC_NHS_CONTRACT_TERMS",
   "HC_PATIENT_DATA_ARTICLE9",
@@ -711,7 +711,7 @@ export interface UploadedDocument {
   auditFindings?: DocumentAuditResult | null;
   /** Total number of playbook rules being compared (set at start of COMPARING stage) */
   clausesTotal?: number;
-  /** Number of clause results written so far — incremented as each comparison completes */
+  /** Number of clause results written so far, incremented as each comparison completes */
   clausesCompleted?: number;
   /** Error message from the last failed processing attempt */
   lastError?: string;

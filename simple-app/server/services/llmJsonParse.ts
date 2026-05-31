@@ -52,7 +52,7 @@ function tryParseJson<T>(text: string): T | null {
     return JSON.parse(text) as T;
   } catch { /* fall through */ }
 
-  // Try extracting JSON object first — the outermost object is usually the intended result.
+  // Try extracting JSON object first. The outermost object is usually the intended result.
   // Objects take priority over arrays because LLMs sometimes include arrays as fields inside objects.
   const objMatch = text.match(/\{[\s\S]*\}/);
   if (objMatch) {

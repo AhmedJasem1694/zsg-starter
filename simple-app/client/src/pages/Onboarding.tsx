@@ -281,7 +281,7 @@ export default function Onboarding() {
       detectRegulations().catch(() => {});
       // Use refetchQueries (not invalidateQueries) so we WAIT for the company
       // data to land in the cache before navigating. invalidateQueries marks the
-      // query stale but navigates before the refetch finishes — when the query
+      // query stale but navigates before the refetch finishes. When the query
       // was previously in error state (404, brand-new user) company stays null
       // on /dashboard and bounces straight back to /onboarding in a loop.
       await queryClient.refetchQueries({ queryKey: ["company"] });
@@ -358,7 +358,7 @@ export default function Onboarding() {
       // Step 0: Refresh the Bearer token so it is current before any auth-required
       // API call. This guards against the token being wiped by a transient background
       // refetch failure (e.g. window-focus re-fetch while on a slow connection).
-      // We swallow errors here — if getMe fails, we still try with the cookie.
+      // We swallow errors here. If getMe fails, we still try with the cookie.
       await getMe().catch(() => {});
 
       // Step 1: Always (re)create the company - idempotent because POST /api/company
