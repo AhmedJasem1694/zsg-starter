@@ -191,10 +191,10 @@ export default function Landing() {
             {...(shouldReduce ? {} : fadeUpHero(0.52))}
           >
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-              <Link to="/register"
+              <a href="mailto:ahmed@zanelegal.ai?subject=Zane Demo Request"
                 className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 text-sm">
-                See it in action - book a 30 minute demo <ArrowRight size={15} />
-              </Link>
+                Book a 30 minute demo <ArrowRight size={15} />
+              </a>
             </motion.div>
             <p className="text-xs text-white/25">No implementation. No enterprise contract. Working in 30 minutes.</p>
           </motion.div>
@@ -727,10 +727,10 @@ export default function Landing() {
               Most tools ask you to trust them before showing you anything. Zane asks for 30 minutes and a contract. Book a demo. Bring a real contract. We will run it through Zane live and show you the output before you make any decision.
             </p>
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-              <Link to="/register"
+              <a href="mailto:ahmed@zanelegal.ai?subject=Zane Demo Request"
                 className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-gray-900 font-bold rounded-xl hover:opacity-95 transition-opacity shadow-xl text-sm">
                 Book a 30 minute demo <ArrowRight size={15} />
-              </Link>
+              </a>
             </motion.div>
             <p className="text-white/30 text-xs">
               Or email{" "}

@@ -32,39 +32,39 @@ interface EnrichedPattern {
 const MERIDIAN_DEMO_PATTERNS: EnrichedPattern[] = [
   {
     severity: "warn",
-    name: "Liability cap erosion — Technology vendors",
-    description: "Across 6 technology contracts, counterparties have consistently pushed liability caps below 1× annual fees. You have accepted this in 3 of 6 reviews.",
-    frequency: "6 contracts reviewed — 4 flagged RED",
-    commercialImpact: "Estimated £2.4M in uncapped exposure across the portfolio if any single vendor causes a material service failure.",
+    name: "Liability cap erosion",
+    description: "Technology vendors are consistently pushing liability caps below 1x annual fees. You have accepted this position in 4 of 6 reviews without escalating.",
+    frequency: "4 of 6 contracts (67%) flagged RED",
+    commercialImpact: "Estimated £2.4M in uncapped exposure if any single vendor causes a material service failure.",
     counterparties: ["Apex Systems Ltd", "DataFlow Technologies", "Vertex Cloud"],
-    suggestedAction: "Update playbook to require 2× annual fees as the minimum acceptable cap. Add to red-line enforcement for vendor agreements.",
+    suggestedAction: "Update playbook to require 2x annual fees as the minimum acceptable cap and add to red-line enforcement for all vendor agreements.",
     clauseCategory: "LIABILITY_CAP",
   },
   {
     severity: "warn",
-    name: "Auto-renewal accepted without notice period",
+    name: "Auto-renewal without adequate notice period",
     description: "4 contracts contain auto-renewal clauses with no notice period or a notice period shorter than 30 days. 2 have already renewed without commercial review.",
-    frequency: "4 contracts — 2 renewed without review",
-    commercialImpact: "An estimated £340K in committed spend renewed automatically. One contract includes a price escalation clause triggered at renewal.",
+    frequency: "4 of 6 contracts (67%) flagged RED",
+    commercialImpact: "£340k in committed spend renewed automatically. One contract includes a price escalation clause triggered at renewal.",
     counterparties: ["Nexus Analytics", "CoreData Inc"],
-    suggestedAction: "Require a minimum 60-day notice period in all auto-renewal clauses. Flag contracts renewing within 90 days for review in the Timings page.",
+    suggestedAction: "Require a minimum 60-day notice period in all auto-renewal clauses and flag contracts renewing within 90 days in Timings and Obligations.",
     clauseCategory: "AUTO_RENEWAL",
   },
   {
     severity: "info",
-    name: "Indemnity scope — consistently broad",
-    description: "Counterparties are requesting broad indemnity clauses covering consequential and indirect losses. These have been escalated 3 times but not yet resolved.",
-    frequency: "4 contracts — 3 escalated for approval",
-    commercialImpact: "Broad indemnity exposure across 4 active contracts. If any claim is brought, consequential loss liability is uncapped.",
+    name: "Indemnity scope consistently broad",
+    description: "Counterparties are requesting indemnity clauses covering consequential and indirect losses. These have been escalated 3 times without resolution.",
+    frequency: "3 of 4 contracts (75%) escalated for approval",
+    commercialImpact: "Uncapped consequential loss liability across 4 active contracts. Any claim could significantly exceed the contract value.",
     counterparties: ["Apex Systems Ltd", "Meridian Supply Co"],
     suggestedAction: "Narrow indemnity to direct losses only. Use the standard fallback wording in the Playbook for Indemnity clauses.",
     clauseCategory: "INDEMNITY",
   },
   {
     severity: "good",
-    name: "Governing law — 100% aligned",
-    description: "All 5 contracts reviewed contain English law and English courts jurisdiction. This is consistent with your playbook preferred position.",
-    frequency: "5 contracts reviewed — 5 GREEN",
+    name: "Governing law fully aligned",
+    description: "All 5 contracts reviewed contain English law and English courts jurisdiction, consistent with your playbook preferred position.",
+    frequency: "5 of 5 contracts (100%) GREEN",
     commercialImpact: "No jurisdictional risk identified. Consistent governing law across the portfolio simplifies dispute resolution.",
     counterparties: [],
     suggestedAction: "No action required. Continue enforcing English law as a non-negotiable position.",
@@ -120,7 +120,11 @@ function enrichPattern(
   }
 
   const frequency = relatedOutcome
-    ? `${relatedOutcome.total} contracts reviewed — ${relatedOutcome.redCount} flagged RED`
+    ? (() => {
+        const { total, redCount } = relatedOutcome;
+        const pct = total > 0 ? Math.round((redCount / total) * 100) : 0;
+        return `${redCount} of ${total} contracts (${pct}%) flagged RED`;
+      })()
     : "Multiple contracts reviewed";
 
   const relatedCounterparties = relatedOutcome
@@ -206,9 +210,14 @@ function PatternCard({ pattern }: { pattern: EnrichedPattern }) {
           <div className="text-[10px] uppercase tracking-wider text-foreground/40 font-medium mb-1">Counterparties involved</div>
           {pattern.counterparties.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
-              {pattern.counterparties.map((cp) => (
+              {pattern.counterparties.slice(0, 3).map((cp) => (
                 <span key={cp} className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-foreground/70 border border-white/10">{cp}</span>
               ))}
+              {pattern.counterparties.length > 3 && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-foreground/40 border border-white/5">
+                  +{pattern.counterparties.length - 3} more
+                </span>
+              )}
             </div>
           ) : (
             <div className="text-xs text-foreground/40">No specific counterparty identified</div>

@@ -1642,13 +1642,14 @@ function ClauseCard({
             </div>
           )}
 
-          {/* Four-box layout */}
+          {/* Four-box layout — only render if there is analysis to show */}
+          {(result.ragStatus !== "GREY" || result.clauseSummary || result.recommendedAction) && (
           <div className="grid sm:grid-cols-2 gap-3">
             {/* Issue */}
             <div className="rounded-lg border border-[#1E293B] bg-[#0D1521] px-4 py-3 space-y-1.5">
               <div className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA]/70">Issue</div>
               <p className="text-sm leading-snug font-medium">
-                {result.iracIssue || result.recommendedAction || result.clauseSummary}
+                {result.iracIssue || result.recommendedAction || result.clauseSummary || "No analysis available for this clause."}
               </p>
             </div>
 
@@ -1702,9 +1703,10 @@ function ClauseCard({
               )}
             </div>
           </div>
+          )} {/* end four-box conditional */}
 
           {/* Confidence */}
-          {result.confidenceLabel && (
+          {result.confidenceLabel && CONFIDENCE_CONFIG[result.confidenceLabel] && (
             <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg border w-fit ${CONFIDENCE_CONFIG[result.confidenceLabel].classes}`}>
               <Scale size={11} />
               {CONFIDENCE_CONFIG[result.confidenceLabel].label}

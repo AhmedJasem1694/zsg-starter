@@ -675,6 +675,9 @@ export default function Dashboard() {
   const [filterRag, setFilterRag] = useState("");
   const [filterType, setFilterType] = useState("");
 
+  // Next Actions expand/collapse
+  const [showAllActions, setShowAllActions] = useState(false);
+
   // Company query (for workflowType)
   const { data: company } = useQuery({
     queryKey: ["company"],
@@ -859,6 +862,19 @@ export default function Dashboard() {
 
   const hasActions = redActionDocs.length > 0 || escalationDocs.length > 0 || renewalActionDocs.length > 0;
 
+  // ── Next Actions visibility (max 3 by default) ─────────────────────────────
+  const ACTIONS_LIMIT = 3;
+  const totalActionCount = (useMock ? 1 : 0) + redActionDocs.length + escalationDocs.length + renewalActionDocs.length;
+  const hiddenActionCount = Math.max(0, totalActionCount - ACTIONS_LIMIT);
+  let _actionBudget = showAllActions ? Infinity : ACTIONS_LIMIT;
+  // Mock item always counts as 1 if shown
+  if (!showAllActions && useMock) _actionBudget -= 1;
+  const visibleRedDocs    = showAllActions ? redActionDocs    : redActionDocs.slice(0, Math.max(0, _actionBudget));
+  _actionBudget -= visibleRedDocs.length;
+  const visibleEscDocs    = showAllActions ? escalationDocs   : escalationDocs.slice(0, Math.max(0, _actionBudget));
+  _actionBudget -= visibleEscDocs.length;
+  const visibleRenewalDocs = showAllActions ? renewalActionDocs : renewalActionDocs.slice(0, Math.max(0, _actionBudget));
+
   // Last 5 completed for Recent Reviews
   const recentDocs = [...(realDocuments as UploadedDocument[])]
     .filter((d) => d.status === "COMPLETE")
@@ -931,7 +947,7 @@ export default function Dashboard() {
             </a>
           )}
 
-          {redActionDocs.map((d) => {
+          {visibleRedDocs.map((d) => {
             const redCount = (d.reviewResults ?? []).filter((r) => r.ragStatus === "RED").length;
             const cp = (d as UploadedDocument & { counterpartyName?: string }).counterpartyName;
             return (
@@ -950,7 +966,7 @@ export default function Dashboard() {
             );
           })}
 
-          {escalationDocs.map((d) => {
+          {visibleEscDocs.map((d) => {
             const escResults = (d.reviewResults ?? []).filter((r) => r.escalationRequired && r.feedback?.userAction !== "ESCALATED");
             const trigger = escResults[0]?.escalationTrigger ?? "Approval required";
             const cp = (d as UploadedDocument & { counterpartyName?: string }).counterpartyName;
@@ -970,7 +986,7 @@ export default function Dashboard() {
             );
           })}
 
-          {renewalActionDocs.map((d) => {
+          {visibleRenewalDocs.map((d) => {
             const daysLeft = Math.ceil((new Date(d.renewalDate!).getTime() - now30) / (1000 * 60 * 60 * 24));
             return (
               <a key={`ren-${d.id}`} href={`/app/legal/review/${d.id}`}
@@ -987,6 +1003,24 @@ export default function Dashboard() {
               </a>
             );
           })}
+
+          {/* See all / collapse */}
+          {!showAllActions && hiddenActionCount > 0 && (
+            <button
+              onClick={() => setShowAllActions(true)}
+              className="w-full text-center text-xs text-muted-foreground hover:text-foreground py-2.5 rounded-lg border border-border hover:border-foreground/20 transition-colors"
+            >
+              See all actions ({hiddenActionCount} more)
+            </button>
+          )}
+          {showAllActions && totalActionCount > ACTIONS_LIMIT && (
+            <button
+              onClick={() => setShowAllActions(false)}
+              className="w-full text-center text-xs text-muted-foreground hover:text-foreground py-2 transition-colors"
+            >
+              Show fewer
+            </button>
+          )}
         </div>
 
         {/* ── Section 2: Executive Overview ──────────────────────────────── */}
