@@ -367,6 +367,58 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ─── HOW IT CHANGES ──────────────────────────────────────────────────── */}
+      <section className="py-20 bg-[#F7F6F3] border-t border-black/5">
+        <div className="max-w-3xl mx-auto px-6 space-y-10">
+          <motion.div className="text-center space-y-3" {...headingReveal}>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">How it changes.</h2>
+          </motion.div>
+          <motion.div
+            className="grid sm:grid-cols-2 gap-8"
+            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
+          >
+            {/* Before column */}
+            <motion.div className="space-y-4" variants={staggerItem}>
+              <div className="text-xs font-bold uppercase tracking-widest text-gray-400">Before Zane</div>
+              <div className="space-y-3">
+                {[
+                  "Legal reviews clause",
+                  "Negotiates position",
+                  "Signs the contract",
+                  "Rationale disappears",
+                  "Next lawyer starts from scratch",
+                  "Same risks renegotiated again",
+                ].map((item) => (
+                  <div key={item} className="flex items-start gap-2.5 text-sm text-gray-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0 mt-1.5" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+            {/* With Zane column */}
+            <motion.div className="space-y-4" variants={staggerItem}>
+              <div className="text-xs font-bold uppercase tracking-widest text-primary">With Zane</div>
+              <div className="space-y-3">
+                {[
+                  "Legal reviews clause",
+                  "Negotiates position",
+                  "Zane records the rationale",
+                  "Future reviews inherit the decision",
+                  "Similar contracts automatically aligned",
+                  "Regulatory changes mapped to your portfolio",
+                ].map((item) => (
+                  <div key={item} className="flex items-start gap-2.5 text-sm text-gray-700">
+                    <CheckCircle size={13} className="text-primary shrink-0 mt-0.5" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ─── WHAT ZANE DOES ──────────────────────────────────────────────────── */}
       <section className="py-20 bg-[#F2F1EE] border-t border-black/5">
         <div className="max-w-5xl mx-auto px-6">
@@ -478,6 +530,80 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ─── PROOF / SEE IT IN ACTION ────────────────────────────────────────── */}
+      <section className="py-20 bg-[#F2F1EE] border-t border-black/5">
+        <div className="max-w-3xl mx-auto px-6 space-y-8">
+          <motion.div className="text-center space-y-3" {...headingReveal}>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">See it in action.</h2>
+          </motion.div>
+
+          <motion.div
+            className="rounded-2xl border border-black/8 bg-white overflow-hidden"
+            {...fadeUp(0.1)}
+          >
+            {/* Header row */}
+            <div className="px-6 py-4 border-b border-black/5 flex items-center justify-between gap-4">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">Supplier Agreement Example</div>
+                <div className="text-sm font-semibold text-gray-900">Technology Services Agreement</div>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 border border-red-100 shrink-0">
+                <AlertTriangle size={11} className="text-red-400" />
+                <span className="text-xs font-bold text-red-500">HIGH RISK</span>
+              </div>
+            </div>
+
+            {/* Red clause rows */}
+            <div className="divide-y divide-black/4">
+              {[
+                { clause: "Limitation of Liability", note: "Cap set at 1 month's fees. Playbook requires minimum 12 months. Breaches hard red line." },
+                { clause: "Data Processing Agreement", note: "No DPA attached. GDPR Article 28 requires a written agreement before processing begins." },
+                { clause: "Auto-Renewal", note: "Renews automatically with a 90-day notice window not documented in this contract. Lock-in risk." },
+              ].map(({ clause, note }) => (
+                <div key={clause} className="px-6 py-4 flex items-start gap-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0 mt-1.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-gray-800">{clause}</div>
+                    <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">{note}</div>
+                  </div>
+                  <span className="text-[10px] font-bold text-red-400 bg-red-50 border border-red-100 px-2 py-0.5 rounded shrink-0">RED</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Escalation routing */}
+            <div className="px-6 py-4 border-t border-black/5 bg-amber-50/40 space-y-2">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-1">Escalation routing triggered</div>
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                <CheckCircle size={11} className="text-amber-500 shrink-0" />
+                Tier 1: General Counsel sign-off required (liability cap below threshold)
+              </div>
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                <CheckCircle size={11} className="text-amber-500 shrink-0" />
+                Tier 2: DPO approval required (data processing agreement absent)
+              </div>
+            </div>
+
+            {/* Sign-off sequence */}
+            <div className="px-6 py-4 border-t border-black/5 space-y-2.5">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Sign-off sequence</div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {["Handler", "Legal", "GC", "DPO"].map((role, i, arr) => (
+                  <div key={role} className="flex items-center gap-2">
+                    <div className="text-xs px-2.5 py-1 rounded-md border border-black/8 bg-gray-50 text-gray-600 font-medium">{role}</div>
+                    {i < arr.length - 1 && <ArrowRight size={11} className="text-gray-300" />}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.p className="text-center text-xs text-gray-500 italic" {...fadeUp(0.15)}>
+            This is real output from a real contract reviewed against a real playbook. Not a mockup.
+          </motion.p>
+        </div>
+      </section>
+
       {/* ─── HOW ZANE GETS SMARTER - dark ────────────────────────────────────── */}
       <section className="py-20" style={{ background: "#0B1118" }}>
         <div className="max-w-4xl mx-auto px-6 space-y-8">
@@ -491,38 +617,6 @@ export default function Landing() {
             <p>
               Your contracts are never used to train AI models. Not ours, not anyone else's. That is not a limitation. It is a deliberate architectural choice that makes Zane safer for legal work than almost any alternative.
             </p>
-            <p className="text-white/70 font-medium">Here is how Zane actually improves over time.</p>
-            <p>
-              Every contract reviewed adds to your negotiation history. Every override your team makes - with the mandatory reason behind it - teaches Zane how your company actually makes decisions. Every outcome logged after a contract is signed closes the gap between your written playbook and your real risk tolerance. Every pattern detected across your portfolio surfaces insight no individual review would ever reveal.
-            </p>
-            <p>
-              The intelligence compounds at the system level, not the model level. Your company's history, your GC's judgment, your sector's regulatory requirements - these become part of how Zane analyses the next contract. Not because an AI was retrained on your data. Because your data is structured, stored, and retrieved in a way that makes every future review more accurate than the last.
-            </p>
-            <p>
-              This is also why the switching cost grows over time. After twelve months of using Zane you have something no other tool can give you. Your company's legal memory. Starting over means losing it.
-            </p>
-          </motion.div>
-          <motion.div
-            className="flex items-center justify-center gap-10 pt-4"
-            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true }}
-          >
-            {[
-              { icon: CheckCircle,   color: "text-emerald-400", label: "Accept" },
-              { icon: Zap,           color: "text-amber-400",   label: "Override" },
-              { icon: AlertTriangle, color: "text-red-400",     label: "Escalate" },
-            ].map(({ icon: Icon, color, label }) => (
-              <motion.div key={label} className="flex flex-col items-center gap-2" variants={staggerItem}>
-                <motion.div
-                  className="w-10 h-10 rounded-full flex items-center justify-center"
-                  style={{ background: "#111A24" }}
-                  whileHover={{ scale: 1.15 }}
-                  transition={SPRING_SOFT}
-                >
-                  <Icon size={15} className={color} />
-                </motion.div>
-                <span className="text-xs text-white/30">{label}</span>
-              </motion.div>
-            ))}
           </motion.div>
         </div>
       </section>
@@ -565,31 +659,6 @@ export default function Landing() {
             ))}
           </motion.div>
 
-          {/* Competitor paragraphs */}
-          <motion.div
-            className="max-w-3xl mx-auto space-y-6 pt-4"
-            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
-          >
-            {[
-              {
-                name: "Wordsmith",
-                body: "Wordsmith is a capable product trusted by Deliveroo, Skyscanner, and Tide. It is built primarily as a workflow orchestration and legal request management layer for larger legal departments with dedicated legal ops teams. If you need internal intake management across a team of ten or more lawyers, Wordsmith is worth evaluating. If you are a solo GC or a small team who needs your specific negotiation history applied to every contract reviewed automatically, Zane is built for you.",
-              },
-              {
-                name: "Claude for Legal",
-                body: "Claude for Legal lives in Word and is genuinely useful for first-pass drafting and review. It does not know your red lines. It does not remember your decisions. Every session starts from zero. It is a powerful generic assistant. It is not a system that learns your company.",
-              },
-              {
-                name: "Harvey",
-                body: "Harvey charges five to six figures per year and is built for Magic Circle law firms. It is not relevant for a lean in-house team.",
-              },
-            ].map(({ name, body }) => (
-              <motion.div key={name} className="space-y-1" variants={staggerItem}>
-                <div className="text-xs font-bold text-gray-700">{name}</div>
-                <p className="text-sm text-gray-500 leading-relaxed">{body}</p>
-              </motion.div>
-            ))}
-          </motion.div>
         </div>
       </section>
 
@@ -619,53 +688,6 @@ export default function Landing() {
               Stop renegotiating risks your team has already resolved before.
             </motion.p>
           </motion.div>
-        </div>
-      </section>
-
-      {/* ─── REGULATORY - dark ───────────────────────────────────────────────── */}
-      <section className="py-20" style={{ background: "#0B1118" }}>
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="rounded-2xl overflow-hidden" style={{ background: "#111A24" }}>
-            <div className="grid lg:grid-cols-2 gap-0">
-              <motion.div className="p-10 space-y-5" {...slideLeft(0)}>
-                <div className="inline-block text-xs font-bold text-primary tracking-widest uppercase">Regulatory intelligence</div>
-                <h2 className="text-2xl font-bold text-white tracking-tight leading-snug">
-                  A regulation changes.<br />Zane tells you which contracts are affected.
-                </h2>
-                <p className="text-sm text-white/50 leading-relaxed">
-                  Hardcoded regulatory context is a liability the moment something changes. For a regulated business, that is not a minor gap - it is a trust-destroying one.
-                </p>
-                <p className="text-sm text-white/50 leading-relaxed">
-                  Every contract review is cross-referenced against the regulatory frameworks that apply to your sector and jurisdiction. GDPR, FCA Consumer Duty, KSA GCAM, and more - automatically.
-                </p>
-                <a href="#how-it-works" className="inline-flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity font-medium">
-                  See how it works <ArrowRight size={13} />
-                </a>
-              </motion.div>
-              <motion.div
-                className="border-l border-white/8 p-10 flex flex-col justify-center gap-3"
-                variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
-              >
-                {[
-                  { flag: "🇬🇧", label: "United Kingdom",  regs: "FCA Consumer Duty · UK GDPR · ICO · Bribery Act" },
-                  { flag: "🇪🇺", label: "European Union",  regs: "GDPR · EU AI Act · DORA · NIS2" },
-                  { flag: "🇺🇸", label: "United States",   regs: "CCPA · HIPAA · SOX · NY SHIELD · NYDFS" },
-                  { flag: "🇸🇦", label: "Saudi Arabia",    regs: "GCAM · PDPL · GEA · Vision 2030 compliance" },
-                  { flag: "🇰🇷", label: "South Korea",     regs: "Game Industry Act · PIPA · Loot box disclosure" },
-                  { flag: "🇨🇦", label: "Canada",          regs: "PIPEDA · Bill C-27 · CASL · Competition Act" },
-                ].map(({ flag, label, regs }) => (
-                  <motion.div key={label} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0" variants={staggerItem}>
-                    <span className="text-lg">{flag}</span>
-                    <div className="min-w-0">
-                      <div className="text-xs font-medium text-white/70">{label}</div>
-                      <div className="text-[10px] text-white/30 mt-0.5 truncate">{regs}</div>
-                    </div>
-                    <CheckCircle size={12} className="text-primary ml-auto shrink-0" />
-                  </motion.div>
-                ))}
-              </motion.div>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -795,6 +817,53 @@ export default function Landing() {
         <motion.p className="text-center text-xs text-gray-500 max-w-lg mx-auto" {...fadeUp(0.2)}>
           All plans include 30-minute onboarding. No implementation fee. No minimum contract. Cancel anytime.
         </motion.p>
+      </section>
+
+      {/* ─── REGULATORY - dark ───────────────────────────────────────────────── */}
+      <section className="py-20" style={{ background: "#0B1118" }}>
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="rounded-2xl overflow-hidden" style={{ background: "#111A24" }}>
+            <div className="grid lg:grid-cols-2 gap-0">
+              <motion.div className="p-10 space-y-5" {...slideLeft(0)}>
+                <div className="inline-block text-xs font-bold text-primary tracking-widest uppercase">Regulatory intelligence</div>
+                <h2 className="text-2xl font-bold text-white tracking-tight leading-snug">
+                  A regulation changes.<br />Zane tells you which contracts are affected.
+                </h2>
+                <p className="text-sm text-white/50 leading-relaxed">
+                  Hardcoded regulatory context is a liability the moment something changes. For a regulated business, that is not a minor gap - it is a trust-destroying one.
+                </p>
+                <p className="text-sm text-white/50 leading-relaxed">
+                  Every contract review is cross-referenced against the regulatory frameworks that apply to your sector and jurisdiction. GDPR, FCA Consumer Duty, KSA GCAM, and more - automatically.
+                </p>
+                <a href="#how-it-works" className="inline-flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity font-medium">
+                  See how it works <ArrowRight size={13} />
+                </a>
+              </motion.div>
+              <motion.div
+                className="border-l border-white/8 p-10 flex flex-col justify-center gap-3"
+                variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
+              >
+                {[
+                  { flag: "🇬🇧", label: "United Kingdom",  regs: "FCA Consumer Duty · UK GDPR · ICO · Bribery Act" },
+                  { flag: "🇪🇺", label: "European Union",  regs: "GDPR · EU AI Act · DORA · NIS2" },
+                  { flag: "🇺🇸", label: "United States",   regs: "CCPA · HIPAA · SOX · NY SHIELD · NYDFS" },
+                  { flag: "🇸🇦", label: "Saudi Arabia",    regs: "GCAM · PDPL · GEA · Vision 2030 compliance" },
+                  { flag: "🇰🇷", label: "South Korea",     regs: "Game Industry Act · PIPA · Loot box disclosure" },
+                  { flag: "🇨🇦", label: "Canada",          regs: "PIPEDA · Bill C-27 · CASL · Competition Act" },
+                ].map(({ flag, label, regs }) => (
+                  <motion.div key={label} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0" variants={staggerItem}>
+                    <span className="text-lg">{flag}</span>
+                    <div className="min-w-0">
+                      <div className="text-xs font-medium text-white/70">{label}</div>
+                      <div className="text-[10px] text-white/30 mt-0.5 truncate">{regs}</div>
+                    </div>
+                    <CheckCircle size={12} className="text-primary ml-auto shrink-0" />
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* ─── FINAL CTA ───────────────────────────────────────────────────────── */}
