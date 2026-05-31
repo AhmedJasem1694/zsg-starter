@@ -28,10 +28,10 @@ interface QueuedFile {
 }
 
 const RAG_CELL: Record<string, string> = {
-  RED:   "bg-[#1F0A0A] text-[#FCA5A5] border border-[#450A0A] font-semibold",
-  AMBER: "bg-[#1C0F00] text-[#FCD34D] border border-[#431407] font-semibold",
-  GREEN: "bg-[#052E16] text-[#86EFAC] border border-[#14532D] font-semibold",
-  GREY:  "bg-[#0F172A] text-[#94A3B8] border border-[#334155]",
+  RED:   "bg-[#1F0A0A] text-white border border-[#450A0A] font-semibold",
+  AMBER: "bg-[#1C0F00] text-white border border-[#431407] font-semibold",
+  GREEN: "bg-[#052E16] text-white border border-[#14532D] font-semibold",
+  GREY:  "bg-[#0F172A] text-white border border-[#334155]",
 };
 
 const RAG_SHORT: Record<string, string> = {
@@ -513,10 +513,10 @@ export default function BulkReview() {
           <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground max-w-6xl">
             <span className="font-medium">Key:</span>
             {[
-              { short: "R", label: "Red: review required", cls: "bg-[#1F0A0A] text-[#FCA5A5] border border-[#450A0A]" },
-              { short: "A", label: "Amber: caution",       cls: "bg-[#1C0F00] text-[#FCD34D] border border-[#431407]" },
-              { short: "G", label: "Green: acceptable",    cls: "bg-[#052E16] text-[#86EFAC] border border-[#14532D]" },
-              { short: "-", label: "Not found",             cls: "bg-[#0F172A] text-[#94A3B8] border border-[#334155]" },
+              { short: "R", label: "Red: review required", cls: "bg-[#1F0A0A] text-white border border-[#450A0A]" },
+              { short: "A", label: "Amber: caution",       cls: "bg-[#1C0F00] text-white border border-[#431407]" },
+              { short: "G", label: "Green: acceptable",    cls: "bg-[#052E16] text-white border border-[#14532D]" },
+              { short: "-", label: "Not found",             cls: "bg-[#0F172A] text-white border border-[#334155]" },
             ].map(({ short, label, cls }) => (
               <span key={short} className="flex items-center gap-1.5">
                 <span className={`inline-block px-1.5 py-0.5 rounded font-bold text-[10px] ${cls}`}>{short}</span>

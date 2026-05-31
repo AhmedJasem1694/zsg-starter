@@ -11,7 +11,7 @@ interface UpgradeBannerProps {
 const TIER_CONFIG = {
   starter:      { label: "Zane Starter",      price: "£300/month", color: "text-primary",        bg: "bg-primary/8 border-primary/20" },
   professional: { label: "Zane Professional", price: "£750/month", color: "text-violet-400",     bg: "bg-violet-400/8 border-violet-400/20" },
-  enterprise:   { label: "Zane Enterprise",   price: "Custom",     color: "text-[#FCD34D]",      bg: "bg-[#1C0F00] border-[#431407]" },
+  enterprise:   { label: "Zane Enterprise",   price: "Custom",     color: "text-white",          bg: "bg-[#1C0F00] border-[#431407]" },
 };
 
 export default function UpgradeBanner({

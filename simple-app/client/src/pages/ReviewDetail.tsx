@@ -57,7 +57,7 @@ class ClauseErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="rounded-xl border border-[#450A0A] bg-[#1F0A0A] px-4 py-3 text-xs text-[#FCA5A5]/70">
+        <div className="rounded-xl border border-[#450A0A] bg-[#1F0A0A] px-4 py-3 text-xs text-white/70">
           Could not render clause{this.props.label ? ` "${this.props.label}"` : ""}. This clause may have unexpected data. Other clauses are unaffected.
         </div>
       );
@@ -120,8 +120,8 @@ const RAG_BORDER_LEFT: Record<RagStatus, string> = {
 // ─── Confidence badge config ──────────────────────────────────────────────────
 
 const CONFIDENCE_CONFIG: Record<ConfidenceLabel, { label: string; classes: string }> = {
-  HIGH:   { label: "High confidence",          classes: "bg-[#052E16] border-[#14532D] text-[#86EFAC]" },
-  MEDIUM: { label: "Medium confidence",        classes: "bg-[#1C0F00] border-[#431407] text-[#FCD34D]" },
+  HIGH:   { label: "High confidence",          classes: "bg-[#052E16] border-[#14532D] text-white" },
+  MEDIUM: { label: "Medium confidence",        classes: "bg-[#1C0F00] border-[#431407] text-white" },
   LOW:    { label: "Lawyer review required",   classes: "bg-[#1F0A0A] border-[#450A0A] text-white" },
 };
 
@@ -540,14 +540,14 @@ export default function ReviewDetail() {
             )}
             <div className="flex flex-wrap gap-2">
               <button
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#14532D] text-[#86EFAC] hover:bg-[#166534] transition-colors disabled:opacity-60"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#14532D] text-white hover:bg-[#166534] transition-colors disabled:opacity-60"
                 disabled={outcomeMutation.isPending}
                 onClick={() => outcomeMutation.mutate("SIGNED")}
               >
                 <CheckCircle size={11} /> Mark as signed
               </button>
               <button
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#14532D] text-[#86EFAC] hover:bg-[#166534] transition-colors disabled:opacity-60"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#14532D] text-white hover:bg-[#166534] transition-colors disabled:opacity-60"
                 disabled={outcomeMutation.isPending}
                 onClick={() => outcomeMutation.mutate("EXECUTED")}
               >
@@ -644,10 +644,10 @@ export default function ReviewDetail() {
                     const finding = c as import("../lib/types").ContradictionFinding;
                     const sev = finding.severity ?? "LOW";
                     const severityColor = sev === "HIGH"
-                      ? "text-[#FCA5A5] bg-[#1F0A0A] border-[#450A0A]"
+                      ? "text-white bg-[#1F0A0A] border-[#450A0A]"
                       : sev === "MEDIUM"
-                      ? "text-[#FCD34D] bg-[#1C0F00] border-[#431407]"
-                      : "text-[#94A3B8] bg-[#0F172A] border-[#334155]";
+                      ? "text-white bg-[#1C0F00] border-[#431407]"
+                      : "text-white bg-[#0F172A] border-[#334155]";
                     return (
                       <div key={i} className={`rounded-lg border px-3 py-2 space-y-1 ${severityColor}`}>
                         <div className="flex items-center gap-2">
@@ -709,7 +709,7 @@ export default function ReviewDetail() {
                 }`}
               >
                 Missing: Critical{" "}
-                <span className="inline-flex items-center justify-center ml-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#1F0A0A] border border-[#450A0A] text-[#FCA5A5]">
+                <span className="inline-flex items-center justify-center ml-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#1F0A0A] border border-[#450A0A] text-white">
                   {counts.GREY_CRITICAL}
                 </span>
               </button>
@@ -724,7 +724,7 @@ export default function ReviewDetail() {
                 }`}
               >
                 Missing: Optional{" "}
-                <span className="inline-flex items-center justify-center ml-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#0F172A] border border-[#334155] text-[#94A3B8]">
+                <span className="inline-flex items-center justify-center ml-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#0F172A] border border-[#334155] text-white">
                   {counts.GREY_OPTIONAL}
                 </span>
               </button>
@@ -733,7 +733,7 @@ export default function ReviewDetail() {
               {results.some(r => r.urgencyLevel === "IMMEDIATE") && (
                 <button
                   onClick={() => setFilter("ALL")}
-                  className="px-3 py-1 rounded-full text-xs font-medium border border-[#450A0A] bg-[#1F0A0A] text-[#FCA5A5] hover:bg-[#2A0808]"
+                  className="px-3 py-1 rounded-full text-xs font-medium border border-[#450A0A] bg-[#1F0A0A] text-white hover:bg-[#2A0808]"
                 >
                   ⚡ {results.filter(r => r.urgencyLevel === "IMMEDIATE").length} Immediate
                 </button>
@@ -804,18 +804,18 @@ function ContractHeader({
   isMock: boolean;
 }) {
   const RISK_CONFIG = {
-    RED:   { label: "High Risk",      bg: "bg-[#1F0A0A] border-[#450A0A]", text: "text-[#FCA5A5]" },
-    AMBER: { label: "Moderate Risk",  bg: "bg-[#1C0F00] border-[#431407]", text: "text-[#FCD34D]" },
-    GREEN: { label: "Low Risk",       bg: "bg-[#052E16] border-[#14532D]", text: "text-[#86EFAC]" },
+    RED:   { label: "High Risk",      bg: "bg-[#1F0A0A] border-[#450A0A]", text: "text-white" },
+    AMBER: { label: "Moderate Risk",  bg: "bg-[#1C0F00] border-[#431407]", text: "text-white" },
+    GREEN: { label: "Low Risk",       bg: "bg-[#052E16] border-[#14532D]", text: "text-white" },
     GREY:  { label: "Pending",        bg: "bg-muted border-border",         text: "text-muted-foreground" },
   };
   const riskCfg = RISK_CONFIG[overallRag];
 
   const READINESS_CONFIG = {
-    "not-ready": { label: "Do not sign yet",   color: "text-[#FCA5A5]", bg: "bg-[#1F0A0A] border-[#450A0A]" },
-    "negotiate":  { label: "Negotiate first",   color: "text-[#FCD34D]", bg: "bg-[#1C0F00] border-[#431407]" },
-    "review":     { label: "Review needed",     color: "text-[#FCD34D]", bg: "bg-[#1C0F00] border-[#431407]" },
-    "ready":      { label: "Ready to sign",     color: "text-[#86EFAC]", bg: "bg-[#052E16] border-[#14532D]" },
+    "not-ready": { label: "Do not sign yet",   color: "text-white", bg: "bg-[#1F0A0A] border-[#450A0A]" },
+    "negotiate":  { label: "Negotiate first",   color: "text-white", bg: "bg-[#1C0F00] border-[#431407]" },
+    "review":     { label: "Review needed",     color: "text-white", bg: "bg-[#1C0F00] border-[#431407]" },
+    "ready":      { label: "Ready to sign",     color: "text-white", bg: "bg-[#052E16] border-[#14532D]" },
   };
   const readiness: "not-ready" | "negotiate" | "review" | "ready" =
     counts.RED >= 2 ? "not-ready" :
@@ -895,7 +895,7 @@ function MetaPill({
   return (
     <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium
       ${urgent
-        ? "border-[#431407] bg-[#1C0F00] text-[#FCD34D]"
+        ? "border-[#431407] bg-[#1C0F00] text-white"
         : "border-[#1E293B] bg-[#0D1521] text-muted-foreground"
       }`}
     >
@@ -1147,9 +1147,9 @@ function DocumentAuditPanel({ audit }: { audit: import("../lib/types").DocumentA
   };
 
   const SEVERITY_CONFIG = {
-    HIGH:   { classes: "bg-[#1F0A0A] border-[#450A0A] text-[#FCA5A5]", label: "High" },
-    MEDIUM: { classes: "bg-[#1C0F00] border-[#431407] text-[#FCD34D]", label: "Medium" },
-    LOW:    { classes: "bg-[#0F172A] border-[#334155] text-[#94A3B8]", label: "Low" },
+    HIGH:   { classes: "bg-[#1F0A0A] border-[#450A0A] text-white", label: "High" },
+    MEDIUM: { classes: "bg-[#1C0F00] border-[#431407] text-white", label: "Medium" },
+    LOW:    { classes: "bg-[#0F172A] border-[#334155] text-white", label: "Low" },
   };
 
   return (
@@ -1165,7 +1165,7 @@ function DocumentAuditPanel({ audit }: { audit: import("../lib/types").DocumentA
             {allFindings.length} finding{allFindings.length !== 1 ? "s" : ""}
           </span>
           {audit.highSeverityCount > 0 && (
-            <span className="text-[10px] bg-[#1F0A0A] text-[#FCA5A5] border border-[#450A0A] rounded-full px-2 py-0.5 font-semibold">
+            <span className="text-[10px] bg-[#1F0A0A] text-white border border-[#450A0A] rounded-full px-2 py-0.5 font-semibold">
               {audit.highSeverityCount} high
             </span>
           )}
@@ -1472,7 +1472,7 @@ function FalsePositivePanel({
       />
 
       <button
-        className="w-full text-xs py-2 rounded-lg bg-[#431407] text-[#FCD34D] font-semibold disabled:opacity-50 transition-colors hover:bg-[#7C2D12]"
+        className="w-full text-xs py-2 rounded-lg bg-[#431407] text-white font-semibold disabled:opacity-50 transition-colors hover:bg-[#7C2D12]"
         disabled={!errorType || submitting}
         onClick={() => void handleSubmit()}
       >
@@ -1577,7 +1577,7 @@ function ClauseCard({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold">{label}</span>
             {result.isAbsent && (
-              <span className="text-[11px] bg-[#0F172A] text-[#94A3B8] border border-[#334155] rounded px-1.5 py-0.5">
+              <span className="text-[11px] bg-[#0F172A] text-white border border-[#334155] rounded px-1.5 py-0.5">
                 Absent
               </span>
             )}
@@ -1606,14 +1606,14 @@ function ClauseCard({
             <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${
               result.urgencyLevel === "IMMEDIATE"
                 ? "bg-[#1F0A0A] text-white border-[#450A0A]"
-                : "bg-[#1C0F00] text-[#FCD34D] border-[#431407]"
+                : "bg-[#1C0F00] text-white border-[#431407]"
             }`}>
               {result.urgencyLevel === "IMMEDIATE" ? "⚡ Immediate" : "Material"}
             </span>
           )}
           {/* Error category badge */}
           {result.errorCategory && result.errorCategory !== "SUBSTANTIVE_RISK" && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-[#0F172A] text-[#94A3B8] border-[#334155]">
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-[#0F172A] text-white border-[#334155]">
               {result.errorCategory === "DRAFTING_ERROR" ? "Drafting" : "Mechanical"}
             </span>
           )}
@@ -1859,19 +1859,19 @@ function ClauseCard({
               <div className="w-full max-w-md rounded-2xl border border-[#14532D] bg-[#030f08] shadow-2xl p-6 space-y-5">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <CheckCircle size={16} className="text-[#86EFAC]" />
-                    <span className="text-sm font-semibold text-[#86EFAC]">Capture signed outcome</span>
+                    <CheckCircle size={16} className="text-white" />
+                    <span className="text-sm font-semibold text-white">Capture signed outcome</span>
                   </div>
-                  <div className="text-xs text-[#86EFAC]/60 leading-relaxed">
+                  <div className="text-xs text-white/60 leading-relaxed">
                     Record the final agreed wording for <span className="font-medium">{label}</span>. This trains Zane on your actual negotiation outcomes.
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-widest text-[#86EFAC]/50">
+                  <label className="text-[10px] font-semibold uppercase tracking-widest text-white/50">
                     Final agreed clause text (optional)
                   </label>
                   <textarea
-                    className="w-full rounded-xl border border-[#14532D] bg-[#052E16] px-3.5 py-2.5 text-sm text-[#86EFAC] placeholder:text-[#86EFAC]/25 focus:outline-none focus:border-[#166534] min-h-[96px] resize-y font-mono"
+                    className="w-full rounded-xl border border-[#14532D] bg-[#052E16] px-3.5 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-[#166534] min-h-[96px] resize-y font-mono"
                     placeholder="Paste the final clause text as executed…"
                     value={agreedText}
                     onChange={(e) => setAgreedText(e.target.value)}
@@ -1880,13 +1880,13 @@ function ClauseCard({
                 </div>
                 <div className="flex flex-col gap-2">
                   <button
-                    className="w-full px-4 py-2.5 bg-[#14532D] hover:bg-[#166534] text-[#86EFAC] text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+                    className="w-full px-4 py-2.5 bg-[#14532D] hover:bg-[#166534] text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
                     onClick={() => { void handle("ACCEPTED", agreedText || undefined); setShowWhatAgreed(false); }}
                   >
                     <CheckCircle size={14} /> Save & mark accepted
                   </button>
                   <button
-                    className="w-full px-4 py-2 text-xs text-[#86EFAC]/50 hover:text-[#86EFAC]/80 transition-colors"
+                    className="w-full px-4 py-2 text-xs text-white/50 hover:text-white/80 transition-colors"
                     onClick={() => { void handle("ACCEPTED"); setShowWhatAgreed(false); setAgreedText(""); }}
                   >
                     Accept without recording clause text
@@ -1905,7 +1905,7 @@ function ClauseCard({
                   onClick={() => setShowTeachZane(!showTeachZane)}
                   disabled={teachDone}
                   className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors ${
-                    teachDone ? "bg-[#052E16] border-[#14532D] text-[#86EFAC]" : "border-border hover:border-[#475569]"
+                    teachDone ? "bg-[#052E16] border-[#14532D] text-white" : "border-border hover:border-[#475569]"
                   }`}
                 >
                   <GraduationCap size={11} />
@@ -1916,7 +1916,7 @@ function ClauseCard({
                     onClick={() => void handleFalsePositive()}
                     disabled={fpSubmitting || fpDone}
                     className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
-                      fpDone ? "bg-[#1F0A0A] border-[#450A0A] text-[#FCA5A5]" : "border-border hover:border-[#475569]"
+                      fpDone ? "bg-[#1F0A0A] border-[#450A0A] text-white" : "border-border hover:border-[#475569]"
                     }`}
                   >
                     <XCircle size={11} />

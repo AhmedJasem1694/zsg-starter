@@ -81,13 +81,13 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
           <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
             {outcome && outcome.total > 0 ? (
               <>
-                <span className="text-[#86EFAC] bg-[#052E16] border border-[#14532D] px-1.5 py-0.5 rounded-full">
+                <span className="text-white bg-[#052E16] border border-[#14532D] px-1.5 py-0.5 rounded-full">
                   Preferred {Math.round((outcome.greenCount / outcome.total) * 100)}%
                 </span>
-                <span className="text-[#FCD34D] bg-[#1C0F00] border border-[#431407] px-1.5 py-0.5 rounded-full">
+                <span className="text-white bg-[#1C0F00] border border-[#431407] px-1.5 py-0.5 rounded-full">
                   Fallback {Math.round((outcome.amberCount / outcome.total) * 100)}%
                 </span>
-                <span className="text-[#FCA5A5] bg-[#1F0A0A] border border-[#450A0A] px-1.5 py-0.5 rounded-full">
+                <span className="text-white bg-[#1F0A0A] border border-[#450A0A] px-1.5 py-0.5 rounded-full">
                   Below fallback {Math.round((outcome.redCount / outcome.total) * 100)}%
                 </span>
               </>
@@ -140,7 +140,7 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
           {/* Feature 39 - Generate suggested position */}
           <div className="flex items-center gap-3">
             <button
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#312E81] bg-[#1E1B4B] text-[#A5B4FC] hover:bg-[#312E81] transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#312E81] bg-[#1E1B4B] text-white hover:bg-[#312E81] transition-colors disabled:opacity-50"
               onClick={() => void handleGenerateSuggestion()}
               disabled={suggestionLoading}
             >
@@ -325,7 +325,7 @@ function AddClausePanel({ workflowType, onSaved, startOpen }: { workflowType?: s
               onChange={(e) => setClauseCategory(e.target.value)}
             />
             <button
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#312E81] bg-[#1E1B4B] text-[#A5B4FC] hover:bg-[#312E81] transition-colors disabled:opacity-50 shrink-0"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#312E81] bg-[#1E1B4B] text-white hover:bg-[#312E81] transition-colors disabled:opacity-50 shrink-0"
               onClick={() => void handleGenerate()}
               disabled={generating || !clauseCategory.trim()}
             >
@@ -413,7 +413,7 @@ function OutcomesView({ outcomes }: { outcomes: ClauseOutcome[] }) {
           </p>
           <div className="flex flex-wrap gap-2 mt-1">
             {drifted.map((o) => (
-              <span key={o.clauseCategory} className="text-xs bg-[#1C0F00] border border-[#431407] text-[#FCD34D] px-2 py-0.5 rounded-full">
+              <span key={o.clauseCategory} className="text-xs bg-[#1C0F00] border border-[#431407] text-white px-2 py-0.5 rounded-full">
                 {CLAUSE_LABELS[o.clauseCategory as ClauseCategory] ?? o.clauseCategory.replace(/_/g, " ")}
                 {" "}({o.accepted}×)
               </span>
@@ -689,7 +689,7 @@ function PendingRulesView() {
                             : `Same override ${rule.evidenceCount} time${rule.evidenceCount !== 1 ? "s" : ""}`}
                         </div>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded border border-[#431407] bg-[#1C0F00] text-[#FCD34D] shrink-0">
+                      <span className="text-[10px] px-2 py-0.5 rounded border border-[#431407] bg-[#1C0F00] text-white shrink-0">
                         {rule.generatedFrom === "OUTCOME_PATTERN" ? "Outcome pattern" : "Override pattern"}
                       </span>
                     </div>
@@ -723,7 +723,7 @@ function PendingRulesView() {
                       {editingId === rule.id ? (
                         <>
                           <button
-                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#052E16] border border-[#14532D] text-[#86EFAC] hover:bg-[#14532D] transition-colors"
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#052E16] border border-[#14532D] text-white hover:bg-[#14532D] transition-colors"
                             onClick={() => void approveWithEdit(rule.id)}
                             disabled={approveMut.isPending}
                           >
@@ -1020,7 +1020,7 @@ export default function Playbook() {
             <Shield size={14} />
             Pending Rules
             {pendingRulesCount > 0 && (
-              <span className="ml-1 text-[10px] bg-[#431407] text-[#FCD34D] rounded-full px-1.5 py-0.5">
+              <span className="ml-1 text-[10px] bg-[#431407] text-white rounded-full px-1.5 py-0.5">
                 {pendingRulesCount}
               </span>
             )}

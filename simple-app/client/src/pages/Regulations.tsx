@@ -49,9 +49,9 @@ function computeTier(reg: CompanyRegulation, companyJurisdiction?: string): Tier
 }
 
 const TIER_CONFIG: Record<Tier, { label: string; badge: string; borderClass: string; bgClass: string }> = {
-  core:    { label: "Core obligation",  badge: "text-[#86EFAC] bg-[#052E16] border-[#14532D]",    borderClass: "border-[#14532D]",  bgClass: "#052E16" },
-  likely:  { label: "Likely relevant",  badge: "text-[#FCD34D] bg-[#1C0F00] border-[#431407]",    borderClass: "border-card-border", bgClass: "" },
-  monitor: { label: "Monitor context",  badge: "text-[#94A3B8] bg-[#0F172A] border-[#334155]",    borderClass: "border-card-border", bgClass: "" },
+  core:    { label: "Core obligation",  badge: "text-white bg-[#052E16] border-[#14532D]",    borderClass: "border-[#14532D]",  bgClass: "#052E16" },
+  likely:  { label: "Likely relevant",  badge: "text-white bg-[#1C0F00] border-[#431407]",    borderClass: "border-card-border", bgClass: "" },
+  monitor: { label: "Monitor context",  badge: "text-white bg-[#0F172A] border-[#334155]",    borderClass: "border-card-border", bgClass: "" },
 };
 
 // ── Synthesis expander ────────────────────────────────────────────────────────

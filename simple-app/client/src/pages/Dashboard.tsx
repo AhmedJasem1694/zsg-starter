@@ -616,10 +616,10 @@ function getSignReadiness(results: { ragStatus: string }[]): SignReadiness {
 }
 
 const READINESS_CONFIG: Record<SignReadiness, { label: string; color: string; bg: string; icon: React.ElementType }> = {
-  "ready":     { label: "Ready to sign",   color: "text-[#86EFAC]",        bg: "bg-[#052E16] border-[#14532D]",  icon: CheckCircle },
-  "negotiate": { label: "Negotiate first", color: "text-[#FCD34D]",        bg: "bg-[#1C0F00] border-[#431407]",  icon: AlertTriangle },
-  "review":    { label: "Review needed",   color: "text-[#FCD34D]",        bg: "bg-[#1C0F00] border-[#431407]",  icon: AlertCircle },
-  "not-ready": { label: "Do not sign yet", color: "text-[#FCA5A5]",        bg: "bg-[#1F0A0A] border-[#450A0A]",  icon: AlertTriangle },
+  "ready":     { label: "Ready to sign",   color: "text-white",            bg: "bg-[#052E16] border-[#14532D]",  icon: CheckCircle },
+  "negotiate": { label: "Negotiate first", color: "text-white",            bg: "bg-[#1C0F00] border-[#431407]",  icon: AlertTriangle },
+  "review":    { label: "Review needed",   color: "text-white",            bg: "bg-[#1C0F00] border-[#431407]",  icon: AlertCircle },
+  "not-ready": { label: "Do not sign yet", color: "text-white",            bg: "bg-[#1F0A0A] border-[#450A0A]",  icon: AlertTriangle },
   "pending":   { label: "Reviewing…",      color: "text-muted-foreground", bg: "bg-muted border-border",          icon: Clock },
 };
 
@@ -896,8 +896,8 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-3 shrink-0">
             {processing && (
-              <span className="text-xs text-[#FCD34D] flex items-center gap-1.5 bg-[#1C0F00] border border-[#431407] rounded-full px-3 py-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D] animate-pulse" />
+              <span className="text-xs text-white flex items-center gap-1.5 bg-[#1C0F00] border border-[#431407] rounded-full px-3 py-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                 Review in progress
               </span>
             )}

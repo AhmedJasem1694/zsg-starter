@@ -314,7 +314,7 @@ export default function LitigationIntake() {
                 }`}
               >
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border ${
-                  currentStage > s.n ? "bg-[#052E16] border-[#14532D] text-[#86EFAC]" :
+                  currentStage > s.n ? "bg-[#052E16] border-[#14532D] text-white" :
                   currentStage === s.n ? "bg-primary text-primary-foreground border-primary" :
                   "bg-muted border-border text-muted-foreground"
                 }`}>
@@ -330,8 +330,8 @@ export default function LitigationIntake() {
         {currentStage === 1 && (
           <div className="space-y-4">
             <div className="card border-[#431407] bg-[#1C0F00] p-4 flex gap-3">
-              <AlertCircle size={16} className="text-[#FCD34D] shrink-0 mt-0.5" />
-              <p className="text-sm text-[#FCD34D]">
+              <AlertCircle size={16} className="text-white shrink-0 mt-0.5" />
+              <p className="text-sm text-white">
                 Answer all 8 questions before proceeding. If any hard stop fires, Zane will pause and tell you what action is required.
               </p>
             </div>
@@ -362,9 +362,9 @@ export default function LitigationIntake() {
                   </div>
                   {status && (
                     <div className={`flex gap-2 p-3 rounded-lg text-xs ${
-                      status.type === "block" ? "bg-[#1F0A0A] border border-[#450A0A] text-[#FCA5A5]" :
-                      status.type === "warn" ? "bg-[#1C0F00] border border-[#431407] text-[#FCD34D]" :
-                      "bg-[#172B4D] border border-[#1E3A5F] text-[#60A5FA]"
+                      status.type === "block" ? "bg-[#1F0A0A] border border-[#450A0A] text-white" :
+                      status.type === "warn" ? "bg-[#1C0F00] border border-[#431407] text-white" :
+                      "bg-[#172B4D] border border-[#1E3A5F] text-white"
                     }`}>
                       <AlertTriangle size={13} className="shrink-0 mt-0.5" />
                       {status.message}
@@ -657,17 +657,17 @@ export default function LitigationIntake() {
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs text-muted-foreground">{ad.fileType}</span>
                           {ad.privilegeFlag && (
-                            <span className="text-[10px] bg-[#1E1B4B] text-[#A5B4FC] border border-[#312E81] rounded px-1.5 py-0.5 flex items-center gap-0.5">
+                            <span className="text-[10px] bg-[#1E1B4B] text-white border border-[#312E81] rounded px-1.5 py-0.5 flex items-center gap-0.5">
                               <Lock size={9} /> Privileged
                             </span>
                           )}
                           {(ad.fileType === "AUDIO" || ad.fileType === "VIDEO") && !ad.transcription && (
-                            <span className="text-[10px] bg-[#1C0F00] text-[#FCD34D] border border-[#431407] rounded px-1.5 py-0.5">
+                            <span className="text-[10px] bg-[#1C0F00] text-white border border-[#431407] rounded px-1.5 py-0.5">
                               Transcription pending
                             </span>
                           )}
                           {(ad.fileType === "AUDIO" || ad.fileType === "VIDEO") && ad.transcription && (
-                            <span className="text-[10px] bg-[#052E16] text-[#86EFAC] border border-[#14532D] rounded px-1.5 py-0.5">Transcribed</span>
+                            <span className="text-[10px] bg-[#052E16] text-white border border-[#14532D] rounded px-1.5 py-0.5">Transcribed</span>
                           )}
                         </div>
                       </div>

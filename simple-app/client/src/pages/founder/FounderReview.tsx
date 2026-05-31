@@ -90,9 +90,9 @@ const FUNDRAISING_RELEVANCE: Record<string, FundraisingRelevance> = {
 };
 
 const FUNDRAISING_RELEVANCE_COLOR: Record<FundraisingRelevance, string> = {
-  "High investor concern":   "text-[#FCA5A5] bg-[#1F0A0A] border-[#450A0A]",
-  "Standard diligence item": "text-[#FCD34D] bg-[#1C0F00] border-[#431407]",
-  "Worth noting":            "text-[#94A3B8] bg-[#0F172A] border-[#334155]",
+  "High investor concern":   "text-white bg-[#1F0A0A] border-[#450A0A]",
+  "Standard diligence item": "text-white bg-[#1C0F00] border-[#431407]",
+  "Worth noting":            "text-white bg-[#0F172A] border-[#334155]",
 };
 
 // ── Negotiation Email Modal ───────────────────────────────────────────────────
@@ -242,16 +242,16 @@ function AmendedClausePanel({
     <div className="rounded-xl border border-[#1E293B] bg-[#080F18] overflow-hidden space-y-0">
       {/* Original */}
       <div className="px-4 pt-4 pb-3 space-y-2">
-        <div className="text-[10px] font-bold uppercase tracking-widest text-[#FCA5A5]/70">Original clause</div>
-        <div className="rounded-lg border border-[#450A0A] bg-[#1F0A0A] px-3 py-2.5 text-xs leading-relaxed text-[#FCA5A5]/80 font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-white/60">Original clause</div>
+        <div className="rounded-lg border border-[#450A0A] bg-[#1F0A0A] px-3 py-2.5 text-xs leading-relaxed text-white/80 font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
           {original || "(Original text not available. Paste the original clause here when sending.)"}
         </div>
       </div>
 
       {/* Revised */}
       <div className="px-4 pb-3 space-y-2">
-        <div className="text-[10px] font-bold uppercase tracking-widest text-[#86EFAC]/70">Revised clause</div>
-        <div className="rounded-lg border border-[#14532D] bg-[#052E16] px-3 py-2.5 text-xs leading-relaxed text-[#86EFAC]/90 font-mono whitespace-pre-wrap">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-white/60">Revised clause</div>
+        <div className="rounded-lg border border-[#14532D] bg-[#052E16] px-3 py-2.5 text-xs leading-relaxed text-white/90 font-mono whitespace-pre-wrap">
           {revised}
         </div>
       </div>
@@ -264,7 +264,7 @@ function AmendedClausePanel({
         <div className="flex items-center gap-2">
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#14532D] text-[#86EFAC] text-xs font-medium hover:bg-[#166534] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#14532D] text-white text-xs font-medium hover:bg-[#166534] transition-colors"
           >
             {copied ? <Check size={11} /> : <Copy size={11} />}
             {copied ? "Copied!" : "Copy revised clause"}
@@ -916,10 +916,10 @@ export default function FounderReview() {
   const filtered = filter === "ALL" ? results : results.filter((r) => r.ragStatus === filter);
 
   const VERDICT_BANNER = {
-    safe:    { label: "Looks good. You can proceed",              color: "text-[#86EFAC]", bg: "bg-[#052E16] border-[#14532D]", icon: CheckCircle   },
-    caution: { label: "Worth a closer look before signing",        color: "text-[#FCD34D]", bg: "bg-[#1C0F00] border-[#431407]", icon: AlertCircle   },
-    danger:  { label: "Don't sign yet. Fix these first.",          color: "text-[#FCA5A5]", bg: "bg-[#1F0A0A] border-[#450A0A]", icon: AlertTriangle },
-    pending: { label: "No playbook clauses matched this contract",  color: "text-[#94A3B8]", bg: "bg-[#0F172A] border-[#334155]", icon: AlertCircle   },
+    safe:    { label: "Looks good. You can proceed",              color: "text-white", bg: "bg-[#052E16] border-[#14532D]", icon: CheckCircle   },
+    caution: { label: "Worth a closer look before signing",        color: "text-white", bg: "bg-[#1C0F00] border-[#431407]", icon: AlertCircle   },
+    danger:  { label: "Don't sign yet. Fix these first.",          color: "text-white", bg: "bg-[#1F0A0A] border-[#450A0A]", icon: AlertTriangle },
+    pending: { label: "No playbook clauses matched this contract",  color: "text-white", bg: "bg-[#0F172A] border-[#334155]", icon: AlertCircle   },
   } as const;
 
   const banner    = VERDICT_BANNER[verdict];

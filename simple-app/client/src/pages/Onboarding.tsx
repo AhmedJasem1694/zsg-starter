@@ -733,7 +733,7 @@ function Step0Workflow({
             </div>
 
             {finishError && (
-              <div className="text-xs text-[#FCA5A5] bg-[#1F0A0A] border border-[#450A0A] rounded-lg px-3 py-2">
+              <div className="text-xs text-white bg-[#1F0A0A] border border-[#450A0A] rounded-lg px-3 py-2">
                 {finishError}
               </div>
             )}

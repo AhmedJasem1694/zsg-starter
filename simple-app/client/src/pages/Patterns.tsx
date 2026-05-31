@@ -153,18 +153,18 @@ const SEVERITY_CONFIG: Record<ZanePattern["severity"], {
 }> = {
   good: {
     bg: "#052E16", border: "#14532D",
-    badge: "bg-[#14532D] text-[#86EFAC]", badgeText: "Positive pattern",
-    icon: <CheckCircle size={14} className="text-[#86EFAC] shrink-0" />,
+    badge: "bg-[#14532D] text-white", badgeText: "Positive pattern",
+    icon: <CheckCircle size={14} className="text-white shrink-0" />,
   },
   warn: {
     bg: "#1C0F00", border: "#431407",
-    badge: "bg-[#431407] text-[#FCD34D]", badgeText: "Action recommended",
-    icon: <AlertTriangle size={14} className="text-[#FCD34D] shrink-0" />,
+    badge: "bg-[#431407] text-white", badgeText: "Action recommended",
+    icon: <AlertTriangle size={14} className="text-white shrink-0" />,
   },
   info: {
     bg: "#172B4D", border: "#1E3A5F",
-    badge: "bg-[#1E3A5F] text-[#93C5FD]", badgeText: "Monitor",
-    icon: <Info size={14} className="text-[#93C5FD] shrink-0" />,
+    badge: "bg-[#1E3A5F] text-white", badgeText: "Monitor",
+    icon: <Info size={14} className="text-white shrink-0" />,
   },
 };
 
@@ -329,8 +329,8 @@ function OverrideTrendSection() {
         </h2>
         <div className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border ${
           declining
-            ? "bg-[#052E16] border-[#14532D] text-[#86EFAC]"
-            : "bg-[#1C0F00] border-[#431407] text-[#FCD34D]"
+            ? "bg-[#052E16] border-[#14532D] text-white"
+            : "bg-[#1C0F00] border-[#431407] text-white"
         }`}>
           {declining ? <><TrendingDown size={11} /> Zane is learning</> : <><TrendingUp size={11} /> Calibration needed</>}
         </div>

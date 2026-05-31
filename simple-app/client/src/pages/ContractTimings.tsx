@@ -78,7 +78,7 @@ function TimingsContent({ data }: { data: TimingsData }) {
             </p>
           </div>
           {data.flagged.length > 0 && (
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#1F0A0A] text-[#FCA5A5] border border-[#450A0A] shrink-0">
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#1F0A0A] text-white border border-[#450A0A] shrink-0">
               {data.flagged.filter((f) => f.ragStatus === "RED").length} need action
             </span>
           )}
