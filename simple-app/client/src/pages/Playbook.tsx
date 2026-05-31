@@ -156,9 +156,9 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Sparkles size={12} className="text-[#A5B4FC]" />
-                  <span className="text-xs font-semibold text-[#C4B5FD]">Suggested starting position</span>
+                  <span className="text-xs font-semibold text-white">Suggested starting position</span>
                 </div>
-                <span className="text-[10px] text-muted-foreground/50 bg-[#1E1B4B] border border-[#312E81] rounded px-2 py-0.5">
+                <span className="text-[10px] text-white/50 bg-[#1E1B4B] border border-[#312E81] rounded px-2 py-0.5">
                   AI-generated. Review before saving.
                 </span>
               </div>
@@ -168,8 +168,8 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
                 { label: "Hard red line",         value: suggestion.hardRedLine },
               ].map(({ label, value }) => (
                 <div key={label} className="space-y-1">
-                  <div className="text-[10px] font-semibold uppercase tracking-widest text-[#7C3AED]/70">{label}</div>
-                  <div className="text-xs text-[#C4B5FD] leading-relaxed font-mono bg-[#1E1B4B] rounded-lg px-3 py-2">{value}</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-widest text-white/50">{label}</div>
+                  <div className="text-xs text-white leading-relaxed font-mono bg-[#1E1B4B] rounded-lg px-3 py-2">{value}</div>
                 </div>
               ))}
               <div className="flex gap-2 pt-1">
@@ -1080,19 +1080,19 @@ export default function Playbook() {
                       .filter((r) => KEY_CLAUSE_CATEGORIES.includes(r.clauseCategory as typeof KEY_CLAUSE_CATEGORIES[number]))
                       .map((rule) => (
                         <div key={rule.id} className="rounded-lg border border-[#1E3A5F] bg-[#0F1F35] px-3 py-3 space-y-2">
-                          <div className="text-xs font-semibold text-[#93C5FD]">
+                          <div className="text-xs font-semibold text-white">
                             {CLAUSE_LABELS[rule.clauseCategory as ClauseCategory] ?? rule.clauseCategory.replace(/_/g, " ")}
                           </div>
                           {rule.preferredPosition ? (
-                            <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-3 font-mono">
+                            <p className="text-[11px] text-white/70 leading-relaxed line-clamp-3 font-mono">
                               {rule.preferredPosition}
                             </p>
                           ) : (
-                            <p className="text-[11px] text-muted-foreground/50 italic">No position set - click to configure</p>
+                            <p className="text-[11px] text-white/40 italic">No position set - click to configure</p>
                           )}
                           {rule.hardRedLine && (
-                            <div className="flex items-center gap-1 text-[10px] text-[#FCA5A5]">
-                              <div className="w-1 h-1 rounded-full bg-[#FCA5A5] shrink-0" />
+                            <div className="flex items-center gap-1 text-[10px] text-white/80">
+                              <div className="w-1 h-1 rounded-full bg-white/80 shrink-0" />
                               Red line set
                             </div>
                           )}

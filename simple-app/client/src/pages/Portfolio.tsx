@@ -37,7 +37,7 @@ function AnswerCard({
         <span className="text-[11px] uppercase tracking-wider font-semibold text-foreground/40">{question}</span>
       </div>
       <div className={`text-2xl font-bold leading-tight ${color}`}>{answer}</div>
-      {detail && <p className="text-xs text-foreground/50 leading-relaxed">{detail}</p>}
+      {detail && <p className="text-xs text-muted-foreground leading-relaxed">{detail}</p>}
     </div>
   );
 }
@@ -176,11 +176,11 @@ function MeridianPortfolio() {
             <div key={cp.name} className="px-5 py-4 flex items-center gap-4">
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium">{cp.name}</div>
-                <div className="text-xs text-foreground/50 mt-0.5">Pushing back on: {cp.pushback}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">Pushing back on: {cp.pushback}</div>
               </div>
               <div className="text-right shrink-0">
                 <div className="text-sm font-semibold text-foreground/80">{cp.value}</div>
-                <div className="text-[10px] text-foreground/40">{cp.contracts} contract{cp.contracts !== 1 ? "s" : ""}</div>
+                <div className="text-[10px] text-muted-foreground">{cp.contracts} contract{cp.contracts !== 1 ? "s" : ""}</div>
               </div>
               <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full border ${
                 cp.severity === "high"
@@ -207,11 +207,11 @@ function MeridianPortfolio() {
                 <div className="text-sm font-semibold">
                   {CLAUSE_LABELS[r.category as ClauseCategory] ?? r.category.replace(/_/g, " ")}
                 </div>
-                <div className="text-xs text-foreground/50 mt-0.5">{r.description}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{r.description}</div>
               </div>
               <div className="text-right shrink-0">
                 <div className="text-sm font-bold text-red-400">{r.value}</div>
-                <div className="text-[10px] text-foreground/40">{r.contracts} contracts</div>
+                <div className="text-[10px] text-muted-foreground">{r.contracts} contracts</div>
               </div>
             </div>
           ))}
@@ -319,7 +319,7 @@ function PortfolioContent({ data }: { data: PortfolioData }) {
                 </div>
                 <div className="text-right shrink-0">
                   <div className="text-sm font-bold text-red-400">{count} RED</div>
-                  <div className="text-[10px] text-foreground/40">{count > 1 ? "contracts" : "contract"}</div>
+                  <div className="text-[10px] text-muted-foreground">{count > 1 ? "contracts" : "contract"}</div>
                 </div>
               </div>
             ))}
@@ -347,7 +347,7 @@ function PortfolioContent({ data }: { data: PortfolioData }) {
                 <div key={name} className="px-5 py-4 flex items-center gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium">{name}</div>
-                    <div className="text-xs text-foreground/40 mt-0.5">
+                    <div className="text-xs text-muted-foreground mt-0.5">
                       {total} contract{total !== 1 ? "s" : ""}
                       {value > 0 && ` · ${fmt(value)}`}
                     </div>

@@ -122,7 +122,7 @@ const RAG_BORDER_LEFT: Record<RagStatus, string> = {
 const CONFIDENCE_CONFIG: Record<ConfidenceLabel, { label: string; classes: string }> = {
   HIGH:   { label: "High confidence",          classes: "bg-[#052E16] border-[#14532D] text-[#86EFAC]" },
   MEDIUM: { label: "Medium confidence",        classes: "bg-[#1C0F00] border-[#431407] text-[#FCD34D]" },
-  LOW:    { label: "Lawyer review required",   classes: "bg-[#1F0A0A] border-[#450A0A] text-[#FCA5A5]" },
+  LOW:    { label: "Lawyer review required",   classes: "bg-[#1F0A0A] border-[#450A0A] text-white" },
 };
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -1582,7 +1582,7 @@ function ClauseCard({
               </span>
             )}
             {result.escalationRequired && (
-              <span className="text-[11px] bg-[#1F0A0A] text-[#FCA5A5] border border-[#450A0A] rounded px-1.5 py-0.5 flex items-center gap-1">
+              <span className="text-[11px] bg-[#1F0A0A] text-white border border-[#450A0A] rounded px-1.5 py-0.5 flex items-center gap-1">
                 <AlertTriangle size={9} /> Escalate
               </span>
             )}
@@ -1605,7 +1605,7 @@ function ClauseCard({
           {result.urgencyLevel && result.urgencyLevel !== "BACKGROUND" && (
             <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${
               result.urgencyLevel === "IMMEDIATE"
-                ? "bg-[#1F0A0A] text-[#FCA5A5] border-[#450A0A]"
+                ? "bg-[#1F0A0A] text-white border-[#450A0A]"
                 : "bg-[#1C0F00] text-[#FCD34D] border-[#431407]"
             }`}>
               {result.urgencyLevel === "IMMEDIATE" ? "⚡ Immediate" : "Material"}
@@ -1682,17 +1682,17 @@ function ClauseCard({
                 ? "border-[#450A0A] bg-[#1F0A0A]"
                 : "border-[#1E293B] bg-[#0D1521]"
             }`}>
-              <div className={`text-[10px] font-bold uppercase tracking-wider ${result.escalationRequired ? "text-[#FCA5A5]/70" : "text-foreground/40"}`}>
+              <div className={`text-[10px] font-bold uppercase tracking-wider ${result.escalationRequired ? "text-white/60" : "text-foreground/40"}`}>
                 Escalation
               </div>
               {result.escalationRequired ? (
                 <div className="space-y-1">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-[#FCA5A5]">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-white">
                     <AlertTriangle size={11} className="shrink-0" />
                     Sign-off required
                   </div>
                   {result.escalationTrigger && (
-                    <p className="text-xs text-[#FCA5A5]/80 leading-relaxed">{result.escalationTrigger}</p>
+                    <p className="text-xs text-white/70 leading-relaxed">{result.escalationTrigger}</p>
                   )}
                 </div>
               ) : (
@@ -2015,18 +2015,18 @@ function EscalationSummary({ doc, results }: { doc: UploadedDocument; results: R
   return (
     <div className="card overflow-hidden border border-[#450A0A]">
       <div className="bg-[#1F0A0A] px-5 py-3 flex items-center gap-3 border-b border-[#450A0A]">
-        <AlertTriangle size={14} className="text-[#FCA5A5] shrink-0" />
-        <span className="text-sm font-semibold text-[#FCA5A5] flex-1">
+        <AlertTriangle size={14} className="text-white shrink-0" />
+        <span className="text-sm font-semibold text-white flex-1">
           Escalation required - {tiersActive} tier{tiersActive !== 1 ? "s" : ""} triggered
         </span>
       </div>
       <div className="p-4 space-y-3">
         {tier1Clauses.length > 0 && (
           <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] p-4 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-[#FCA5A5]">Tier 1 - Clause Risk</div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-white">Tier 1 - Clause Risk</div>
             <ul className="space-y-1.5">
               {tier1Clauses.map((r) => (
-                <li key={r.id} className="flex gap-2 text-sm text-[#FCA5A5]">
+                <li key={r.id} className="flex gap-2 text-sm text-white">
                   <span className="shrink-0 mt-0.5">·</span>
                   <span>
                     <span className="font-semibold">{CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory}</span>
