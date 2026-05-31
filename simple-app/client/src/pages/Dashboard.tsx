@@ -871,19 +871,28 @@ export default function Dashboard() {
       <div className="px-6 py-8 max-w-4xl mx-auto space-y-10">
 
         {/* Page header */}
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold">Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               {useMock ? "Demo data" : `${company?.name ?? ""}`}
             </p>
           </div>
-          {processing && (
-            <span className="text-xs text-[#FCD34D] flex items-center gap-1.5 bg-[#1C0F00] border border-[#431407] rounded-full px-3 py-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D] animate-pulse" />
-              Review in progress
-            </span>
-          )}
+          <div className="flex items-center gap-3 shrink-0">
+            {processing && (
+              <span className="text-xs text-[#FCD34D] flex items-center gap-1.5 bg-[#1C0F00] border border-[#431407] rounded-full px-3 py-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D] animate-pulse" />
+                Review in progress
+              </span>
+            )}
+            <Link
+              to="/app/legal/library"
+              className="btn-secondary flex items-center gap-1.5 text-sm px-4 py-2"
+            >
+              <Upload size={14} />
+              Upload a contract
+            </Link>
+          </div>
         </div>
 
         <PilotNoticeBanner />
