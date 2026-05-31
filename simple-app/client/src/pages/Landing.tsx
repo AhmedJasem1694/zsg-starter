@@ -247,19 +247,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── KIRKLAND CALLOUT ────────────────────────────────────────────────── */}
-      <section className="py-12 bg-[#F7F6F3] border-t border-black/5">
-        <div className="max-w-3xl mx-auto px-6">
-          <motion.div
-            className="rounded-xl border border-gray-900/15 bg-gray-900 px-8 py-6"
-            {...fadeUp(0)}
-          >
-            <p className="text-sm text-white/70 leading-relaxed">
-              Kirkland and Ellis is spending $500 million to encode their lawyers' collective intelligence into a platform they own. Zane does the same thing for your legal team. Automatically. From day one.
-            </p>
-          </motion.div>
-        </div>
-      </section>
 
       {/* ─── HOW IT CHANGES ──────────────────────────────────────────────────── */}
       <section className="py-20 bg-[#F7F6F3] border-t border-black/5">
@@ -348,75 +335,16 @@ export default function Landing() {
                     </motion.div>
                   ))}
                 </motion.div>
-                <p className="text-xs text-gray-500 leading-relaxed border-t border-black/5 pt-5">
-                  That intelligence does not come from training an AI model on your contracts. Your data never enters any model training pool. It comes from structured retrieval of your own negotiation history applied to every new review. That is a distinction your procurement team, your DPO, and your GC will all care about.
-                </p>
               </motion.div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ─── STATS ───────────────────────────────────────────────────────────── */}
-      <div className="border-y border-black/5 bg-[#F2F1EE]">
-        <motion.div
-          className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-2 sm:grid-cols-4 gap-6"
-          variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.5 }}
-        >
-          {[
-            { value: "50+",     label: "Clause types analysed" },
-            { value: "14",      label: "Jurisdictions covered" },
-            { value: "minutes", label: "Not hours" },
-            { value: "100%",    label: "Playbook-calibrated" },
-          ].map(({ value, label }) => (
-            <motion.div key={label} className="text-center space-y-1" variants={staggerItem}>
-              <div className="text-2xl font-bold text-gray-900">{value}</div>
-              <div className="text-xs text-gray-500">{label}</div>
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
-
-      {/* ─── OUTPUT ──────────────────────────────────────────────────────────── */}
-      <section id="how-it-works" className="py-20">
-        <div className="max-w-5xl mx-auto px-6 space-y-16">
-          <motion.div className="text-center space-y-3" {...headingReveal}>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">This is what Zane produces on every contract.</h2>
-            <p className="text-gray-600 text-sm max-w-xl mx-auto">
-              For every clause that deviates from your positions Zane gives you:
-            </p>
-          </motion.div>
-
-          <div className="space-y-6">
-            <motion.div
-              className="grid sm:grid-cols-2 gap-3 max-w-3xl mx-auto"
-              variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true }}
-            >
-              {[
-                { label: "Risk status",              sub: "Red, Amber, or Green against your specific positions - not generic market standard" },
-                { label: "Plain English explanation", sub: "What the clause actually says and why it matters commercially" },
-                { label: "Exact fallback language",   sub: "The wording to send back, ready to paste" },
-                { label: "Escalation routing",        sub: "Who needs to approve this, by name, based on your approval matrix" },
-                { label: "Regulatory citation",       sub: "The specific provision that applies to your sector, with source and date" },
-                { label: "Business explanation",      sub: "One paragraph safe to forward to your CFO or CEO without translation" },
-              ].map(({ label, sub }) => (
-                <motion.div key={label} className="rounded-xl bg-[#F2F1EE] border border-black/5 px-4 py-3.5 space-y-1" variants={staggerItem}>
-                  <div className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-                    <CheckCircle size={10} className="text-primary shrink-0" />
-                    {label}
-                  </div>
-                  <div className="text-[11px] text-gray-500 leading-relaxed pl-4">{sub}</div>
-                </motion.div>
-              ))}
-            </motion.div>
-
-          </div>
-        </div>
-      </section>
 
       {/* ─── PROOF / SEE IT IN ACTION ────────────────────────────────────────── */}
-      <section className="py-20 bg-[#F2F1EE] border-t border-black/5">
-        <div className="max-w-3xl mx-auto px-6 space-y-8">
+      <section id="how-it-works" className="py-20 bg-[#F2F1EE] border-t border-black/5">
+        <div className="max-w-5xl mx-auto px-6 space-y-8">
           <motion.div className="text-center space-y-3" {...headingReveal}>
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">This is what Zane produces.</h2>
             <p className="text-gray-600 text-sm max-w-xl mx-auto">Real output from a real contract reviewed against a real playbook.</p>
@@ -427,14 +355,14 @@ export default function Landing() {
             {...fadeUp(0.1)}
           >
             {/* Header row */}
-            <div className="px-6 py-4 border-b border-black/5 flex items-center justify-between gap-4">
+            <div className="px-8 py-6 border-b border-black/5 flex items-center justify-between gap-4">
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">Supplier Agreement Example</div>
-                <div className="text-sm font-semibold text-gray-900">Technology Services Agreement</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1">Supplier Agreement Example</div>
+                <div className="text-base font-semibold text-gray-900">Technology Services Agreement</div>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 border border-red-100 shrink-0">
-                <AlertTriangle size={11} className="text-red-400" />
-                <span className="text-xs font-bold text-red-500">HIGH RISK</span>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-50 border border-red-100 shrink-0">
+                <AlertTriangle size={14} className="text-red-400" />
+                <span className="text-sm font-bold text-red-500">HIGH RISK</span>
               </div>
             </div>
 
@@ -445,38 +373,38 @@ export default function Landing() {
                 { clause: "Data Processing Agreement", note: "No DPA attached. GDPR Article 28 requires a written agreement before processing begins." },
                 { clause: "Auto-Renewal", note: "Renews automatically with a 90-day notice window not documented in this contract. Lock-in risk." },
               ].map(({ clause, note }) => (
-                <div key={clause} className="px-6 py-4 flex items-start gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0 mt-1.5" />
+                <div key={clause} className="px-8 py-5 flex items-start gap-4">
+                  <div className="w-2 h-2 rounded-full bg-red-400 shrink-0 mt-2" />
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-gray-800">{clause}</div>
-                    <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">{note}</div>
+                    <div className="text-base font-semibold text-gray-800">{clause}</div>
+                    <div className="text-sm text-gray-500 mt-1 leading-relaxed">{note}</div>
                   </div>
-                  <span className="text-[10px] font-bold text-red-400 bg-red-50 border border-red-100 px-2 py-0.5 rounded shrink-0">RED</span>
+                  <span className="text-xs font-bold text-red-500 bg-red-50 border border-red-200 px-3 py-1 rounded shrink-0">RED</span>
                 </div>
               ))}
             </div>
 
             {/* Escalation routing */}
-            <div className="px-6 py-4 border-t border-black/5 bg-amber-50/40 space-y-2">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-1">Escalation routing triggered</div>
-              <div className="flex items-center gap-2 text-xs text-gray-600">
-                <CheckCircle size={11} className="text-amber-500 shrink-0" />
+            <div className="px-8 py-5 border-t border-black/5 bg-amber-50/40 space-y-3">
+              <div className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-2">Escalation routing triggered</div>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <CheckCircle size={14} className="text-amber-500 shrink-0" />
                 Tier 1: General Counsel sign-off required (liability cap below threshold)
               </div>
-              <div className="flex items-center gap-2 text-xs text-gray-600">
-                <CheckCircle size={11} className="text-amber-500 shrink-0" />
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <CheckCircle size={14} className="text-amber-500 shrink-0" />
                 Tier 2: DPO approval required (data processing agreement absent)
               </div>
             </div>
 
             {/* Sign-off sequence */}
-            <div className="px-6 py-4 border-t border-black/5 space-y-2.5">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Sign-off sequence</div>
+            <div className="px-8 py-6 border-t border-black/5 space-y-3">
+              <div className="text-xs font-bold uppercase tracking-widest text-gray-400">Sign-off sequence</div>
               <div className="flex items-center gap-2 flex-wrap">
                 {["Handler", "Legal", "GC", "DPO"].map((role, i, arr) => (
                   <div key={role} className="flex items-center gap-2">
-                    <div className="text-xs px-2.5 py-1 rounded-md border border-black/8 bg-gray-50 text-gray-600 font-medium">{role}</div>
-                    {i < arr.length - 1 && <ArrowRight size={11} className="text-gray-300" />}
+                    <div className="text-sm px-3.5 py-1.5 rounded-md border border-black/8 bg-gray-50 text-gray-600 font-medium">{role}</div>
+                    {i < arr.length - 1 && <ArrowRight size={13} className="text-gray-300" />}
                   </div>
                 ))}
               </div>
@@ -486,6 +414,32 @@ export default function Landing() {
           <motion.p className="text-center text-xs text-gray-500 italic" {...fadeUp(0.15)}>
             This is real output from a real contract reviewed against a real playbook. Not a mockup.
           </motion.p>
+        </div>
+      </section>
+
+      {/* ─── WHY TRUST ZANE ──────────────────────────────────────────────────── */}
+      <section className="py-20 bg-[#F7F6F3] border-t border-black/5">
+        <div className="max-w-3xl mx-auto px-6 space-y-8">
+          <motion.div className="text-center space-y-3" {...headingReveal}>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Why legal teams trust Zane.</h2>
+          </motion.div>
+          <motion.div
+            className="space-y-3"
+            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
+          >
+            {[
+              "Built for in-house teams of 1 to 5 lawyers",
+              "Every recommendation linked to source material",
+              "Escalation routing based on your approval matrix",
+              "Contracts never used for model training",
+              "Full audit trail of every recommendation",
+            ].map((item) => (
+              <motion.div key={item} className="flex items-center gap-3 rounded-xl bg-white border border-black/6 px-5 py-4" variants={staggerItem}>
+                <CheckCircle size={14} className="text-primary shrink-0" />
+                <p className="text-sm text-gray-700 font-medium">{item}</p>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       </section>
 
@@ -529,7 +483,7 @@ export default function Landing() {
               ["Produces generic market-standard outputs",         "Aligns every review to your actual playbook and past decisions"],
               ["Stateless - starts from zero every session",       "Builds institutional memory that compounds over time"],
               ["Focused on document review",                       "Focused on operational consistency across the business"],
-              ["One-off AI answers",                               "Longitudinal risk intelligence"],
+              ["One-off AI answers",                               "Remembers which risks were accepted and why"],
             ].map(([left, right], i) => (
               <div key={i} className="grid grid-cols-2 border-b border-black/5 last:border-0">
                 <div className="px-6 py-4 text-sm text-gray-500 border-r border-black/5 flex items-start gap-2">
