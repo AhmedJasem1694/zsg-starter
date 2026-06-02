@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, Save, BarChart2, BookOpen, Sparkles, Loader2, Plus, X, Star, TrendingUp, AlertOctagon, CheckCircle, Shield, AlertTriangle } from "lucide-react";
-import { getPlaybookRules, updatePlaybookRule, getFeedbackPatterns, generatePlaybookSuggestion, createPlaybookRule, getPlaybookDriftSuggestions, getCompanyRules, approveCompanyRule, rejectCompanyRule, updateCompanyRuleText, getClauseOutcomesExtended, getCompany } from "../lib/api";
+import { ChevronDown, ChevronUp, Save, BarChart2, BookOpen, Sparkles, Loader2, Plus, X, Star, TrendingUp, AlertOctagon, CheckCircle, Shield, AlertTriangle, FileText } from "lucide-react";
+import { getPlaybookRules, updatePlaybookRule, getFeedbackPatterns, generatePlaybookSuggestion, createPlaybookRule, getPlaybookDriftSuggestions, getCompanyRules, approveCompanyRule, rejectCompanyRule, updateCompanyRuleText, getClauseOutcomesExtended, getCompany, getCounterpartyIntelligence, generateBriefing } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import { CLAUSE_LABELS, type ClauseCategory, type PlaybookRule, type ApprovalRole } from "../lib/types";
-import type { ClauseOutcome, PlaybookDriftSuggestion, CompanyRule, ExtendedClauseOutcome } from "../lib/api";
+import type { ClauseOutcome, PlaybookDriftSuggestion, CompanyRule, ExtendedClauseOutcome, CounterpartyIntelligenceEntry } from "../lib/api";
 
 // ── Key clauses for demo highlight ───────────────────────────────────────────
 // These are the 3 clause types that matter most in the majority of commercial contracts
@@ -20,7 +20,7 @@ const APPROVAL_OPTIONS = [
 
 // ── Rule card ─────────────────────────────────────────────────────────────────
 
-function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutcome }) {
+function RuleCard({ rule, outcome, counterpartyEntries }: { rule: PlaybookRule; outcome?: ClauseOutcome; counterpartyEntries?: CounterpartyIntelligenceEntry[] }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<PlaybookRule>(rule);
@@ -28,6 +28,7 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
   const [suggestion, setSuggestion] = useState<{ preferredPosition: string; acceptableFallback: string; hardRedLine: string } | null>(null);
   const [showSuggestion, setShowSuggestion] = useState(false);
   const [suggestionLoading, setSuggestionLoading] = useState(false);
+  const [cpOpen, setCpOpen] = useState(false);
 
   async function handleGenerateSuggestion() {
     setSuggestionLoading(true);
@@ -137,6 +138,40 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
             </div>
           )}
 
+          {/* CHANGE 3 — Drift visualisation */}
+          {outcome && outcome.total >= 3 && (() => {
+            const avgSigned =
+              outcome.greenCount >= outcome.redCount + outcome.amberCount
+                ? "preferred"
+                : outcome.amberCount > outcome.redCount
+                ? "fallback"
+                : "below_fallback";
+            const firstFiveWords = (rule.preferredPosition ?? CLAUSE_LABELS[rule.clauseCategory as ClauseCategory] ?? rule.clauseCategory)
+              .split(" ").slice(0, 5).join(" ");
+            return (
+              <div className="rounded-lg bg-[#0B1118] border border-[#1E293B] px-4 py-3">
+                <div className="flex items-center gap-6 text-xs">
+                  <div>
+                    <span className="text-muted-foreground/60">Written position: </span>
+                    <span className="font-medium">{firstFiveWords}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground/60">Avg signed: </span>
+                    <span className={avgSigned === "preferred" ? "text-[#86EFAC] font-semibold" : "text-[#FCA5A5] font-semibold"}>
+                      {avgSigned === "preferred" ? "Preferred position" : avgSigned === "fallback" ? "Fallback" : "Below fallback"}
+                    </span>
+                  </div>
+                  {avgSigned !== "preferred" && (
+                    <span className="text-[10px] bg-[#1F0A0A] text-white border border-[#450A0A] rounded px-2 py-0.5">Drifting below preferred</span>
+                  )}
+                  {avgSigned === "preferred" && (
+                    <span className="text-[10px] bg-[#052E16] text-white border border-[#14532D] rounded px-2 py-0.5">Tracking to preferred</span>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Feature 39 - Generate suggested position */}
           <div className="flex items-center gap-3">
             <button
@@ -216,6 +251,33 @@ function RuleCard({ rule, outcome }: { rule: PlaybookRule; outcome?: ClauseOutco
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
+          </div>
+
+          {/* CHANGE 2 — Counterparty intelligence */}
+          <div className="rounded-lg bg-[#0C1929] border border-[#1E3A5F] rounded-lg p-3">
+            <button
+              className="flex items-center justify-between w-full text-left"
+              onClick={() => setCpOpen(!cpOpen)}
+            >
+              <span className="text-xs font-semibold text-white">
+                Counterparty intelligence ({counterpartyEntries?.length ?? 0} counterparties tracked)
+              </span>
+              {cpOpen ? <ChevronUp size={12} className="text-muted-foreground" /> : <ChevronDown size={12} className="text-muted-foreground" />}
+            </button>
+            {cpOpen && (
+              <div className="mt-3 space-y-3">
+                {!counterpartyEntries || counterpartyEntries.length === 0 ? (
+                  <p className="text-xs text-muted-foreground/50">No counterparty data yet. Outcomes will appear here after contracts are signed and logged.</p>
+                ) : counterpartyEntries.map((entry) => (
+                  <div key={entry.counterpartyName} className="space-y-0.5">
+                    <div className="text-xs font-semibold text-white">{entry.counterpartyName}</div>
+                    <div className="text-xs text-muted-foreground">Accepted preferred: {entry.accepted} of {entry.total} contracts</div>
+                    <div className="text-xs text-muted-foreground">Pushed back: {entry.pushedBack} of {entry.total} contracts</div>
+                    <div className="text-xs text-muted-foreground">Typical: {entry.typicalOutcome}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-1">
@@ -945,6 +1007,18 @@ export default function Playbook() {
   });
   const workflowType = (company as { workflowType?: string } | undefined)?.workflowType;
 
+  // CHANGE 2 — Counterparty intelligence
+  const { data: counterpartyData } = useQuery({
+    queryKey: ["counterparty-intelligence"],
+    queryFn: getCounterpartyIntelligence,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // CHANGE 5 — Briefing state
+  const [showBriefing, setShowBriefing] = useState(false);
+  const [briefingText, setBriefingText] = useState("");
+  const [briefingLoading, setBriefingLoading] = useState(false);
+
   const isMeridianDemo = (company as { name?: string } | undefined)?.name?.toLowerCase().includes("meridian") ?? false;
   const demoOutcomes: ClauseOutcome[] = isMeridianDemo
     ? Object.entries(MERIDIAN_DEMO_OUTCOMES).map(([, o]) => ({ ...o }))
@@ -974,12 +1048,59 @@ export default function Playbook() {
               Your legal positions for each clause type and how they compare to your actual negotiation outcomes.
             </p>
           </div>
-          {!isLoading && (
-            <span className="text-[11px] text-muted-foreground/60 border border-border rounded-full px-2.5 py-1 shrink-0 mt-1">
-              v{playbookVersion}
-            </span>
-          )}
+          <div className="flex items-center gap-2 shrink-0 mt-1">
+            {!isLoading && (
+              <span className="text-[11px] text-muted-foreground/60 border border-border rounded-full px-2.5 py-1">
+                v{playbookVersion}
+              </span>
+            )}
+            <button
+              className="btn-secondary flex items-center gap-1.5 text-sm"
+              onClick={() => {
+                setBriefingLoading(true);
+                generateBriefing()
+                  .then((result) => {
+                    setBriefingText(result.briefing);
+                    setShowBriefing(true);
+                  })
+                  .catch(() => {})
+                  .finally(() => setBriefingLoading(false));
+              }}
+              disabled={briefingLoading}
+            >
+              {briefingLoading ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
+              {briefingLoading ? "Generating…" : "Generate new hire briefing"}
+            </button>
+          </div>
         </div>
+
+        {/* CHANGE 4 — Playbook health score */}
+        {(() => {
+          const clauseOutcomesForHealth = patternsData?.clauseOutcomes ?? [];
+          const withData = clauseOutcomesForHealth.filter((o) => o.total >= 1);
+          const healthyCount = withData.filter((o) => o.greenCount / o.total >= 0.5).length;
+          const totalWithData = withData.length;
+          const driftingCount = totalWithData - healthyCount;
+          const healthPct = totalWithData > 0 ? Math.round(healthyCount / totalWithData * 100) : null;
+          return (
+            <div className="card p-4 flex items-center gap-6">
+              {healthPct !== null ? (
+                <>
+                  <div>
+                    <div className={`text-2xl font-bold ${healthPct >= 70 ? "text-[#86EFAC]" : healthPct >= 40 ? "text-[#FCD34D]" : "text-[#FCA5A5]"}`}>{healthPct}%</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">Playbook Health</div>
+                  </div>
+                  <div className="text-sm">
+                    <p>{healthyCount} of {totalWithData} clause categories tracking to your preferred positions.</p>
+                    {driftingCount > 0 && <p className="text-xs text-muted-foreground mt-0.5">{driftingCount} categor{driftingCount === 1 ? "y" : "ies"} showing drift below preferred.</p>}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">Playbook health will appear after your first contracts are reviewed and outcomes are logged.</p>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Tabs */}
         <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
@@ -1112,7 +1233,12 @@ export default function Playbook() {
 
               {/* Full clause list */}
               {rules.map((rule) => (
-                <RuleCard key={rule.id} rule={rule} outcome={outcomeMap.get(rule.clauseCategory)} />
+                <RuleCard
+                  key={rule.id}
+                  rule={rule}
+                  outcome={outcomeMap.get(rule.clauseCategory)}
+                  counterpartyEntries={counterpartyData?.intelligence[rule.clauseCategory]}
+                />
               ))}
               <AddClausePanel
                 workflowType={workflowType}
@@ -1136,6 +1262,23 @@ export default function Playbook() {
           />
         )}
       </div>
+      {/* CHANGE 5 — Briefing modal */}
+      {showBriefing && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowBriefing(false)}>
+          <div className="bg-[#111A24] border border-[#1E293B] rounded-xl max-w-2xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1E293B]">
+              <span className="font-semibold">New Hire Legal Briefing</span>
+              <div className="flex items-center gap-2">
+                <button onClick={() => { void navigator.clipboard.writeText(briefingText); }} className="btn-secondary text-xs px-3 py-1.5">Copy</button>
+                <button onClick={() => setShowBriefing(false)} className="text-muted-foreground hover:text-foreground">×</button>
+              </div>
+            </div>
+            <div className="overflow-y-auto px-5 py-4">
+              <pre className="text-sm text-foreground/90 whitespace-pre-wrap font-sans leading-relaxed">{briefingText}</pre>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 }

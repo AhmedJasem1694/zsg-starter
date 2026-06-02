@@ -53,7 +53,7 @@ interface Contact {
   email: string;
 }
 
-const STEPS = ["Workflow", "Persona", "Company", "Contracts", "Playbook", "Governance", "Team", "Regulations", "Done"];
+const STEPS = ["Workflow", "Persona", "Company", "Contracts", "Playbook", "Integrations", "Governance", "Team", "Regulations", "Done"];
 
 // ─── Industry config ──────────────────────────────────────────────────────────
 
@@ -182,15 +182,36 @@ export default function Onboarding() {
   const queryClient = useQueryClient();
   const [step, setStep] = useState<Step>(0);
   const [workflowType, setWorkflowType] = useState<WorkflowType>("COMMERCIAL_CONTRACT");
-  const [persona, setPersona] = useState<Persona>("CORPORATE");
+
+  // Read sessionStorage keys written by the Register pre-flow
+  const storedPersona = sessionStorage.getItem('onboarding_persona');
+  const storedSector = sessionStorage.getItem('onboarding_sector');
+  const storedRisk = sessionStorage.getItem('onboarding_risk_appetite');
+  // Clear them immediately after reading
+  if (storedPersona) sessionStorage.removeItem('onboarding_persona');
+  if (storedSector) sessionStorage.removeItem('onboarding_sector');
+  if (storedRisk) sessionStorage.removeItem('onboarding_risk_appetite');
+
+  // Map stored persona string to Persona type
+  const initialPersona: Persona =
+    storedPersona === 'solo_gc' || storedPersona === 'small_team' ? 'CORPORATE' :
+    storedPersona === 'founder' ? 'FOUNDER' : 'CORPORATE';
+
+  // Map stored risk to RiskAppetite
+  const initialRisk: RiskAppetite =
+    storedRisk === 'CONSERVATIVE' ? 'CONSERVATIVE' :
+    storedRisk === 'BALANCED' ? 'MODERATE' :
+    storedRisk === 'COMMERCIAL' ? 'COMMERCIAL' : 'MODERATE';
+
+  const [persona, setPersona] = useState<Persona>(initialPersona);
   const [selectedJurisdictions, setSelectedJurisdictions] = useState<string[]>(["England & Wales"]);
   const [selectedIndustries, setSelectedIndustries] = useState<Industry[]>([]);
   const [companyForm, setCompanyForm] = useState<CompanyForm>({
     name: "",
-    sector: "",
+    sector: storedSector ?? "",
     jurisdiction: "England & Wales",
     role: "BUYER",
-    riskAppetite: "MODERATE",
+    riskAppetite: initialRisk,
     industry: "OTHER",
   });
   const [selectedContractTypes, setSelectedContractTypes] = useState<string[]>([]);
@@ -321,7 +342,7 @@ export default function Onboarding() {
     // - auto-initialise investment playbook and jump straight to Launch
     if (persona === "FOUNDER") {
       setPlaybook(initPlaybook(companyForm.riskAppetite, false, false, true, workflowType, selectedIndustries));
-      setStep(8);
+      setStep(9);
     } else {
       setStep(3);
     }
@@ -366,7 +387,7 @@ export default function Onboarding() {
       try {
         await companyMutation.mutateAsync({ ...companyForm, persona, workflowType });
       } catch (e) {
-        throw new Error(`Account setup failed. Please try again or contact support@zanelegal.ai (${e instanceof Error ? e.message : String(e)})`);
+        throw new Error(`Account setup failed. Please try again or contact ahmed@zanelegal.ai (${e instanceof Error ? e.message : String(e)})`);
       }
 
       // Step 2: Save playbook rules - filter out any entries missing required fields
@@ -425,11 +446,11 @@ export default function Onboarding() {
     }
   }
 
-  // Founder persona uses only 3 visible steps (0→1→2→8=launch)
+  // Founder persona uses only 3 visible steps (0→1→2→9=launch)
   const isFounderFlow = persona === "FOUNDER";
   const effectiveStepCount = isFounderFlow ? 3 : STEPS.length;
   // Map actual step index to display progress for founder flow
-  const founderDisplayStep = step === 8 ? 3 : step; // steps 0,1,2 stay same; step 8 = last
+  const founderDisplayStep = step === 9 ? 3 : step; // steps 0,1,2 stay same; step 9 = last
   const displayStep = isFounderFlow ? founderDisplayStep : step;
   const progressPct = (displayStep / (effectiveStepCount - 1)) * 100;
 
@@ -460,8 +481,8 @@ export default function Onboarding() {
       <div className="border-b border-white/8 px-6 py-3" style={{ background: "#0F172A" }}>
         <div className="flex items-center gap-0 max-w-2xl">
           {(isFounderFlow ? ["Workflow", "Persona", "About you", "Launch"] : STEPS).map((label, i) => {
-            // For founder flow, map display index to actual step: 0→0, 1→1, 2→2, 3→8
-            const actualStep = isFounderFlow && i === 3 ? 8 : i;
+            // For founder flow, map display index to actual step: 0→0, 1→1, 2→2, 3→9
+            const actualStep = isFounderFlow && i === 3 ? 9 : i;
             const done   = isFounderFlow ? displayStep > i : i < step;
             const active = isFounderFlow ? displayStep === i : i === step;
             void actualStep;
@@ -516,21 +537,24 @@ export default function Onboarding() {
         )}
         {step === 4 && <Step4Playbook playbook={playbook} onUpdate={updateRule} onBack={() => setStep(3)} onNext={() => setStep(5)} />}
         {step === 5 && (
+          <StepIntegrations onNext={() => setStep(6)} onBack={() => setStep(4)} />
+        )}
+        {step === 6 && (
           <Step5Governance
             contacts={contacts} persona={persona} onContactsChange={setContacts}
             thresholds={thresholds} onThresholdsChange={setThresholds}
             triggers={governanceTriggers} onTriggersChange={setGovernanceTriggers}
-            onBack={() => setStep(4)} onNext={() => setStep(6)}
-          />
-        )}
-        {step === 6 && (
-          <Step6TeamInvite
-            emails={teamInviteEmails} onChange={setTeamInviteEmails}
             onBack={() => setStep(5)} onNext={() => setStep(7)}
           />
         )}
-        {step === 7 && <Step7Regulations companyForm={companyForm} detected={regulationsDetected} onDetected={() => setRegulationsDetected(true)} onBack={() => setStep(6)} onNext={() => setStep(8)} detectFn={runDetection} />}
-        {step === 8 && <Step8Done persona={persona} saving={saving} error={finishError} onBack={() => setStep(persona === "FOUNDER" ? 2 : 7)} onFinish={handleFinish} />}
+        {step === 7 && (
+          <Step6TeamInvite
+            emails={teamInviteEmails} onChange={setTeamInviteEmails}
+            onBack={() => setStep(6)} onNext={() => setStep(8)}
+          />
+        )}
+        {step === 8 && <Step7Regulations companyForm={companyForm} detected={regulationsDetected} onDetected={() => setRegulationsDetected(true)} onBack={() => setStep(7)} onNext={() => setStep(9)} detectFn={runDetection} />}
+        {step === 9 && <Step8Done persona={persona} saving={saving} error={finishError} onBack={() => setStep(persona === "FOUNDER" ? 2 : 8)} onFinish={handleFinish} />}
       </main>
     </div>
   );
@@ -1532,6 +1556,66 @@ function Step3ContractType({ values, industries, persona, workflowType, onChange
         <button onClick={onNext} disabled={values.length === 0}
           className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/25 disabled:opacity-30 disabled:pointer-events-none">
           Next: Playbook →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Step Integrations: Where do your contracts live? ────────────────────────
+
+function StepIntegrations({ onNext, onBack }: { onNext: () => void; onBack: () => void }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold text-white">Where do your contracts live?</h2>
+        <p className="text-sm text-white/50 mt-1">Connect your document storage so Zane can automatically pick up new contracts for review.</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <a href="/app/settings?tab=integrations&connect=google-drive" className="rounded-xl border border-white/10 p-5 flex flex-col gap-3 hover:border-primary/50 transition-colors cursor-pointer" style={{ background: CARD }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[#1E3A5F] flex items-center justify-center shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <path d="M6.5 20L1 11l4-7h14l4 7-5.5 9H6.5z" stroke="#60A5FA" strokeWidth="1.5" strokeLinejoin="round"/>
+                <path d="M1 11h22M9 4l3 7m3-7l-3 7" stroke="#60A5FA" strokeWidth="1.5"/>
+              </svg>
+            </div>
+            <div>
+              <div className="font-semibold text-sm text-white">Connect Google Drive</div>
+              <div className="text-xs text-white/40">Auto-review contracts dropped in a folder</div>
+            </div>
+          </div>
+        </a>
+        <a href="/app/settings?tab=integrations&connect=sharepoint" className="rounded-xl border border-white/10 p-5 flex flex-col gap-3 hover:border-primary/50 transition-colors cursor-pointer" style={{ background: CARD }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-[#1E1B4B] flex items-center justify-center shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <rect x="2" y="2" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.8"/>
+                <rect x="13" y="2" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.5"/>
+                <rect x="2" y="13" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.5"/>
+                <rect x="13" y="13" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.3"/>
+              </svg>
+            </div>
+            <div>
+              <div className="font-semibold text-sm text-white">Connect SharePoint</div>
+              <div className="text-xs text-white/40">Sync with your Microsoft document library</div>
+            </div>
+          </div>
+        </a>
+      </div>
+      <div className="text-center">
+        <button
+          onClick={onNext}
+          className="text-sm text-white/40 hover:text-white/70 transition-colors underline underline-offset-2"
+        >
+          Skip for now, I will upload manually
+        </button>
+      </div>
+      <div className="flex justify-between pt-2">
+        <button onClick={onBack} className="px-4 py-2.5 text-sm text-white/40 hover:text-white/70 transition-colors">← Back</button>
+        <button onClick={onNext}
+          className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/25">
+          Next: Governance →
         </button>
       </div>
     </div>

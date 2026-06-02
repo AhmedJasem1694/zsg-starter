@@ -713,3 +713,23 @@ export interface OverrideTrendEntry {
 
 export const getOverrideTrend = () =>
   req<OverrideTrendEntry[]>("GET", "/api/accumulation/override-trend");
+
+// Counterparty intelligence
+export interface CounterpartyIntelligenceEntry {
+  counterpartyName: string;
+  total: number;
+  accepted: number;
+  pushedBack: number;
+  typicalOutcome: string;
+}
+
+export const getCounterpartyIntelligence = () =>
+  req<{ intelligence: Record<string, CounterpartyIntelligenceEntry[]> }>(
+    "GET",
+    "/api/playbook/counterparty-intelligence"
+  );
+
+// New hire briefing
+export async function generateBriefing(): Promise<{ briefing: string }> {
+  return req<{ briefing: string }>("POST", "/api/playbook/briefing");
+}

@@ -191,7 +191,7 @@ export default function Landing() {
             {...(shouldReduce ? {} : fadeUpHero(0.52))}
           >
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-              <a href="mailto:ahmed@zanelegal.ai?subject=Zane Demo Request"
+              <a href="https://calendly.com/ahmed-zanelegal/30min"
                 className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 text-sm">
                 Book a 30 minute demo <ArrowRight size={15} />
               </a>
@@ -206,7 +206,7 @@ export default function Landing() {
           >
             {[
               { value: "11 minutes",      label: "Average review time" },
-              { value: "Zero",            label: "Sessions starting from scratch" },
+              { value: "100%",             label: "Company-specific from day one" },
               { value: "Every decision",  label: "Remembered and applied" },
               { value: "1 to 5 lawyers",  label: "The team size we are built for" },
             ].map(({ value, label }) => (
@@ -247,58 +247,6 @@ export default function Landing() {
         </div>
       </section>
 
-
-      {/* ─── HOW IT CHANGES ──────────────────────────────────────────────────── */}
-      <section className="py-20 bg-[#F7F6F3] border-t border-black/5">
-        <div className="max-w-3xl mx-auto px-6 space-y-10">
-          <motion.div className="text-center space-y-3" {...headingReveal}>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">How it changes.</h2>
-          </motion.div>
-          <motion.div
-            className="grid sm:grid-cols-2 gap-8"
-            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
-          >
-            {/* Before column */}
-            <motion.div className="space-y-4" variants={staggerItem}>
-              <div className="text-xs font-bold uppercase tracking-widest text-gray-400">Before Zane</div>
-              <div className="space-y-3">
-                {[
-                  "Legal reviews clause",
-                  "Negotiates position",
-                  "Signs the contract",
-                  "Rationale disappears",
-                  "Next lawyer starts from scratch",
-                  "Same risks renegotiated again",
-                ].map((item) => (
-                  <div key={item} className="flex items-start gap-2.5 text-sm text-gray-400">
-                    <span className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0 mt-1.5" />
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-            {/* With Zane column */}
-            <motion.div className="space-y-4" variants={staggerItem}>
-              <div className="text-xs font-bold uppercase tracking-widest text-primary">With Zane</div>
-              <div className="space-y-3">
-                {[
-                  "Legal reviews clause",
-                  "Negotiates position",
-                  "Zane records the rationale",
-                  "Future reviews inherit the decision",
-                  "Similar contracts automatically aligned",
-                  "Regulatory changes mapped to your portfolio",
-                ].map((item) => (
-                  <div key={item} className="flex items-start gap-2.5 text-sm text-gray-700">
-                    <CheckCircle size={13} className="text-primary shrink-0 mt-0.5" />
-                    {item}
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
 
       {/* ─── WHAT ZANE DOES ──────────────────────────────────────────────────── */}
       <section className="py-20 bg-[#F2F1EE] border-t border-black/5">
@@ -414,6 +362,68 @@ export default function Landing() {
           <motion.p className="text-center text-xs text-gray-500 italic" {...fadeUp(0.15)}>
             This is real output from a real contract reviewed against a real playbook. Not a mockup.
           </motion.p>
+        </div>
+      </section>
+
+      {/* ─── PRODUCT SCREENSHOT SHOWCASE ─────────────────────────────────────── */}
+      <section className="py-20 px-6 bg-[#080F18]">
+        <div className="max-w-6xl mx-auto space-y-16">
+          <div className="text-center space-y-3">
+            <h2 className="text-3xl font-semibold text-white">See exactly what Zane produces.</h2>
+            <p className="text-muted-foreground text-lg">Every screen. No mockups. This is the real product.</p>
+          </div>
+          {[
+            { heading: "What needs attention today", description: "Every contract requiring action surfaces immediately. No digging through emails. No missed deadlines.", label: "Dashboard — Next actions view" },
+            { heading: "Not just a flag. A decision.", description: "Every Red clause comes with the exact fallback language to send back, who needs to approve it, and the specific regulation that applies to your sector.", label: "Contract review — Red clause detail" },
+            { heading: "Governance routing built in", description: "Zane works out who needs to approve what based on your approval matrix. Clause risk, contract value, and governance triggers all checked simultaneously.", label: "Escalation and sign-off workflow" },
+            { heading: "Your playbook learns from reality", description: "See the gap between what your playbook says and what your team actually signs. Automatically. After every contract.", label: "Playbook with outcome variance" },
+            { heading: "Your entire exposure in one view", description: "Every contract in your portfolio. Every risk quantified in pounds. Every renewal flagged before it becomes a problem.", label: "Portfolio risk page" },
+          ].map((card, i) => (
+            <div key={i} className={"flex flex-col " + (i % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse") + " gap-10 items-center"}>
+              <div className="flex-1 rounded-xl bg-[#111A24] border border-[#1B2533] aspect-video flex items-center justify-center">
+                <div className="text-center space-y-2 p-8">
+                  <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/40">{card.label}</div>
+                  <div className="text-muted-foreground/20 text-4xl">⬜</div>
+                </div>
+              </div>
+              <div className="flex-1 space-y-3">
+                <h3 className="text-xl font-semibold text-white">{card.heading}</h3>
+                <p className="text-muted-foreground leading-relaxed">{card.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ─── FOUNDER SECTION ─────────────────────────────────────────────────── */}
+      <section className="py-20 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex flex-col md:flex-row gap-10 items-start">
+            <div className="shrink-0">
+              <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-white text-2xl font-bold select-none">
+                AJ
+              </div>
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-2xl font-semibold">Built by a lawyer who lived this problem.</h2>
+              <p className="text-muted-foreground leading-relaxed">
+                Ahmed is a commercial solicitor who spent years watching the same thing happen at every company he worked with. Legal knowledge built up over years of negotiations, decisions, and hard-won positions — then disappeared the moment someone left the team. The next lawyer would start from scratch. The same clauses renegotiated. The same risks accepted without knowing they had been accepted before.
+              </p>
+              <p className="text-muted-foreground leading-relaxed">
+                He built Zane because the problem was obvious and the tools that existed were built for law firms, not for the lean in-house teams actually doing this work every day.
+              </p>
+              <div className="flex flex-wrap gap-4 pt-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  Qualified solicitor, England and Wales
+                </div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  Built without a technical co-founder
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -595,8 +605,7 @@ export default function Landing() {
                 "Priority support",
               ],
               cta: "Book a demo",
-              // TODO: replace with dedicated demo-booking URL (e.g. Calendly) before launch
-              link: "mailto:hello@zanelegal.ai",
+              link: "https://calendly.com/ahmed-zanelegal/30min",
               external: true,
             },
           ].map(({ tier, price, period, highlight, description, features, cta, link, external }) => (
@@ -706,7 +715,7 @@ export default function Landing() {
       </section>
 
       {/* ─── FINAL CTA ───────────────────────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-6 pb-20">
+      <section className="max-w-6xl mx-auto px-6 py-20">
         <motion.div
           className="relative rounded-2xl overflow-hidden p-12 text-center space-y-6"
           style={{ background: "#0B1118", border: "1px solid #1B2533" }}
@@ -727,15 +736,15 @@ export default function Landing() {
               Most tools ask you to trust them before showing you anything. Zane asks for 30 minutes and a contract. Book a demo. Bring a real contract. We will run it through Zane live and show you the output before you make any decision.
             </p>
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-              <a href="mailto:ahmed@zanelegal.ai?subject=Zane Demo Request"
+              <a href="https://calendly.com/ahmed-zanelegal/30min"
                 className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-gray-900 font-bold rounded-xl hover:opacity-95 transition-opacity shadow-xl text-sm">
                 Book a 30 minute demo <ArrowRight size={15} />
               </a>
             </motion.div>
             <p className="text-white/30 text-xs">
               Or email{" "}
-              <a href="mailto:hello@zanelegal.ai" className="text-white/50 hover:text-white/70 transition-colors underline underline-offset-2">
-                hello@zanelegal.ai
+              <a href="mailto:ahmed@zanelegal.ai" className="text-white/50 hover:text-white/70 transition-colors underline underline-offset-2">
+                ahmed@zanelegal.ai
               </a>
               {" "}with any questions first.
             </p>

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, CheckCircle } from "lucide-react";
 import { ZaneLogo } from "../components/ZaneLogo";
@@ -7,6 +8,8 @@ const CARD = "hsl(220 20% 13%)";
 const CARD2 = "hsl(220 20% 16%)";
 
 export default function CaseStudy() {
+  useEffect(() => { window.scrollTo(0, 0); }, []);
+
   return (
     <div className="min-h-screen flex flex-col" style={{ background: BG }}>
 

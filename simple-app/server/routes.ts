@@ -786,6 +786,188 @@ Each field should be 1-3 sentences of clear, practical legal language.
     res.json(result);
   }));
 
+  // ── Counterparty intelligence ────────────────────────────────────────────────
+
+  app.get("/api/playbook/counterparty-intelligence", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { res.json({ intelligence: {} }); return; }
+
+    const docs = await pb.collection("uploaded_documents").getFullList({
+      filter: `company = "${company.id}"`,
+      fields: "id,counterpartyName",
+    }).catch(() => [] as PBRecord[]);
+
+    if (docs.length === 0) { res.json({ intelligence: {} }); return; }
+
+    const docIdFilter = docs.map((d) => `document = "${d.id}"`).join(" || ");
+    const results = await pb.collection("review_results").getFullList({
+      filter: docIdFilter,
+      fields: "id,clauseCategory,ragStatus,document",
+    }).catch(() => [] as PBRecord[]);
+
+    if (results.length === 0) { res.json({ intelligence: {} }); return; }
+
+    const resultIdFilter = results.map((r) => `result = "${r.id}"`).join(" || ");
+    const feedbacks = await pb.collection("user_feedback").getFullList({
+      filter: resultIdFilter,
+      fields: "id,result,userAction",
+    }).catch(() => [] as PBRecord[]);
+
+    const fbMap = new Map<string, string>();
+    for (const f of feedbacks) fbMap.set(f["result"] as string, f["userAction"] as string);
+
+    const docMap = new Map<string, string>();
+    for (const d of docs) docMap.set(d.id, (d["counterpartyName"] as string) || "Unknown");
+
+    // clauseCategory → counterpartyName → { total, accepted, escalated, pushed_back, docIds }
+    const tree: Record<string, Record<string, { total: number; accepted: number; escalated: number; pushed_back: number; docIds: Set<string> }>> = {};
+
+    for (const r of results) {
+      const cat = r["clauseCategory"] as string;
+      const docId = r["document"] as string;
+      const cp = docMap.get(docId) ?? "Unknown";
+      if (cp === "Unknown") continue;
+
+      if (!tree[cat]) tree[cat] = {};
+      if (!tree[cat][cp]) tree[cat][cp] = { total: 0, accepted: 0, escalated: 0, pushed_back: 0, docIds: new Set() };
+
+      const entry = tree[cat][cp];
+      entry.total++;
+      entry.docIds.add(docId);
+
+      const action = fbMap.get(r.id);
+      if (action === "ACCEPTED") {
+        entry.accepted++;
+      } else if (action === "ESCALATED") {
+        entry.escalated++;
+      } else if (r["ragStatus"] === "RED" && action !== "ACCEPTED") {
+        entry.pushed_back++;
+      }
+    }
+
+    const intelligence: Record<string, Array<{ counterpartyName: string; total: number; accepted: number; pushedBack: number; typicalOutcome: string }>> = {};
+
+    for (const [cat, cpData] of Object.entries(tree)) {
+      const entries = [];
+      for (const [cp, stats] of Object.entries(cpData)) {
+        if (stats.docIds.size < 2) continue; // only counterparties with >= 2 distinct contracts
+        const typicalOutcome = stats.accepted > stats.pushed_back ? "Typically accepts" : "Typically pushes back";
+        entries.push({
+          counterpartyName: cp,
+          total: stats.total,
+          accepted: stats.accepted,
+          pushedBack: stats.pushed_back,
+          typicalOutcome,
+        });
+      }
+      if (entries.length > 0) {
+        intelligence[cat] = entries.sort((a, b) => b.total - a.total);
+      }
+    }
+
+    res.json({ intelligence });
+  }));
+
+  // ── New hire briefing ────────────────────────────────────────────────────────
+
+  app.post("/api/playbook/briefing", requireAuth, ah(async (_req: Request, res: Response) => {
+    const company = await getCompany();
+    if (!company) { sendError(res, 404, "No company configured"); return; }
+
+    const [playbookRules, docs, recentEscalations] = await Promise.all([
+      pb.collection("playbook_rules").getFullList({
+        filter: `company = "${company.id}"`,
+        fields: "clauseCategory,preferredPosition,acceptableFallback,hardRedLine",
+      }).catch(() => [] as PBRecord[]),
+      pb.collection("uploaded_documents").getFullList({
+        filter: `company = "${company.id}"`,
+        fields: "id,counterpartyName",
+        sort: "-created",
+      }).catch(() => [] as PBRecord[]),
+      (async () => {
+        const allDocs = await pb.collection("uploaded_documents").getFullList({
+          filter: `company = "${company.id}"`,
+          fields: "id",
+        }).catch(() => [] as PBRecord[]);
+        if (allDocs.length === 0) return [] as PBRecord[];
+        const docFilter = allDocs.map((d) => `document = "${d.id}"`).join(" || ");
+        return pb.collection("review_results").getFullList({
+          filter: `(${docFilter}) && escalationRequired = true`,
+          fields: "clauseCategory,clauseSummary,ragStatus",
+          sort: "-created",
+          batch: 10,
+        }).catch(() => [] as PBRecord[]);
+      })(),
+    ]);
+
+    // Get feedback data for outcome summary
+    let outcomeSummary = "No outcome data yet.";
+    if (docs.length > 0) {
+      const docFilter = docs.map((d) => `document = "${d.id}"`).join(" || ");
+      const allResults = await pb.collection("review_results").getFullList({
+        filter: docFilter,
+        fields: "id,clauseCategory,ragStatus",
+      }).catch(() => [] as PBRecord[]);
+
+      if (allResults.length > 0) {
+        const resultFilter = allResults.map((r) => `result = "${r.id}"`).join(" || ");
+        const feedbacks = await pb.collection("user_feedback").getFullList({
+          filter: resultFilter,
+          fields: "result,userAction",
+        }).catch(() => [] as PBRecord[]);
+
+        const fbMap = new Map<string, string>();
+        for (const f of feedbacks) fbMap.set(f["result"] as string, f["userAction"] as string);
+
+        const catStats: Record<string, { total: number; accepted: number; escalated: number }> = {};
+        for (const r of allResults) {
+          const cat = r["clauseCategory"] as string;
+          if (!catStats[cat]) catStats[cat] = { total: 0, accepted: 0, escalated: 0 };
+          catStats[cat].total++;
+          const action = fbMap.get(r.id);
+          if (action === "ACCEPTED") catStats[cat].accepted++;
+          if (action === "ESCALATED") catStats[cat].escalated++;
+        }
+
+        outcomeSummary = Object.entries(catStats)
+          .map(([cat, s]) => `${cat.replace(/_/g, " ")}: ${s.total} reviewed, ${s.accepted} accepted, ${s.escalated} escalated`)
+          .join("\n");
+      }
+    }
+
+    const playbookClauses = playbookRules
+      .map((r) => `${(r["clauseCategory"] as string).replace(/_/g, " ")}: preferred="${r["preferredPosition"] as string}" | fallback="${r["acceptableFallback"] as string}" | red line="${r["hardRedLine"] as string}"`)
+      .join("\n");
+
+    // Top 3 most active counterparties
+    const cpCounts: Record<string, number> = {};
+    for (const d of docs) {
+      const cp = (d["counterpartyName"] as string) || "Unknown";
+      if (cp !== "Unknown") cpCounts[cp] = (cpCounts[cp] ?? 0) + 1;
+    }
+    const topCounterparties = Object.entries(cpCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([name, count]) => `${name} (${count} contract${count !== 1 ? "s" : ""})`)
+      .join(", ");
+    const counterpartySummary = topCounterparties || "No counterparty data yet.";
+
+    const escalationSummary = recentEscalations.length > 0
+      ? recentEscalations.slice(0, 10).map((r) => `${(r["clauseCategory"] as string).replace(/_/g, " ")}: ${r["clauseSummary"] as string ?? "No summary"}`).join("\n")
+      : "No escalations recorded yet.";
+
+    const prompt = `Generate a new hire legal briefing document for a lawyer joining this company. Use the following data:
+Playbook positions: ${playbookClauses}
+Outcome history: ${outcomeSummary}
+Counterparty intelligence: ${counterpartySummary}
+Recent escalations: ${escalationSummary}
+The document should explain: 1. The company's key legal positions in plain English 2. Where the company typically negotiates and where it holds firm 3. The most important counterparty patterns to know 4. The most significant decisions made recently and why
+Write as a professional onboarding document. No legal jargon. Practical and readable.`;
+
+    const briefing = await chatComplete([{ role: "user", content: prompt }], 1200);
+    res.json({ briefing: briefing.trim() });
+  }));
+
   // ── Approval Contacts ────────────────────────────────────────────────────────
 
   app.post("/api/company/contacts", requireAuth, ah(async (req: Request, res: Response) => {

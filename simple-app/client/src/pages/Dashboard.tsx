@@ -35,7 +35,7 @@ function formatLastError(raw: string): string {
   if (raw.includes("not found on disk") || raw.includes("uploads directory")) {
     return "The uploaded file could not be found. Please upload the document again.";
   }
-  return "Review failed. Please retry or contact support@zanelegal.ai if this persists.";
+  return "Review failed. Please retry or contact ahmed@zanelegal.ai if this persists.";
 }
 
 // ─── Pilot safety notice ──────────────────────────────────────────────────────
@@ -793,7 +793,7 @@ export default function Dashboard() {
       const status = e instanceof Error && (e as { status?: number }).status;
 
       if (msg.includes("413") || status === 413 || msg.toLowerCase().includes("too large") || msg.toLowerCase().includes("50mb") || msg.toLowerCase().includes("20mb")) {
-        setUploadError("This file exceeds the 50MB limit. Very large documents like litigation bundles can be split into sections before uploading. Contact support@zanelegal.ai if you need help.");
+        setUploadError("This file exceeds the 50MB limit. Very large documents like litigation bundles can be split into sections before uploading. Contact ahmed@zanelegal.ai if you need help.");
       } else if (msg.includes("415") || status === 415 || msg.toLowerCase().includes("not supported") || msg.toLowerCase().includes("unsupported")) {
         setUploadError("Zane only accepts PDF and Word documents (.pdf, .docx).\nPlease upload one of these formats.");
       } else if (msg.includes("401")) {
@@ -1083,6 +1083,7 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="divide-y divide-card-border">
+
                 {(useMock ? filteredDocuments.slice(0, 5) : recentDocs).map((doc) => {
                   const results = (doc as DocWithRag).reviewResults ?? [];
                   const readiness = doc.status === "COMPLETE" ? getSignReadiness(results) : "pending";
@@ -1167,6 +1168,45 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+
+          {recentDocs.length === 0 && !useMock && (
+            <div className="card p-5 space-y-4">
+              <div>
+                <div className="text-sm font-semibold">Connect your document storage</div>
+                <p className="text-xs text-muted-foreground mt-0.5">So Zane can review contracts automatically as they arrive — no manual upload needed.</p>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <a href="/app/settings?tab=integrations&connect=google-drive"
+                  className="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3 hover:border-primary/40 transition-colors">
+                  <div className="w-8 h-8 rounded-md bg-[#1E3A5F] flex items-center justify-center shrink-0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M6.5 20L1 11l4-7h14l4 7-5.5 9H6.5z" stroke="#60A5FA" strokeWidth="1.5" strokeLinejoin="round"/>
+                      <path d="M1 11h22M9 4l3 7m3-7l-3 7" stroke="#60A5FA" strokeWidth="1.5"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">Connect Google Drive</div>
+                    <div className="text-xs text-muted-foreground">Auto-review from a folder</div>
+                  </div>
+                </a>
+                <a href="/app/settings?tab=integrations&connect=sharepoint"
+                  className="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3 hover:border-primary/40 transition-colors">
+                  <div className="w-8 h-8 rounded-md bg-[#1E1B4B] flex items-center justify-center shrink-0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <rect x="2" y="2" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.8"/>
+                      <rect x="13" y="2" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.5"/>
+                      <rect x="2" y="13" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.5"/>
+                      <rect x="13" y="13" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.3"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">Connect SharePoint</div>
+                    <div className="text-xs text-muted-foreground">Sync from Microsoft library</div>
+                  </div>
+                </a>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>
