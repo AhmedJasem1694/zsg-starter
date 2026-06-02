@@ -279,7 +279,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   app.post("/api/auth/logout", (_req: Request, res: Response) => {
-    res.clearCookie("token");
+    // clearCookie must use the same options the cookie was SET with, otherwise
+    // the browser ignores the clear instruction. In production the cookie was
+    // scoped to domain ".zanelegal.ai" — match that here.
+    const clearOpts: Parameters<typeof res.clearCookie>[1] = {
+      path: "/",
+      httpOnly: true,
+      secure: isProd,
+      sameSite: (isProd && crossDomain ? "none" : "lax") as "none" | "lax",
+      ...(isProd ? { domain: ".zanelegal.ai" } : {}),
+    };
+    res.clearCookie("token", clearOpts);
+    // Belt-and-suspenders: also clear without domain in case cookie was set differently
+    res.clearCookie("token", { path: "/" });
     res.json({ ok: true });
   });
 
