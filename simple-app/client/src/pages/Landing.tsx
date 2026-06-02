@@ -485,10 +485,16 @@ export default function Landing() {
             <div className="space-y-4">
               <h2 className="text-2xl font-semibold">Built by a lawyer who lived this problem.</h2>
               <p className="text-muted-foreground leading-relaxed">
-                Ahmed is a commercial solicitor who spent years watching the same thing happen at every company he worked with. Legal knowledge built up over years of negotiations, decisions, and hard-won positions — then disappeared the moment someone left the team. The next lawyer would start from scratch. The same clauses renegotiated. The same risks accepted without knowing they had been accepted before.
+                Ahmed is a commercial solicitor. He has worked across private practice at firms including Dentons, Macfarlanes and Norton Rose Fulbright, in private banking, in-house at Uber Boat by Thames Clippers and Fora, a Blackstone portfolio company, and more recently advising founders and startups independently.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                He built Zane because the problem was obvious and the tools that existed were built for law firms, not for the lean in-house teams actually doing this work every day.
+                Across every environment he watched the same problem repeat itself. Legal knowledge built up over years of negotiations, hard-won positions and accepted risks, then disappeared the moment someone left. The next lawyer would start from scratch. The same clauses renegotiated. The same risks accepted without anyone knowing they had been accepted before.
+              </p>
+              <p className="text-muted-foreground leading-relaxed">
+                The tools that existed were built for law firms. Not for the one or two person legal function doing this work under pressure every day.
+              </p>
+              <p className="text-muted-foreground leading-relaxed">
+                So he built Zane himself.
               </p>
               <div className="flex flex-wrap gap-4 pt-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
