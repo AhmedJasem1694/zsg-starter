@@ -24,6 +24,11 @@ const PORT = parseInt(process.env.PORT ?? "3000", 10);
 
 const app = express();
 
+// Trust Railway's reverse proxy so req.headers['x-forwarded-proto'] is populated
+// correctly. Without this, the HTTPS redirect reads the raw (always HTTP) connection
+// and causes a redirect loop.
+app.set("trust proxy", 1);
+
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   "https://zanelegal.ai",
@@ -48,7 +53,8 @@ app.use(cors({
   credentials: true,
 }));
 
-// Redirect HTTP → HTTPS in production (Railway terminates TLS and sets x-forwarded-proto)
+// Force HTTPS in production (Railway terminates TLS and sets x-forwarded-proto).
+// trust proxy (set above) ensures Express reads the header correctly.
 if (process.env.NODE_ENV === "production") {
   app.use((req, res, next) => {
     if (req.headers["x-forwarded-proto"] !== "https") {
@@ -57,6 +63,19 @@ if (process.env.NODE_ENV === "production") {
     next();
   });
 }
+
+// Security headers on every response
+app.use((_req, res, next) => {
+  // HSTS: browsers will only use HTTPS for this domain for 1 year
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  // Prevent MIME-type sniffing
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  // Prevent clickjacking via iframe embedding
+  res.setHeader("X-Frame-Options", "DENY");
+  // Legacy XSS filter (belt-and-suspenders; CSP is the modern replacement)
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
