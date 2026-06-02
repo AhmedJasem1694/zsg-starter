@@ -1,4 +1,4 @@
-import { BookOpen, FileText, Video, ExternalLink, Zap, Scale, Users, BarChart3 } from "lucide-react";
+import { BookOpen, FileText, Zap, Scale, Users, BarChart3, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ZaneLogo } from "../components/ZaneLogo";
 
@@ -108,23 +108,26 @@ const CLAUSE_EXPLAINERS = [
 export default function Resources() {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Nav */}
-      <nav className="border-b border-border/40 px-6 py-4 flex items-center justify-between max-w-7xl mx-auto">
-        <Link to="/" className="flex items-center gap-2">
-          <ZaneLogo size="sm" light={false} />
-        </Link>
-        <div className="flex items-center gap-6">
-          <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Home</Link>
-          <Link to="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Security</Link>
-          <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Sign in</Link>
-          <Link
-            to="/register"
-            className="text-sm bg-primary text-white px-4 py-1.5 rounded-md hover:bg-primary/90 transition-colors"
-          >
-            Get started
+      {/* Nav — matches landing page sticky header exactly */}
+      <header className="sticky top-0 z-20 border-b border-white/8 backdrop-blur-md" style={{ background: "rgba(11,17,24,0.97)" }}>
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Link to="/" className="hover:opacity-80 transition-opacity">
+            <ZaneLogo size="sm" light={true} />
           </Link>
+          <nav className="hidden md:flex items-center gap-6 text-xs">
+            <Link to="/" className="text-white/50 hover:text-white transition-colors duration-300">Home</Link>
+            <Link to="/case-study" className="text-white/50 hover:text-white transition-colors duration-300">Case study</Link>
+            <Link to="/security" className="text-white/50 hover:text-white transition-colors duration-300">Security</Link>
+          </nav>
+          <div className="flex items-center gap-2">
+            <Link to="/login" className="px-4 py-1.5 text-sm text-white/50 hover:text-white transition-colors duration-300">Sign in</Link>
+            <Link to="/register"
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-primary text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity shadow shadow-primary/20">
+              Get started <ArrowRight size={13} />
+            </Link>
+          </div>
         </div>
-      </nav>
+      </header>
 
       {/* Hero */}
       <section className="max-w-4xl mx-auto px-6 pt-20 pb-16 text-center">
@@ -173,7 +176,7 @@ export default function Resources() {
           ))}
         </div>
         <p className="text-xs text-muted-foreground mt-6 text-center">
-          Full guide library coming soon. <a href="mailto:hello@zanelegal.ai" className="text-primary hover:underline">Email us</a> if you need help with a specific use case.
+          Full guide library coming soon. <a href="mailto:ahmed@zanelegal.ai" className="text-primary hover:underline">Email us</a> if you need help with a specific use case.
         </p>
       </section>
 
@@ -229,13 +232,17 @@ export default function Resources() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border/40 py-8 px-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between text-xs text-muted-foreground">
-          <span>© 2025 Zane Legal Decision Engine</span>
-          <div className="flex gap-4">
-            <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
-            <Link to="/security" className="hover:text-foreground transition-colors">Security</Link>
+      {/* Footer — matches landing page footer exactly */}
+      <footer className="border-t border-black/6 mt-auto">
+        <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
+          <Link to="/" className="hover:opacity-80 transition-opacity">
+            <ZaneLogo size="sm" light={false} />
+          </Link>
+          <div className="flex items-center gap-6 text-xs text-gray-500">
+            <Link to="/case-study" className="hover:text-gray-600 transition-colors">Case study</Link>
+            <Link to="/security" className="hover:text-gray-600 transition-colors">Security</Link>
+            <Link to="/resources" className="hover:text-gray-600 transition-colors">Resources</Link>
+            <span>2026</span>
           </div>
         </div>
       </footer>
