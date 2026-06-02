@@ -24,10 +24,13 @@ interface ChatResponse {
 export async function chatComplete(
   messages: Message[],
   maxTokens = 1024,
-  timeoutMs = 60_000 // 60s per attempt; llmJsonCall may retry once, so total max ~90s
+  timeoutMs = 60_000, // 60s per attempt; llmJsonCall may retry once, so total max ~90s
+  modelOverride?: string,
 ): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
+
+  const resolvedModel = modelOverride ?? MODEL;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -42,7 +45,7 @@ export async function chatComplete(
         "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: resolvedModel,
         max_tokens: maxTokens,
         messages,
       }),

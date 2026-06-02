@@ -185,7 +185,8 @@ export interface ClassifiedChunk {
 export async function classifyClauses(
   chunks: string[],
   workflowType: string = "COMMERCIAL_CONTRACT",
-  categoriesOverride?: string[]
+  categoriesOverride?: string[],
+  modelOverride?: string,
 ): Promise<ClassifiedChunk[]> {
   let activeCategories: readonly string[];
   if (categoriesOverride && categoriesOverride.length > 0) {
@@ -274,6 +275,7 @@ NEVER mark a category as absent. Simply omit it if genuinely not found anywhere.
     ],
     maxTokens: 3072,
     description: "clause classification",
+    model: modelOverride,
   });
 
   // LLMs occasionally wrap arrays in an object like {"items": [...]}. Extract the array.

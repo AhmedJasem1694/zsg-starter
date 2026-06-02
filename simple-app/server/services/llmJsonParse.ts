@@ -13,10 +13,10 @@ interface LLMJsonOptions {
 }
 
 export async function llmJsonCall<T>(opts: LLMJsonOptions): Promise<T> {
-  const { messages, maxTokens, description = "LLM call" } = opts;
+  const { messages, model, maxTokens, description = "LLM call" } = opts;
 
   // First attempt
-  const firstResponse = await chatComplete(messages, maxTokens);
+  const firstResponse = await chatComplete(messages, maxTokens, 60_000, model);
   const firstResult = tryParseJson<T>(firstResponse);
   if (firstResult !== null) return firstResult;
 
@@ -36,7 +36,7 @@ export async function llmJsonCall<T>(opts: LLMJsonOptions): Promise<T> {
   ];
 
   // Retry with a 30s timeout (shorter than the first attempt) to limit total wait
-  const secondResponse = await chatComplete(retryMessages, maxTokens, 30_000);
+  const secondResponse = await chatComplete(retryMessages, maxTokens, 30_000, model);
   const secondResult = tryParseJson<T>(secondResponse);
   if (secondResult !== null) return secondResult;
 

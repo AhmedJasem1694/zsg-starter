@@ -117,7 +117,8 @@ export async function compareClauseToPlaybook(
   counterpartyType: string = "",
   contractType: string = "",
   isIndirectReference: boolean = false,
-  indirectClauseRef: string = ""
+  indirectClauseRef: string = "",
+  modelOverride?: string,
 ): Promise<ComparisonResult> {
   const wfCtx = workflowContext(workflowType as WorkflowType);
   const ctx = wfCtx ?? personaContext(persona, companyName, sector);
@@ -227,6 +228,7 @@ Error category rules:
     ],
     maxTokens: 4000,
     description: `playbook comparison for ${rule.clauseCategory}`,
+    model: modelOverride,
   });
 }
 

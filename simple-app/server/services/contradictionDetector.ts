@@ -12,6 +12,7 @@
  */
 
 import { chatComplete } from "./openrouter.js";
+import { getModelForTask } from "./modelRouter.js";
 
 export interface ContradictionFinding {
   /** Short label for the conflict */
@@ -79,12 +80,16 @@ Severity guide:
 - LOW: Drafting inconsistency that should be cleaned up`;
 
   try {
+    const opusModel = getModelForTask("contradiction_detection");
+    console.log(`[ContradictionDetector] Using model: ${opusModel}`);
     const text = await chatComplete(
       [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      2000
+      2000,
+      90_000, // Opus may take longer — 90s timeout
+      opusModel,
     );
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);

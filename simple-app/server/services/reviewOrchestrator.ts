@@ -17,6 +17,7 @@ import { anonymise, deanonymise, buildKnownEntities } from "./piiAnonymiser.js";
 import { audit } from "./auditLogger.js";
 import { persistOutcomePatterns } from "./outcomeCapture.js";
 import { runDocumentAudit } from "./documentAudit.js";
+import { getModelForTask, getModelLabel } from "./modelRouter.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PBRecord = Record<string, any>;
@@ -214,32 +215,59 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
       console.warn(`[review] Very sparse text (${parseResult.textLength} chars) for ${documentId} - review quality may be low`);
     }
 
-    // ── Auto-extract counterparty name if blank ──────────────────────────────
-    // If the user didn't go through the metadata extraction modal, the counterparty
-    // name stored on the document will be empty. Extract it now from the first
-    // 6000 chars before we anonymise so the entity map is correct.
+    // ── Stage 1: Document classification via Gemini Flash ───────────────────
+    // Fast first pass: determines contract type to guide the rest of the pipeline.
+    // Uses Gemini 2.5 Flash — low latency, cheap, ideal for simple classification.
+    const flashModel = getModelForTask("document_classification");
+    let classifiedDocType = (doc["contractType"] as string) ?? "COMMERCIAL_CONTRACT";
+    try {
+      const { chatComplete } = await import("./openrouter.js");
+      const classifySnippet = rawText.slice(0, 3000);
+      const classifyResponse = await chatComplete([{
+        role: "user",
+        content: `Classify this contract document. Return exactly one type from this list (no explanation, just the type):
+SUPPLIER_AGREEMENT, CUSTOMER_AGREEMENT, NDA, EMPLOYMENT, SAAS_AGREEMENT, LEASE, INVESTMENT, SERVICE_AGREEMENT, INSURANCE_POLICY, LOGISTICS_CONTRACT, HEALTHCARE_PROCUREMENT, OTHER
+
+Contract text:
+${classifySnippet}`,
+      }], 20, 15_000, flashModel);
+      const detectedType = classifyResponse.trim().toUpperCase().replace(/[^A-Z_]/g, "");
+      if (detectedType && detectedType !== "OTHER") {
+        classifiedDocType = detectedType;
+        console.log(`[review] Gemini Flash classified document as: ${classifiedDocType} (was: ${doc["contractType"] ?? "unset"})`);
+      }
+      t.mark(`document classification (Gemini Flash): ${classifiedDocType}`);
+    } catch (err) {
+      console.warn("[review] Document classification (Gemini Flash) failed (non-fatal):", (err as Error)?.message);
+      t.mark("document classification: failed, using stored type");
+    }
+
+    // ── Stage 2: Metadata extraction via GPT-4o ──────────────────────────────
+    // Structured extraction of counterparty, value, dates, governing law.
+    // GPT-4o is strong at pulling structured data from long documents.
+    const gpt4oModel = getModelForTask("metadata_extraction");
     let resolvedCounterpartyName = ((doc["counterpartyName"] as string) ?? "").trim();
     if (!resolvedCounterpartyName && rawText.length > 20) {
       try {
         const { chatComplete } = await import("./openrouter.js");
         const snippet = rawText.slice(0, 6000);
-        // 60 max tokens (just a name), 20s timeout: this is a fast auxiliary call
+        // 60 max tokens (just a name), 25s timeout for GPT-4o
         const cpResponse = await chatComplete([{
           role: "user",
           content: `Extract the counterparty company or individual name from this contract. Look in: (1) the opening "between X and Y" parties clause, (2) definitions of "Supplier", "Vendor", "Customer", "Client", "Service Provider", (3) the agreement title/header, (4) the signature block. Return ONLY the full legal entity name (e.g. "Attio Limited"), no explanation, no JSON, just the name. If genuinely not identifiable return the single word: unknown\n\n${snippet}`,
-        }], 60, 20_000);
+        }], 60, 25_000, gpt4oModel);
         const extracted = cpResponse.trim().replace(/^["']|["']$/g, "");
         if (extracted && extracted.toLowerCase() !== "unknown" && extracted.length < 120) {
           resolvedCounterpartyName = extracted;
           // Persist back so the UI shows it and future requests find it
           pb.collection("uploaded_documents").update(documentId, { counterpartyName: extracted })
             .catch((e: unknown) => console.warn("[review] Could not persist extracted counterpartyName:", (e as Error)?.message));
-          console.log(`[review] Auto-extracted counterpartyName="${extracted}" for ${documentId}`);
+          console.log(`[review] GPT-4o extracted counterpartyName="${extracted}" for ${documentId}`);
         }
-        t.mark(`counterparty extraction: ${resolvedCounterpartyName ? `found "${resolvedCounterpartyName}"` : "not found"}`);
+        t.mark(`metadata extraction (GPT-4o): counterparty=${resolvedCounterpartyName || "not found"}`);
       } catch (err) {
-        console.warn("[review] Counterparty auto-extraction failed (non-fatal):", (err as Error)?.message);
-        t.mark("counterparty extraction: failed (non-fatal)");
+        console.warn("[review] Metadata extraction (GPT-4o) failed (non-fatal):", (err as Error)?.message);
+        t.mark("metadata extraction: failed (non-fatal)");
       }
     }
 
@@ -340,7 +368,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
           if (sectionChunks.length === 0) return Promise.resolve([] as Awaited<ReturnType<typeof classifyClauses>>);
           console.log(`[review] Classifying section ${sIdx + 1}/${allChunksBySection.length} (${sectionChunks.length} chunks)`);
           // classifyClauses returns rawText strings directly, no index remapping needed
-          return classifyClauses(sectionChunks, company["workflowType"] as string, playbookCategories);
+          return classifyClauses(sectionChunks, company["workflowType"] as string, playbookCategories, getModelForTask("clause_extraction"));
         })
       );
       return sectionResults.flat();
@@ -381,6 +409,8 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
       missingSeverity: "CRITICAL" | "OPTIONAL" | null;
       clauseId: string | null;
       ruleId: string | null;
+      resultId: string | null; // PocketBase review_results record ID (set after persistResult)
+      model_used: string;       // Which model produced this result
       founderStatus: string;
       founderPlainEnglish: string;
       founderBusinessImpact: string;
@@ -413,8 +443,9 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
     // Helper: write one result record to PocketBase immediately and bump progress.
     // This is the "streaming" mechanism: the frontend polls and sees results as
     // they arrive rather than waiting for the full batch to finish.
-    const persistResult = async (r: LocalResult): Promise<void> => {
-      await pb.collection("review_results").create({
+    // Returns the newly created record ID so low-confidence Opus reanalysis can update it.
+    const persistResult = async (r: LocalResult): Promise<string> => {
+      const record = await pb.collection("review_results").create({
         document: documentId,
         clause: r.clauseId ?? undefined,
         rule: r.ruleId ?? undefined,
@@ -432,6 +463,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
         regulatoryCitations: r.regulatoryCitations ?? "[]",
         isAbsent: r.isAbsent,
         missingSeverity: r.missingSeverity ?? "",
+        model_used: r.model_used ?? "",
         founderStatus: r.founderStatus ?? "",
         founderPlainEnglish: r.founderPlainEnglish ?? "",
         founderBusinessImpact: r.founderBusinessImpact ?? "",
@@ -456,6 +488,8 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
       // uses reviewResults.length as the authoritative completed count.
       clausesCompleted++;
       pb.collection("uploaded_documents").update(documentId, { clausesCompleted }).catch(() => {});
+
+      return record.id as string;
     }
 
     // ── PARALLEL clause comparisons ───────────────────────────────────────────
@@ -506,6 +540,8 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
             missingSeverity,
             clauseId: null,
             ruleId: rule.id,
+            resultId: null,
+            model_used: "none", // absent clauses need no LLM call
             founderStatus: absent.founderStatus,
             founderPlainEnglish: absent.founderPlainEnglish,
             founderBusinessImpact: absent.founderBusinessImpact,
@@ -520,7 +556,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
             urgencyLevel: absent.urgencyLevel ?? "BACKGROUND",
             errorCategory: absent.errorCategory ?? "SUBSTANTIVE_RISK",
           };
-          await persistResult(r);
+          r.resultId = await persistResult(r);
           results.push(r);
           return;
         }
@@ -552,7 +588,8 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
         ]);
         const combinedRegContext = regulatoryContext + formatRegulatoryContextForPrompt(clauseRegDocs);
 
-        t.mark(`${category}: LLM comparison starting`);
+        const sonnetModel = getModelForTask("playbook_comparison");
+        t.mark(`${category}: LLM comparison starting (${getModelLabel(sonnetModel)})`);
         const comparison = await compareClauseToPlaybook(
           match.rawText,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -566,7 +603,8 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
           doc["counterpartyType"] as string || "",
           doc["contractType"] as string || "",
           isIndirect,
-          match.clauseReference ?? ""
+          match.clauseReference ?? "",
+          sonnetModel,
         );
 
         // ── Fix 1: Guard against GREY or empty fields from the LLM ─────────────
@@ -640,6 +678,8 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
           missingSeverity: null,
           clauseId: extractedClause.id,
           ruleId: rule.id,
+          resultId: null,
+          model_used: sonnetModel,
           founderStatus: deanonComparison.founderStatus,
           founderPlainEnglish: deanonComparison.founderPlainEnglish,
           founderBusinessImpact: deanonComparison.founderBusinessImpact,
@@ -656,7 +696,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
         };
 
         // Write to PocketBase immediately. The frontend poll picks this up within 3s.
-        await persistResult(r);
+        r.resultId = await persistResult(r);
         results.push(r);
     });
 
@@ -671,6 +711,79 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
         clauseFailures.map((s) => (s as PromiseRejectedResult).reason?.message ?? s));
     }
     t.mark(`playbook comparison complete: ${results.length} clauses (${clauseFailures.length} failed)`);
+
+    // ── Confidence-based Opus reanalysis ──────────────────────────────────────
+    // Any clause where Claude Sonnet returned LOW confidence gets a second pass
+    // from Claude Opus for deeper reasoning. High-confidence clauses skip Opus.
+    const opusModel = getModelForTask("low_confidence_reanalysis");
+    const lowConfidenceResults = results.filter((r) => !r.isAbsent && r.confidenceLabel === "LOW" && r.resultId);
+    if (lowConfidenceResults.length > 0) {
+      console.log(`[review] ${lowConfidenceResults.length} low-confidence clause(s) flagged for Opus reanalysis: ${lowConfidenceResults.map((r) => r.clauseCategory).join(", ")}`);
+      t.mark(`starting Opus reanalysis for ${lowConfidenceResults.length} low-confidence clauses`);
+
+      const reanalysisTasks = lowConfidenceResults.map((r) => async () => {
+        const rule = playbookRules.find((pr) => pr.id === r.ruleId);
+        if (!rule) return;
+        const match = bestByCategory.get(r.clauseCategory);
+        if (!match) return;
+        try {
+          const clauseRegDocs = await getRegulatoryContext({
+            clauseCategory: r.clauseCategory,
+            jurisdiction: company["jurisdiction"] as string,
+            sector: company["sector"] as string,
+          });
+          const combinedRegContext = regulatoryContext + formatRegulatoryContextForPrompt(clauseRegDocs);
+          const opusComparison = await compareClauseToPlaybook(
+            match.rawText,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            rule as any,
+            effectiveCompanyName,
+            company["sector"] as string,
+            combinedRegContext + govLawSuffix,
+            (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER",
+            doc["workflowType"] as string || "COMMERCIAL_CONTRACT",
+            company.id,
+            doc["counterpartyType"] as string || "",
+            doc["contractType"] as string || "",
+            false,
+            "",
+            opusModel,
+          );
+          const deanonOpus = {
+            ...opusComparison,
+            clauseSummary:     deAnon(opusComparison.clauseSummary),
+            whyItMatters:      deAnon(opusComparison.whyItMatters),
+            recommendedAction: deAnon(opusComparison.recommendedAction),
+            suggestedFallback: deAnon(opusComparison.suggestedFallback),
+            escalationTrigger: deAnon(opusComparison.escalationTrigger),
+            businessSummary:   deAnon(opusComparison.businessSummary),
+          };
+          // Update PocketBase record in place
+          await pb.collection("review_results").update(r.resultId!, {
+            ragStatus:          deanonOpus.ragStatus || r.ragStatus,
+            clauseSummary:      deanonOpus.clauseSummary || r.clauseSummary,
+            whyItMatters:       deanonOpus.whyItMatters || r.whyItMatters,
+            recommendedAction:  deanonOpus.recommendedAction || r.recommendedAction,
+            suggestedFallback:  deanonOpus.suggestedFallback || r.suggestedFallback,
+            escalationRequired: deanonOpus.escalationRequired,
+            escalationTrigger:  deanonOpus.escalationTrigger || r.escalationTrigger,
+            businessSummary:    deanonOpus.businessSummary || r.businessSummary,
+            confidenceLabel:    deanonOpus.confidenceLabel,
+            model_used:         opusModel,
+          }).catch((e: unknown) => console.warn(`[review] Opus update failed for ${r.clauseCategory}:`, (e as Error)?.message));
+          // Update in-memory result
+          Object.assign(r, deanonOpus, { model_used: opusModel });
+          console.log(`[review] Opus reanalysis ${r.clauseCategory}: ${deanonOpus.ragStatus} (was ${r.ragStatus}), confidence=${deanonOpus.confidenceLabel}`);
+          t.mark(`Opus reanalysis complete: ${r.clauseCategory}`);
+        } catch (err) {
+          console.warn(`[review] Opus reanalysis failed for ${r.clauseCategory} (non-fatal):`, (err as Error)?.message);
+        }
+      });
+
+      // Run Opus reanalyses with limited concurrency (max 3 at once — Opus is slow)
+      await runWithConcurrencyLimit(reanalysisTasks, 3);
+      t.mark(`Opus reanalysis batch complete: ${lowConfidenceResults.length} clauses processed`);
+    }
 
     // ── Contradiction detection + document audit run in PARALLEL ──────────────
     // Both are independent post-processing LLM passes, neither depends on the
@@ -761,6 +874,8 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
 
     console.log(`[review] COMPLETE ${documentId}: ${results.length} clauses (RED=${results.filter((r) => r.ragStatus === "RED").length} AMBER=${results.filter((r) => r.ragStatus === "AMBER").length} GREEN=${results.filter((r) => r.ragStatus === "GREEN").length} GREY=${results.filter((r) => r.ragStatus === "GREY").length})`);
 
+    const modelsUsed = Array.from(new Set(results.map((r) => r.model_used).filter(Boolean)));
+    const opusClauseCount = results.filter((r) => r.model_used === getModelForTask("low_confidence_reanalysis")).length;
     void audit({
       action: "review_completed",
       entityType: "uploaded_document",
@@ -773,6 +888,12 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
         greenCount: results.filter((r) => r.ragStatus === "GREEN").length,
         greyCount:  results.filter((r) => r.ragStatus === "GREY").length,
         escalations: results.filter((r) => r.escalationRequired).length,
+        // Model routing audit
+        modelsUsed,
+        opusReanalysisCount: opusClauseCount,
+        classificationModel: getModelLabel(flashModel),
+        extractionModel:     getModelLabel(gpt4oModel),
+        comparisonModel:     getModelLabel(getModelForTask("playbook_comparison")),
       },
     });
 
