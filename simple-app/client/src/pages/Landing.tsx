@@ -483,7 +483,7 @@ export default function Landing() {
               </div>
             </div>
             <div className="space-y-4">
-              <h2 className="text-2xl font-semibold">Built by a lawyer who lived this problem.</h2>
+              <h2 className="text-2xl font-semibold text-white">Built by a lawyer who lived this problem.</h2>
               <p className="text-muted-foreground leading-relaxed">
                 Ahmed is a commercial solicitor. He has worked across private practice at firms including Dentons, Macfarlanes and Norton Rose Fulbright, in private banking, in-house at Uber Boat by Thames Clippers and Fora, a Blackstone portfolio company, and more recently advising founders and startups independently.
               </p>
