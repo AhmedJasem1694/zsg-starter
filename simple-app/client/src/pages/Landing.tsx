@@ -205,6 +205,7 @@ export default function Landing() {
           >
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
               <a href="https://calendly.com/ahmedljasem/30min"
+                target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 text-sm">
                 Book a 30 minute demo <ArrowRight size={15} />
               </a>
@@ -732,6 +733,7 @@ export default function Landing() {
               {external ? (
                 <a
                   href={link}
+                  target="_blank" rel="noopener noreferrer"
                   className={`block text-center px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     highlight ? "bg-primary text-white hover:opacity-90 shadow shadow-primary/20" : "border border-black/10 text-gray-600 hover:text-gray-800 hover:border-black/20"
                   }`}>
@@ -869,6 +871,7 @@ export default function Landing() {
             </p>
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
               <a href="https://calendly.com/ahmedljasem/30min"
+                target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-gray-900 font-bold rounded-xl hover:opacity-95 transition-opacity shadow-xl text-sm">
                 Book a 30 minute demo <ArrowRight size={15} />
               </a>
