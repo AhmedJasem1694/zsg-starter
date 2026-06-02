@@ -504,7 +504,7 @@ export default function Landing() {
                 Across every environment he watched the same problem repeat itself. Legal knowledge built up over years of negotiations, hard-won positions and accepted risks, then disappeared the moment someone left. The next lawyer would start from scratch. The same clauses renegotiated. The same risks accepted without anyone knowing they had been accepted before.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                The tools that existed were built for law firms. Not for the one or two person legal function doing this work under pressure every day.
+                The tools that existed were built for law firms. Not for the one to five person legal function doing this work under pressure every day.
               </p>
               <p className="text-muted-foreground leading-relaxed">
                 So he built Zane himself.
