@@ -1,5 +1,6 @@
 import { BookOpen, FileText, Video, ExternalLink, Zap, Scale, Users, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { ZaneLogo } from "../components/ZaneLogo";
 
 const GUIDES = [
   {
@@ -110,10 +111,7 @@ export default function Resources() {
       {/* Nav */}
       <nav className="border-b border-border/40 px-6 py-4 flex items-center justify-between max-w-7xl mx-auto">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
-            <span className="text-white text-xs font-bold">M</span>
-          </div>
-          <span className="font-semibold text-sm">Zane</span>
+          <ZaneLogo size="sm" light={false} />
         </Link>
         <div className="flex items-center gap-6">
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Home</Link>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { ZaneLogo } from "../components/ZaneLogo";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { login } from "../lib/api";
 
@@ -56,8 +57,8 @@ export default function Login() {
       <div className="w-full max-w-sm space-y-6">
         {/* Logo */}
         <div className="text-center space-y-2">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center mx-auto">
-            <span className="text-white text-sm font-bold">M</span>
+          <div className="flex justify-center">
+            <ZaneLogo size="sm" light={false} />
           </div>
           <div>
             <div className="font-semibold text-lg">Sign in to Zane</div>
