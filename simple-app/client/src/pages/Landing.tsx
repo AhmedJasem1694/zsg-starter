@@ -204,7 +204,7 @@ export default function Landing() {
             {...(shouldReduce ? {} : fadeUpHero(0.52))}
           >
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-              <a href="https://calendly.com/ahmed-zanelegal/30min"
+              <a href="https://calendly.com/ahmedljasem/30min"
                 className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 text-sm">
                 Book a 30 minute demo <ArrowRight size={15} />
               </a>
@@ -702,7 +702,7 @@ export default function Landing() {
                 "Priority support",
               ],
               cta: "Book a demo",
-              link: "https://calendly.com/ahmed-zanelegal/30min",
+              link: "https://calendly.com/ahmedljasem/30min",
               external: true,
             },
           ].map(({ tier, price, period, highlight, description, features, cta, link, external }) => (
@@ -868,7 +868,7 @@ export default function Landing() {
               Most tools ask you to trust them before showing you anything. Zane asks for 30 minutes and a contract. Book a demo. Bring a real contract. We will run it through Zane live and show you the output before you make any decision.
             </p>
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-              <a href="https://calendly.com/ahmed-zanelegal/30min"
+              <a href="https://calendly.com/ahmedljasem/30min"
                 className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-gray-900 font-bold rounded-xl hover:opacity-95 transition-opacity shadow-xl text-sm">
                 Book a 30 minute demo <ArrowRight size={15} />
               </a>
