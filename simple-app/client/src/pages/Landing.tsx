@@ -372,26 +372,180 @@ export default function Landing() {
             <h2 className="text-3xl font-semibold text-white">See exactly what Zane produces.</h2>
             <p className="text-muted-foreground text-lg">Every screen. No mockups. This is the real product.</p>
           </div>
-          {[
-            { heading: "What needs attention today", description: "Every contract requiring action surfaces immediately. No digging through emails. No missed deadlines.", label: "Dashboard — Next actions view" },
-            { heading: "Not just a flag. A decision.", description: "Every Red clause comes with the exact fallback language to send back, who needs to approve it, and the specific regulation that applies to your sector.", label: "Contract review — Red clause detail" },
-            { heading: "Governance routing built in", description: "Zane works out who needs to approve what based on your approval matrix. Clause risk, contract value, and governance triggers all checked simultaneously.", label: "Escalation and sign-off workflow" },
-            { heading: "Your playbook learns from reality", description: "See the gap between what your playbook says and what your team actually signs. Automatically. After every contract.", label: "Playbook with outcome variance" },
-            { heading: "Your entire exposure in one view", description: "Every contract in your portfolio. Every risk quantified in pounds. Every renewal flagged before it becomes a problem.", label: "Portfolio risk page" },
-          ].map((card, i) => (
-            <div key={i} className={"flex flex-col " + (i % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse") + " gap-10 items-center"}>
-              <div className="flex-1 rounded-xl bg-[#111A24] border border-[#1B2533] aspect-video flex items-center justify-center">
-                <div className="text-center space-y-2 p-8">
-                  <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/40">{card.label}</div>
-                  <div className="text-muted-foreground/20 text-4xl">⬜</div>
+          {/* ── Mockup 1: Dashboard next actions ── */}
+          <div className="flex flex-col md:flex-row gap-10 items-center">
+            <div className="flex-1 rounded-xl bg-[#0B1118] border border-[#1B2533] aspect-video overflow-hidden p-5 space-y-3 select-none pointer-events-none">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-[#4A6CF7]/60 pb-1 border-b border-[#1E293B]">Next Actions</div>
+              {[
+                { name: "Technology Services Agreement", cp: "Acme Technologies Ltd", red: true, label: "Do not sign yet" },
+                { name: "Master Services Agreement",     cp: "Nexus Solutions Ltd",    red: false, label: "Negotiate first" },
+                { name: "Software Licence Agreement",    cp: "DataFlow Technologies", red: true, label: "Review required" },
+              ].map((item) => (
+                <div key={item.name} className="rounded-lg bg-[#111A24] border border-[#1E293B] px-3 py-2.5 flex items-center gap-3">
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${item.red ? "bg-red-400" : "bg-amber-400"}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] font-semibold text-white truncate">{item.name}</div>
+                    <div className="text-[10px] text-white/40 truncate">{item.cp}</div>
+                  </div>
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded border shrink-0 ${item.red ? "bg-[#1F0A0A] text-white border-[#450A0A]" : "bg-[#1C0F00] text-white border-[#431407]"}`}>
+                    {item.label}
+                  </span>
+                  <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-[#4A6CF7] text-white shrink-0">Review →</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex-1 space-y-3">
+              <h3 className="text-xl font-semibold text-white">What needs attention today</h3>
+              <p className="text-muted-foreground leading-relaxed">Every contract requiring action surfaces immediately. No digging through emails. No missed deadlines.</p>
+            </div>
+          </div>
+
+          {/* ── Mockup 2: Contract review clause detail ── */}
+          <div className="flex flex-col md:flex-row-reverse gap-10 items-center">
+            <div className="flex-1 rounded-xl bg-[#0B1118] border border-[#1B2533] aspect-video overflow-hidden p-5 space-y-3 select-none pointer-events-none">
+              <div className="flex items-center gap-2 pb-2 border-b border-[#1E293B]">
+                <div className="w-2 h-2 rounded-full bg-red-400" />
+                <span className="text-[11px] font-bold text-white">Liability Cap</span>
+                <span className="ml-auto text-[9px] bg-[#1F0A0A] text-white border border-[#450A0A] rounded px-1.5 py-0.5">RED — High Risk</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] px-2.5 py-2 space-y-1">
+                  <div className="text-[8px] font-bold uppercase tracking-widest text-white/50">Issue</div>
+                  <div className="text-[10px] text-white leading-snug">Cap set at £500k — below your 1× annual fees minimum threshold.</div>
+                </div>
+                <div className="rounded-lg bg-[#0D1521] border border-[#1E293B] px-2.5 py-2 space-y-1">
+                  <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Why it matters</div>
+                  <div className="text-[10px] text-white/70 leading-snug">Exposes you to uncapped loss if contract value exceeds the cap.</div>
+                </div>
+                <div className="rounded-lg bg-[#0D1521] border border-[#1E293B] px-2.5 py-2 space-y-1">
+                  <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Fallback</div>
+                  <div className="text-[9px] text-white/70 font-mono leading-snug">"...liability shall not exceed the greater of £1,000,000 or 1× annual fees..."</div>
+                </div>
+                <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] px-2.5 py-2 space-y-1">
+                  <div className="text-[8px] font-bold uppercase tracking-widest text-white/50">Escalation</div>
+                  <div className="text-[10px] text-white font-semibold">Legal → GC sign-off required</div>
+                  <div className="text-[9px] text-white/50">Clause exceeds unilateral authority</div>
                 </div>
               </div>
-              <div className="flex-1 space-y-3">
-                <h3 className="text-xl font-semibold text-white">{card.heading}</h3>
-                <p className="text-muted-foreground leading-relaxed">{card.description}</p>
+            </div>
+            <div className="flex-1 space-y-3">
+              <h3 className="text-xl font-semibold text-white">Not just a flag. A decision.</h3>
+              <p className="text-muted-foreground leading-relaxed">Every Red clause comes with the exact fallback language to send back, who needs to approve it, and the specific regulation that applies to your sector.</p>
+            </div>
+          </div>
+
+          {/* ── Mockup 3: Escalation and sign-off workflow ── */}
+          <div className="flex flex-col md:flex-row gap-10 items-center">
+            <div className="flex-1 rounded-xl bg-[#0B1118] border border-[#1B2533] aspect-video overflow-hidden p-5 space-y-3 select-none pointer-events-none">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-white/40 pb-2 border-b border-[#1E293B]">Escalation Required — 2 tiers triggered</div>
+              <div className="space-y-2">
+                <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] px-3 py-2.5 space-y-1.5">
+                  <div className="text-[9px] font-bold uppercase tracking-widest text-white">Tier 1 — Clause Risk</div>
+                  <div className="text-[10px] text-white/80">· <span className="font-semibold">Liability Cap:</span> Cap set below your 1× annual fees minimum</div>
+                  <div className="text-[10px] text-white/80">· <span className="font-semibold">Indemnity:</span> Broad consequential loss coverage accepted</div>
+                </div>
+                <div className="rounded-lg bg-[#1C0F00] border border-[#431407] px-3 py-2.5">
+                  <div className="text-[9px] font-bold uppercase tracking-widest text-white mb-1">Tier 2 — Contract Value</div>
+                  <div className="text-[10px] text-white/80">£840,000 — CFO approval required above £500k threshold</div>
+                </div>
+              </div>
+              <div className="pt-1">
+                <div className="text-[9px] text-white/30 uppercase tracking-widest mb-2">Sign-off sequence</div>
+                <div className="flex items-center gap-1.5">
+                  {["Handler", "Legal", "GC", "CFO"].map((a, i, arr) => (
+                    <span key={a} className="flex items-center gap-1.5">
+                      <span className="bg-[#4A6CF7] text-white text-[9px] font-bold px-2.5 py-1 rounded-full">{a}</span>
+                      {i < arr.length - 1 && <span className="text-white/20 text-xs">→</span>}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
-          ))}
+            <div className="flex-1 space-y-3">
+              <h3 className="text-xl font-semibold text-white">Governance routing built in</h3>
+              <p className="text-muted-foreground leading-relaxed">Zane works out who needs to approve what based on your approval matrix. Clause risk, contract value, and governance triggers all checked simultaneously.</p>
+            </div>
+          </div>
+
+          {/* ── Mockup 4: Playbook with outcome variance ── */}
+          <div className="flex flex-col md:flex-row-reverse gap-10 items-center">
+            <div className="flex-1 rounded-xl bg-[#0B1118] border border-[#1B2533] aspect-video overflow-hidden p-5 select-none pointer-events-none">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-white/40 pb-2 border-b border-[#1E293B] mb-3">Liability Cap — Written vs Actual</div>
+              <div className="grid grid-cols-2 gap-5 h-[calc(100%-36px)]">
+                <div className="space-y-2">
+                  <div className="text-[9px] text-white/40 uppercase tracking-widest">Written position</div>
+                  <div className="rounded-lg bg-[#111A24] border border-[#1E293B] p-2.5">
+                    <div className="text-[10px] text-white/70 font-mono leading-relaxed">"Liability capped at the greater of £1M or 1× annual fees paid in the preceding 12 months."</div>
+                  </div>
+                  <div className="text-[9px] text-white/30 italic">Hard red line: no uncapped liability</div>
+                  <div className="mt-2 text-[9px] bg-[#1F0A0A] text-white border border-[#450A0A] rounded px-2 py-1">⚠ Drifting below preferred</div>
+                </div>
+                <div className="space-y-3">
+                  <div className="text-[9px] text-white/40 uppercase tracking-widest">Actual outcomes — 6 contracts</div>
+                  {[
+                    { label: "Preferred", pct: 33, bg: "bg-[#14532D]" },
+                    { label: "Fallback",  pct: 33, bg: "bg-[#431407]" },
+                    { label: "Below fallback", pct: 34, bg: "bg-[#450A0A]" },
+                  ].map((bar) => (
+                    <div key={bar.label} className="space-y-1">
+                      <div className="flex justify-between text-[9px]">
+                        <span className="text-white/50">{bar.label}</span>
+                        <span className="text-white/30">{bar.pct}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-[#1E293B] overflow-hidden">
+                        <div className={`h-full rounded-full ${bar.bg}`} style={{ width: `${bar.pct}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 space-y-3">
+              <h3 className="text-xl font-semibold text-white">Your playbook learns from reality</h3>
+              <p className="text-muted-foreground leading-relaxed">See the gap between what your playbook says and what your team actually signs. Automatically. After every contract.</p>
+            </div>
+          </div>
+
+          {/* ── Mockup 5: Portfolio risk ── */}
+          <div className="flex flex-col md:flex-row gap-10 items-center">
+            <div className="flex-1 rounded-xl bg-[#0B1118] border border-[#1B2533] aspect-video overflow-hidden p-5 space-y-3 select-none pointer-events-none">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-white/40 pb-2 border-b border-[#1E293B]">Portfolio Risk</div>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { label: "Value at risk",                value: "£2.8M", color: "text-red-400"     },
+                  { label: "Pending approval",             value: "3",     color: "text-amber-400"   },
+                  { label: "Counterparties pushing back",  value: "4",     color: "text-[#60A5FA]"  },
+                  { label: "Contracts reviewed",           value: "12",    color: "text-[#86EFAC]"  },
+                ].map((stat) => (
+                  <div key={stat.label} className="rounded-lg bg-[#111A24] border border-[#1E293B] px-3 py-2.5">
+                    <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
+                    <div className="text-[9px] text-white/30 mt-0.5 leading-tight">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="rounded-lg bg-[#111A24] border border-[#1E293B] px-3 py-2.5 space-y-2">
+                <div className="text-[9px] text-white/30 uppercase tracking-widest">Risk by clause category</div>
+                {[
+                  { label: "Liability Cap",  pct: 80, bg: "bg-red-400"   },
+                  { label: "Auto-Renewal",   pct: 55, bg: "bg-amber-400" },
+                  { label: "Indemnity",      pct: 45, bg: "bg-red-400"   },
+                  { label: "Payment Terms",  pct: 30, bg: "bg-amber-400" },
+                ].map((bar) => (
+                  <div key={bar.label} className="flex items-center gap-2">
+                    <span className="text-[9px] text-white/40 w-20 shrink-0">{bar.label}</span>
+                    <div className="flex-1 h-1.5 rounded-full bg-[#1E293B] overflow-hidden">
+                      <div className={`h-full rounded-full ${bar.bg}`} style={{ width: `${bar.pct}%` }} />
+                    </div>
+                    <span className="text-[9px] text-white/20 w-6 text-right">{bar.pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 space-y-3">
+              <h3 className="text-xl font-semibold text-white">Your entire exposure in one view</h3>
+              <p className="text-muted-foreground leading-relaxed">Every contract in your portfolio. Every risk quantified in pounds. Every renewal flagged before it becomes a problem.</p>
+            </div>
+          </div>
         </div>
       </section>
 
