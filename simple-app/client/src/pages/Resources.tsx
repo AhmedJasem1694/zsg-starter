@@ -8,54 +8,60 @@ const GUIDES = [
     category: "Getting started",
     title: "How to build your first playbook in 20 minutes",
     description:
-      "A step-by-step guide to calibrating Zane's playbook for your risk appetite, sector, and jurisdiction. Covers all 22 clause categories.",
+      "A step-by-step guide to calibrating Zane's playbook for your risk appetite, sector, and jurisdiction. With specific examples for UK financial services.",
     readTime: "8 min read",
     tag: "Guide",
+    href: "/resources/first-playbook",
   },
   {
     icon: FileText,
     category: "Contract review",
     title: "Reading a Zane review: what each RAG status actually means",
     description:
-      "RED, AMBER, GREEN - and GREY for absent clauses. Understanding the difference between a negotiation risk and a legal stop.",
+      "RED, AMBER, GREEN, and ABSENT — with specific examples. Understanding the difference between a negotiation risk and a legal stop.",
     readTime: "5 min read",
     tag: "Guide",
+    href: "/resources/rag-status",
   },
   {
     icon: Zap,
-    category: "Automation",
+    category: "Case study",
     title: "Reducing review time from 4 hours to 20 minutes",
     description:
-      "How lean in-house teams are using Zane to handle supplier paper at scale. Includes real workflow examples.",
+      "A detailed before-and-after walkthrough of a technology services agreement review at a financial services company.",
     readTime: "10 min read",
     tag: "Case study",
+    href: "/resources/review-time-case-study",
   },
   {
     icon: Users,
     category: "Team",
     title: "Setting up your approval matrix",
     description:
-      "Who needs to sign off on liability cap deviations? How to configure escalation routes for Legal, GC, CFO, and Board.",
+      "The three escalation tiers Zane uses simultaneously. How to configure clause risk, value thresholds, and governance triggers.",
     readTime: "6 min read",
     tag: "Guide",
+    href: "/resources/approval-matrix",
   },
   {
     icon: BarChart3,
     category: "Analytics",
     title: "Using the Portfolio Risk dashboard",
     description:
-      "Tracking open RED flags, pending escalations, and portfolio exposure across your contract portfolio over time.",
+      "The four key metrics. The clause exposure chart. The counterparty risk analysis. And how to use the dashboard for board reporting.",
     readTime: "4 min read",
     tag: "Guide",
+    href: "/resources/portfolio-dashboard",
   },
   {
     icon: Scale,
     category: "Legal",
     title: "Zane and the SRA Code of Conduct",
     description:
-      "How in-house teams should think about AI-assisted contract review under current SRA guidance. Zane is a decision support tool, not a lawyer.",
-    readTime: "7 min read",
+      "Can in-house solicitors use Zane without breaching their professional obligations? The short answer, with the relevant SRA paragraphs cited.",
+    readTime: "5 min read",
     tag: "Legal",
+    href: "/resources/sra-guidance",
   },
 ];
 
@@ -150,10 +156,11 @@ export default function Resources() {
       <section className="max-w-6xl mx-auto px-6 pb-20">
         <h2 className="text-xl font-bold mb-6">Guides & case studies</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {GUIDES.map(({ icon: Icon, category, title, description, readTime, tag }) => (
-            <div
+          {GUIDES.map(({ icon: Icon, category, title, description, readTime, tag, href }) => (
+            <Link
               key={title}
-              className="rounded-xl border border-border bg-card p-6 flex flex-col gap-3 hover:border-primary/40 transition-colors cursor-pointer"
+              to={href}
+              className="rounded-xl border border-border bg-card p-6 flex flex-col gap-3 hover:border-primary/40 transition-colors group"
             >
               <div className="flex items-center justify-between">
                 <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
@@ -166,13 +173,13 @@ export default function Resources() {
               <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Icon size={16} className="text-primary" />
               </div>
-              <h3 className="font-semibold text-sm leading-snug">{title}</h3>
+              <h3 className="font-semibold text-sm leading-snug group-hover:text-primary transition-colors">{title}</h3>
               <p className="text-xs text-muted-foreground leading-relaxed flex-1">{description}</p>
               <div className="flex items-center gap-1 text-xs text-muted-foreground pt-2 border-t border-border">
                 <FileText size={11} />
                 {readTime}
               </div>
-            </div>
+            </Link>
           ))}
         </div>
         <p className="text-xs text-muted-foreground mt-6 text-center">

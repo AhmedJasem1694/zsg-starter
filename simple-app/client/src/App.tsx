@@ -13,6 +13,12 @@ import Playbook from "./pages/Playbook";
 import Regulations from "./pages/Regulations";
 import Security from "./pages/Security";
 import Resources from "./pages/Resources";
+import FirstPlaybook from "./pages/resources/FirstPlaybook";
+import RagStatus from "./pages/resources/RagStatus";
+import ReviewTimeCaseStudy from "./pages/resources/ReviewTimeCaseStudy";
+import ApprovalMatrix from "./pages/resources/ApprovalMatrix";
+import PortfolioDashboard from "./pages/resources/PortfolioDashboard";
+import SraGuidance from "./pages/resources/SraGuidance";
 import CaseStudy from "./pages/CaseStudy";
 import ForFunds from "./pages/ForFunds";
 import Portfolio from "./pages/Portfolio";
@@ -210,6 +216,12 @@ function AppRoutes() {
       {/* Public info pages */}
       <Route path="/security"   element={<Security />} />
       <Route path="/resources"  element={<Resources />} />
+      <Route path="/resources/first-playbook"         element={<FirstPlaybook />} />
+      <Route path="/resources/rag-status"             element={<RagStatus />} />
+      <Route path="/resources/review-time-case-study" element={<ReviewTimeCaseStudy />} />
+      <Route path="/resources/approval-matrix"        element={<ApprovalMatrix />} />
+      <Route path="/resources/portfolio-dashboard"    element={<PortfolioDashboard />} />
+      <Route path="/resources/sra-guidance"           element={<SraGuidance />} />
       <Route path="/case-study" element={<CaseStudy />} />
       <Route path="/for-funds"  element={<ForFunds />} />
 
