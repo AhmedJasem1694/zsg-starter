@@ -87,8 +87,20 @@ function CyclingPhrase() {
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
+const LANDING_FAQS = [
+  { q: "How long does it take to get started?", a: "Around 30 minutes. You configure your playbook positions, set your approval thresholds, and upload your first contract. No implementation project. No technical setup. No enterprise sales process." },
+  { q: "Do I need a technical team to set this up?", a: "No. Zane is entirely self-serve. If you can fill in a form you can configure Zane. The only technical requirement is a browser." },
+  { q: "Are my contracts used to train AI models?", a: "Never. Your contracts are anonymised before any AI model sees them and are never used for model training of any kind. Your data stays yours." },
+  { q: "How is Zane different from Claude for Legal or Harvey?", a: "Claude for Legal is a generic assistant that starts from zero every session. Harvey is built for Magic Circle law firms at six figures a year. Neither of them knows your company. Zane is built specifically for lean in-house teams and gets smarter about your company with every contract reviewed." },
+  { q: "What happens to my data if I cancel?", a: "Your data is yours. You can export everything before you cancel. We do not hold your data hostage." },
+  { q: "Does Zane replace my lawyer?", a: "No. Zane handles the objective layer so your lawyer can focus on the judgment calls that actually require a lawyer. Every recommendation Zane makes requires a human decision before anything happens." },
+  { q: "What contract types does Zane support?", a: "Commercial contracts, supplier agreements, customer MSAs, NDAs, technology agreements, employment contracts, and more. The playbook engine works for any contract type you configure it for." },
+  { q: "Is there a minimum contract or commitment?", a: "No minimum contract. No implementation fee. Cancel anytime. All plans are monthly." },
+];
+
 export default function Landing() {
   const shouldReduce = useReducedMotion();
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   // Lenis smooth scroll
   useEffect(() => {
@@ -124,6 +136,7 @@ export default function Landing() {
               );
             })}
             <Link to="/case-study" className="text-white/50 hover:text-white transition-colors duration-300">Case study</Link>
+            <Link to="/resources" className="text-white/50 hover:text-white transition-colors duration-300">Resources</Link>
           </nav>
           <div className="flex items-center gap-2">
             <Link to="/login" className="px-4 py-1.5 text-sm text-white/50 hover:text-white transition-colors duration-300">Sign in</Link>
@@ -795,6 +808,41 @@ export default function Landing() {
               </motion.div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ─── FAQ ─────────────────────────────────────────────────────────────── */}
+      <section className="max-w-3xl mx-auto px-6 py-20">
+        <motion.div className="text-center mb-10" {...headingReveal}>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Frequently asked questions</h2>
+        </motion.div>
+        <div className="space-y-3">
+          {LANDING_FAQS.map((faq, i) => {
+            const isOpen = openFaq === i;
+            return (
+              <motion.div
+                key={i}
+                className="rounded-xl border border-[#1B2533] bg-[#111A24] overflow-hidden"
+                {...fadeUp(i * 0.04)}
+              >
+                <button
+                  className="w-full flex items-center justify-between px-6 py-4 text-left gap-4"
+                  onClick={() => setOpenFaq(isOpen ? null : i)}
+                >
+                  <span className="text-sm font-semibold text-white">{faq.q}</span>
+                  <span className={`shrink-0 w-5 h-5 rounded-full border border-white/20 flex items-center justify-center transition-transform duration-200 ${isOpen ? "rotate-45" : ""}`}>
+                    <X size={10} className="text-white/50" />
+                  </span>
+                </button>
+                <div
+                  className="overflow-hidden transition-all duration-300 ease-in-out"
+                  style={{ maxHeight: isOpen ? "300px" : "0px", opacity: isOpen ? 1 : 0 }}
+                >
+                  <p className="px-6 pb-5 text-sm text-white/60 leading-relaxed">{faq.a}</p>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       </section>
 

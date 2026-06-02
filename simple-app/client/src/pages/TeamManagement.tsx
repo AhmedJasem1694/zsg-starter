@@ -36,7 +36,7 @@ const ONBOARDING_STEPS = [
   {
     icon: Upload,
     title: "Upload your first contract",
-    desc: "Upload a PDF or DOCX - Zane will review it against your playbook in under 2 minutes.",
+    desc: "Upload a PDF or DOCX - Zane will review it against your playbook and return a structured risk report.",
     href: "/app/legal/dashboard",
   },
   {

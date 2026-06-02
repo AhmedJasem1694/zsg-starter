@@ -219,7 +219,7 @@ export default function Resources() {
         <div className="rounded-2xl border border-primary/20 bg-primary/5 p-10">
           <h2 className="text-2xl font-bold mb-3">Ready to run your first review?</h2>
           <p className="text-muted-foreground text-sm mb-6 max-w-md mx-auto">
-            Upload a contract, set your playbook, and get a structured risk report in under 2 minutes.
+            Upload a contract, set your playbook, and get a structured risk report.
           </p>
           <Link
             to="/register"
