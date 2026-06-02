@@ -108,7 +108,7 @@ export default function AuditTrail() {
     to: toDate ? toDate + " 23:59:59" : undefined,
   };
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["audit-log", page, filters],
     queryFn: () => getAuditLog(page, 50, filters),
   });
@@ -192,7 +192,16 @@ export default function AuditTrail() {
           <div className="text-sm text-muted-foreground py-8 text-center">Loading audit log…</div>
         )}
 
-        {!isLoading && (!data?.entries?.length) && (
+        {isError && (
+          <div className="card p-8 text-center space-y-2">
+            <div className="font-medium text-destructive">Failed to load audit log</div>
+            <p className="text-xs text-muted-foreground">
+              There was a problem fetching the audit entries. Please try refreshing the page.
+            </p>
+          </div>
+        )}
+
+        {!isLoading && !isError && (!data?.entries?.length) && (
           <div className="card p-12 text-center space-y-3">
             <ClipboardList size={32} className="text-muted-foreground/30 mx-auto" />
             <div className="font-medium text-muted-foreground">

@@ -94,7 +94,7 @@ export default function Portfolio() {
           <div>
             <h1 className="text-2xl font-semibold">Portfolio Risk</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Commercial answers about your contract portfolio — not analytics, not percentages.
+              Commercial answers about your contract portfolio. Not analytics, not percentages.
             </p>
           </div>
         </div>
@@ -111,7 +111,7 @@ export default function Portfolio() {
             <div className="space-y-2">
               <div className="font-semibold">No portfolio data yet</div>
               <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                Upload 3 or more contracts to see recurring risk across your estate — which clause types consistently
+                Upload 3 or more contracts to see recurring risk across your estate: which clause types consistently
                 flag red, which counterparties deviate most from your playbook, and where contract value is concentrated.
               </p>
             </div>

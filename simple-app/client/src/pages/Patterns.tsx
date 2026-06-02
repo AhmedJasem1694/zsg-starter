@@ -92,13 +92,13 @@ const PATTERN_META: Record<string, { name: string; impact: string; action: strin
   },
   high_red_acceptance: {
     name: "High red acceptance rate",
-    impact: "Systematic playbook erosion — your stated positions may not reflect actual practice.",
+    impact: "Systematic playbook erosion: your stated positions may not reflect actual practice.",
     action: "Recalibrate your playbook to reflect realistic negotiation positions.",
   },
   clean_streak: {
     name: "Strong playbook alignment",
     impact: "Reduced legal risk across your contract portfolio.",
-    action: "Maintain current playbook positions — continue monitoring.",
+    action: "Maintain current playbook positions. Continue monitoring.",
   },
 };
 
@@ -411,7 +411,7 @@ export default function Patterns() {
               <div className="font-semibold">No patterns detected yet</div>
               <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
                 Zane builds memory from your review decisions. After you accept, negotiate, or escalate clauses across
-                5 or more contracts, patterns will surface here — recurring counterparty behaviour, clause types
+                5 or more contracts, patterns will surface here: recurring counterparty behaviour, clause types
                 that consistently fail your playbook, and drift between your stated positions and actual outcomes.
               </p>
             </div>

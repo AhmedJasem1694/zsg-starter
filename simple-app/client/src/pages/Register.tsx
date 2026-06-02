@@ -170,9 +170,9 @@ export default function Register() {
             </div>
             <div className="space-y-3">
               {[
-                { value: "CONSERVATIVE", label: "Conservative — we hold firm on positions" },
-                { value: "BALANCED", label: "Balanced — we negotiate case by case" },
-                { value: "COMMERCIAL", label: "Commercial — we accept risk for growth" },
+                { value: "CONSERVATIVE", label: "Conservative: we hold firm on positions" },
+                { value: "BALANCED", label: "Balanced: we negotiate case by case" },
+                { value: "COMMERCIAL", label: "Commercial: we accept risk for growth" },
               ].map((opt) => (
                 <button
                   key={opt.value}

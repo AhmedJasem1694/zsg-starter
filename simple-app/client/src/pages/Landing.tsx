@@ -343,12 +343,12 @@ export default function Landing() {
               <div className="flex items-center gap-2 pb-2 border-b border-[#1E293B]">
                 <div className="w-2 h-2 rounded-full bg-red-400" />
                 <span className="text-[11px] font-bold text-white">Liability Cap</span>
-                <span className="ml-auto text-[9px] bg-[#1F0A0A] text-white border border-[#450A0A] rounded px-1.5 py-0.5">RED — High Risk</span>
+                <span className="ml-auto text-[9px] bg-[#1F0A0A] text-white border border-[#450A0A] rounded px-1.5 py-0.5">RED: High Risk</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] px-2.5 py-2 space-y-1">
                   <div className="text-[8px] font-bold uppercase tracking-widest text-white/50">Issue</div>
-                  <div className="text-[10px] text-white leading-snug">Cap set at £500k — below your 1× annual fees minimum threshold.</div>
+                  <div className="text-[10px] text-white leading-snug">Cap set at £500k, below your 1x annual fees minimum threshold.</div>
                 </div>
                 <div className="rounded-lg bg-[#0D1521] border border-[#1E293B] px-2.5 py-2 space-y-1">
                   <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Why it matters</div>
@@ -374,16 +374,16 @@ export default function Landing() {
           {/* ── Mockup 3: Escalation and sign-off workflow ── */}
           <div className="flex flex-col md:flex-row gap-10 items-center">
             <div className="flex-1 rounded-xl bg-[#0B1118] border border-[#1B2533] aspect-video overflow-hidden p-5 space-y-3 select-none pointer-events-none">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-white/40 pb-2 border-b border-[#1E293B]">Escalation Required — 2 tiers triggered</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-white/40 pb-2 border-b border-[#1E293B]">Escalation Required: 2 tiers triggered</div>
               <div className="space-y-2">
                 <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] px-3 py-2.5 space-y-1.5">
-                  <div className="text-[9px] font-bold uppercase tracking-widest text-white">Tier 1 — Clause Risk</div>
+                  <div className="text-[9px] font-bold uppercase tracking-widest text-white">Tier 1: Clause Risk</div>
                   <div className="text-[10px] text-white/80">· <span className="font-semibold">Liability Cap:</span> Cap set below your 1× annual fees minimum</div>
                   <div className="text-[10px] text-white/80">· <span className="font-semibold">Indemnity:</span> Broad consequential loss coverage accepted</div>
                 </div>
                 <div className="rounded-lg bg-[#1C0F00] border border-[#431407] px-3 py-2.5">
-                  <div className="text-[9px] font-bold uppercase tracking-widest text-white mb-1">Tier 2 — Contract Value</div>
-                  <div className="text-[10px] text-white/80">£840,000 — CFO approval required above £500k threshold</div>
+                  <div className="text-[9px] font-bold uppercase tracking-widest text-white mb-1">Tier 2: Contract Value</div>
+                  <div className="text-[10px] text-white/80">£840,000: CFO approval required above £500k threshold</div>
                 </div>
               </div>
               <div className="pt-1">
@@ -407,7 +407,7 @@ export default function Landing() {
           {/* ── Mockup 4: Playbook with outcome variance ── */}
           <div className="flex flex-col md:flex-row-reverse gap-10 items-center">
             <div className="flex-1 rounded-xl bg-[#0B1118] border border-[#1B2533] aspect-video overflow-hidden p-5 select-none pointer-events-none">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-white/40 pb-2 border-b border-[#1E293B] mb-3">Liability Cap — Written vs Actual</div>
+              <div className="text-[10px] font-bold uppercase tracking-widest text-white/40 pb-2 border-b border-[#1E293B] mb-3">Liability Cap: Written vs Actual</div>
               <div className="grid grid-cols-2 gap-5 h-[calc(100%-36px)]">
                 <div className="space-y-2">
                   <div className="text-[9px] text-white/40 uppercase tracking-widest">Written position</div>
@@ -418,7 +418,7 @@ export default function Landing() {
                   <div className="mt-2 text-[9px] bg-[#1F0A0A] text-white border border-[#450A0A] rounded px-2 py-1">⚠ Drifting below preferred</div>
                 </div>
                 <div className="space-y-3">
-                  <div className="text-[9px] text-white/40 uppercase tracking-widest">Actual outcomes — 6 contracts</div>
+                  <div className="text-[9px] text-white/40 uppercase tracking-widest">Actual outcomes: 6 contracts</div>
                   {[
                     { label: "Preferred", pct: 33, bg: "bg-[#14532D]" },
                     { label: "Fallback",  pct: 33, bg: "bg-[#431407]" },
