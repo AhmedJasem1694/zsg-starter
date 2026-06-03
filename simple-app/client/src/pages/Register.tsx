@@ -6,15 +6,18 @@ import { register } from "../lib/api";
 type ErrorType = "already_exists" | "generic" | null;
 
 const SECTORS = [
-  "Technology",
   "Financial Services",
+  "Technology",
   "Healthcare",
-  "Real Estate",
-  "Retail",
-  "Manufacturing",
+  "Logistics and Supply Chain",
+  "Legal Services",
   "Professional Services",
-  "Media & Entertainment",
-  "Energy",
+  "Charity and Non-profit",
+  "Real Estate and Property",
+  "Construction and Development",
+  "Retail and Consumer",
+  "Media and Entertainment",
+  "Energy and Infrastructure",
   "Other",
 ];
 
@@ -29,14 +32,18 @@ export default function Register() {
   const [preStep, setPreStep] = useState(1); // 1=persona, 2=sector, 3=risk, 4=account
   const [persona, setPersona] = useState('');
   const [sector, setSector] = useState('');
+  const [customSector, setCustomSector] = useState('');
   const [riskAppetite, setRiskAppetite] = useState('');
+
+  // The resolved sector value: if "Other" is selected, use the custom input
+  const resolvedSector = sector === 'Other' ? customSector.trim() : sector;
 
   const mut = useMutation({
     mutationFn: () => register({ name: form.name, email: form.email, password: form.password }),
     onSuccess: async () => {
       // Store pre-step answers so Onboarding can pre-populate
       sessionStorage.setItem('onboarding_persona', persona);
-      sessionStorage.setItem('onboarding_sector', sector);
+      sessionStorage.setItem('onboarding_sector', resolvedSector);
       sessionStorage.setItem('onboarding_risk_appetite', riskAppetite);
       // Refetch auth so user is set before we navigate
       await queryClient.refetchQueries({ queryKey: ["auth-me"] });
@@ -121,12 +128,12 @@ export default function Register() {
             <div>
               <h2 className="text-base font-semibold">What sector is your company in?</h2>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               <label className="text-sm font-medium">Sector</label>
               <select
                 className="input"
                 value={sector}
-                onChange={(e) => setSector(e.target.value)}
+                onChange={(e) => { setSector(e.target.value); setCustomSector(''); }}
                 autoFocus
               >
                 <option value="">Select a sector…</option>
@@ -134,12 +141,27 @@ export default function Register() {
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
+              {sector === 'Other' && (
+                <div className="space-y-1">
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="Please specify your industry"
+                    value={customSector}
+                    onChange={(e) => setCustomSector(e.target.value)}
+                    autoFocus
+                  />
+                  {sector === 'Other' && customSector.trim() === '' && (
+                    <p className="text-xs text-destructive">Please tell us your industry</p>
+                  )}
+                </div>
+              )}
             </div>
             <button
               type="button"
               className="btn-primary w-full"
               onClick={() => setPreStep(3)}
-              disabled={!sector}
+              disabled={!sector || (sector === 'Other' && !customSector.trim())}
             >
               Continue
             </button>

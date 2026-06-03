@@ -1708,7 +1708,7 @@ function Step4Playbook({ playbook, onUpdate, onBack, onNext }: {
         <button onClick={onBack} className="px-4 py-2.5 text-sm text-white/40 hover:text-white/70 transition-colors">← Back</button>
         <button onClick={onNext}
           className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/25">
-          Next: Approvers →
+          Next: Integrations →
         </button>
       </div>
     </div>
@@ -1949,7 +1949,7 @@ function Step5Governance({
         <button onClick={onBack} className="px-4 py-2.5 text-sm text-white/40 hover:text-white/70 transition-colors">← Back</button>
         <button onClick={onNext}
           className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/25">
-          Next: Team →
+          Next: Invite team →
         </button>
       </div>
     </div>
