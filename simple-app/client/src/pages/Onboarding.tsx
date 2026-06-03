@@ -183,14 +183,27 @@ export default function Onboarding() {
   const [step, setStep] = useState<Step>(0);
   const [workflowType, setWorkflowType] = useState<WorkflowType>("COMMERCIAL_CONTRACT");
 
-  // Read sessionStorage keys written by the Register pre-flow
-  const storedPersona = sessionStorage.getItem('onboarding_persona');
-  const storedSector = sessionStorage.getItem('onboarding_sector');
-  const storedRisk = sessionStorage.getItem('onboarding_risk_appetite');
-  // Clear them immediately after reading
-  if (storedPersona) sessionStorage.removeItem('onboarding_persona');
-  if (storedSector) sessionStorage.removeItem('onboarding_sector');
-  if (storedRisk) sessionStorage.removeItem('onboarding_risk_appetite');
+  // Read sessionStorage keys written by the Register pre-flow.
+  // Use useState lazy initializers so values are captured exactly once
+  // (React Strict Mode double-invokes render; sessionStorage is cleared below).
+  const [_storedPersona] = useState(() => sessionStorage.getItem('onboarding_persona'));
+  const [_storedSector]  = useState(() => sessionStorage.getItem('onboarding_sector'));
+  const [_storedRisk]    = useState(() => sessionStorage.getItem('onboarding_risk_appetite'));
+  const storedPersona = _storedPersona;
+  const storedSector  = _storedSector;
+  const storedRisk    = _storedRisk;
+
+  // Flags: did the user already answer these in the Register pre-flow?
+  const [personaWasPreSelected] = useState(() => sessionStorage.getItem('onboarding_persona') !== null);
+  const [riskWasPreSelected]    = useState(() => sessionStorage.getItem('onboarding_risk_appetite') !== null);
+  const [sectorWasPreSelected]  = useState(() => sessionStorage.getItem('onboarding_sector') !== null);
+
+  // Clear sessionStorage after capturing (runs once on mount)
+  useEffect(() => {
+    sessionStorage.removeItem('onboarding_persona');
+    sessionStorage.removeItem('onboarding_sector');
+    sessionStorage.removeItem('onboarding_risk_appetite');
+  }, []);
 
   // Map stored persona string to Persona type
   const initialPersona: Persona =
@@ -317,7 +330,14 @@ export default function Onboarding() {
 
   function handleWorkflowNext(chosen: WorkflowType) {
     setWorkflowType(chosen);
-    setStep(1);
+    // BUG 1 FIX: if the user already selected their persona in the Register
+    // pre-flow (stored in sessionStorage) AND this isn't a litigation workflow
+    // (which has its own persona step), skip Step 1 entirely and go to Step 2.
+    if (personaWasPreSelected && chosen !== "INSURANCE_LITIGATION") {
+      setStep(2);
+    } else {
+      setStep(1);
+    }
   }
 
   function handlePersonaNext(chosen: Persona) {
@@ -524,7 +544,9 @@ export default function Onboarding() {
             workflowType={workflowType}
             selectedJurisdictions={selectedJurisdictions} onJurisdictionsChange={setSelectedJurisdictions}
             selectedIndustries={selectedIndustries} onIndustriesChange={setSelectedIndustries}
-            onBack={() => setStep(1)} onNext={handleCompanyNext}
+            riskWasPreSelected={riskWasPreSelected}
+            sectorWasPreSelected={sectorWasPreSelected}
+            onBack={() => setStep(personaWasPreSelected ? 0 : 1)} onNext={handleCompanyNext}
           />
         )}
         {step === 3 && (
@@ -573,11 +595,9 @@ const WORKFLOW_OPTIONS: { value: WorkflowType; label: string; description: strin
     label: "Litigation",
     description: "Triage and manage claims across insurance, commercial civil, property, employment, and professional indemnity. Coverage analysis through to settlement authority and FCA compliance.",
   },
-  {
-    value: "HEALTHCARE_PROCUREMENT",
-    label: "Healthcare & NHS procurement",
-    description: "Review NHS supplier contracts and healthcare procurement agreements against NHS Standard Contract requirements, CQC obligations, UK GDPR Article 9 (special category health data), and Procurement Act 2023 compliance.",
-  },
+  // HEALTHCARE_PROCUREMENT is intentionally excluded from user-facing options.
+  // Healthcare-specific clause categories and regulatory citations are applied
+  // automatically when the company sector is set to Healthcare during onboarding.
 ];
 
 function Step0Workflow({
@@ -974,7 +994,7 @@ const LITIGATION_PRACTICE_TYPES: { value: string; label: string; sub: string }[]
   { value: "Regulatory & Public Law",             label: "Regulatory & Public Law",    sub: "FCA enforcement, judicial review, public inquiries" },
 ];
 
-function Step2Company({ form, onChange, persona, workflowType, selectedJurisdictions, onJurisdictionsChange, selectedIndustries, onIndustriesChange, onBack, onNext }: {
+function Step2Company({ form, onChange, persona, workflowType, selectedJurisdictions, onJurisdictionsChange, selectedIndustries, onIndustriesChange, riskWasPreSelected, sectorWasPreSelected, onBack, onNext }: {
   form: CompanyForm;
   onChange: (f: CompanyForm) => void;
   persona: Persona;
@@ -983,6 +1003,8 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
   onJurisdictionsChange: (j: string[]) => void;
   selectedIndustries: Industry[];
   onIndustriesChange: (i: Industry[]) => void;
+  riskWasPreSelected?: boolean;
+  sectorWasPreSelected?: boolean;
   onBack: () => void;
   onNext: () => void;
 }) {
@@ -1346,14 +1368,16 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
           )}
         </DarkField>
 
-        {/* Sector */}
-        <DarkField label="Sector" hint="Auto-filled from industry - edit to be more specific (e.g. 'Mobile F2P gaming').">
-          <DarkInput
-            placeholder="e.g. Mobile gaming, B2B SaaS, Commercial property"
-            value={form.sector}
-            onChange={(e) => onChange({ ...form, sector: e.target.value })}
-          />
-        </DarkField>
+        {/* Sector — hidden when already answered in the Register pre-flow */}
+        {!sectorWasPreSelected && (
+          <DarkField label="Sector" hint="Auto-filled from industry - edit to be more specific (e.g. 'Mobile F2P gaming').">
+            <DarkInput
+              placeholder="e.g. Mobile gaming, B2B SaaS, Commercial property"
+              value={form.sector}
+              onChange={(e) => onChange({ ...form, sector: e.target.value })}
+            />
+          </DarkField>
+        )}
 
         {/* Jurisdictions */}
         <DarkField label="Jurisdictions" required hint="Select all that apply.">
@@ -1387,18 +1411,20 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
           </DarkField>
         )}
 
-        {/* Risk appetite slider */}
-        <DarkField label="Risk appetite" required hint="Sets default clause positions - adjust each one in the playbook step.">
-          <RiskAppetiteSlider
-            value={form.riskAppetite}
-            onChange={(v) => onChange({ ...form, riskAppetite: v })}
-            labels={[
-              { value: "CONSERVATIVE", label: "Conservative", sub: "Maximum protection" },
-              { value: "MODERATE",     label: "Moderate",     sub: "Balanced (recommended)" },
-              { value: "COMMERCIAL",   label: "Commercial",   sub: persona === "FOUNDER" ? "Founder-friendly" : "Deal-oriented" },
-            ]}
-          />
-        </DarkField>
+        {/* Risk appetite slider — hidden when already answered in the Register pre-flow */}
+        {!riskWasPreSelected && (
+          <DarkField label="Risk appetite" required hint="Sets default clause positions - adjust each one in the playbook step.">
+            <RiskAppetiteSlider
+              value={form.riskAppetite}
+              onChange={(v) => onChange({ ...form, riskAppetite: v })}
+              labels={[
+                { value: "CONSERVATIVE", label: "Conservative", sub: "Maximum protection" },
+                { value: "MODERATE",     label: "Moderate",     sub: "Balanced (recommended)" },
+                { value: "COMMERCIAL",   label: "Commercial",   sub: persona === "FOUNDER" ? "Founder-friendly" : "Deal-oriented" },
+              ]}
+            />
+          </DarkField>
+        )}
       </div>
 
       <div className="flex justify-between pt-2">
