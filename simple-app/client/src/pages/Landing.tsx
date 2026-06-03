@@ -72,16 +72,22 @@ function CyclingPhrase() {
   }, []);
 
   return (
+    // Fixed min-width = width of the longest phrase ("always auditable.")
+    // Prevents the badge from reflowing/shifting width as the text cycles.
     <span
-      key={index}
-      className={phase === "in" ? "phrase-in" : "phrase-out"}
-      style={{
-        background: "linear-gradient(90deg, #4A6CF7, #7B9BFA)",
-        WebkitBackgroundClip: "text",
-        WebkitTextFillColor: "transparent",
-      }}
+      style={{ display: "inline-block", minWidth: "8.5em", textAlign: "center" }}
     >
-      {PHRASES[index]}
+      <span
+        key={index}
+        className={phase === "in" ? "phrase-in" : "phrase-out"}
+        style={{
+          background: "linear-gradient(90deg, #4A6CF7, #7B9BFA)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+        }}
+      >
+        {PHRASES[index]}
+      </span>
     </span>
   );
 }
@@ -638,6 +644,24 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ─── VALUE FRAMING ───────────────────────────────────────────────────── */}
+      <section className="max-w-3xl mx-auto px-6 pt-16 pb-2 text-center space-y-4">
+        <motion.div {...headingReveal}>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+            What does it actually cost you today?
+          </h2>
+        </motion.div>
+        <motion.p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto" {...fadeUp(0.1)}>
+          Every contract your team reviews manually takes two to four hours. At outside counsel rates
+          that is £800 to £1,600 per contract. At in-house rates it is your most qualified person
+          doing work a structured system could handle in minutes.
+        </motion.p>
+        <motion.p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto" {...fadeUp(0.15)}>
+          Zane handles the first pass. Every time. So your lawyer focuses on the decisions that
+          actually need a lawyer.
+        </motion.p>
+      </section>
+
       {/* ─── PRICING ─────────────────────────────────────────────────────────── */}
       <section id="pricing" className="max-w-6xl mx-auto px-6 py-20 space-y-10">
         <motion.div className="text-center space-y-3" {...headingReveal}>
@@ -816,7 +840,7 @@ export default function Landing() {
       {/* ─── FAQ ─────────────────────────────────────────────────────────────── */}
       <section className="max-w-3xl mx-auto px-6 py-20">
         <motion.div className="text-center mb-10" {...headingReveal}>
-          <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Frequently asked questions</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Frequently asked questions</h2>
         </motion.div>
         <div className="space-y-3">
           {LANDING_FAQS.map((faq, i) => {

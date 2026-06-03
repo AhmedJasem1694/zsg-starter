@@ -208,7 +208,14 @@ export type ClauseCategory =
   | "HC_HEALTHCARE_ANTIBRIBERY"
   | "HC_MODERN_SLAVERY_SUPPLY"
   | "HC_REGULATORY_BREACH_TERM"
-  | "HC_HEALTHCARE_INSURANCE";
+  | "HC_HEALTHCARE_INSURANCE"
+  // Real Estate & Property
+  | "PROP_ALIENATION"
+  | "PROP_FORFEITURE"
+  | "PROP_PLANNING_USE"
+  | "PROP_BUILDING_SAFETY"
+  | "PROP_FM_SERVICES"
+  | "PROP_CONSTRUCTION";
 
 export const CLAUSE_CATEGORIES: ClauseCategory[] = [
   "LIABILITY_CAP",
@@ -446,6 +453,13 @@ export const CLAUSE_LABELS: Record<ClauseCategory, string> = {
   HC_MODERN_SLAVERY_SUPPLY: "Modern Slavery & Supply Chain",
   HC_REGULATORY_BREACH_TERM: "Termination for Regulatory Breach",
   HC_HEALTHCARE_INSURANCE: "Insurance for Healthcare Activities",
+  // Real Estate & Property
+  PROP_ALIENATION:      "Alienation & Assignment",
+  PROP_FORFEITURE:      "Forfeiture & Remedies",
+  PROP_PLANNING_USE:    "Planning & Permitted Use",
+  PROP_BUILDING_SAFETY: "Building Safety",
+  PROP_FM_SERVICES:     "FM & Service Agreements",
+  PROP_CONSTRUCTION:    "Construction & Development",
 };
 
 // Property-specific clause types (shown only for real estate / property contracts)
@@ -454,6 +468,12 @@ export const PROPERTY_CLAUSE_CATEGORIES: ClauseCategory[] = [
   "BREAK_CLAUSE",
   "REPAIR_OBLIGATIONS",
   "SERVICE_CHARGE",
+  "PROP_ALIENATION",
+  "PROP_FORFEITURE",
+  "PROP_PLANNING_USE",
+  "PROP_BUILDING_SAFETY",
+  "PROP_FM_SERVICES",
+  "PROP_CONSTRUCTION",
 ];
 
 // Gaming-specific clause types (shown for gaming / interactive entertainment contracts)
@@ -1601,6 +1621,37 @@ export const PLAYBOOK_DEFAULTS: Record<
       acceptableFallback: "Clinical negligence cover maintained via CNST or equivalent. Employers' and public liability at statutory minima. Professional indemnity £2M. Annual evidence.",
       hardRedLine: "No clinical negligence cover for clinical activities. No public liability insurance appropriate to healthcare operating environment. Unilateral reduction of cover without notice.",
     },
+    // Real Estate & Property additions (CONSERVATIVE defaults)
+    PROP_ALIENATION: {
+      preferredPosition: "Assignment and subletting permitted with landlord consent, not to be unreasonably withheld, conditioned, or delayed. Deemed consent after 28 days' silence. No requirement for original tenant guarantee post-assignment where assignee is creditworthy (net worth at least 3× annual rent).",
+      acceptableFallback: "Assignment permitted with landlord consent (reasonably withheld). Authorised Guarantee Agreement from outgoing tenant on first assignment only. Subletting permitted to subsidiaries.",
+      hardRedLine: "Absolute prohibition on assignment with no landlord discretion. Requirement for AGA on every subsequent assignment. No subletting right at all.",
+    },
+    PROP_FORFEITURE: {
+      preferredPosition: "Landlord's forfeiture right restricted to material uncured breach. Minimum 14-day notice to remedy for monetary breach, 28 days for non-monetary breach. Tenant has right to apply for relief from forfeiture in all circumstances. No peaceable re-entry right for commercial premises.",
+      acceptableFallback: "Forfeiture on breach after 14-day notice to remedy. Right to relief from forfeiture preserved. No self-help remedy for non-payment.",
+      hardRedLine: "Immediate forfeiture without notice or opportunity to remedy. Waiver of right to apply for relief from forfeiture.",
+    },
+    PROP_PLANNING_USE: {
+      preferredPosition: "Permitted use defined broadly to cover all activities of the tenant's business group. Express right for tenant to apply for planning permission at its own cost. Landlord not to unreasonably withhold consent to change of use where planning obtained.",
+      acceptableFallback: "Use clause defined to cover principal business activities with landlord consent (reasonably withheld) for ancillary changes. Tenant entitled to apply for planning.",
+      hardRedLine: "Single narrowly defined use with absolute prohibition on change and no landlord discretion. Restriction preventing tenant from applying for planning permission.",
+    },
+    PROP_BUILDING_SAFETY: {
+      preferredPosition: "Accountable person obligations clearly allocated in accordance with Building Safety Act 2022. Where HRB (above 18m/7 storeys), tenant not to accept accountable person responsibilities without corresponding information and access rights. Building Safety Levy obligations on landlord for new builds. Remediation obligations defined and allocated.",
+      acceptableFallback: "Building Safety Act 2022 compliance obligations clearly allocated. Tenant accepts limited accountable person obligations only where granted full access and information rights. Remediation contribution terms capped.",
+      hardRedLine: "Tenant accepting accountable person obligations for higher-risk building without rights of access, information, or recourse against landlord. Unlimited remediation liability without cap or allocation mechanism.",
+    },
+    PROP_FM_SERVICES: {
+      preferredPosition: "FM services defined with specific KPIs and SLAs. Response times: P1 emergency 2 hours, P2 urgent 24 hours, P3 routine 5 working days. Step-in right on repeated failure (3 consecutive KPI breaches). Termination for persistent underperformance after 30-day cure notice. Annual benchmarking right.",
+      acceptableFallback: "KPIs defined with monthly reporting. Step-in right on material failure. Termination on persistent underperformance after 60-day cure. Benchmarking every 3 years.",
+      hardRedLine: "No KPIs or performance standards defined. No step-in or termination right for underperformance. No benchmarking right.",
+    },
+    PROP_CONSTRUCTION: {
+      preferredPosition: "JCT or NEC form used with minimal bespoke amendment. Payment provisions fully compliant with Housing Grants, Construction and Regeneration Act 1996 (HGCRA): monthly applications, 28-day pay periods, no pay when paid. Retention capped at 3% with release mechanism. Practical completion definition agreed. 12-month defects liability period. Adjudication right preserved.",
+      acceptableFallback: "Standard form contract with limited amendments. HGCRA-compliant payment. Retention 5% with release. 6-month defects liability period. Adjudication preserved.",
+      hardRedLine: "Payment provisions breaching HGCRA 1996 requirements. Pay-when-paid clauses (subject to specified exceptions). Retention above 10% with no release mechanism. Waiver of adjudication rights.",
+    },
   },
   MODERATE: {
     LIABILITY_CAP: {
@@ -2399,6 +2450,12 @@ export const PLAYBOOK_DEFAULTS: Record<
       acceptableFallback: "Clinical negligence cover maintained via CNST or equivalent. Employers' and public liability at statutory minima. Professional indemnity £2M. Annual evidence.",
       hardRedLine: "No clinical negligence cover for clinical activities. No public liability insurance appropriate to healthcare operating environment.",
     },
+    PROP_ALIENATION: { preferredPosition: "Assignment permitted with landlord consent not to be unreasonably withheld, conditioned, or delayed. AGA on first assignment only.", acceptableFallback: "Assignment with consent. AGA from outgoing tenant. Subletting to group companies without consent.", hardRedLine: "Absolute prohibition on assignment or subletting with no landlord discretion." },
+    PROP_FORFEITURE: { preferredPosition: "Forfeiture restricted to material uncured breach with 14-day remedy notice. Relief from forfeiture right preserved.", acceptableFallback: "Forfeiture after 14-day cure notice. Right to apply for relief preserved.", hardRedLine: "Immediate forfeiture without notice. Waiver of relief from forfeiture." },
+    PROP_PLANNING_USE: { preferredPosition: "Broad use clause covering full business group activities. Tenant may apply for planning. Consent to change of use not unreasonably withheld.", acceptableFallback: "Use clause covers principal activities. Tenant may apply for planning. Consent with reasons.", hardRedLine: "Single narrowly defined use with absolute prohibition and no landlord discretion." },
+    PROP_BUILDING_SAFETY: { preferredPosition: "Building Safety Act 2022 obligations clearly allocated. Tenant not to accept accountable person responsibilities without information and access rights.", acceptableFallback: "BSA 2022 compliance obligations allocated. Tenant accountable person obligations only with full access and information rights.", hardRedLine: "Tenant accepting accountable person obligations for HRB without access rights or recourse against landlord." },
+    PROP_FM_SERVICES: { preferredPosition: "FM KPIs and SLAs defined. Response times: P1 2h, P2 24h, P3 5 days. Step-in right on 3 consecutive KPI breaches. Benchmarking annually.", acceptableFallback: "KPIs defined with monthly reporting. Step-in on material failure. Benchmarking every 3 years.", hardRedLine: "No KPIs or performance standards. No step-in or termination right for underperformance." },
+    PROP_CONSTRUCTION: { preferredPosition: "Standard form (JCT/NEC). HGCRA 1996 compliant. Retention capped at 3%. 12-month defects period. Adjudication preserved.", acceptableFallback: "Standard form with HGCRA compliance. Retention 5%. 6-month defects. Adjudication preserved.", hardRedLine: "HGCRA-breaching payment terms. Pay-when-paid clauses. Retention above 10%. Waiver of adjudication." },
   },
   COMMERCIAL: {
     LIABILITY_CAP: {
@@ -3196,6 +3253,12 @@ export const PLAYBOOK_DEFAULTS: Record<
       acceptableFallback: "Clinical negligence cover via CNST or equivalent. Statutory minima for EL and PL. PI £2M.",
       hardRedLine: "No clinical negligence cover for clinical activities. No public liability appropriate to healthcare environment.",
     },
+    PROP_ALIENATION: { preferredPosition: "Assignment permitted with landlord consent (not unreasonably withheld). AGA on first assignment only. Subletting to group companies without consent.", acceptableFallback: "Assignment with consent. AGA from outgoing tenant on first assignment.", hardRedLine: "Absolute prohibition on assignment with no landlord discretion." },
+    PROP_FORFEITURE: { preferredPosition: "Forfeiture on material uncured breach. 14-day remedy notice. Right to apply for relief from forfeiture preserved.", acceptableFallback: "Forfeiture after notice. Relief from forfeiture right preserved.", hardRedLine: "Immediate forfeiture without notice. Waiver of relief from forfeiture." },
+    PROP_PLANNING_USE: { preferredPosition: "Broad use clause. Tenant may apply for planning. Consent to change of use not unreasonably withheld.", acceptableFallback: "Use covers principal activities. Reasonable consent to change of use.", hardRedLine: "Narrow defined use. Absolute prohibition. No landlord discretion." },
+    PROP_BUILDING_SAFETY: { preferredPosition: "Building Safety Act 2022 obligations allocated. Tenant not to accept accountable person obligations without access and information rights.", acceptableFallback: "BSA 2022 obligations allocated. Limited accountable person acceptance with access rights.", hardRedLine: "Tenant accepts accountable person obligations for HRB without access rights or recourse." },
+    PROP_FM_SERVICES: { preferredPosition: "FM KPIs and SLAs. Step-in right on repeated failure. Benchmarking right.", acceptableFallback: "KPIs defined. Step-in on material failure. Periodic benchmarking.", hardRedLine: "No KPIs. No step-in right. No termination for persistent underperformance." },
+    PROP_CONSTRUCTION: { preferredPosition: "Standard form. HGCRA compliant. Retention capped at 3%. Adjudication preserved.", acceptableFallback: "Standard form. HGCRA compliant. Retention 5%. Adjudication preserved.", hardRedLine: "HGCRA-breaching payments. Pay-when-paid. Retention above 10%. No adjudication." },
   },
 };
 
