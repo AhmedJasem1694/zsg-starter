@@ -175,7 +175,25 @@ function sendError(res: Response, status: number, message: string) {
 
 // ── Helper: get the single company (single-company mode) ─────────────────────
 
-async function getCompany(): Promise<PBRecord | null> {
+// Known demo users mapped to a name fragment that identifies their company.
+// Lets multiple demo accounts coexist with separate company records without
+// any PocketBase schema changes.
+const DEMO_COMPANY_MAP: Record<string, string> = {
+  "demo@zanelegal.ai":         "meridian",
+  "founder-demo@zanelegal.ai": "pulse",
+};
+
+async function getCompany(ownerEmail?: string): Promise<PBRecord | null> {
+  // For known demo users, find their specific company by name fragment.
+  // Falls back to list[0] (single-company mode) for all other users.
+  if (ownerEmail && ownerEmail in DEMO_COMPANY_MAP) {
+    const fragment = DEMO_COMPANY_MAP[ownerEmail].toLowerCase();
+    try {
+      const all = await pb.collection("companies").getFullList();
+      const match = all.find((c) => String(c["name"] ?? "").toLowerCase().includes(fragment));
+      if (match) return match;
+    } catch { /* fall through to single-company */ }
+  }
   const list = await pb.collection("companies").getFullList({ batch: 1 }).catch((err: unknown) => {
     console.error("[getCompany] PocketBase query failed:", (err as Error)?.message ?? err);
     throw err;
@@ -354,8 +372,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(mapCompany(company));
   }));
 
-  app.get("/api/company", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/company", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 404, "No company configured"); return; }
 
     const [playbookRules, approvalContacts, regulations] = await Promise.all([
@@ -382,8 +400,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // ── Regulatory ───────────────────────────────────────────────────────────────
 
-  app.post("/api/regulatory/detect", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.post("/api/regulatory/detect", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 404, "No company configured"); return; }
 
     await detectAndSaveRegulations(company.id);
@@ -394,8 +412,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(regs.map(mapRegulation));
   }));
 
-  app.get("/api/regulatory", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/regulatory", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json([]); return; }
 
     const regs = await pb.collection("company_regulations").getFullList({
@@ -411,7 +429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/regulatory/synthesise/:regulationId", requireAuth, ah(async (req: Request, res: Response) => {
     const { regulationId } = req.params as { regulationId: string };
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 404, "No company configured"); return; }
 
     // Load the regulation
@@ -484,8 +502,8 @@ Be precise, practical, and legally accurate. This is advisory context, not legal
   // Returns a digest of recent regulatory developments for the company's
   // active frameworks. Uses LLM simulation (no live API key required).
 
-  app.get("/api/regulatory/updates", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/regulatory/updates", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json({ updates: [] }); return; }
 
     const regs = await pb.collection("company_regulations").getFullList({
@@ -550,7 +568,7 @@ Ensure updates are realistic, plausible, and specific (not generic).`;
   // ── Playbook Rules ───────────────────────────────────────────────────────────
 
   app.post("/api/playbook/rules", requireAuth, ah(async (req: Request, res: Response) => {
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 404, "No company configured"); return; }
 
     const body = req.body as { rules?: unknown[] };
@@ -589,7 +607,7 @@ Ensure updates are realistic, plausible, and specific (not generic).`;
   }));
 
   app.get("/api/playbook/rules", requireAuth, ah(async (req: Request, res: Response) => {
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json([]); return; }
 
     const { workflowType } = req.query as { workflowType?: string };
@@ -668,8 +686,8 @@ Ensure updates are realistic, plausible, and specific (not generic).`;
   // ── Playbook update suggestions based on outcome data ────────────────────────
   // Returns clauses with high drift + an LLM-powered update suggestion for each.
 
-  app.get("/api/playbook/drift-suggestions", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/playbook/drift-suggestions", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json({ suggestions: [] }); return; }
 
     // Load documents first, then query results/feedbacks without chained relation filters
@@ -800,8 +818,8 @@ Each field should be 1-3 sentences of clear, practical legal language.
 
   // ── Counterparty intelligence ────────────────────────────────────────────────
 
-  app.get("/api/playbook/counterparty-intelligence", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/playbook/counterparty-intelligence", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json({ intelligence: {} }); return; }
 
     const docs = await pb.collection("uploaded_documents").getFullList({
@@ -882,8 +900,8 @@ Each field should be 1-3 sentences of clear, practical legal language.
 
   // ── New hire briefing ────────────────────────────────────────────────────────
 
-  app.post("/api/playbook/briefing", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.post("/api/playbook/briefing", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 404, "No company configured"); return; }
 
     const [playbookRules, docs, recentEscalations] = await Promise.all([
@@ -983,7 +1001,7 @@ Write as a professional onboarding document. No legal jargon. Practical and read
   // ── Approval Contacts ────────────────────────────────────────────────────────
 
   app.post("/api/company/contacts", requireAuth, ah(async (req: Request, res: Response) => {
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 404, "No company configured"); return; }
 
     const body = req.body as { contacts?: unknown[] };
@@ -1023,7 +1041,7 @@ Write as a professional onboarding document. No legal jargon. Practical and read
     ah(async (req: Request, res: Response) => {
       // Document-first flow: accept uploads even before onboarding is complete.
       // The document will be associated with the company via POST /api/quick-setup.
-      const company = await getCompany();
+      const company = await getCompany(req.user?.email);
 
       const file = req.file;
       if (!file) { sendError(res, 400, "No file uploaded"); return; }
@@ -1237,7 +1255,7 @@ ${rawText}`,
   }));
 
   app.get("/api/documents", requireAuth, ah(async (req: Request, res: Response) => {
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json([]); return; }
 
     const { search, ragStatus, contractType: typeFilter } = req.query as Record<string, string>;
@@ -1313,8 +1331,8 @@ ${rawText}`,
     res.json(mapped);
   }));
 
-  app.get("/api/documents/stats", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/documents/stats", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) {
       res.json({ totalContracts: 0, totalValue: 0, redContracts: 0, renewalsDue: 0 });
       return;
@@ -1358,8 +1376,8 @@ ${rawText}`,
   // ── Missing document check ────────────────────────────────────────────────────
   // MUST be registered before GET /api/documents/:id or Express routes "missing" as id="missing"
 
-  app.get("/api/documents/missing", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/documents/missing", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json({ missing: [] }); return; }
 
     const docs = await pb.collection("uploaded_documents").getFullList({
@@ -1410,7 +1428,7 @@ ${rawText}`,
     }
 
     // Tenant guard: ensure document belongs to the active company
-    const ownerCompany = await getCompany();
+    const ownerCompany = await getCompany(req.user?.email);
     if (ownerCompany && (doc["company"] as string) !== ownerCompany.id) {
       sendError(res, 403, "Forbidden"); return;
     }
@@ -1503,7 +1521,7 @@ ${rawText}`,
   app.delete("/api/documents/:id", requireAuth, ah(async (req: Request, res: Response) => {
     const { id } = req.params as { id: string };
     const { userId } = req.user!;
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 404, "Company not found"); return; }
     try {
       await assertOwnsDocument(userId, id, company.id as string);
@@ -1520,7 +1538,7 @@ ${rawText}`,
     if (!Array.isArray(ids) || ids.length === 0) {
       sendError(res, 400, "ids array required"); return;
     }
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 404, "Company not found"); return; }
     // Verify ownership of all before deleting any
     await Promise.all(ids.map((id) => assertOwnsDocument(userId, id, company.id as string)));
@@ -1530,7 +1548,7 @@ ${rawText}`,
 
   app.delete("/api/company/contracts", requireAuth, ah(async (req: Request, res: Response) => {
     const { userId } = req.user!;
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 404, "Company not found"); return; }
     const allDocs = await pb.collection("uploaded_documents").getFullList({
       filter: `company = "${company.id}"`,
@@ -1575,7 +1593,7 @@ ${rawText}`,
     }
 
     // Guard: refuse to start review if no playbook rules exist, as this would produce empty results
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (company) {
       const rules = await pb.collection("playbook_rules").getFullList({
         filter: `company = "${company.id}"`,
@@ -1610,7 +1628,7 @@ ${rawText}`,
     }
 
     // Tenant isolation: verify document belongs to the requesting user's company
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company || (doc["company"] as string) !== company.id) {
       sendError(res, 403, "Forbidden"); return;
     }
@@ -1765,8 +1783,8 @@ ${rawText}`,
 
   // ── Feedback patterns (memory layer) ─────────────────────────────────────────
 
-  app.get("/api/feedback/patterns", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/feedback/patterns", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json({ patterns: [], clauseOutcomes: [], counterpartyPatterns: [], negotiationDrift: [] }); return; }
 
     const docs = await pb.collection("uploaded_documents").getFullList({
@@ -2037,7 +2055,7 @@ Write the negotiation email paragraph.`;
     const doc = await pb.collection("uploaded_documents").getOne(documentId).catch(() => null);
     if (!doc) { sendError(res, 404, "Document not found"); return; }
 
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     const riskAppetite = (company?.["riskAppetite"] as string | undefined) ?? "MODERATE";
     const companyName  = (company?.["name"] as string | undefined) ?? "us";
 
@@ -2216,7 +2234,7 @@ Rewrite the full clause incorporating the change. Keep it professional and compl
     const doc          = await pb.collection("uploaded_documents").getOne(result["document"] as string).catch(() => null);
     const contractType = ((doc?.["contractType"] as string | undefined) ?? "commercial agreement").replace(/_/g, " ").toLowerCase();
 
-    const company      = await getCompany();
+    const company      = await getCompany(req.user?.email);
     const riskAppetite = (company?.["riskAppetite"] as string | undefined) ?? "MODERATE";
     const riskDesc     = riskAppetite === "CONSERVATIVE" ? "protective and precise, favouring the founder"
       : riskAppetite === "AGGRESSIVE" ? "commercially assertive, maximising the founder's rights"
@@ -2266,8 +2284,8 @@ Draft the complete clause.`;
 
   // ── Stats ────────────────────────────────────────────────────────────────────
 
-  app.get("/api/stats", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/stats", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json(null); return; }
 
     const docs = await pb.collection("uploaded_documents").getFullList({
@@ -2344,8 +2362,8 @@ Draft the complete clause.`;
 
   // ── Portfolio ─────────────────────────────────────────────────────────────────
 
-  app.get("/api/portfolio", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/portfolio", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json(null); return; }
 
     const completeDocs = await pb.collection("uploaded_documents").getFullList({
@@ -2488,8 +2506,8 @@ Draft the complete clause.`;
 
   // ── Timings ───────────────────────────────────────────────────────────────────
 
-  app.get("/api/timings", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/timings", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json(null); return; }
 
     const docs = await pb.collection("uploaded_documents").getFullList({
@@ -2720,7 +2738,7 @@ Draft the complete clause.`;
 
   // GET /api/library - documents grouped by folder, with version chain resolution
   app.get("/api/library", requireAuth, ah(async (req: Request, res: Response) => {
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json({ folders: [] }); return; }
 
     const { search } = req.query as Record<string, string>;
@@ -2802,8 +2820,8 @@ Draft the complete clause.`;
 
   // ── Approval thresholds ──────────────────────────────────────────────────────
 
-  app.get("/api/governance/thresholds", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/governance/thresholds", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json([]); return; }
     const rows = await pb.collection("approval_thresholds").getFullList({
       filter: `companyId = "${company.id}"`,
@@ -2813,7 +2831,7 @@ Draft the complete clause.`;
   }));
 
   app.post("/api/governance/thresholds", requireAuth, ah(async (req: Request, res: Response) => {
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 400, "Company not found"); return; }
     const thresholds = req.body as Array<{ minValue: number; maxValue: number | null; requiredApprover: string; label: string }>;
     // Replace existing thresholds for this company
@@ -2825,8 +2843,8 @@ Draft the complete clause.`;
 
   // ── Governance triggers ──────────────────────────────────────────────────────
 
-  app.get("/api/governance/triggers", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/governance/triggers", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json([]); return; }
     const rows = await pb.collection("governance_triggers").getFullList({
       filter: `companyId = "${company.id}"`,
@@ -2836,7 +2854,7 @@ Draft the complete clause.`;
   }));
 
   app.post("/api/governance/triggers", requireAuth, ah(async (req: Request, res: Response) => {
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 400, "Company not found"); return; }
     const triggers = req.body as Array<{ clauseCategory: string; escalateTo: string; reason: string }>;
     const existing = await pb.collection("governance_triggers").getFullList({ filter: `companyId = "${company.id}"` });
@@ -2848,7 +2866,7 @@ Draft the complete clause.`;
   // ── Team invites ──────────────────────────────────────────────────────────────
 
   app.post("/api/team/invite", requireAuth, ah(async (req: Request, res: Response) => {
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 400, "Company not found"); return; }
     const { emails, role = "LEGAL" } = req.body as { emails: string[]; role?: string };
     if (!Array.isArray(emails) || emails.length === 0) { sendError(res, 400, "No emails provided"); return; }
@@ -2859,8 +2877,8 @@ Draft the complete clause.`;
     res.json({ invited: created.map((r) => r.id).length });
   }));
 
-  app.get("/api/team/invites", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/team/invites", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json([]); return; }
     const rows = await pb.collection("team_invites").getFullList({
       filter: `companyId = "${company.id}"`,
@@ -2870,7 +2888,7 @@ Draft the complete clause.`;
   }));
 
   app.delete("/api/team/invites/:id", requireAuth, ah(async (req: Request, res: Response) => {
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 404, "Company not found"); return; }
     const { id } = req.params as { id: string };
     try {
@@ -2884,7 +2902,7 @@ Draft the complete clause.`;
   }));
 
   app.patch("/api/team/invites/:id", requireAuth, ah(async (req: Request, res: Response) => {
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 404, "Company not found"); return; }
     const { id } = req.params as { id: string };
     const { status } = req.body as { status?: string };
@@ -3136,8 +3154,8 @@ Draft the complete clause.`;
 
   // ── Step 5 - Company rules engine ────────────────────────────────────────────
 
-  app.get("/api/company-rules", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/company-rules", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json({ PENDING: [], ACTIVE: [], REJECTED: [] }); return; }
 
     const allRules = await pb.collection("company_rules").getFullList({
@@ -3207,7 +3225,7 @@ Draft the complete clause.`;
 
   // Signals summary per clause category
   app.get("/api/accumulation/signals-summary", requireAuth, ah(async (req: Request, res: Response) => {
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json({ overrideCount: 0, outcomeCount: 0, ruleCount: 0, fpCount: 0 }); return; }
 
     const clauseCategory = req.query.clauseCategory as string | undefined;
@@ -3241,8 +3259,8 @@ Draft the complete clause.`;
   }));
 
   // Accumulation progress for dashboard card
-  app.get("/api/accumulation/progress", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/accumulation/progress", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) {
       res.json({
         contractsReviewed: 0, outcomesLogged: 0, patternsDetected: 0, rulesActive: 0,
@@ -3344,8 +3362,8 @@ Draft the complete clause.`;
   }));
 
   // Clause outcomes extended (for Playbook page "Outcomes" tab)
-  app.get("/api/accumulation/clause-outcomes-extended", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/accumulation/clause-outcomes-extended", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json([]); return; }
 
     const extDocs = await pb.collection("uploaded_documents").getFullList({
@@ -3436,8 +3454,8 @@ Draft the complete clause.`;
   }));
 
   // Override rate trend (last 6 months)
-  app.get("/api/accumulation/override-trend", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/accumulation/override-trend", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json([]); return; }
 
     const trend: Array<{ month: string; overrideRate: number; totalResults: number; overrideCount: number }> = [];
@@ -3480,8 +3498,8 @@ Draft the complete clause.`;
 
   // ── Google Drive ──────────────────────────────────────────────────────────────
 
-  app.get("/api/integrations/google-drive/auth", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/integrations/google-drive/auth", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 400, "Complete onboarding first"); return; }
     const authUrl = getGoogleAuthUrl(company.id);
     res.json({ authUrl });
@@ -3503,8 +3521,8 @@ Draft the complete clause.`;
     }
   }));
 
-  app.get("/api/integrations/google-drive/status", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/integrations/google-drive/status", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json(null); return; }
     const configs = await pb.collection("integration_configs").getFullList({
       filter: `companyId = "${company.id}" && provider = "google_drive"`,
@@ -3512,8 +3530,8 @@ Draft the complete clause.`;
     res.json(configs[0] ?? null);
   }));
 
-  app.get("/api/integrations/google-drive/folders", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/integrations/google-drive/folders", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 400, "No company"); return; }
     const configs = await pb.collection("integration_configs").getFullList({
       filter: `companyId = "${company.id}" && provider = "google_drive"`,
@@ -3524,7 +3542,7 @@ Draft the complete clause.`;
   }));
 
   app.post("/api/integrations/google-drive/watch", requireAuth, ah(async (req: Request, res: Response) => {
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 400, "No company"); return; }
     const { folderId, folderName } = req.body as { folderId?: string; folderName?: string };
     if (!folderId || !folderName) { sendError(res, 400, "folderId and folderName required"); return; }
@@ -3568,8 +3586,8 @@ Draft the complete clause.`;
     });
   }));
 
-  app.post("/api/integrations/google-drive/disconnect", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.post("/api/integrations/google-drive/disconnect", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 400, "No company"); return; }
     const configs = await pb.collection("integration_configs").getFullList({
       filter: `companyId = "${company.id}" && provider = "google_drive"`,
@@ -3582,8 +3600,8 @@ Draft the complete clause.`;
 
   // ── SharePoint ────────────────────────────────────────────────────────────────
 
-  app.get("/api/integrations/sharepoint/auth", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/integrations/sharepoint/auth", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 400, "Complete onboarding first"); return; }
     const authUrl = getMicrosoftAuthUrl(company.id);
     res.json({ authUrl });
@@ -3605,8 +3623,8 @@ Draft the complete clause.`;
     }
   }));
 
-  app.get("/api/integrations/sharepoint/status", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/integrations/sharepoint/status", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json(null); return; }
     const configs = await pb.collection("integration_configs").getFullList({
       filter: `companyId = "${company.id}" && provider = "sharepoint"`,
@@ -3614,8 +3632,8 @@ Draft the complete clause.`;
     res.json(configs[0] ?? null);
   }));
 
-  app.get("/api/integrations/sharepoint/folders", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/integrations/sharepoint/folders", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 400, "No company"); return; }
     const configs = await pb.collection("integration_configs").getFullList({
       filter: `companyId = "${company.id}" && provider = "sharepoint"`,
@@ -3626,7 +3644,7 @@ Draft the complete clause.`;
   }));
 
   app.post("/api/integrations/sharepoint/watch", requireAuth, ah(async (req: Request, res: Response) => {
-    const company = await getCompany();
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 400, "No company"); return; }
     const { driveId, folderId, folderName } = req.body as { driveId?: string; folderId?: string; folderName?: string };
     if (!driveId || !folderId || !folderName) { sendError(res, 400, "driveId, folderId, and folderName required"); return; }
@@ -3694,8 +3712,8 @@ Draft the complete clause.`;
     }
   }));
 
-  app.post("/api/integrations/sharepoint/disconnect", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.post("/api/integrations/sharepoint/disconnect", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { sendError(res, 400, "No company"); return; }
     const configs = await pb.collection("integration_configs").getFullList({
       filter: `companyId = "${company.id}" && provider = "sharepoint"`,
@@ -3708,8 +3726,8 @@ Draft the complete clause.`;
 
   // ── Integration sync log ──────────────────────────────────────────────────────
 
-  app.get("/api/integrations/sync-log", requireAuth, ah(async (_req: Request, res: Response) => {
-    const company = await getCompany();
+  app.get("/api/integrations/sync-log", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
     if (!company) { res.json({ entries: [] }); return; }
 
     // Get all integration configs for this company
