@@ -180,7 +180,7 @@ function sendError(res: Response, status: number, message: string) {
 // any PocketBase schema changes.
 const DEMO_COMPANY_MAP: Record<string, string> = {
   "demo@zanelegal.ai":         "meridian",
-  "founder-demo@zanelegal.ai": "pulse",
+  "founder-demo@zanelegal.ai": "sora",
 };
 
 async function getCompany(ownerEmail?: string): Promise<PBRecord | null> {
