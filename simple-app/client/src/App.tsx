@@ -99,8 +99,7 @@ function AppRoutes() {
       />
 
       {/* Smart redirect: /dashboard → persona-specific path.
-          No company yet → document-first dashboard (NOT /onboarding).
-          The user uploads a contract and Zane drives the setup. */}
+          No company yet → onboarding (user must configure before uploading). */}
       <Route
         path="/dashboard"
         element={
@@ -109,7 +108,7 @@ function AppRoutes() {
           ) : company ? (
             <PersonaRouter />
           ) : (
-            <DocumentFirstDashboard />
+            <Navigate to="/onboarding" replace />
           )
         }
       />
