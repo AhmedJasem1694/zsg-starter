@@ -42,8 +42,8 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
               <p className="text-xs text-[#FCA5A5]/70 leading-relaxed">
                 An unexpected error occurred. Please refresh the page and try again.
                 If this keeps happening, contact{" "}
-                <a href="mailto:support@zanelegal.ai" className="underline">
-                  support@zanelegal.ai
+                <a href="mailto:ahmed@zanelegal.ai" className="underline">
+                  ahmed@zanelegal.ai
                 </a>
               </p>
             </div>

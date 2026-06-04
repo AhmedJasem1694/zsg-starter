@@ -84,7 +84,7 @@ function formatLastError(raw: string): string {
   if (raw.includes("not found on disk") || raw.includes("uploads directory")) {
     return "The uploaded file could not be found. Please upload the document again.";
   }
-  return "Review failed. Please retry or contact support@zanelegal.ai if this persists.";
+  return "Review failed. Please retry or contact ahmed@zanelegal.ai if this persists.";
 }
 
 // ─── RAG styling ─────────────────────────────────────────────────────────────
@@ -310,7 +310,7 @@ export default function ReviewDetail() {
                   Back to dashboard
                 </button>
               </div>
-              <a href="mailto:support@zanelegal.ai" className="text-xs text-muted-foreground underline">
+              <a href="mailto:ahmed@zanelegal.ai" className="text-xs text-muted-foreground underline">
                 Contact support
               </a>
             </div>
@@ -402,8 +402,8 @@ export default function ReviewDetail() {
                   Back to dashboard
                 </button>
               </div>
-              <a href="mailto:support@zanelegal.ai" className="text-xs text-muted-foreground underline">
-                Contact support@zanelegal.ai
+              <a href="mailto:ahmed@zanelegal.ai" className="text-xs text-muted-foreground underline">
+                Contact ahmed@zanelegal.ai
               </a>
               <p className="text-xs text-muted-foreground">Include the document name: "{doc.originalName}"</p>
             </div>

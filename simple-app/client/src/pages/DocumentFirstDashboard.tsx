@@ -98,7 +98,7 @@ export default function DocumentFirstDashboard() {
       return;
     }
     if (file.size > 50 * 1024 * 1024) {
-      setErrorMsg("This file exceeds the 50MB limit. Very large documents like litigation bundles can be split into sections before uploading. Contact support@zanelegal.ai if you need help.");
+      setErrorMsg("This file exceeds the 50MB limit. Very large documents like litigation bundles can be split into sections before uploading. Contact ahmed@zanelegal.ai if you need help.");
       setStage("error");
       return;
     }
