@@ -164,6 +164,29 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
   // Ensure company name is never empty. Fall back to "Your company" so LLM output is never blank
   const effectiveCompanyName = ((company["name"] as string) ?? "").trim() || "Your company";
 
+  // ── Effective workflow type — auto-detect healthcare by sector ────────────────
+  // Healthcare was removed from the user-facing workflow selector but must still
+  // activate automatically when the company sector is healthcare. We derive the
+  // effective workflow from the explicit workflowType first, then fall back to
+  // sector-based detection so users never need to select a workflow manually.
+  const rawWorkflow = (doc["workflowType"] as string) || (company["workflowType"] as string) || "COMMERCIAL_CONTRACT";
+  const companySector = ((company["sector"] as string) ?? "").toLowerCase();
+  const companyIndustry = ((company["industry"] as string) ?? "").toLowerCase();
+  const contractType = ((doc["contractType"] as string) ?? "").toLowerCase();
+  const isHealthcareSector =
+    companySector.includes("health") || companySector.includes("nhs") ||
+    companyIndustry.includes("health") || companyIndustry.includes("nhs") ||
+    contractType.includes("nhs") || contractType.includes("clinical") ||
+    contractType.includes("healthcare") || contractType.includes("medical") ||
+    contractType.includes("pharmacy") || contractType.includes("cqc") ||
+    contractType === "nhs_standard_contract";
+  const effectiveWorkflow = rawWorkflow === "COMMERCIAL_CONTRACT" && isHealthcareSector
+    ? "HEALTHCARE_PROCUREMENT"
+    : rawWorkflow;
+  if (isHealthcareSector && rawWorkflow !== "HEALTHCARE_PROCUREMENT") {
+    console.log(`[review] Auto-routing to HEALTHCARE_PROCUREMENT (sector="${companySector}", contractType="${contractType}")`);
+  }
+
   const t = makeTiming(documentId);
   console.log(`[review] START documentId=${documentId} file="${doc["filename"] as string}" company=${company.id} name="${effectiveCompanyName}"`);
   t.mark("pipeline start: setup complete (doc + company + playbook loaded)");
@@ -368,7 +391,7 @@ ${classifySnippet}`,
           if (sectionChunks.length === 0) return Promise.resolve([] as Awaited<ReturnType<typeof classifyClauses>>);
           console.log(`[review] Classifying section ${sIdx + 1}/${allChunksBySection.length} (${sectionChunks.length} chunks)`);
           // classifyClauses returns rawText strings directly, no index remapping needed
-          return classifyClauses(sectionChunks, company["workflowType"] as string, playbookCategories, getModelForTask("clause_extraction"));
+          return classifyClauses(sectionChunks, effectiveWorkflow, playbookCategories, getModelForTask("clause_extraction"));
         })
       );
       return sectionResults.flat();
@@ -598,7 +621,7 @@ ${classifySnippet}`,
           company["sector"] as string,
           combinedRegContext + govLawSuffix,
           (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER",
-          doc["workflowType"] as string || "COMMERCIAL_CONTRACT",
+          effectiveWorkflow,
           company.id,
           doc["counterpartyType"] as string || "",
           doc["contractType"] as string || "",
@@ -741,7 +764,7 @@ ${classifySnippet}`,
             company["sector"] as string,
             combinedRegContext + govLawSuffix,
             (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER",
-            doc["workflowType"] as string || "COMMERCIAL_CONTRACT",
+            effectiveWorkflow,
             company.id,
             doc["counterpartyType"] as string || "",
             doc["contractType"] as string || "",
@@ -807,7 +830,7 @@ ${classifySnippet}`,
         const findings = await detectContradictions(
           clauseTextMap,
           effectiveCompanyName,
-          company["workflowType"] as string
+          effectiveWorkflow
         );
         contradictions = findings;
         t.mark(`contradiction detection complete: ${findings.length} findings`);
@@ -855,8 +878,60 @@ ${classifySnippet}`,
       }
     };
 
-    // Fire both passes simultaneously, neither depends on the other
-    await Promise.all([runContradictions(), runAudit()]);
+    // ── NHS Standard Contract schedule checklist (healthcare only) ───────────────
+    // Runs when the contract type indicates an NHS Standard Contract. Checks for
+    // required schedules and flags any missing from the document text.
+    const runNhsScheduleCheck = async () => {
+      const rawContractType = ((doc["contractType"] as string) ?? "").toUpperCase();
+      const isNhsContract = rawContractType.includes("NHS") || rawContractType === "CLINICAL_SERVICES";
+      if (!isNhsContract || effectiveWorkflow !== "HEALTHCARE_PROCUREMENT") return;
+      try {
+        const { chatComplete } = await import("./openrouter.js");
+        const nhsModel = getModelForTask("clause_extraction");
+        const snippet = rawText.slice(0, 40000);
+        const nhsPrompt = `You are reviewing an NHS contract. Check whether the following standard NHS contract schedules appear in this document. For each schedule, state PRESENT or ABSENT. Return valid JSON only.
+
+Schedules to check:
+- Schedule 2N: NHS Targets and Indicators
+- Schedule 2O: Quality Requirements
+- Schedule 2P: Incentive Schemes
+- Schedule 4: Regulated Activities
+- Schedule 6: Data Processing
+- Schedule 7: Transfer of and Access to Information
+- Schedule 8: Information Requirements
+- Schedule 9: Compliance with NHS Standards
+
+Also check:
+- General Condition 18 (termination provisions) - is it present and unmodified?
+- General Condition 36 (payment terms) - is it present and unmodified?
+
+Return JSON: { "schedules": [ { "name": "...", "status": "PRESENT" | "ABSENT" | "MODIFIED", "note": "..." } ], "gc18Present": true/false, "gc36Present": true/false }
+
+Document text (truncated):
+${snippet}`;
+        const nhsResponse = await chatComplete(
+          [{ role: "user", content: nhsPrompt }],
+          2000,
+          90_000,
+          nhsModel,
+        );
+        const jsonMatch = nhsResponse.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const nhsCheck = JSON.parse(jsonMatch[0]) as unknown;
+          await pb.collection("uploaded_documents").update(documentId, {
+            nhsScheduleCheck: JSON.stringify(nhsCheck),
+          }).catch((e: unknown) => console.warn("[review] Could not persist NHS schedule check:", (e as Error)?.message));
+          console.log(`[review] NHS schedule check complete for ${documentId}`);
+          t.mark("NHS schedule checklist complete");
+        }
+      } catch (err) {
+        console.error("[review] NHS schedule check failed (non-fatal):", (err as Error)?.message);
+        t.mark("NHS schedule check: failed (non-fatal)");
+      }
+    };
+
+    // Fire all post-processing passes simultaneously
+    await Promise.all([runContradictions(), runAudit(), runNhsScheduleCheck()]);
 
     // If the hard timeout fired while we were running, do not override the FAILED status
     // that the timeout handler already wrote. Simply return without setting COMPLETE.

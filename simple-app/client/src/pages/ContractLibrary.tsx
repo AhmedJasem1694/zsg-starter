@@ -27,6 +27,25 @@ const CONTRACT_TYPES = [
   { value: "OTHER",                 label: "Other" },
 ];
 
+// NHS & Healthcare contract types — shown only when company sector is healthcare
+const NHS_CONTRACT_TYPES = [
+  { value: "NHS_STANDARD_CONTRACT",           label: "NHS Standard Contract" },
+  { value: "NHS_SUBCONTRACT",                 label: "NHS Subcontract Agreement" },
+  { value: "NHS_FRAMEWORK",                   label: "NHS Framework Agreement" },
+  { value: "NHS_PARTNERSHIP",                 label: "NHS Partnership Agreement" },
+  { value: "NHS_COLLABORATIVE",               label: "NHS Collaborative Agreement" },
+  { value: "HEALTHCARE_SAAS",                 label: "Healthcare SaaS Agreement" },
+  { value: "MEDICAL_EQUIPMENT_SUPPLY",        label: "Medical Equipment Supply Agreement" },
+  { value: "CLINICAL_SERVICES",               label: "Clinical Services Agreement" },
+  { value: "PHARMACY_SERVICES",               label: "Pharmacy Services Agreement" },
+  { value: "FM_HEALTHCARE",                   label: "Facilities Management Healthcare" },
+  { value: "CATERING_HEALTHCARE",             label: "Catering Services Healthcare" },
+  { value: "IT_DIGITAL_HEALTH",               label: "IT and Digital Health Agreement" },
+  { value: "MEDICAL_STAFFING",                label: "Medical Staffing Agency Agreement" },
+  { value: "CLINICAL_TRIAL",                  label: "Clinical Trial Agreement" },
+  { value: "RESEARCH_COLLABORATION",          label: "Research Collaboration Agreement" },
+];
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(iso?: string) {
@@ -221,9 +240,17 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
   const [counterpartyName, setCounterpartyName] = useState("");
   const [reviewType,      setReviewType]      = useState("INBOUND");
 
-  // company for workflowType
+  // company for workflowType + healthcare detection
   const { data: company } = useQuery({ queryKey: ["company"], queryFn: getCompany, retry: false });
   const workflowType = (company as { workflowType?: string } | undefined)?.workflowType;
+  const companySector = ((company as { sector?: string } | undefined)?.sector ?? "").toLowerCase();
+  const companyIndustry = ((company as { industry?: string } | undefined)?.industry ?? "").toLowerCase();
+  const isHealthcare =
+    companySector.includes("health") || companySector.includes("nhs") ||
+    companyIndustry.includes("health") || companyIndustry.includes("nhs");
+  const availableContractTypes = isHealthcare
+    ? [...CONTRACT_TYPES.slice(0, -1), ...NHS_CONTRACT_TYPES, CONTRACT_TYPES[CONTRACT_TYPES.length - 1]]
+    : CONTRACT_TYPES;
 
   const reviewMutation = useMutation({ mutationFn: startReview });
 
@@ -290,7 +317,7 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
             onChange={(e) => setContractType(e.target.value)}
             className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:border-blue-500 transition-colors"
           >
-            {CONTRACT_TYPES.map((t) => (
+            {availableContractTypes.map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}
           </select>
