@@ -4,6 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getPortfolio, getCompany } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import { CLAUSE_LABELS, type ClauseCategory } from "../lib/types";
+import { useFeatureFlags } from "../contexts/FeatureFlagsContext";
+import UpgradePrompt from "../components/UpgradePrompt";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -84,6 +86,7 @@ const MERIDIAN_DEMO_ANSWERS = {
 export default function Portfolio() {
   const { data, isLoading } = useQuery({ queryKey: ["portfolio"], queryFn: getPortfolio });
   const { data: company }   = useQuery({ queryKey: ["company"],   queryFn: getCompany, retry: false });
+  const { flags } = useFeatureFlags();
 
   const isMeridianDemo = (company as { name?: string } | undefined)?.name?.toLowerCase().includes("meridian") ?? false;
 
@@ -99,11 +102,15 @@ export default function Portfolio() {
           </div>
         </div>
 
-        {isLoading && (
+        {!flags.portfolioDashboard && (
+          <UpgradePrompt feature="Portfolio Risk Dashboard" requiredTier="team" />
+        )}
+
+        {flags.portfolioDashboard && isLoading && (
           <div className="py-20 text-center text-sm text-muted-foreground">Loading portfolio…</div>
         )}
 
-        {!isLoading && !data && !isMeridianDemo && (
+        {flags.portfolioDashboard && !isLoading && !data && !isMeridianDemo && (
           <div className="card p-14 text-center space-y-5">
             <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center mx-auto">
               <PieChart size={24} className="text-muted-foreground/50" />
@@ -125,8 +132,8 @@ export default function Portfolio() {
           </div>
         )}
 
-        {isMeridianDemo && <MeridianPortfolio />}
-        {!isMeridianDemo && data && <PortfolioContent data={data} />}
+        {flags.portfolioDashboard && isMeridianDemo && <MeridianPortfolio />}
+        {flags.portfolioDashboard && !isMeridianDemo && data && <PortfolioContent data={data} />}
       </div>
     </AppLayout>
   );

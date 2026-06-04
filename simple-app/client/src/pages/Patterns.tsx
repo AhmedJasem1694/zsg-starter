@@ -9,6 +9,8 @@ import { getFeedbackPatterns, getOverrideTrend, getCompany } from "../lib/api";
 import type { ZanePattern, CounterpartyPattern, NegotiationDrift, OverrideTrendEntry, ClauseOutcome } from "../lib/api";
 import { CLAUSE_LABELS } from "../lib/types";
 import type { ClauseCategory } from "../lib/types";
+import { useFeatureFlags } from "../contexts/FeatureFlagsContext";
+import UpgradePrompt from "../components/UpgradePrompt";
 
 function label(cat: string) {
   return CLAUSE_LABELS[cat as ClauseCategory] ?? cat.replace(/_/g, " ");
@@ -368,6 +370,7 @@ export default function Patterns() {
     staleTime: 5 * 60 * 1000,
   });
   const { data: company } = useQuery({ queryKey: ["company"], queryFn: getCompany, retry: false });
+  const { flags } = useFeatureFlags();
 
   const isMeridianDemo = (company as { name?: string } | undefined)?.name?.toLowerCase().includes("meridian") ?? false;
 
@@ -398,11 +401,15 @@ export default function Patterns() {
           </div>
         </div>
 
-        {isLoading && (
+        {!flags.patternIntelligence && (
+          <UpgradePrompt feature="Negotiation Intelligence" requiredTier="team" />
+        )}
+
+        {isLoading && flags.patternIntelligence && (
           <div className="text-sm text-muted-foreground py-8 text-center">Loading patterns…</div>
         )}
 
-        {!isLoading && !hasData && (
+        {!isLoading && !hasData && flags.patternIntelligence && (
           <div className="card p-14 text-center space-y-5">
             <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center mx-auto">
               <Activity size={24} className="text-muted-foreground/50" />

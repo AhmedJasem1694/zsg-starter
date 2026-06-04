@@ -4,11 +4,13 @@ import { ZaneLogo } from "../ZaneLogo";
 import {
   LayoutDashboard, BookOpen, Settings, LogOut, Menu, Shield,
   Lock, PieChart, CalendarClock, LayoutGrid, Activity, ClipboardList, Library, Users,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth, useLogout } from "../../hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { getCompany } from "../../lib/api";
 import type { Persona } from "../../lib/types";
+import { useFeatureFlags } from "../../contexts/FeatureFlagsContext";
 
 // ── Legal nav ─────────────────────────────────────────────────────────────────
 
@@ -46,6 +48,36 @@ const FOUNDER_NAV = [
 const FOUNDER_NAV_SECONDARY = [
   { to: "/security", icon: Lock, label: "Security" },
 ];
+
+// ── Trial countdown banner ────────────────────────────────────────────────────
+
+function TrialBanner() {
+  const { tier, trialDaysRemaining } = useFeatureFlags();
+  if (tier !== "trial" || trialDaysRemaining === null) return null;
+  if (trialDaysRemaining > 14) return null; // shouldn't happen but guard
+
+  const urgent = trialDaysRemaining <= 3;
+  return (
+    <div className={`flex items-center justify-between gap-4 px-6 py-2.5 text-xs ${
+      urgent ? "bg-[#1F0A0A] border-b border-[#450A0A]" : "bg-[#1C0F00] border-b border-[#431407]"
+    }`}>
+      <div className="flex items-center gap-2">
+        <AlertTriangle size={12} className={urgent ? "text-white" : "text-white"} />
+        <span className="text-white">
+          {trialDaysRemaining === 0
+            ? "Your trial has ended. Upgrade to keep full access."
+            : `Trial: ${trialDaysRemaining} day${trialDaysRemaining === 1 ? "" : "s"} remaining. Upgrade to keep full access.`}
+        </span>
+      </div>
+      <a
+        href="/#pricing"
+        className="shrink-0 px-3 py-1 rounded-md bg-primary text-white font-semibold hover:opacity-90 transition-opacity"
+      >
+        Upgrade
+      </a>
+    </div>
+  );
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -187,6 +219,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <main className="flex-1 overflow-y-auto">
+          <TrialBanner />
           {children}
         </main>
       </div>

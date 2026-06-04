@@ -262,6 +262,9 @@ export const login = async (data: { email: string; password: string }) => {
   if (res.token) storeAuthToken(res.token);
   return res;
 };
+export const getFeatureFlags = () =>
+  req<{ tier: string; flags: Record<string, unknown>; trialDaysRemaining: number | null; reviewsThisMonth: number }>("GET", "/api/features");
+
 export const logout = () => {
   storeAuthToken(null);
   return req<{ ok: boolean }>("POST", "/api/auth/logout");

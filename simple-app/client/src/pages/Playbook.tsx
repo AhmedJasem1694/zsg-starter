@@ -5,6 +5,8 @@ import { getPlaybookRules, updatePlaybookRule, getFeedbackPatterns, generatePlay
 import AppLayout from "../components/layout/AppLayout";
 import { CLAUSE_LABELS, type ClauseCategory, type PlaybookRule, type ApprovalRole } from "../lib/types";
 import type { ClauseOutcome, PlaybookDriftSuggestion, CompanyRule, ExtendedClauseOutcome, CounterpartyIntelligenceEntry } from "../lib/api";
+import { useFeatureFlags } from "../contexts/FeatureFlagsContext";
+import UpgradePrompt from "../components/UpgradePrompt";
 
 // ── Key clauses for demo highlight ───────────────────────────────────────────
 // These are the 3 clause types that matter most in the majority of commercial contracts
@@ -1014,6 +1016,8 @@ export default function Playbook() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { flags } = useFeatureFlags();
+
   // CHANGE 5 — Briefing state
   const [showBriefing, setShowBriefing] = useState(false);
   const [briefingText, setBriefingText] = useState("");
@@ -1054,28 +1058,43 @@ export default function Playbook() {
                 v{playbookVersion}
               </span>
             )}
-            <button
-              className="btn-secondary flex items-center gap-1.5 text-sm"
-              onClick={() => {
-                setBriefingLoading(true);
-                generateBriefing()
-                  .then((result) => {
-                    setBriefingText(result.briefing);
-                    setShowBriefing(true);
-                  })
-                  .catch(() => {})
-                  .finally(() => setBriefingLoading(false));
-              }}
-              disabled={briefingLoading}
-            >
-              {briefingLoading ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
-              {briefingLoading ? "Generating…" : "Generate new hire briefing"}
-            </button>
+            {flags.newHireBriefing ? (
+              <button
+                className="btn-secondary flex items-center gap-1.5 text-sm"
+                onClick={() => {
+                  setBriefingLoading(true);
+                  generateBriefing()
+                    .then((result) => {
+                      setBriefingText(result.briefing);
+                      setShowBriefing(true);
+                    })
+                    .catch(() => {})
+                    .finally(() => setBriefingLoading(false));
+                }}
+                disabled={briefingLoading}
+              >
+                {briefingLoading ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
+                {briefingLoading ? "Generating…" : "Generate new hire briefing"}
+              </button>
+            ) : (
+              <button
+                className="btn-secondary flex items-center gap-1.5 text-sm opacity-60 cursor-default"
+                onClick={() => {}}
+                title="Upgrade to Team to unlock new hire briefing"
+              >
+                <FileText size={13} />
+                New hire briefing
+                <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded ml-1">Team</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* CHANGE 4 — Playbook health score */}
-        {(() => {
+        {/* CHANGE 4 — Playbook health score (Team+) */}
+        {!flags.playbookHealthScore && (
+          <UpgradePrompt feature="Playbook Health Score" requiredTier="team" />
+        )}
+        {flags.playbookHealthScore && (() => {
           const clauseOutcomesForHealth = patternsData?.clauseOutcomes ?? [];
           const withData = clauseOutcomesForHealth.filter((o) => o.total >= 1);
           const healthyCount = withData.filter((o) => o.greenCount / o.total >= 0.5).length;
@@ -1102,6 +1121,7 @@ export default function Playbook() {
           );
         })()}
 
+        {/* Tabs — drift visualisation gated below in RuleCard via flags prop */}
         {/* Tabs */}
         <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
           <button

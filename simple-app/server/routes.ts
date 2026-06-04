@@ -13,6 +13,7 @@ import { transcribeAudioFile } from "./services/transcription.js";
 import { chatComplete } from "./services/openrouter.js";
 import { searchCompanies, enrichCompany } from "./services/companySearch.js";
 import { audit } from "./services/auditLogger.js";
+import { getFeatureFlags, resolveTier, trialDaysRemaining } from "./services/featureFlags.js";
 import { runDeltaComparison } from "./services/deltaComparison.js";
 import { runPatternDetection } from "./services/patternDetector.js";
 import { MARKET_STANDARD_PLAYBOOK } from "./data/marketStandardPlaybook.js";
@@ -356,7 +357,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const existing = await pb.collection("companies").getFullList();
     await Promise.allSettled(existing.map((c) => pb.collection("companies").delete(c.id)));
 
-    const company = await pb.collection("companies").create(parsed.data);
+    const company = await pb.collection("companies").create({
+      ...parsed.data,
+      subscription_tier: "trial", // new accounts start on 14-day trial
+    });
 
     await audit({
       action: "company_created",
@@ -395,6 +399,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       playbookRules: playbookRules.map(mapRule),
       approvalContacts: approvalContacts.map(mapContact),
       regulations: regulations.map(mapRegulation),
+    });
+  }));
+
+  // ── Feature flags ─────────────────────────────────────────────────────────────
+
+  app.get("/api/features", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
+    if (!company) {
+      // No company yet: return trial flags
+      const flags = getFeatureFlags("trial");
+      res.json({ tier: "trial", flags, trialDaysRemaining: 14, reviewsThisMonth: 0 });
+      return;
+    }
+    const tier = resolveTier(company["subscription_tier"]);
+    const flags = getFeatureFlags(tier);
+    const daysLeft = tier === "trial" ? trialDaysRemaining(company["created"] as string) : null;
+
+    // Monthly review count (for enforcing maxMonthlyReviews)
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    const monthDocs = await pb.collection("uploaded_documents").getFullList({
+      filter: `company = "${company.id}" && created >= "${monthStart}"`,
+      fields: "id",
+    }).catch(() => [] as { id: string }[]);
+
+    res.json({
+      tier,
+      flags,
+      trialDaysRemaining: daysLeft,
+      reviewsThisMonth: monthDocs.length,
     });
   }));
 
@@ -1045,6 +1079,27 @@ Write as a professional onboarding document. No legal jargon. Practical and read
 
       const file = req.file;
       if (!file) { sendError(res, 400, "No file uploaded"); return; }
+
+      // ── Monthly review limit check ────────────────────────────────────────────
+      if (company) {
+        const tier = resolveTier(company["subscription_tier"]);
+        const flags = getFeatureFlags(tier);
+        if (flags.maxMonthlyReviews > 0) {
+          const now = new Date();
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+          const monthDocs = await pb.collection("uploaded_documents").getFullList({
+            filter: `company = "${company.id}" && created >= "${monthStart}"`,
+            fields: "id",
+          }).catch(() => [] as { id: string }[]);
+          if (monthDocs.length >= flags.maxMonthlyReviews) {
+            try { fs.unlinkSync(file.path); } catch { /* ignore */ }
+            const tierLabel = tier === "starter" ? "Team" : "Growth";
+            sendError(res, 402, `You have used ${monthDocs.length} of ${flags.maxMonthlyReviews} reviews this month. Upgrade to ${tierLabel} for unlimited reviews.`);
+            return;
+          }
+        }
+      }
+      // ─────────────────────────────────────────────────────────────────────────
 
       // File size check (50MB max)
       const MAX_SIZE_BYTES = 50 * 1024 * 1024;
