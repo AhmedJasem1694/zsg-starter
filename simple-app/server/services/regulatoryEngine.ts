@@ -303,13 +303,12 @@ export function formatRegulatoryContextForPrompt(docs: RegulatoryDocument[]): st
   return `\n\nREGULATORY CONTEXT (current as of ${today}):\n${snippets.join("\n\n")}\n\nWhen assessing this clause, consider whether it conflicts with or is constrained by the above regulatory provisions. Cite specific provisions in your output where relevant.`;
 }
 
-// Fetch latest updates from live government APIs (V2)
-export async function fetchLatestRegulations(jurisdiction: string): Promise<void> {
-  // TODO V2: Implement live fetching from:
-  // GB: GET https://www.legislation.gov.uk/api/1/search?text=...
-  // EU: GET https://eur-lex.europa.eu/search.html?...
-  // etc.
-  console.log(`[RegEngine] Live fetching not yet configured for ${jurisdiction}`);
+// Fetch latest updates from live government APIs.
+// Not yet implemented — regulatory data is currently maintained as static
+// knowledge in the engine. Future: integrate legislation.gov.uk API (GB),
+// EUR-Lex (EU), and equivalent feeds for other jurisdictions.
+export async function fetchLatestRegulations(_jurisdiction: string): Promise<void> {
+  // No-op until live regulatory feed integration is built.
 }
 
 // ── Internal lookup ────────────────────────────────────────────────────────────

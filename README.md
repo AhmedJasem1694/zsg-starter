@@ -1,6 +1,112 @@
-# Starter App — Using Claude Code
+# Zane — Legal Intelligence Platform
 
-A blank React + Express scaffold designed to be built out by Claude Code. This guide is for people who are new to Claude Code (and maybe new to coding) and want to get the most out of it on this repo.
+The legal decision engine powered by organisational memory.
+
+Zane reviews contracts against a company's specific playbook positions, captures the outcome of every negotiation, and applies accumulated institutional knowledge to every future review.
+
+---
+
+## Tech Stack
+
+- **Frontend**: React 18, TypeScript, React Query, Tailwind CSS, Framer Motion
+- **Backend**: Node.js, Express, TypeScript
+- **Database**: PocketBase (self-hosted SQLite via Railway)
+- **AI**: OpenRouter — Claude Sonnet (primary), Claude Opus (deep reasoning), GPT-4o (extraction), Gemini Flash (classification)
+- **Deployment**: Railway (two services: App + PocketBase)
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- A running PocketBase instance (see Railway deployment below)
+- An OpenRouter API key from [openrouter.ai](https://openrouter.ai)
+
+### Local Development
+
+```bash
+cd simple-app
+cp .env.example .env   # fill in your values
+npm install
+npm run dev            # starts Express + Vite HMR on http://localhost:3000
+```
+
+### Environment Variables
+
+All required and optional variables are documented in `simple-app/.env.example`.
+
+Required: `POCKETBASE_URL`, `POCKETBASE_ADMIN_EMAIL`, `POCKETBASE_ADMIN_PASSWORD`, `OPENROUTER_API_KEY`, `JWT_SECRET`
+
+### PocketBase Setup
+
+After deploying PocketBase:
+
+1. Visit `https://your-pb.railway.app/_/` and create an admin account
+2. Run `npm run pb:setup` with the Railway PocketBase URL to create all collections
+3. Set the environment variables on the app service
+
+### Commands
+
+```bash
+npm run dev          # Start dev server (Express + Vite HMR) on port 3000
+npm run build        # Build client (Vite) + server (esbuild)
+npm start            # Run production build
+npm run check        # TypeScript type-check (no emit)
+npm test             # Vitest in watch mode
+npm run pb:setup     # Create PocketBase collections (run once after deploy)
+```
+
+## Project Structure
+
+```
+simple-app/
+  client/src/
+    components/     Reusable UI components
+    contexts/       React context providers (FeatureFlags, etc.)
+    hooks/          Custom React hooks (useAuth, useLogout)
+    lib/            API client, types, utilities
+    pages/          Page-level components
+  server/
+    middleware/     Express middleware (auth, error handling)
+    services/       Business logic (review pipeline, AI, email)
+    data/           Static reference data (market standard playbook)
+  scripts/          One-off setup and migration scripts
+```
+
+## Key Concepts
+
+**Playbook**: Company-specific clause positions with preferred position, acceptable fallback, and hard red line for each of 22+ clause categories. RAG status (RED/AMBER/GREEN) is assigned by comparing extracted clause text against these positions.
+
+**Escalation routing**: Three-tier governance system routing contracts to the correct approvers based on (1) clause risk flags, (2) contract value thresholds, and (3) governance triggers.
+
+**Accumulation engine**: Every contract reviewed, every outcome logged, and every override recorded feeds back into future analysis — building institutional memory that compounds over time.
+
+**Multi-model pipeline**: Document classification (Gemini Flash) → metadata extraction (GPT-4o) → clause extraction and comparison (Claude Sonnet) → contradiction detection and escalation analysis (Claude Opus) → low-confidence reanalysis (Claude Opus).
+
+**Subscription tiers**: trial (5 reviews/14 days), starter (20 reviews/mo), team (unlimited + portfolio/patterns), growth (all features including board reporting and API).
+
+## Demo Accounts
+
+| Account | Password | Company |
+|---------|----------|---------|
+| demo@zanelegal.ai | ZaneDemo2026! | Meridian Financial Technologies Ltd (GC interface) |
+| founder-demo@zanelegal.ai | ZaneDemo2026! | Sora Technologies Ltd (Founder interface) |
+
+## Railway Deployment
+
+Two Railway services:
+1. **App service** — Node.js, runs `npm start`, auto-deploys on push to `master`
+2. **PocketBase service** — Docker image `ghcr.io/muchobien/pocketbase:latest`, persistent volume at `/pb/pb_data`
+
+## Contact
+
+Ahmed Jasem — ahmed@zanelegal.ai
+
+---
+
+*Original scaffold notes below — kept for reference*
+
+---
 
 ## First run
 
