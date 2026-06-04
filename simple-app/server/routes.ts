@@ -181,25 +181,46 @@ function sendError(res: Response, status: number, message: string) {
 // any PocketBase schema changes.
 const DEMO_COMPANY_MAP: Record<string, string> = {
   "demo@zanelegal.ai":         "meridian",
-  "founder-demo@zanelegal.ai": "sora",
+  "founder-demo@zanelegal.ai": "pulse",  // company is "Pulse Health Technologies Ltd"
 };
 
 async function getCompany(ownerEmail?: string): Promise<PBRecord | null> {
-  // For known demo users, find their specific company by name fragment.
-  // Falls back to list[0] (single-company mode) for all other users.
+  // Step 1: Demo users — find by known name fragment (demo companies were created
+  // by admin scripts and do not have ownerEmail set).
   if (ownerEmail && ownerEmail in DEMO_COMPANY_MAP) {
     const fragment = DEMO_COMPANY_MAP[ownerEmail].toLowerCase();
     try {
       const all = await pb.collection("companies").getFullList();
       const match = all.find((c) => String(c["name"] ?? "").toLowerCase().includes(fragment));
       if (match) return match;
-    } catch { /* fall through to single-company */ }
+    } catch { /* fall through */ }
   }
-  const list = await pb.collection("companies").getFullList({ batch: 1 }).catch((err: unknown) => {
+
+  // Step 2: All users — find by ownerEmail field set at company creation.
+  // This is the primary multi-tenant isolation mechanism.
+  if (ownerEmail) {
+    // Strip quotes to prevent filter injection; email addresses never contain "
+    const safeEmail = ownerEmail.replace(/"/g, "");
+    try {
+      const byEmail = await pb.collection("companies").getFirstListItem(
+        'ownerEmail = "' + safeEmail + '"'
+      );
+      if (byEmail) return byEmail;
+    } catch { /* no match — fall through */ }
+  }
+
+  // Step 3: Fallback for legacy single-tenant installs.
+  // Only return list[0] when there is exactly ONE company in the database.
+  // If there are multiple companies and none matched above, return null — this
+  // means the user has not completed onboarding yet (they have no company) and
+  // the frontend will redirect them to /onboarding rather than showing another
+  // user's data.
+  const all = await pb.collection("companies").getFullList({ batch: 2 }).catch((err: unknown) => {
     console.error("[getCompany] PocketBase query failed:", (err as Error)?.message ?? err);
     throw err;
   });
-  return list[0] ?? null;
+  if (all.length === 1) return all[0];
+  return null;
 }
 
 // ── Tenant ownership guard ───────────────────────────────────────────────────
@@ -351,14 +372,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const parsed = companySchema.safeParse(req.body);
     if (!parsed.success) { sendError(res, 400, parsed.error.message); return; }
 
-    // Single-company mode: wipe existing before creating.
-    // Cascade-delete handles child records (playbook_rules, documents, etc).
-    // Ignore individual delete errors so a stuck record doesn't block re-setup.
-    const existing = await pb.collection("companies").getFullList();
-    await Promise.allSettled(existing.map((c) => pb.collection("companies").delete(c.id)));
+    // Multi-tenant mode: only delete THIS user's existing company.
+    // Never delete demo companies (Meridian, Sora) or other users' companies.
+    // We identify the current user's company by ownerEmail, which is stored on
+    // creation below. Ignore errors so a missing company doesn't block re-setup.
+    const userEmail = req.user?.email;
+    if (userEmail) {
+      const safeEmail = userEmail.replace(/"/g, "");
+      try {
+        const existing = await pb.collection("companies").getFirstListItem(
+          'ownerEmail = "' + safeEmail + '"',
+        );
+        if (existing) {
+          await pb.collection("companies").delete(existing.id);
+        }
+      } catch { /* no existing company for this user — fine */ }
+    }
 
     const company = await pb.collection("companies").create({
       ...parsed.data,
+      ownerEmail: userEmail ?? "",
       subscription_tier: "trial", // new accounts start on 14-day trial
     });
 
