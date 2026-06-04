@@ -101,7 +101,7 @@ const LANDING_FAQS = [
   { q: "What happens to my data if I cancel?", a: "Your data is yours. You can export everything before you cancel. We do not hold your data hostage." },
   { q: "Does Zane replace my lawyer?", a: "No. Zane handles the objective layer so your lawyer can focus on the judgment calls that actually require a lawyer. Every recommendation Zane makes requires a human decision before anything happens." },
   { q: "What contract types does Zane support?", a: "Commercial contracts, supplier agreements, customer MSAs, NDAs, technology agreements, employment contracts, and more. The playbook engine works for any contract type you configure it for." },
-  { q: "Is there a minimum contract or commitment?", a: "No minimum contract. No implementation fee. Cancel anytime. All plans are monthly." },
+  { q: "Is there a minimum contract or commitment?", a: "No minimum contract beyond the billing period. No implementation fee. No setup cost. All plans include a 14 day free trial with no credit card required. Billed quarterly or annually." },
 ];
 
 export default function Landing() {
@@ -109,6 +109,8 @@ export default function Landing() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   // Audience toggle: "gc" | "founder" | "both". Default shows both, stacked.
   const [audience, setAudience] = useState<"gc" | "founder" | "both">("both");
+  // Billing toggle: quarterly (default) or annual
+  const [billing, setBilling] = useState<"quarterly" | "annual">("quarterly");
 
   // Lenis smooth scroll
   useEffect(() => {
@@ -812,8 +814,8 @@ export default function Landing() {
               doing work a structured system could handle in minutes.
             </p>
             <p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto">
-              Zane handles the first pass. Every time. So your lawyer focuses on the decisions that
-              actually need a lawyer.
+              Zane starts at £450 a month billed quarterly. That is less than one hour of outside counsel fees per week.
+              Handles the first pass every time so your lawyer focuses on the decisions that actually need a lawyer.
             </p>
           </motion.div>
         ) : (
@@ -824,7 +826,7 @@ export default function Landing() {
             </h2>
             <p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto">
               Most founder contracts take two to three hours. That is £800 to £1,200 per contract.
-              Zane costs £500 a month and reviews as many contracts as you need.
+              Zane starts at £450 a month billed quarterly. That is less than one hour of outside counsel fees per week.
             </p>
             <p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto">
               Upload the contract. Know what to do in minutes. Keep the lawyer for the decisions that actually need one.
@@ -838,6 +840,34 @@ export default function Landing() {
         <motion.div className="text-center space-y-3" {...headingReveal}>
           <div className="inline-block text-xs font-bold text-primary tracking-widest uppercase">Pricing</div>
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Transparent pricing. No surprises.</h2>
+          <p className="text-sm text-gray-500">14 day free trial on all plans. No credit card required.</p>
+        </motion.div>
+
+        {/* Billing toggle */}
+        <motion.div className="flex justify-center" {...fadeUp(0.05)}>
+          <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-black/5 border border-black/8">
+            <button
+              onClick={() => setBilling("quarterly")}
+              className={`px-5 py-2 rounded-lg text-xs font-semibold transition-all ${
+                billing === "quarterly"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Quarterly
+            </button>
+            <button
+              onClick={() => setBilling("annual")}
+              className={`px-5 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
+                billing === "annual"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Annual
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700">Save up to 13%</span>
+            </button>
+          </div>
         </motion.div>
 
         <motion.div
@@ -847,10 +877,13 @@ export default function Landing() {
           {[
             {
               tier: "Starter",
-              price: "£500",
-              period: "/month",
+              monthlyRate: "£450",
+              quarterly: "£1,350",
+              annual: "£4,800",
+              annualSave: "Save 11%",
               highlight: true,
               description: "Solo GC or first in-house hire.",
+              trial: true,
               features: [
                 "Full playbook engine",
                 "Contract review",
@@ -860,17 +893,18 @@ export default function Landing() {
                 "Outcome capture",
                 "Includes one user seat",
               ],
-              cta: "Get started",
-              // Relative path: resolves to production domain automatically
               link: "/register",
               external: false,
             },
             {
               tier: "Team",
-              price: "£900",
-              period: "/month",
+              monthlyRate: "£800",
+              quarterly: "£2,400",
+              annual: "£8,400",
+              annualSave: "Save 13%",
               highlight: false,
               description: "Up to five users.",
+              trial: true,
               features: [
                 "Everything in Starter",
                 "Portfolio dashboard",
@@ -879,17 +913,18 @@ export default function Landing() {
                 "Negotiating pattern intelligence",
                 "Contradiction detection across your contract library",
               ],
-              cta: "Get started",
-              // Relative path: resolves to production domain automatically
               link: "/register",
               external: false,
             },
             {
               tier: "Growth",
-              price: "£1,500",
-              period: "/month",
+              monthlyRate: "£1,350",
+              quarterly: "£4,050",
+              annual: "£14,400",
+              annualSave: "Save 11%",
               highlight: false,
               description: "Unlimited users.",
+              trial: true,
               features: [
                 "Everything in Team",
                 "Advanced regulatory intelligence with live feeds",
@@ -897,11 +932,10 @@ export default function Landing() {
                 "Full audit trail for regulatory compliance",
                 "Priority support",
               ],
-              cta: "Book a demo",
               link: "https://calendly.com/ahmedljasem/30min",
               external: true,
             },
-          ].map(({ tier, price, period, highlight, description, features, cta, link, external }) => (
+          ].map(({ tier, monthlyRate, quarterly, annual, annualSave, highlight, description, trial, features, link, external }) => (
             <motion.div
               key={tier}
               className={`rounded-xl border p-6 space-y-5 ${highlight ? "border-primary/25 shadow-sm shadow-primary/10" : "border-black/8"} bg-[#F2F1EE]`}
@@ -912,10 +946,21 @@ export default function Landing() {
               <div>
                 <div className="text-xs text-gray-500 font-medium mb-1">{tier}</div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-gray-900">{price}</span>
-                  <span className="text-xs text-gray-500">{period}</span>
+                  <span className="text-2xl font-bold text-gray-900">{monthlyRate}</span>
+                  <span className="text-xs text-gray-500">/mo</span>
                 </div>
+                {billing === "quarterly" ? (
+                  <p className="text-[11px] text-gray-400 mt-1">Billed {quarterly} quarterly</p>
+                ) : (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <p className="text-[11px] text-gray-400">Billed {annual} annually</p>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700">{annualSave}</span>
+                  </div>
+                )}
                 <p className="text-xs text-gray-500 mt-2 leading-relaxed">{description}</p>
+                {trial && (
+                  <p className="text-[11px] text-primary font-medium mt-1">14 day free trial — no credit card required</p>
+                )}
               </div>
               <ul className="space-y-2">
                 {features.map((f) => (
@@ -932,14 +977,14 @@ export default function Landing() {
                   className={`block text-center px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     highlight ? "bg-primary text-white hover:opacity-90 shadow shadow-primary/20" : "border border-black/10 text-gray-600 hover:text-gray-800 hover:border-black/20"
                   }`}>
-                  {cta} →
+                  Book a demo →
                 </a>
               ) : (
                 <Link to={link}
                   className={`block text-center px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     highlight ? "bg-primary text-white hover:opacity-90 shadow shadow-primary/20" : "border border-black/10 text-gray-600 hover:text-gray-800 hover:border-black/20"
                   }`}>
-                  {cta} →
+                  Start free trial →
                 </Link>
               )}
             </motion.div>
@@ -957,7 +1002,7 @@ export default function Landing() {
         </motion.div>
 
         <motion.p className="text-center text-xs text-gray-500 max-w-lg mx-auto" {...fadeUp(0.2)}>
-          All plans include 30-minute onboarding. No implementation fee. No minimum contract. Cancel anytime.
+          All plans include a 14 day free trial. No implementation fee. No setup cost. Billed quarterly or annually.
         </motion.p>
       </section>
 
