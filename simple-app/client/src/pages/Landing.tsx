@@ -107,6 +107,8 @@ const LANDING_FAQS = [
 export default function Landing() {
   const shouldReduce = useReducedMotion();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  // Audience toggle: "gc" | "founder" | "both". Default shows both, stacked.
+  const [audience, setAudience] = useState<"gc" | "founder" | "both">("both");
 
   // Lenis smooth scroll
   useEffect(() => {
@@ -237,10 +239,40 @@ export default function Landing() {
             ))}
           </motion.div>
 
+          {/* ── Audience toggle ── */}
+          <motion.div
+            className="pt-3 flex flex-col items-center gap-3"
+            {...(shouldReduce ? {} : fadeUpHero(0.75))}
+          >
+            <p className="text-[11px] text-white/30 uppercase tracking-widest">Who are you?</p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setAudience(audience === "gc" ? "both" : "gc")}
+                className={`px-4 py-2 rounded-full text-xs font-semibold border transition-all duration-200 ${
+                  audience === "gc"
+                    ? "bg-primary text-white border-primary shadow-lg shadow-primary/25"
+                    : "bg-white/5 text-white/50 border-white/10 hover:border-white/25 hover:text-white/70"
+                }`}
+              >
+                GC or Head of Legal
+              </button>
+              <button
+                onClick={() => setAudience(audience === "founder" ? "both" : "founder")}
+                className={`px-4 py-2 rounded-full text-xs font-semibold border transition-all duration-200 ${
+                  audience === "founder"
+                    ? "bg-primary text-white border-primary shadow-lg shadow-primary/25"
+                    : "bg-white/5 text-white/50 border-white/10 hover:border-white/25 hover:text-white/70"
+                }`}
+              >
+                Founder or startup operator
+              </button>
+            </div>
+          </motion.div>
+
           {/* Scroll hint */}
           <motion.div
             className="pt-1 flex flex-col items-center gap-1.5 opacity-25"
-            {...(shouldReduce ? {} : fadeUpHero(0.82))}
+            {...(shouldReduce ? {} : fadeUpHero(0.9))}
           >
             <div className="w-px h-5 bg-white/40 rounded-full" />
             <span className="text-[10px] text-white/50 tracking-widest uppercase">scroll</span>
@@ -251,19 +283,50 @@ export default function Landing() {
       {/* ─── PROBLEM ─────────────────────────────────────────────────────────── */}
       <section id="why-zane" className="py-20 bg-[#F7F6F3] border-t border-black/5">
         <div className="max-w-3xl mx-auto px-6 space-y-8">
-          <motion.div className="space-y-4" {...headingReveal}>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-              Most legal teams get this wrong every day.
-            </h2>
-          </motion.div>
-          <motion.div className="space-y-5 text-gray-600 leading-relaxed text-sm" {...fadeUp(0.1)}>
-            <p>
-              They review the same clauses repeatedly because nobody documented the last decision. They make inconsistent risk calls because the playbook lives in one person's head. They miss approval thresholds because there is no system enforcing them. And when someone leaves the team, everything they knew leaves with them.
-            </p>
-            <p>
-              The problem is not speed. It is that legal knowledge was never captured in the first place.
-            </p>
-          </motion.div>
+
+          {/* GC version — shown when audience is gc or both */}
+          {(audience === "gc" || audience === "both") && (
+            <motion.div className="space-y-8" {...headingReveal} key="gc-problem">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                Most legal teams get this wrong every day.
+              </h2>
+              <div className="space-y-5 text-gray-600 leading-relaxed text-sm">
+                <p>
+                  They review the same clauses repeatedly because nobody documented the last decision. They make inconsistent risk calls because the playbook lives in one person's head. They miss approval thresholds because there is no system enforcing them. And when someone leaves the team, everything they knew leaves with them.
+                </p>
+                <p>
+                  The problem is not speed. It is that legal knowledge was never captured in the first place.
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Visual separator when showing both */}
+          {audience === "both" && (
+            <div className="flex items-center gap-4 py-2">
+              <div className="flex-1 h-px bg-black/8" />
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest shrink-0">For founders and startup operators</span>
+              <div className="flex-1 h-px bg-black/8" />
+            </div>
+          )}
+
+          {/* Founder version — shown when audience is founder or both */}
+          {(audience === "founder" || audience === "both") && (
+            <motion.div className="space-y-8" {...(audience === "both" ? fadeUp(0.1) : headingReveal)} key="founder-problem">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+                Every founder reviews contracts they should not have to review alone.
+              </h2>
+              <div className="space-y-5 text-gray-600 leading-relaxed text-sm">
+                <p>
+                  A supplier sends you an MSA. A customer wants you to sign their standard terms. A partner sends over an NDA. You are not a lawyer. You do not have one on staff. You either sign without really knowing what you are agreeing to or you spend £400 an hour finding out.
+                </p>
+                <p className="font-medium text-gray-800">
+                  There is a better way.
+                </p>
+              </div>
+            </motion.div>
+          )}
+
         </div>
       </section>
 
@@ -308,6 +371,97 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* ─── FOUNDER OUTPUT SECTION ──────────────────────────────────────────── */}
+      {(audience === "founder" || audience === "both") && (
+        <section className="py-20 bg-[#111827]">
+          <div className="max-w-4xl mx-auto px-6 space-y-12">
+            <motion.div className="text-center space-y-3" {...headingReveal}>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                Upload the contract. Get a plain English verdict in minutes.
+              </h2>
+              <p className="text-white/50 text-sm max-w-xl mx-auto">
+                No legal jargon. No ambiguity. Just a clear answer and exactly what to do next.
+              </p>
+            </motion.div>
+
+            <motion.div className="grid md:grid-cols-3 gap-5" {...fadeUp(0.1)}>
+              {/* SAFE TO SIGN */}
+              <div className="rounded-2xl border border-[#14532D] bg-[#052E16] p-6 space-y-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#14532D] text-white text-xs font-bold uppercase tracking-wide">
+                  <div className="w-2 h-2 rounded-full bg-green-400" />
+                  Safe to sign
+                </div>
+                <div className="space-y-2">
+                  <p className="text-white text-sm font-semibold leading-snug">Nothing material to worry about.</p>
+                  <p className="text-white/60 text-xs leading-relaxed">Standard terms that do not expose you.</p>
+                </div>
+                <div className="pt-2 border-t border-white/10">
+                  <p className="text-white/40 text-[11px] leading-relaxed italic">
+                    Example: Mutual liability cap at 12 months of fees. Standard English law. Clean DPA attached.
+                  </p>
+                </div>
+              </div>
+
+              {/* NEGOTIATE FIRST */}
+              <div className="rounded-2xl border border-[#431407] bg-[#1C0F00] p-6 space-y-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#431407] text-white text-xs font-bold uppercase tracking-wide">
+                  <div className="w-2 h-2 rounded-full bg-amber-400" />
+                  Negotiate first
+                </div>
+                <div className="space-y-2">
+                  <p className="text-white text-sm font-semibold leading-snug">These clauses need pushing back on.</p>
+                  <p className="text-white/60 text-xs leading-relaxed">Here is exactly what to say.</p>
+                </div>
+                <div className="pt-2 border-t border-white/10">
+                  <p className="text-white/40 text-[11px] leading-relaxed italic">
+                    Example: Auto-renewal with only 14 days notice. Miss the window and you're locked in for another year at £24,000.
+                  </p>
+                </div>
+              </div>
+
+              {/* DO NOT SIGN YET */}
+              <div className="rounded-2xl border border-[#450A0A] bg-[#1F0A0A] p-6 space-y-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#450A0A] text-white text-xs font-bold uppercase tracking-wide">
+                  <div className="w-2 h-2 rounded-full bg-red-400" />
+                  Do not sign yet
+                </div>
+                <div className="space-y-2">
+                  <p className="text-white text-sm font-semibold leading-snug">This contract has serious problems.</p>
+                  <p className="text-white/60 text-xs leading-relaxed">Here is what needs fixing before you commit.</p>
+                </div>
+                <div className="pt-2 border-t border-white/10">
+                  <p className="text-white/40 text-[11px] leading-relaxed italic">
+                    Example: They have capped their liability at one month of fees. If their software fails and costs you £50,000 to fix, you have no recourse.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Founder testimonial */}
+            <motion.div
+              className="rounded-2xl border border-white/8 bg-white/4 p-8 max-w-2xl mx-auto"
+              {...fadeUp(0.2)}
+            >
+              <div className="space-y-4">
+                <div className="text-2xl text-white/20 font-serif leading-none">"</div>
+                <p className="text-white/80 text-sm leading-relaxed italic">
+                  I used to spend a week going back and forth with lawyers before signing supplier agreements. Now I upload the contract and know what to do in ten minutes.
+                </p>
+                <div className="flex items-center gap-3 pt-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center text-xs font-bold text-primary">
+                    FD
+                  </div>
+                  <div>
+                    <div className="text-xs font-semibold text-white/60">Founder, B2B SaaS</div>
+                    <div className="text-[10px] text-white/30">Early design partner — testimonial placeholder</div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* ─── PRODUCT SCREENSHOT SHOWCASE ─────────────────────────────────────── */}
       <section className="py-20 px-6 bg-[#080F18]">
@@ -646,20 +800,37 @@ export default function Landing() {
 
       {/* ─── VALUE FRAMING ───────────────────────────────────────────────────── */}
       <section className="max-w-3xl mx-auto px-6 pt-16 pb-2 text-center space-y-4">
-        <motion.div {...headingReveal}>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
-            What does it actually cost you today?
-          </h2>
-        </motion.div>
-        <motion.p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto" {...fadeUp(0.1)}>
-          Every contract your team reviews manually takes two to four hours. At outside counsel rates
-          that is £800 to £1,600 per contract. At in-house rates it is your most qualified person
-          doing work a structured system could handle in minutes.
-        </motion.p>
-        <motion.p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto" {...fadeUp(0.15)}>
-          Zane handles the first pass. Every time. So your lawyer focuses on the decisions that
-          actually need a lawyer.
-        </motion.p>
+        {audience !== "founder" ? (
+          /* GC / both version */
+          <motion.div className="space-y-4" {...headingReveal} key="gc-value">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+              What does it actually cost you today?
+            </h2>
+            <p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto">
+              Every contract your team reviews manually takes two to four hours. At outside counsel rates
+              that is £800 to £1,600 per contract. At in-house rates it is your most qualified person
+              doing work a structured system could handle in minutes.
+            </p>
+            <p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto">
+              Zane handles the first pass. Every time. So your lawyer focuses on the decisions that
+              actually need a lawyer.
+            </p>
+          </motion.div>
+        ) : (
+          /* Founder version */
+          <motion.div className="space-y-4" {...headingReveal} key="founder-value">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+              Outside counsel charges £400 an hour to review a contract.
+            </h2>
+            <p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto">
+              Most founder contracts take two to three hours. That is £800 to £1,200 per contract.
+              Zane costs £500 a month and reviews as many contracts as you need.
+            </p>
+            <p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto">
+              Upload the contract. Know what to do in minutes. Keep the lawyer for the decisions that actually need one.
+            </p>
+          </motion.div>
+        )}
       </section>
 
       {/* ─── PRICING ─────────────────────────────────────────────────────────── */}
