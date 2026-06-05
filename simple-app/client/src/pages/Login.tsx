@@ -124,10 +124,21 @@ export default function Login() {
         </form>
 
         <p className="text-center text-sm text-muted-foreground">
-          No account?{" "}
+          Don't have an account?{" "}
           <Link to="/register" className="text-primary hover:underline font-medium">
-            Create one
+            Get started
           </Link>
+        </p>
+        <p className="text-center text-sm text-muted-foreground">
+          Want to see a demo?{" "}
+          <a
+            href="https://calendly.com/ahmedljasem/30min"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline font-medium"
+          >
+            Book a 30 minute demo
+          </a>
         </p>
         <p className="text-center">
           <Link to="/" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
