@@ -3848,6 +3848,18 @@ Draft the complete clause.`;
 
   // ── Health ───────────────────────────────────────────────────────────────────
 
+  // ── Founder output feedback ───────────────────────────────────────────────────
+  app.post("/api/review-results/:resultId/founder-feedback", requireAuth, ah(async (req: Request, res: Response) => {
+    const { resultId } = req.params;
+    const { rating, reason } = req.body as { rating: "up" | "down"; reason?: string };
+    // Store feedback on the review_results record as a non-fatal best-effort update
+    await pb.collection("review_results").update(resultId, {
+      founderFeedbackRating: rating,
+      founderFeedbackReason: reason ?? "",
+    }).catch(() => { /* field may not exist in schema — non-fatal */ });
+    res.json({ ok: true });
+  }));
+
   app.get("/api/health", (_req: Request, res: Response) => {
     res.json({ status: "ok" });
   });

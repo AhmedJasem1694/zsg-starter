@@ -724,6 +724,122 @@ function FounderClauseCard({
   );
 }
 
+// ── Founder fallback card — shown when verification fails ────────────────────
+
+function FounderFallbackCard({ result }: { result: ReviewResult }) {
+  const label = CLAUSE_LABELS[result.clauseCategory] ?? result.clauseCategory.replace(/_/g, " ");
+  const isRed = result.ragStatus === "RED";
+  return (
+    <div className="rounded-2xl border border-[#334155] bg-[#0F172A] overflow-hidden border-l-4 border-l-[#334155]">
+      <div className="bg-[#1E293B] px-4 py-3 flex items-center gap-2">
+        <AlertTriangle size={14} className="text-white shrink-0" />
+        <span className="text-xs font-bold uppercase tracking-wider text-white">Needs manual review</span>
+        <span className="ml-auto text-[10px] text-white/40">{label}</span>
+      </div>
+      <div className="px-4 py-4 space-y-3">
+        <p className="text-sm text-white/70 leading-relaxed">
+          Zane identified an issue with this clause but could not generate a reliable recommendation automatically.
+        </p>
+        <div className="bg-[#0B1118] rounded-lg px-3 py-2.5 space-y-1">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-white/30">What was found</div>
+          <p className="text-sm text-white/80">
+            <span className={`font-semibold ${isRed ? "text-[#FCA5A5]" : "text-[#FCD34D]"}`}>
+              {isRed ? "Problem" : "Worth negotiating"}:
+            </span>{" "}
+            {result.clauseSummary || result.founderPlainEnglish || "This clause deviates from your preferred position."}
+          </p>
+        </div>
+        <p className="text-xs text-white/50 leading-relaxed">
+          This clause should be reviewed by a qualified solicitor before you respond to the counterparty.
+        </p>
+        <div className="flex gap-2 pt-1">
+          <a
+            href="https://calendly.com/ahmedljasem/30min"
+            target="_blank" rel="noopener noreferrer"
+            className="flex-1 text-center px-3 py-2 rounded-lg border border-[#1E3A5F] text-[#60A5FA] text-xs font-semibold hover:bg-[#0C1929] transition-colors"
+          >
+            Book a 30 min legal review
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Thumbs feedback on founder solution cards ─────────────────────────────────
+
+function FounderFeedbackButtons({ resultId }: { resultId: string }) {
+  const [rating, setRating] = useState<"up" | "down" | null>(null);
+  const [reason, setReason] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const reasons = [
+    "The figures are incorrect",
+    "The email tone is wrong",
+    "The replacement clause does not make sense",
+    "The risk explanation is inaccurate",
+    "Other",
+  ];
+
+  if (submitted) {
+    return <p className="text-xs text-white/30 text-center py-1">Thanks for your feedback.</p>;
+  }
+
+  return (
+    <div className="border-t border-white/8 px-4 py-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-white/30 uppercase tracking-widest">Was this helpful?</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setRating("up"); setSubmitted(true); }}
+            className={`text-sm px-2 py-0.5 rounded transition-colors ${rating === "up" ? "bg-[#052E16] text-white" : "text-white/30 hover:text-white/60"}`}
+          >
+            👍 Looks right
+          </button>
+          <button
+            onClick={() => setRating(rating === "down" ? null : "down")}
+            className={`text-sm px-2 py-0.5 rounded transition-colors ${rating === "down" ? "bg-[#1F0A0A] text-white" : "text-white/30 hover:text-white/60"}`}
+          >
+            👎 Something's wrong
+          </button>
+        </div>
+      </div>
+      {rating === "down" && (
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-1.5">
+            {reasons.map(r => (
+              <button
+                key={r}
+                onClick={() => setReason(r)}
+                className={`text-[10px] px-2 py-1 rounded border transition-colors ${reason === r ? "border-primary bg-primary/10 text-white" : "border-white/10 text-white/40 hover:border-white/25"}`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+          {reason && (
+            <button
+              onClick={() => {
+                // Fire-and-forget: log feedback without blocking the UI
+                void fetch(`/api/review-results/${resultId}/founder-feedback`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({ rating: "down", reason }),
+                }).catch(() => {});
+                setSubmitted(true);
+              }}
+              className="text-xs px-3 py-1.5 rounded bg-primary text-white font-semibold hover:opacity-90 transition-opacity"
+            >
+              Submit feedback
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Founder Solution Card — four collapsible sections ────────────────────────
 
 function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
@@ -767,6 +883,10 @@ function SolutionSection({
 }
 
 function FounderSolutionCard({ result }: { result: ReviewResult }) {
+  // Show fallback when verification explicitly failed
+  if (result.founderVerificationPassed === false) {
+    return <FounderFallbackCard result={result} />;
+  }
   const label   = CLAUSE_LABELS[result.clauseCategory] ?? result.clauseCategory.replace(/_/g, " ");
   const isRed   = result.ragStatus === "RED";
   const isAmber = result.ragStatus === "AMBER";
@@ -853,6 +973,9 @@ function FounderSolutionCard({ result }: { result: ReviewResult }) {
           <p className="text-sm text-white/70 leading-relaxed">{riskIfSigned}</p>
         </SolutionSection>
       )}
+
+      {/* Feedback buttons */}
+      <FounderFeedbackButtons resultId={result.id} />
     </div>
   );
 }
@@ -1238,6 +1361,15 @@ export default function FounderReview() {
             )}
           </div>
         )}
+
+        {/* ── Persistent disclaimer ── */}
+        <div className="rounded-xl border border-white/8 bg-[#0B1118] px-4 py-3">
+          <p className="text-[11px] text-white/35 leading-relaxed text-center">
+            Zane's output is based on the contract text you uploaded and your configured playbook positions.
+            It is decision support, not legal advice. For contracts above £10,000 in value or involving
+            unusual terms we recommend a qualified solicitor reviews before you sign.
+          </p>
+        </div>
 
         {/* ── Download all emails pack ── */}
         {(counts.RED + counts.AMBER) > 0 && (

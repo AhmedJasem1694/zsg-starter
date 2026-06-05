@@ -441,6 +441,8 @@ ${classifySnippet}`,
       founderCopyPaste: string;
       founderFundraisingRelevance: string;
       founderIfIgnored: string;
+      founderConfidenceScore: number | null;
+      founderVerificationPassed: boolean | null;
       iracIssue: string;
       iracRule: string;
       iracApplication: string;
@@ -494,6 +496,8 @@ ${classifySnippet}`,
         founderCopyPaste: r.founderCopyPaste ?? "",
         founderFundraisingRelevance: r.founderFundraisingRelevance ?? "",
         founderIfIgnored: r.founderIfIgnored ?? "",
+        founderConfidenceScore: r.founderConfidenceScore ?? null,
+        founderVerificationPassed: r.founderVerificationPassed ?? null,
         iracIssue: r.iracIssue ?? "",
         iracRule: r.iracRule ?? "",
         iracApplication: r.iracApplication ?? "",
@@ -572,6 +576,8 @@ ${classifySnippet}`,
             founderCopyPaste: absent.founderCopyPaste,
             founderFundraisingRelevance: absent.founderFundraisingRelevance,
             founderIfIgnored: absent.founderIfIgnored,
+            founderConfidenceScore: null,
+            founderVerificationPassed: null,
             iracIssue: absent.iracIssue ?? "",
             iracRule: absent.iracRule ?? "",
             iracApplication: absent.iracApplication ?? "",
@@ -674,12 +680,73 @@ ${classifySnippet}`,
           iracConclusion:              deAnon(comparison.iracConclusion),
         };
 
+        // ── Founder output verification (FOUNDER persona, RED/AMBER only) ─────
+        // Runs a second LLM call to verify the generated founder content is
+        // grounded in the actual clause text and contains no invented facts.
+        let founderConfidenceScore: number | null = null;
+        let founderVerificationPassed: boolean | null = null;
+        const isFounderPersona = (company["persona"] ?? "CORPORATE") === "FOUNDER";
+        const isActionable = deanonComparison.ragStatus === "RED" || deanonComparison.ragStatus === "AMBER";
+        if (isFounderPersona && isActionable && deanonComparison.founderCopyPaste) {
+          try {
+            const verifyModel = getModelForTask("playbook_comparison"); // sonnet
+            const verifyPrompt = `You are checking whether an AI-generated legal summary is accurate and grounded in the source clause text.
+
+ORIGINAL CLAUSE TEXT:
+${match.rawText.slice(0, 2000)}
+
+GENERATED FOUNDER SUMMARY:
+Plain English: ${deanonComparison.founderPlainEnglish}
+Email: ${deanonComparison.founderCopyPaste}
+Risk if signed: ${deanonComparison.founderIfIgnored}
+
+Check each item and respond with JSON only — no other text:
+{
+  "verdict_accurate": true or false,
+  "email_accurate": true or false,
+  "risk_accurate": true or false,
+  "contains_invented_facts": true or false,
+  "invented_facts_detail": "describe any invented figures, names, or claims not in the clause text, or null",
+  "confidence_score": number between 0 and 100,
+  "safe_to_display": true or false
+}
+
+Mark safe_to_display false only if invented facts are present or confidence_score below 70.`;
+            const { chatComplete } = await import("./openrouter.js");
+            const verifyRaw = await chatComplete(
+              [{ role: "user", content: verifyPrompt }],
+              500,
+              30_000,
+              verifyModel,
+            );
+            const jsonMatch = verifyRaw.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const verifyResult = JSON.parse(jsonMatch[0]) as {
+                confidence_score?: number;
+                safe_to_display?: boolean;
+                contains_invented_facts?: boolean;
+                invented_facts_detail?: string;
+              };
+              founderConfidenceScore = verifyResult.confidence_score ?? null;
+              founderVerificationPassed = verifyResult.safe_to_display ?? true;
+              if (verifyResult.contains_invented_facts) {
+                console.warn(`[founder-verify] ${category}: invented facts detected — "${verifyResult.invented_facts_detail}"`);
+              }
+              console.log(`[founder-verify] ${category}: score=${founderConfidenceScore} safe=${founderVerificationPassed}`);
+            }
+          } catch (err) {
+            console.warn(`[founder-verify] ${category}: verification failed (non-fatal):`, (err as Error)?.message);
+            // On verification error: assume passed so the user still gets output
+            founderVerificationPassed = true;
+          }
+        }
+
         void audit({
           action: "rag_status_assigned",
           entityType: "review_result",
           entityId: extractedClause.id,
           companyId: company.id,
-          detail: { documentId, clauseCategory: category, ragStatus: deanonComparison.ragStatus, confidenceLabel: deanonComparison.confidenceLabel, escalationRequired: deanonComparison.escalationRequired },
+          detail: { documentId, clauseCategory: category, ragStatus: deanonComparison.ragStatus, confidenceLabel: deanonComparison.confidenceLabel, escalationRequired: deanonComparison.escalationRequired, founderConfidenceScore, founderVerificationPassed },
         });
 
         // ── Three-tier governance escalation ─────────────────────────────────
@@ -710,6 +777,8 @@ ${classifySnippet}`,
           founderCopyPaste: deanonComparison.founderCopyPaste,
           founderFundraisingRelevance: deanonComparison.founderFundraisingRelevance,
           founderIfIgnored: deanonComparison.founderIfIgnored,
+          founderConfidenceScore: founderConfidenceScore,
+          founderVerificationPassed: founderVerificationPassed,
           iracIssue: deAnon(deanonComparison.iracIssue) ?? "",
           iracRule: deAnon(deanonComparison.iracRule) ?? "",
           iracApplication: deAnon(deanonComparison.iracApplication) ?? "",

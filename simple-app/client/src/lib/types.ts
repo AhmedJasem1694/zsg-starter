@@ -783,6 +783,10 @@ export interface ReviewResult {
   founderCopyPaste?: string;
   founderFundraisingRelevance?: string;
   founderIfIgnored?: string;
+  // ── Founder output verification ───────────────────────────────────────────
+  founderConfidenceScore?: number;   // 0–100 from verification call
+  founderVerificationPassed?: boolean; // false = show fallback
+  founderFallbackShown?: boolean;    // logged when fallback is displayed
   iracIssue?: string;
   iracRule?: string;
   iracApplication?: string;
