@@ -73,35 +73,14 @@ function AppRoutes() {
     enabled: !!user,
   });
 
-  // ── Always render these routes immediately — never block on authLoading ───
-  // /login, /signin, /sign-in: always show the form. Never auto-redirect.
-  // This ensures demo presenters can always reach the login page even if a
-  // previous session is still active.
-  if (pathname === "/login" || pathname === "/signin" || pathname === "/sign-in") {
-    return (
-      <Routes>
-        <Route path="/login"    element={<Login />} />
-        <Route path="/signin"   element={<Login />} />
-        <Route path="/sign-in"  element={<Login />} />
-        <Route path="*"         element={<Login />} />
-      </Routes>
-    );
-  }
+  // Public paths that must never be blocked by auth loading.
+  const publicPaths = ["/", "/login", "/signin", "/sign-in", "/register",
+    "/security", "/case-study", "/for-funds"];
+  const isPublicPath = publicPaths.includes(pathname) ||
+    pathname.startsWith("/resources");
 
-  // /register: also render immediately so "Get started" never shows blank
-  if (pathname === "/register") {
-    return (
-      <Routes>
-        <Route path="/register" element={<Register />} />
-        <Route path="*"         element={<Register />} />
-      </Routes>
-    );
-  }
-
-  if (pathname === "/" || pathname === "/resources" || pathname.startsWith("/resources/") ||
-      pathname === "/security" || pathname === "/case-study") {
-    // Public info pages: render immediately, no auth needed
-  } else if (authLoading || (user && companyLoading)) {
+  // Only block rendering for authenticated-only routes while auth resolves.
+  if (!isPublicPath && (authLoading || (user && companyLoading))) {
     return null;
   }
 
@@ -110,18 +89,12 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* Public routes */}
-      <Route path="/" element={<Landing />} />
-      <Route path="/signin" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
-      <Route path="/sign-in" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
-      <Route
-        path="/login"
-        element={user ? <Navigate to="/dashboard" replace /> : <Login />}
-      />
-      <Route
-        path="/register"
-        element={user ? <Navigate to="/dashboard" replace /> : <Register />}
-      />
+      {/* ── Public routes — always render, no auth guard ── */}
+      <Route path="/"        element={<Landing />} />
+      <Route path="/login"   element={<Login />} />
+      <Route path="/signin"  element={<Login />} />
+      <Route path="/sign-in" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
       {/* Auth-required: onboarding (manual / full wizard) */}
       <Route
