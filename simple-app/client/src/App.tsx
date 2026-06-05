@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { getCompany } from "./lib/api";
@@ -65,6 +65,7 @@ function RequireAuth({ children, company }: { children: React.ReactNode; company
 
 function AppRoutes() {
   const { user, isLoading: authLoading } = useAuth();
+  const { pathname } = useLocation();
   const { data: company, isPending: companyLoading } = useQuery({
     queryKey: ["company"],
     queryFn: getCompany,
@@ -72,26 +73,35 @@ function AppRoutes() {
     enabled: !!user,
   });
 
-  // ── Public routes that must render immediately without auth check ─────────
-  // These must NEVER be blocked by authLoading. Landing, login, register,
-  // and alias routes render instantly so a demo or first visit is never blank.
-  const pathname = window.location.pathname;
-  const isPublicNoAuthRoute = pathname === "/login" || pathname === "/signin" ||
-    pathname === "/sign-in" || pathname === "/" || pathname === "/register";
-  if (isPublicNoAuthRoute && authLoading) {
+  // ── Always render these routes immediately — never block on authLoading ───
+  // /login, /signin, /sign-in: always show the form. Never auto-redirect.
+  // This ensures demo presenters can always reach the login page even if a
+  // previous session is still active.
+  if (pathname === "/login" || pathname === "/signin" || pathname === "/sign-in") {
     return (
       <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signin" element={<Login />} />
-        <Route path="/sign-in" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="*" element={null} />
+        <Route path="/login"    element={<Login />} />
+        <Route path="/signin"   element={<Login />} />
+        <Route path="/sign-in"  element={<Login />} />
+        <Route path="*"         element={<Login />} />
       </Routes>
     );
   }
 
-  if (authLoading || (user && companyLoading)) {
+  // /register: also render immediately so "Get started" never shows blank
+  if (pathname === "/register") {
+    return (
+      <Routes>
+        <Route path="/register" element={<Register />} />
+        <Route path="*"         element={<Register />} />
+      </Routes>
+    );
+  }
+
+  if (pathname === "/" || pathname === "/resources" || pathname.startsWith("/resources/") ||
+      pathname === "/security" || pathname === "/case-study") {
+    // Public info pages: render immediately, no auth needed
+  } else if (authLoading || (user && companyLoading)) {
     return null;
   }
 
