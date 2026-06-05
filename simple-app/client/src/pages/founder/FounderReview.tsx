@@ -724,6 +724,139 @@ function FounderClauseCard({
   );
 }
 
+// ── Founder Solution Card — four collapsible sections ────────────────────────
+
+function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <button
+      className="flex items-center gap-1.5 text-xs font-medium text-[#60A5FA] hover:text-white transition-colors px-2 py-1 rounded border border-[#1E3A5F] hover:border-[#3B82F6]"
+      onClick={() => {
+        void navigator.clipboard.writeText(text).then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        });
+      }}
+    >
+      {copied ? <><Check size={11} /> Copied</> : <><Copy size={11} /> {label}</>}
+    </button>
+  );
+}
+
+function SolutionSection({
+  title, preview, children, defaultOpen = false,
+}: {
+  title: string; preview?: string; children: React.ReactNode; defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border-t border-white/8">
+      <button
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/3 transition-colors"
+        onClick={() => setOpen(!open)}
+      >
+        <span className="text-sm font-semibold text-white">{title}</span>
+        <ChevronDown size={14} className={`text-white/40 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {!open && preview && (
+        <p className="px-4 pb-3 text-xs text-white/40 truncate">{preview}</p>
+      )}
+      {open && <div className="px-4 pb-4">{children}</div>}
+    </div>
+  );
+}
+
+function FounderSolutionCard({ result }: { result: ReviewResult }) {
+  const label   = CLAUSE_LABELS[result.clauseCategory] ?? result.clauseCategory.replace(/_/g, " ");
+  const isRed   = result.ragStatus === "RED";
+  const isAmber = result.ragStatus === "AMBER";
+
+  const borderColor  = isRed ? "border-l-[#450A0A]" : isAmber ? "border-l-[#431407]" : "border-l-[#14532D]";
+  const headerBg     = isRed ? "bg-[#1F0A0A]"         : isAmber ? "bg-[#1C0F00]"         : "bg-[#052E16]";
+  const badgeColor   = isRed ? "bg-[#450A0A] text-white" : isAmber ? "bg-[#431407] text-white" : "bg-[#14532D] text-white";
+  const statusLabel  = isRed ? "Problem" : isAmber ? "Worth negotiating" : "Fine";
+
+  // Section content — use stored founder fields with fallbacks
+  const verdict      = result.founderPlainEnglish || result.businessSummary || result.clauseSummary || "No analysis available.";
+  const riskIfSigned = result.founderIfIgnored || result.whyItMatters || "";
+  const emailText    = result.founderCopyPaste || "";
+  const replaceClause = result.suggestedFallback || "";
+  const askFor       = result.founderAskFor || result.recommendedAction || "";
+
+  // Parse email into subject + body if it contains subject-like structure
+  const emailLines   = emailText.split("\n");
+  const emailSubject = `Re: ${label} clause — amendment request`;
+  const emailBody    = emailText.startsWith("Hi ") || emailText.startsWith("Dear ") ? emailText : emailText;
+
+  return (
+    <div className={`rounded-2xl overflow-hidden border border-white/8 border-l-4 ${borderColor}`}>
+      {/* Header — always visible */}
+      <div className={`${headerBg} px-4 py-4`}>
+        <div className="flex items-center gap-3">
+          <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${badgeColor}`}>
+            {statusLabel}
+          </span>
+          <span className="font-semibold text-white text-sm">{label}</span>
+        </div>
+        <p className="text-sm text-white/80 mt-2 leading-relaxed">{verdict}</p>
+        {riskIfSigned && (
+          <p className="text-xs text-white/50 mt-1.5 leading-relaxed italic">{riskIfSigned}</p>
+        )}
+      </div>
+
+      {/* Section 2 — Email to send */}
+      {emailText && (
+        <SolutionSection
+          title="What to say to them →"
+          preview={emailBody.slice(0, 80) + "…"}
+        >
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-white/40">Subject</span>
+              <CopyButton text={`Subject: ${emailSubject}\n\n${emailBody}`} label="Copy email" />
+            </div>
+            <div className="text-xs text-white/60 bg-[#050A10] rounded px-3 py-1.5 font-mono">{emailSubject}</div>
+            <pre className="text-sm text-white/80 bg-[#050A10] rounded px-3 py-3 leading-relaxed whitespace-pre-wrap font-sans max-h-64 overflow-y-auto">
+              {emailBody}
+            </pre>
+          </div>
+        </SolutionSection>
+      )}
+
+      {/* Section 3 — Replacement clause */}
+      {replaceClause && (
+        <SolutionSection
+          title="What to replace it with →"
+          preview={replaceClause.slice(0, 80) + "…"}
+        >
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-white/40">Proposed replacement</span>
+              <CopyButton text={replaceClause} label="Copy clause" />
+            </div>
+            <pre className="text-xs text-white/80 bg-[#050A10] rounded px-3 py-3 leading-relaxed whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">
+              {replaceClause}
+            </pre>
+            {askFor && (
+              <p className="text-xs text-white/50 leading-relaxed pt-1">{askFor}</p>
+            )}
+          </div>
+        </SolutionSection>
+      )}
+
+      {/* Section 4 — Risk if signed as-is */}
+      {riskIfSigned && (
+        <SolutionSection
+          title="If you sign this as it stands →"
+          preview={riskIfSigned.slice(0, 80) + "…"}
+        >
+          <p className="text-sm text-white/70 leading-relaxed">{riskIfSigned}</p>
+        </SolutionSection>
+      )}
+    </div>
+  );
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function FounderReview() {
@@ -952,14 +1085,32 @@ export default function FounderReview() {
           </div>
         </div>
 
-        {/* Verdict banner */}
-        <div className={`card p-5 flex items-center gap-3 border ${banner.bg}`}>
-          <BannerIcon size={22} className={banner.color} />
-          <div>
-            <div className={`font-semibold ${banner.color}`}>{banner.label}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">
-              {counts.RED} problem{counts.RED !== 1 ? "s" : ""} · {counts.AMBER} to negotiate · {counts.GREEN} fine · {counts.GREY} missing
-            </div>
+        {/* ── Large prominent verdict banner ── */}
+        <div className={`rounded-2xl border-2 p-7 text-center space-y-3 ${
+          verdict === "danger"  ? "border-[#450A0A] bg-[#1F0A0A]" :
+          verdict === "caution" ? "border-[#431407] bg-[#1C0F00]" :
+          verdict === "safe"    ? "border-[#14532D] bg-[#052E16]" :
+          "border-[#334155] bg-[#0F172A]"
+        }`}>
+          <div className="flex items-center justify-center gap-2">
+            <BannerIcon size={20} className="text-white" />
+            <span className="text-2xl font-bold tracking-tight text-white">
+              {verdict === "danger"  ? "DO NOT SIGN YET" :
+               verdict === "caution" ? "NEGOTIATE FIRST" :
+               verdict === "safe"    ? "SAFE TO SIGN"    : "REVIEWING…"}
+            </span>
+          </div>
+          <p className="text-white/70 text-sm max-w-sm mx-auto leading-relaxed">
+            {verdict === "danger"  ? `${counts.RED} issue${counts.RED !== 1 ? "s" : ""} need${counts.RED === 1 ? "s" : ""} resolving first. Here is exactly what to do for each one.` :
+             verdict === "caution" ? `${counts.AMBER} clause${counts.AMBER !== 1 ? "s" : ""} worth pushing back on. Here is what to say.` :
+             verdict === "safe"    ? "No material issues found. You can proceed." :
+             "Review in progress…"}
+          </p>
+          <div className="text-xs text-white/35">
+            {counts.RED > 0 && <span className="mr-3">🔴 {counts.RED} problem{counts.RED !== 1 ? "s" : ""}</span>}
+            {counts.AMBER > 0 && <span className="mr-3">🟡 {counts.AMBER} to negotiate</span>}
+            {counts.GREEN > 0 && <span className="mr-3">🟢 {counts.GREEN} fine</span>}
+            {counts.GREY > 0 && <span>⬜ {counts.GREY} missing</span>}
           </div>
         </div>
 
@@ -1024,18 +1175,22 @@ export default function FounderReview() {
           </div>
         )}
 
-        {/* Clause cards */}
-        <div className="space-y-3">
+        {/* Clause cards — solution cards for RED/AMBER, standard for GREEN/GREY */}
+        <div className="space-y-4">
           {filtered.map((result) => (
-            <FounderClauseCard
-              key={result.id}
-              result={result}
-              expanded={expandedId === result.id}
-              onToggle={() => setExpandedId(expandedId === result.id ? null : result.id)}
-              onFeedback={(action, finalClauseText) => void handleFeedback(result.id, action, finalClauseText)}
-              selected={selectedIds.has(result.id)}
-              onToggleSelect={() => toggleSelected(result.id)}
-            />
+            result.ragStatus === "RED" || result.ragStatus === "AMBER" ? (
+              <FounderSolutionCard key={result.id} result={result} />
+            ) : (
+              <FounderClauseCard
+                key={result.id}
+                result={result}
+                expanded={expandedId === result.id}
+                onToggle={() => setExpandedId(expandedId === result.id ? null : result.id)}
+                onFeedback={(action, finalClauseText) => void handleFeedback(result.id, action, finalClauseText)}
+                selected={selectedIds.has(result.id)}
+                onToggleSelect={() => toggleSelected(result.id)}
+              />
+            )
           ))}
           {filtered.length === 0 && (
             <div className="text-sm text-muted-foreground py-10 text-center">
@@ -1081,6 +1236,33 @@ export default function FounderReview() {
                 Select at least one issue using the + button on a clause card.
               </p>
             )}
+          </div>
+        )}
+
+        {/* ── Download all emails pack ── */}
+        {(counts.RED + counts.AMBER) > 0 && (
+          <div className="pt-2">
+            <button
+              onClick={() => {
+                const emailResults = results.filter(
+                  (r) => (r.ragStatus === "RED" || r.ragStatus === "AMBER") && (r.founderCopyPaste || r.suggestedFallback)
+                );
+                const text = emailResults.map((r) => {
+                  const label = CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory.replace(/_/g, " ");
+                  const subject = `Re: ${label} clause — amendment request`;
+                  const body    = r.founderCopyPaste || r.suggestedFallback || "";
+                  return `═══════════════════════════════════════\n${label.toUpperCase()}\n═══════════════════════════════════════\nSubject: ${subject}\n\n${body}\n`;
+                }).join("\n\n");
+                const blob = new Blob([`NEGOTIATION EMAIL PACK\n${doc.originalName}\n\n${text}`], { type: "text/plain" });
+                const url  = URL.createObjectURL(blob);
+                const a    = document.createElement("a");
+                a.href = url; a.download = "negotiation-emails.txt"; a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-[#1E3A5F] text-[#60A5FA] text-sm font-semibold hover:bg-[#0C1929] transition-colors"
+            >
+              <Download size={15} /> Download all emails as a pack
+            </button>
           </div>
         )}
 
