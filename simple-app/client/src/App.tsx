@@ -72,6 +72,25 @@ function AppRoutes() {
     enabled: !!user,
   });
 
+  // ── Public routes that must render immediately without auth check ─────────
+  // These must NEVER be blocked by authLoading. Landing, login, register,
+  // and alias routes render instantly so a demo or first visit is never blank.
+  const pathname = window.location.pathname;
+  const isPublicNoAuthRoute = pathname === "/login" || pathname === "/signin" ||
+    pathname === "/sign-in" || pathname === "/" || pathname === "/register";
+  if (isPublicNoAuthRoute && authLoading) {
+    return (
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signin" element={<Login />} />
+        <Route path="/sign-in" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="*" element={null} />
+      </Routes>
+    );
+  }
+
   if (authLoading || (user && companyLoading)) {
     return null;
   }
@@ -83,6 +102,8 @@ function AppRoutes() {
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<Landing />} />
+      <Route path="/signin" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
+      <Route path="/sign-in" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
       <Route
         path="/login"
         element={user ? <Navigate to="/dashboard" replace /> : <Login />}
