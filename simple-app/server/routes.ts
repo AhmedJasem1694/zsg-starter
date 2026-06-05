@@ -184,42 +184,42 @@ const DEMO_COMPANY_MAP: Record<string, string> = {
   "founder-demo@zanelegal.ai": "pulse",  // company is "Pulse Health Technologies Ltd"
 };
 
+// We store the owner's email in the `role_in_contracts` field — an existing
+// schema text field that PocketBase reliably stores and returns. This avoids
+// issues with custom fields (ownerEmail) that PocketBase silently ignores
+// when not present in the collection schema.
+const OWNER_FIELD = "role_in_contracts";
+
 async function getCompany(ownerEmail?: string): Promise<PBRecord | null> {
-  // Step 1: Demo users — find by known name fragment (demo companies were created
-  // by admin scripts and do not have ownerEmail set).
-  if (ownerEmail && ownerEmail in DEMO_COMPANY_MAP) {
-    const fragment = DEMO_COMPANY_MAP[ownerEmail].toLowerCase();
-    try {
-      const all = await pb.collection("companies").getFullList();
-      const match = all.find((c) => String(c["name"] ?? "").toLowerCase().includes(fragment));
-      if (match) return match;
-    } catch { /* fall through */ }
-  }
-
-  // Step 2: All users — find by ownerEmail field set at company creation.
-  // This is the primary multi-tenant isolation mechanism.
-  if (ownerEmail) {
-    // Strip quotes to prevent filter injection; email addresses never contain "
-    const safeEmail = ownerEmail.replace(/"/g, "");
-    try {
-      const byEmail = await pb.collection("companies").getFirstListItem(
-        'ownerEmail = "' + safeEmail + '"'
-      );
-      if (byEmail) return byEmail;
-    } catch { /* no match — fall through */ }
-  }
-
-  // Step 3: Fallback for legacy single-tenant installs.
-  // Only return list[0] when there is exactly ONE company in the database.
-  // If there are multiple companies and none matched above, return null — this
-  // means the user has not completed onboarding yet (they have no company) and
-  // the frontend will redirect them to /onboarding rather than showing another
-  // user's data.
-  const all = await pb.collection("companies").getFullList({ batch: 2 }).catch((err: unknown) => {
+  // Fetch ALL companies once and filter in-memory. More reliable than PB filters
+  // on non-indexed fields.
+  let allCompanies: PBRecord[];
+  try {
+    allCompanies = await pb.collection("companies").getFullList();
+  } catch (err) {
     console.error("[getCompany] PocketBase query failed:", (err as Error)?.message ?? err);
     throw err;
-  });
-  if (all.length === 1) return all[0];
+  }
+
+  if (ownerEmail) {
+    // Step 1: Demo users — find by known company name fragment.
+    if (ownerEmail in DEMO_COMPANY_MAP) {
+      const fragment = DEMO_COMPANY_MAP[ownerEmail].toLowerCase();
+      const match = allCompanies.find((c) =>
+        String(c["name"] ?? "").toLowerCase().includes(fragment)
+      );
+      if (match) return match;
+    }
+
+    // Step 2: All real users — find by OWNER_FIELD (role_in_contracts stores the owner email).
+    const byOwner = allCompanies.find(
+      (c) => String(c[OWNER_FIELD] ?? "") === ownerEmail
+    );
+    if (byOwner) return byOwner;
+  }
+
+  // Step 3: Single-tenant fallback — only when exactly one company exists.
+  if (allCompanies.length === 1) return allCompanies[0];
   return null;
 }
 
@@ -376,13 +376,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Never delete demo companies (Meridian, Sora) or other users' companies.
     // We identify the current user's company by ownerEmail, which is stored on
     // creation below. Ignore errors so a missing company doesn't block re-setup.
+    // Delete only this user's existing company (identified by role_in_contracts = userEmail).
     const userEmail = req.user?.email;
     if (userEmail) {
-      const safeEmail = userEmail.replace(/"/g, "");
       try {
-        const existing = await pb.collection("companies").getFirstListItem(
-          'ownerEmail = "' + safeEmail + '"',
-        );
+        const all = await pb.collection("companies").getFullList();
+        const existing = all.find(c => String(c[OWNER_FIELD] ?? "") === userEmail);
         if (existing) {
           await pb.collection("companies").delete(existing.id);
         }
@@ -391,8 +390,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const company = await pb.collection("companies").create({
       ...parsed.data,
-      ownerEmail: userEmail ?? "",
-      subscription_tier: "trial", // new accounts start on 14-day trial
+      [OWNER_FIELD]: userEmail ?? "", // role_in_contracts stores owner email
+      subscription_tier: "trial",
     });
 
     await audit({
