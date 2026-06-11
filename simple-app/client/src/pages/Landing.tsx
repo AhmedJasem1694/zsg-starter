@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, AlertTriangle, Zap, BookOpen, Scale, TrendingUp, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ZaneLogo } from "../components/ZaneLogo";
 
@@ -94,37 +94,49 @@ function CyclingPhrase() {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 const LANDING_FAQS = [
-  { q: "How long does it take to get started?", a: "Around 30 minutes. You configure your playbook positions, set your approval thresholds, and upload your first contract. No implementation project. No technical setup. No enterprise sales process." },
+  { q: "How long does it take to get started?", a: "Around 20 minutes. You configure your playbook positions, set your approval thresholds, and upload your first contract. No implementation project. No technical setup. No enterprise sales process." },
   { q: "Do I need a technical team to set this up?", a: "No. Zane is entirely self-serve. If you can fill in a form you can configure Zane. The only technical requirement is a browser." },
   { q: "Are my contracts used to train AI models?", a: "Never. Your contracts are anonymised before any AI model sees them and are never used for model training of any kind. Your data stays yours." },
   { q: "How is Zane different from Claude for Legal or Harvey?", a: "Claude for Legal is a generic assistant that starts from zero every session. Harvey is built for Magic Circle law firms at six figures a year. Neither of them knows your company. Zane is built specifically for lean in-house teams and gets smarter about your company with every contract reviewed." },
   { q: "What happens to my data if I cancel?", a: "Your data is yours. You can export everything before you cancel. We do not hold your data hostage." },
   { q: "Does Zane replace my lawyer?", a: "No. Zane handles the objective layer so your lawyer can focus on the judgment calls that actually require a lawyer. Every recommendation Zane makes requires a human decision before anything happens." },
   { q: "What contract types does Zane support?", a: "Commercial contracts, supplier agreements, customer MSAs, NDAs, technology agreements, employment contracts, and more. The playbook engine works for any contract type you configure it for." },
-  { q: "Is there a minimum contract or commitment?", a: "No minimum contract beyond the billing period. No implementation fee. No setup cost. All plans include a 14 day free trial with no credit card required. Billed quarterly or annually." },
+  { q: "Is there a minimum contract or commitment?", a: "No minimum contract beyond the billing period. No implementation fee. No setup cost. 14 day free trial on all plans. No credit card required. Billed quarterly or annually." },
 ];
 
 export default function Landing() {
   const shouldReduce = useReducedMotion();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  // Audience toggle: "gc" | "founder" | "both". Default shows both, stacked.
-  const [audience, setAudience] = useState<"gc" | "founder" | "both">("both");
   // Billing toggle: quarterly (default) or annual
   const [billing, setBilling] = useState<"quarterly" | "annual">("quarterly");
+  const lenisRef = useRef<import("@studio-freight/lenis").default | null>(null);
 
   // Lenis smooth scroll
   useEffect(() => {
     let lenis: import("@studio-freight/lenis").default | null = null;
     import("@studio-freight/lenis").then(({ default: Lenis }) => {
       lenis = new Lenis({ duration: 1.1, smoothWheel: true });
+      lenisRef.current = lenis;
       function raf(time: number) {
         lenis!.raf(time);
         requestAnimationFrame(raf);
       }
       requestAnimationFrame(raf);
     });
-    return () => { lenis?.destroy(); };
+    return () => { lenis?.destroy(); lenisRef.current = null; };
   }, []);
+
+  // Smooth-scroll for in-page anchor links; offset clears the sticky header
+  const scrollToSection = (e: MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    const target = document.querySelector<HTMLElement>(href);
+    if (!target) return;
+    if (lenisRef.current) {
+      lenisRef.current.scrollTo(target, { offset: -57 });
+    } else {
+      target.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F7F6F3]">
@@ -139,7 +151,7 @@ export default function Landing() {
             {["#why-zane:Why Zane","#how-it-works:How it works","#pricing:Pricing"].map(s => {
               const [href, label] = s.split(":");
               return (
-                <a key={href} href={href}
+                <a key={href} href={href} onClick={(e) => scrollToSection(e, href)}
                   className="text-white/50 hover:text-white transition-colors duration-300">
                   {label}
                 </a>
@@ -147,6 +159,7 @@ export default function Landing() {
             })}
             <Link to="/case-study" className="text-white/50 hover:text-white transition-colors duration-300">Case study</Link>
             <Link to="/resources" className="text-white/50 hover:text-white transition-colors duration-300">Resources</Link>
+            <Link to="/security" className="text-white/50 hover:text-white transition-colors duration-300">Security</Link>
           </nav>
           <div className="flex items-center gap-2">
             <Link to="/login" className="px-4 py-1.5 text-sm text-white/50 hover:text-white transition-colors duration-300">Sign in</Link>
@@ -217,10 +230,10 @@ export default function Landing() {
               <a href="https://calendly.com/ahmedljasem/30min"
                 target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 text-sm">
-                Book a 30 minute demo <ArrowRight size={15} />
+                Book a 20 minute demo <ArrowRight size={15} />
               </a>
             </motion.div>
-            <p className="text-xs text-white/25">No implementation. No enterprise contract. Working in 30 minutes.</p>
+            <p className="text-xs text-[#F8FAFC]">No implementation. No enterprise contract. Working in 20 minutes.</p>
           </motion.div>
 
           {/* Stats */}
@@ -241,36 +254,6 @@ export default function Landing() {
             ))}
           </motion.div>
 
-          {/* ── Audience toggle ── */}
-          <motion.div
-            className="pt-3 flex flex-col items-center gap-3"
-            {...(shouldReduce ? {} : fadeUpHero(0.75))}
-          >
-            <p className="text-[11px] text-white/30 uppercase tracking-widest">Who are you?</p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setAudience(audience === "gc" ? "both" : "gc")}
-                className={`px-4 py-2 rounded-full text-xs font-semibold border transition-all duration-200 ${
-                  audience === "gc"
-                    ? "bg-primary text-white border-primary shadow-lg shadow-primary/25"
-                    : "bg-white/5 text-white/50 border-white/10 hover:border-white/25 hover:text-white/70"
-                }`}
-              >
-                GC or Head of Legal
-              </button>
-              <button
-                onClick={() => setAudience(audience === "founder" ? "both" : "founder")}
-                className={`px-4 py-2 rounded-full text-xs font-semibold border transition-all duration-200 ${
-                  audience === "founder"
-                    ? "bg-primary text-white border-primary shadow-lg shadow-primary/25"
-                    : "bg-white/5 text-white/50 border-white/10 hover:border-white/25 hover:text-white/70"
-                }`}
-              >
-                Founder or startup operator
-              </button>
-            </div>
-          </motion.div>
-
           {/* Scroll hint */}
           <motion.div
             className="pt-1 flex flex-col items-center gap-1.5 opacity-25"
@@ -286,9 +269,8 @@ export default function Landing() {
       <section id="why-zane" className="py-20 bg-[#F7F6F3] border-t border-black/5">
         <div className="max-w-3xl mx-auto px-6 space-y-8">
 
-          {/* GC version — shown when audience is gc or both */}
-          {(audience === "gc" || audience === "both") && (
-            <motion.div className="space-y-8" {...headingReveal} key="gc-problem">
+          {/* GC version */}
+          <motion.div className="space-y-8" {...headingReveal} key="gc-problem">
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
                 Most legal teams get this wrong every day.
               </h2>
@@ -301,20 +283,16 @@ export default function Landing() {
                 </p>
               </div>
             </motion.div>
-          )}
 
-          {/* Visual separator when showing both */}
-          {audience === "both" && (
+          {/* Visual separator between audiences */}
             <div className="flex items-center gap-4 py-2">
               <div className="flex-1 h-px bg-black/8" />
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest shrink-0">For founders and startup operators</span>
               <div className="flex-1 h-px bg-black/8" />
             </div>
-          )}
 
-          {/* Founder version — shown when audience is founder or both */}
-          {(audience === "founder" || audience === "both") && (
-            <motion.div className="space-y-8" {...(audience === "both" ? fadeUp(0.1) : headingReveal)} key="founder-problem">
+          {/* Founder version */}
+            <motion.div className="space-y-8" {...fadeUp(0.1)} key="founder-problem">
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
                 Every founder reviews contracts they should not have to review alone.
               </h2>
@@ -327,14 +305,13 @@ export default function Landing() {
                 </p>
               </div>
             </motion.div>
-          )}
 
         </div>
       </section>
 
 
-      {/* ─── WHAT ZANE DOES ──────────────────────────────────────────────────── */}
-      <section className="py-20 bg-[#F2F1EE] border-t border-black/5">
+      {/* ─── WHAT ZANE DOES / HOW IT WORKS ───────────────────────────────────── */}
+      <section id="how-it-works" className="py-20 bg-[#F2F1EE] border-t border-black/5">
         <div className="max-w-5xl mx-auto px-6">
           <div className="rounded-2xl overflow-hidden bg-white border border-black/6">
             <div className="grid lg:grid-cols-2 gap-0">
@@ -375,7 +352,6 @@ export default function Landing() {
       </section>
 
       {/* ─── FOUNDER OUTPUT SECTION ──────────────────────────────────────────── */}
-      {(audience === "founder" || audience === "both") && (
         <section className="py-20 bg-[#111827]">
           <div className="max-w-4xl mx-auto px-6 space-y-12">
             <motion.div className="text-center space-y-3" {...headingReveal}>
@@ -463,7 +439,6 @@ export default function Landing() {
             </motion.div>
           </div>
         </section>
-      )}
 
       {/* ─── PRODUCT SCREENSHOT SHOWCASE ─────────────────────────────────────── */}
       <section className="py-20 px-6 bg-[#080F18]">
@@ -802,8 +777,6 @@ export default function Landing() {
 
       {/* ─── VALUE FRAMING ───────────────────────────────────────────────────── */}
       <section className="max-w-3xl mx-auto px-6 pt-16 pb-2 text-center space-y-4">
-        {audience !== "founder" ? (
-          /* GC / both version */
           <motion.div className="space-y-4" {...headingReveal} key="gc-value">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
               What does it actually cost you today?
@@ -818,21 +791,6 @@ export default function Landing() {
               Handles the first pass every time so your lawyer focuses on the decisions that actually need a lawyer.
             </p>
           </motion.div>
-        ) : (
-          /* Founder version */
-          <motion.div className="space-y-4" {...headingReveal} key="founder-value">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
-              Outside counsel charges £400 an hour to review a contract.
-            </h2>
-            <p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto">
-              Most founder contracts take two to three hours. That is £800 to £1,200 per contract.
-              Zane starts at £450 a month billed quarterly. That is less than one hour of outside counsel fees per week.
-            </p>
-            <p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto">
-              Upload the contract. Know what to do in minutes. Keep the lawyer for the decisions that actually need one.
-            </p>
-          </motion.div>
-        )}
       </section>
 
       {/* ─── PRICING ─────────────────────────────────────────────────────────── */}
@@ -1006,6 +964,75 @@ export default function Landing() {
         </motion.p>
       </section>
 
+      {/* ─── LEGACY CONTRACT REVIEW - one-off projects ───────────────────────── */}
+      <section className="py-20" style={{ background: "#0B1020" }}>
+        <div className="max-w-6xl mx-auto px-6 space-y-10">
+          <motion.div className="text-center space-y-3" {...headingReveal}>
+            <div className="inline-block text-xs font-bold text-primary tracking-widest uppercase">One-off projects</div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Legacy Contract Review</h2>
+            <p className="text-sm text-white/50 max-w-xl mx-auto">
+              Already have contracts that need reviewing? Get a full audit of your existing contract estate as a standalone project. No subscription required.
+            </p>
+          </motion.div>
+
+          <motion.div
+            className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"
+            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
+          >
+            {[
+              {
+                tier: "Up to 100 contracts",
+                price: "£800",
+                description: "Extracted key provisions, risk flags, renewal dates, and a structured summary for every contract.",
+              },
+              {
+                tier: "Up to 250 contracts",
+                price: "£1,750",
+                description: "Everything above plus portfolio risk report and exposure summary in pounds.",
+              },
+              {
+                tier: "Up to 500 contracts",
+                price: "£3,000",
+                description: "Everything above plus counterparty analysis and recommended actions by clause type.",
+              },
+              {
+                tier: "Up to 1,000 contracts",
+                price: "£5,000",
+                description: "Everything above plus full Legal Inheritance setup and 3 months Starter subscription included.",
+              },
+            ].map(({ tier, price, description }) => (
+              <motion.div
+                key={tier}
+                className="rounded-xl border border-[#1B2533] bg-[#111A24] p-6 space-y-3"
+                variants={staggerItem}
+                whileHover={{ y: -4, boxShadow: "0 12px 32px rgba(0,0,0,0.35)" }}
+                transition={SPRING_SOFT}
+              >
+                <div className="text-xs text-white/50 font-medium">{tier}</div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-bold text-white">{price}</span>
+                  <span className="text-xs text-white/40">one-off</span>
+                </div>
+                <p className="text-xs text-white/60 leading-relaxed">{description}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          <motion.div className="text-center space-y-4" {...fadeUp(0.15)}>
+            <p className="text-sm text-[#F8FAFC] max-w-xl mx-auto">
+              After your legacy review move to a subscription to keep your contract intelligence active. First quarter at 20% off.
+            </p>
+            <motion.div className="inline-block" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <a href="https://calendly.com/ahmedljasem/30min"
+                target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 text-sm">
+                Book a legacy review <ArrowRight size={15} />
+              </a>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ─── REGULATORY - dark ───────────────────────────────────────────────── */}
       <section className="py-20" style={{ background: "#0B1118" }}>
         <div className="max-w-6xl mx-auto px-6">
@@ -1022,7 +1049,7 @@ export default function Landing() {
                 <p className="text-sm text-white/50 leading-relaxed">
                   Every contract review is cross-referenced against the regulatory frameworks that apply to your sector and jurisdiction. GDPR, FCA Consumer Duty, KSA GCAM, and more - automatically.
                 </p>
-                <a href="#how-it-works" className="inline-flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity font-medium">
+                <a href="#how-it-works" onClick={(e) => scrollToSection(e, "#how-it-works")} className="inline-flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity font-medium">
                   See how it works <ArrowRight size={13} />
                 </a>
               </motion.div>
@@ -1107,13 +1134,13 @@ export default function Landing() {
               The first contract you review will show you exactly what it can do.
             </h2>
             <p className="text-white/60 text-sm max-w-md mx-auto">
-              Most tools ask you to trust them before showing you anything. Zane asks for 30 minutes and a contract. Book a demo. Bring a real contract. We will run it through Zane live and show you the output before you make any decision.
+              Most tools ask you to trust them before showing you anything. Zane asks for 20 minutes and a contract. Book a demo. Bring a real contract. We will run it through Zane live and show you the output before you make any decision.
             </p>
             <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
               <a href="https://calendly.com/ahmedljasem/30min"
                 target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-gray-900 font-bold rounded-xl hover:opacity-95 transition-opacity shadow-xl text-sm">
-                Book a 30 minute demo <ArrowRight size={15} />
+                Book a 20 minute demo <ArrowRight size={15} />
               </a>
             </motion.div>
             <p className="text-white/30 text-xs">

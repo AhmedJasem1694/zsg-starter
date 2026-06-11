@@ -123,6 +123,7 @@ export default function Resources() {
           <nav className="hidden md:flex items-center gap-6 text-xs">
             <Link to="/" className="text-white/50 hover:text-white transition-colors duration-300">Home</Link>
             <Link to="/case-study" className="text-white/50 hover:text-white transition-colors duration-300">Case study</Link>
+            <Link to="/resources" className="text-white hover:text-white transition-colors duration-300">Resources</Link>
             <Link to="/security" className="text-white/50 hover:text-white transition-colors duration-300">Security</Link>
           </nav>
           <div className="flex items-center gap-2">

@@ -124,7 +124,9 @@ export default function Security() {
         </Link>
         <div className="flex items-center gap-6">
           <Link to="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Home</Link>
+          <Link to="/case-study" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Case study</Link>
           <Link to="/resources" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Resources</Link>
+          <Link to="/security" className="text-sm text-foreground transition-colors">Security</Link>
           <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Sign in</Link>
           <Link
             to="/register"
