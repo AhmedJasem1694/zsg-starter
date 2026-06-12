@@ -268,10 +268,11 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
       await queryClient.invalidateQueries({ queryKey: ["documents"] });
       await queryClient.invalidateQueries({ queryKey: ["library"] });
       await reviewMutation.mutateAsync(doc.id);
-      if (workflowType === "INSURANCE_LITIGATION") {
-        navigate(`/app/legal/litigation-intake/${doc.id}`);
-        return;
-      }
+      // Litigation disabled — commercial contracts focus.
+      // if (workflowType === "INSURANCE_LITIGATION") {
+      //   navigate(`/app/legal/litigation-intake/${doc.id}`);
+      //   return;
+      // }
       setCounterpartyName("");
       setReviewType("INBOUND");
       setUploadSuccess(true);

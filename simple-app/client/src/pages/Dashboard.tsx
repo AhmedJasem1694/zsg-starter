@@ -777,11 +777,12 @@ export default function Dashboard() {
       await queryClient.invalidateQueries({ queryKey: ["documents"] });
       await queryClient.invalidateQueries({ queryKey: ["document-stats"] });
       await reviewMutation.mutateAsync(doc.id);
-      // For insurance litigation workflow, redirect to intake flow
-      if (workflowType === "INSURANCE_LITIGATION") {
-        navigate(`/app/legal/litigation-intake/${doc.id}`);
-        return;
-      }
+      // Litigation disabled — commercial contracts focus.
+      // (Previously: INSURANCE_LITIGATION workflow redirected to the litigation intake flow.)
+      // if (workflowType === "INSURANCE_LITIGATION") {
+      //   navigate(`/app/legal/litigation-intake/${doc.id}`);
+      //   return;
+      // }
       // Reset form
       setCounterpartyName(""); setCounterpartyType(""); setReviewType("INBOUND");
       setContractValue(""); setContractTermMonths(""); setAutoRenewal(false);

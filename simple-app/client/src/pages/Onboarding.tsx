@@ -53,7 +53,7 @@ interface Contact {
   email: string;
 }
 
-const STEPS = ["Workflow", "Persona", "Company", "Contracts", "Playbook", "Integrations", "Governance", "Team", "Regulations", "Done"];
+const STEPS = ["Persona", "Company", "Contracts", "Playbook", "Integrations", "Governance", "Team", "Regulations", "Done"];
 
 // ─── Industry config ──────────────────────────────────────────────────────────
 
@@ -180,8 +180,14 @@ const CARD2 = "#111827";
 export default function Onboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [step, setStep] = useState<Step>(0);
-  const [workflowType, setWorkflowType] = useState<WorkflowType>("COMMERCIAL_CONTRACT");
+  // Litigation disabled — commercial contracts focus.
+  // Workflow selection removed: commercial contract review is the only workflow.
+  const workflowType: WorkflowType = "COMMERCIAL_CONTRACT";
+  // Onboarding starts at Persona (step 1) — or Company (step 2) when the persona
+  // was already chosen in the Register pre-flow. Step 0 (workflow choice + Quick
+  // Start) has been removed. Lazy init reads sessionStorage before the clearing
+  // effect below runs.
+  const [step, setStep] = useState<Step>(() => sessionStorage.getItem('onboarding_persona') !== null ? 2 : 1);
 
   // Read sessionStorage keys written by the Register pre-flow.
   // Use useState lazy initializers so values are captured exactly once
@@ -288,57 +294,8 @@ export default function Onboarding() {
       .map((cat) => ({ clauseCategory: cat, ...defaults[cat], riskWeight: 3 }));
   }
 
-  async function handleQuickStart(companyName: string, chosenIndustries: Industry[]) {
-    if (!companyName.trim()) return;
-    setSaving(true);
-    setFinishError("");
-    try {
-      const industries: Industry[] = chosenIndustries.length > 0 ? chosenIndustries : ["OTHER"];
-      const sector = industries.map((i) => INDUSTRY_LABELS[i]).join(", ");
-
-      const defaults: CompanyForm = {
-        name: companyName.trim(),
-        sector,
-        jurisdiction: "England & Wales",
-        role: "BUYER",
-        riskAppetite: "MODERATE",
-        industry: industries[0],
-      };
-      const pb = initPlaybook("MODERATE", false, false, false, "COMMERCIAL_CONTRACT", industries);
-      await companyMutation.mutateAsync({ ...defaults, persona: "CORPORATE", workflowType: "COMMERCIAL_CONTRACT" });
-      const validRules = pb
-        .map(({ clauseCategory, preferredPosition, acceptableFallback, hardRedLine, fallbackTemplate, riskWeight }) => ({
-          clauseCategory, preferredPosition, acceptableFallback, hardRedLine, fallbackTemplate, riskWeight,
-        }))
-        .filter((r) => r.preferredPosition?.trim() && r.acceptableFallback?.trim() && r.hardRedLine?.trim());
-      await savePlaybookRules(validRules);
-      detectRegulations().catch(() => {});
-      // Use refetchQueries (not invalidateQueries) so we WAIT for the company
-      // data to land in the cache before navigating. invalidateQueries marks the
-      // query stale but navigates before the refetch finishes. When the query
-      // was previously in error state (404, brand-new user) company stays null
-      // on /dashboard and bounces straight back to /onboarding in a loop.
-      await queryClient.refetchQueries({ queryKey: ["company"] });
-      navigate("/dashboard");
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Setup failed - please try again.";
-      setFinishError(msg);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  function handleWorkflowNext(chosen: WorkflowType) {
-    setWorkflowType(chosen);
-    // BUG 1 FIX: if the user already selected their persona in the Register
-    // pre-flow (stored in sessionStorage) AND this isn't a litigation workflow
-    // (which has its own persona step), skip Step 1 entirely and go to Step 2.
-    if (personaWasPreSelected && chosen !== "INSURANCE_LITIGATION") {
-      setStep(2);
-    } else {
-      setStep(1);
-    }
-  }
+  // Quick Start removed — single configure onboarding path.
+  // Litigation disabled — commercial contracts focus.
 
   function handlePersonaNext(chosen: Persona) {
     setPersona(chosen);
@@ -466,12 +423,13 @@ export default function Onboarding() {
     }
   }
 
-  // Founder persona uses only 3 visible steps (0→1→2→9=launch)
+  // Founder persona uses only 3 visible steps (1→2→9=launch)
   const isFounderFlow = persona === "FOUNDER";
   const effectiveStepCount = isFounderFlow ? 3 : STEPS.length;
-  // Map actual step index to display progress for founder flow
-  const founderDisplayStep = step === 9 ? 3 : step; // steps 0,1,2 stay same; step 9 = last
-  const displayStep = isFounderFlow ? founderDisplayStep : step;
+  // Zero-based display index into the step labels (step 1 = first label)
+  const displayStep = isFounderFlow
+    ? (step === 9 ? 2 : step - 1) // founder: Persona(1)→0, About you(2)→1, Launch(9)→2
+    : step - 1;
   const progressPct = (displayStep / (effectiveStepCount - 1)) * 100;
 
   return (
@@ -500,12 +458,9 @@ export default function Onboarding() {
       {/* Step labels */}
       <div className="border-b border-white/8 px-6 py-3" style={{ background: "#0F172A" }}>
         <div className="flex items-center gap-0 max-w-2xl">
-          {(isFounderFlow ? ["Workflow", "Persona", "About you", "Launch"] : STEPS).map((label, i) => {
-            // For founder flow, map display index to actual step: 0→0, 1→1, 2→2, 3→9
-            const actualStep = isFounderFlow && i === 3 ? 9 : i;
-            const done   = isFounderFlow ? displayStep > i : i < step;
-            const active = isFounderFlow ? displayStep === i : i === step;
-            void actualStep;
+          {(isFounderFlow ? ["Persona", "About you", "Launch"] : STEPS).map((label, i) => {
+            const done   = i < displayStep;
+            const active = i === displayStep;
             return (
               <div key={label} className="flex items-center flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
@@ -531,11 +486,10 @@ export default function Onboarding() {
 
       {/* Content */}
       <main className="flex-1 px-4 sm:px-6 py-10 max-w-2xl mx-auto w-full">
-        {step === 0 && (
-          <Step0Workflow onNext={handleWorkflowNext} onQuickStart={(name, industries) => handleQuickStart(name, industries)} saving={saving} finishError={finishError} />
-        )}
+        {/* Step 0 (workflow choice + Quick Start) removed.
+            Litigation disabled — commercial contracts focus. */}
         {step === 1 && (
-          <Step1Persona workflowType={workflowType} onNext={handlePersonaNext} onBack={() => setStep(0)} />
+          <Step1Persona workflowType={workflowType} onNext={handlePersonaNext} />
         )}
         {step === 2 && (
           <Step2Company
@@ -546,7 +500,7 @@ export default function Onboarding() {
             selectedIndustries={selectedIndustries} onIndustriesChange={setSelectedIndustries}
             riskWasPreSelected={riskWasPreSelected}
             sectorWasPreSelected={sectorWasPreSelected}
-            onBack={() => setStep(personaWasPreSelected ? 0 : 1)} onNext={handleCompanyNext}
+            onBack={() => setStep(1)} onNext={handleCompanyNext}
           />
         )}
         {step === 3 && (
@@ -582,258 +536,9 @@ export default function Onboarding() {
   );
 }
 
-// ─── Step 0: Workflow selection ───────────────────────────────────────────────
-
-const WORKFLOW_OPTIONS: { value: WorkflowType; label: string; description: string }[] = [
-  {
-    value: "COMMERCIAL_CONTRACT",
-    label: "Commercial contract review",
-    description: "Review counterparty paper against your playbook positions. Flags deviations with fallback language and escalation routing.",
-  },
-  {
-    value: "INSURANCE_LITIGATION",
-    label: "Litigation",
-    description: "Triage and manage claims across insurance, commercial civil, property, employment, and professional indemnity. Coverage analysis through to settlement authority and FCA compliance.",
-  },
-  // HEALTHCARE_PROCUREMENT is intentionally excluded from user-facing options.
-  // Healthcare-specific clause categories and regulatory citations are applied
-  // automatically when the company sector is set to Healthcare during onboarding.
-];
-
-function Step0Workflow({
-  onNext,
-  onQuickStart,
-  saving,
-  finishError,
-}: {
-  onNext: (w: WorkflowType) => void;
-  onQuickStart: (name: string, industries: Industry[]) => void;
-  saving: boolean;
-  finishError: string;
-}) {
-  const [selected, setSelected] = useState<WorkflowType>("COMMERCIAL_CONTRACT");
-  const [quickName, setQuickName] = useState("");
-  const [showQuick, setShowQuick] = useState(false);
-
-  // Industry detection state for Quick Start
-  const [detecting, setDetecting] = useState(false);
-  const [detectedIndustries, setDetectedIndustries] = useState<Industry[]>([]);
-  const [selectedQsIndustries, setSelectedQsIndustries] = useState<Industry[]>([]);
-  const [detected, setDetected] = useState(false);
-  const detectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const allIndustries = Object.entries(INDUSTRY_LABELS) as [Industry, string][];
-
-  // Auto-detect when name changes (debounced 700ms)
-  useEffect(() => {
-    if (detectTimerRef.current) clearTimeout(detectTimerRef.current);
-    if (quickName.trim().length < 3) {
-      setDetected(false);
-      setDetectedIndustries([]);
-      setSelectedQsIndustries([]);
-      return;
-    }
-    detectTimerRef.current = setTimeout(async () => {
-      setDetecting(true);
-      try {
-        const { candidates } = await searchCompany(quickName.trim());
-        if (candidates.length > 0) {
-          const enriched = await enrichCompanyData(candidates[0]);
-          const valid = (enriched.mappedIndustries ?? []).filter(
-            (i): i is Industry => i in INDUSTRY_LABELS
-          );
-          setDetectedIndustries(valid);
-          setSelectedQsIndustries(valid);
-          setDetected(true);
-        } else {
-          setDetected(false);
-          setDetectedIndustries([]);
-        }
-      } catch {
-        setDetected(false);
-      } finally {
-        setDetecting(false);
-      }
-    }, 700);
-    return () => { if (detectTimerRef.current) clearTimeout(detectTimerRef.current); };
-  }, [quickName]);
-
-  function toggleQsIndustry(v: Industry) {
-    setSelectedQsIndustries((prev) =>
-      prev.includes(v) ? prev.filter((i) => i !== v) : [...prev, v]
-    );
-  }
-
-  return (
-    <div className="space-y-8">
-      {/* Quick Start panel */}
-      <div className="rounded-2xl border border-[#4A6CF7]/30 bg-[#0B1320] p-5 space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#4A6CF7]" />
-              <span className="text-xs font-semibold uppercase tracking-widest text-[#4A6CF7]">Quick Start</span>
-            </div>
-            <h3 className="text-sm font-semibold text-white mt-1">
-              Get started in 30 seconds
-            </h3>
-            <p className="text-xs text-white/40 mt-0.5 leading-relaxed">
-              Enter your company name - Zane auto-detects your industry. Adjust, then launch.
-            </p>
-          </div>
-          <button
-            onClick={() => setShowQuick((v) => !v)}
-            className="text-xs text-[#4A6CF7] hover:text-[#7B9BFA] transition-colors font-medium shrink-0 pt-1"
-          >
-            {showQuick ? "Cancel" : "Use Quick Start →"}
-          </button>
-        </div>
-
-        {showQuick && (
-          <div className="space-y-4 pt-1 border-t border-white/8">
-
-            {/* Company name */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
-                Company name
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  className="w-full rounded-xl border border-white/12 bg-white/5 px-4 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-primary transition-colors pr-10"
-                  placeholder="e.g. Collins River Enterprises Limited"
-                  value={quickName}
-                  onChange={(e) => setQuickName(e.target.value)}
-                  autoFocus
-                />
-                {detecting && (
-                  <Loader2 size={13} className="animate-spin text-primary/60 absolute right-3 top-1/2 -translate-y-1/2" />
-                )}
-              </div>
-            </div>
-
-            {/* Industry - auto-detected + editable */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-[11px] font-semibold uppercase tracking-widest text-white/40">
-                  Industry
-                </label>
-                {detected && detectedIndustries.length > 0 && (
-                  <span className="text-[10px] text-emerald-400 flex items-center gap-1">
-                    <CheckCircle size={9} /> Auto-detected from Companies House - adjust as needed
-                  </span>
-                )}
-                {!detected && !detecting && quickName.trim().length >= 3 && (
-                  <span className="text-[10px] text-white/30">Not found - select manually</span>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                {allIndustries.map(([value, label]) => {
-                  const isDetected = detectedIndustries.includes(value);
-                  const isSel = selectedQsIndustries.includes(value);
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => toggleQsIndustry(value)}
-                      className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border text-left transition-all text-[11px] ${
-                        isSel
-                          ? "border-primary bg-primary/15 text-white"
-                          : "border-white/8 text-white/35 hover:border-white/20 hover:text-white/60"
-                      }`}
-                    >
-                      <div className={`w-3 h-3 rounded shrink-0 flex items-center justify-center transition-colors ${isSel ? "bg-primary" : "border border-white/20"}`}>
-                        {isSel && <span className="text-white text-[8px] font-bold">✓</span>}
-                      </div>
-                      <span className="leading-tight truncate flex-1">{label}</span>
-                      {isDetected && (
-                        <span className="text-[8px] text-primary/60 font-semibold uppercase shrink-0">CH</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Launch */}
-            <button
-              onClick={() => onQuickStart(quickName, selectedQsIndustries)}
-              disabled={!quickName.trim() || saving}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {saving ? (
-                <><Loader2 size={14} className="animate-spin" /> Setting up…</>
-              ) : (
-                "Launch Zane →"
-              )}
-            </button>
-
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-white/25">
-              {["Commercial contracts", "England & Wales", "Moderate risk appetite"].map((d) => (
-                <span key={d} className="flex items-center gap-1">
-                  <CheckCircle size={9} className="text-primary/50" /> {d}
-                </span>
-              ))}
-            </div>
-
-            {finishError && (
-              <div className="text-xs text-white bg-[#1F0A0A] border border-[#450A0A] rounded-lg px-3 py-2">
-                {finishError}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div>
-        <h2 className="text-xl font-bold text-white tracking-tight">Or configure your workflow</h2>
-        <p className="text-white/40 text-sm mt-1.5 leading-relaxed">
-          Zane adapts its clause library and output framing to your workflow. You can change this later.
-        </p>
-      </div>
-
-      <div className="space-y-3">
-        {WORKFLOW_OPTIONS.map((opt) => {
-          const sel = selected === opt.value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => setSelected(opt.value)}
-              className={`w-full text-left rounded-2xl border p-5 transition-all ${
-                sel
-                  ? "border-primary bg-primary/10 shadow-lg shadow-primary/15"
-                  : "border-white/10 hover:border-white/20"
-              }`}
-              style={{ background: sel ? undefined : CARD }}
-            >
-              <div className="flex items-start gap-4">
-                <div className={`mt-0.5 w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
-                  sel ? "border-primary" : "border-white/25"
-                }`}>
-                  {sel && <div className="w-2 h-2 rounded-full bg-primary" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-semibold text-white">{opt.label}</span>
-                  <p className="text-xs text-white/50 mt-1 leading-relaxed">{opt.description}</p>
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="flex justify-end pt-2">
-        <button
-          onClick={() => onNext(selected)}
-          className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/25"
-        >
-          Configure step by step →
-        </button>
-      </div>
-    </div>
-  );
-}
+// ─── Step 0 (removed) ─────────────────────────────────────────────────────────
+// Workflow selection and Quick Start removed — single configure onboarding path.
+// Litigation disabled — commercial contracts focus.
 
 // ─── Step 1: Persona ──────────────────────────────────────────────────────────
 
@@ -894,7 +599,7 @@ const LITIGATION_PERSONA_CONFIG: {
   },
 ];
 
-function Step1Persona({ workflowType, onNext, onBack }: { workflowType: WorkflowType; onNext: (p: Persona) => void; onBack: () => void }) {
+function Step1Persona({ workflowType, onNext, onBack }: { workflowType: WorkflowType; onNext: (p: Persona) => void; onBack?: () => void }) {
   const [selected, setSelected] = useState<Persona>("CORPORATE");
 
   const isLitigation = workflowType === "INSURANCE_LITIGATION";
@@ -967,7 +672,11 @@ function Step1Persona({ workflowType, onNext, onBack }: { workflowType: Workflow
       )}
 
       <div className="flex justify-between pt-2">
-        <button onClick={onBack} className="px-4 py-2.5 text-sm text-white/40 hover:text-white/70 transition-colors">← Back</button>
+        {onBack ? (
+          <button onClick={onBack} className="px-4 py-2.5 text-sm text-white/40 hover:text-white/70 transition-colors">← Back</button>
+        ) : (
+          <span />
+        )}
         <button
           onClick={() => onNext(selected)}
           className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/25"
