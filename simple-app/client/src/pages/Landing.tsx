@@ -102,14 +102,12 @@ const LANDING_FAQS = [
   { q: "What happens to my data if I cancel?", a: "Your data is yours. You can export everything before you cancel. We do not hold your data hostage." },
   { q: "Does Zane replace my lawyer?", a: "No. Zane handles the objective layer so your lawyer can focus on the judgment calls that actually require a lawyer. Every recommendation Zane makes requires a human decision before anything happens." },
   { q: "What contract types does Zane support?", a: "Commercial contracts, supplier agreements, customer MSAs, NDAs, technology agreements, employment contracts, and more. The playbook engine works for any contract type you configure it for." },
-  { q: "Is there a minimum contract or commitment?", a: "No minimum contract beyond the billing period. No implementation fee. No setup cost. 14 day free trial on all plans. No credit card required. Billed quarterly or annually." },
+  { q: "Is there a minimum contract or commitment?", a: "No implementation fee. No setup cost. Pilot terms and pricing are agreed up front before you commit." },
 ];
 
 export default function Landing() {
   const shouldReduce = useReducedMotion();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  // Billing toggle: quarterly (default) or annual
-  const [billing, setBilling] = useState<"quarterly" | "annual">("quarterly");
   // Manual onboarding: "Request access" form modal
   const [showRequestAccess, setShowRequestAccess] = useState(false);
   const lenisRef = useRef<import("@studio-freight/lenis").default | null>(null);
@@ -790,250 +788,27 @@ export default function Landing() {
               doing work a structured system could handle in minutes.
             </p>
             <p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto">
-              Zane starts at £450 a month billed quarterly. That is less than one hour of outside counsel fees per week.
-              Handles the first pass every time so your lawyer focuses on the decisions that actually need a lawyer.
+              Zane handles the first pass every time so your lawyer focuses on the decisions that actually need a lawyer.
             </p>
           </motion.div>
       </section>
 
-      {/* ─── PRICING ─────────────────────────────────────────────────────────── */}
-      <section id="pricing" className="max-w-6xl mx-auto px-6 py-20 space-y-10">
-        <motion.div className="text-center space-y-3" {...headingReveal}>
+      {/* ─── PRICING - conversation-led ──────────────────────────────────────── */}
+      <section id="pricing" className="max-w-3xl mx-auto px-6 py-20">
+        <motion.div className="text-center space-y-5" {...headingReveal}>
           <div className="inline-block text-xs font-bold text-primary tracking-widest uppercase">Pricing</div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Transparent pricing. No surprises.</h2>
-          <p className="text-sm text-gray-500">14 day free trial on all plans. No credit card required.</p>
-        </motion.div>
-
-        {/* Billing toggle */}
-        <motion.div className="flex justify-center" {...fadeUp(0.05)}>
-          <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-black/5 border border-black/8">
-            <button
-              onClick={() => setBilling("quarterly")}
-              className={`px-5 py-2 rounded-lg text-xs font-semibold transition-all ${
-                billing === "quarterly"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Quarterly
-            </button>
-            <button
-              onClick={() => setBilling("annual")}
-              className={`px-5 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ${
-                billing === "annual"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Annual
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700">Save up to 13%</span>
-            </button>
-          </div>
-        </motion.div>
-
-        <motion.div
-          className="grid sm:grid-cols-3 gap-4 max-w-4xl mx-auto"
-          variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
-        >
-          {[
-            {
-              tier: "Starter",
-              monthlyRate: "£450",
-              quarterly: "£1,350",
-              annual: "£4,800",
-              annualSave: "Save 11%",
-              highlight: true,
-              description: "Solo GC or first in-house hire.",
-              trial: true,
-              features: [
-                "Full playbook engine",
-                "Contract review",
-                "Red / Amber / Green risk output",
-                "Governance escalation routing",
-                "Regulatory citations",
-                "Outcome capture",
-                "Includes one user seat",
-              ],
-              link: "/register",
-              external: false,
-            },
-            {
-              tier: "Team",
-              monthlyRate: "£800",
-              quarterly: "£2,400",
-              annual: "£8,400",
-              annualSave: "Save 13%",
-              highlight: false,
-              description: "Up to five users.",
-              trial: true,
-              features: [
-                "Everything in Starter",
-                "Portfolio dashboard",
-                "Legal Inheritance bulk upload",
-                "New hire onboarding briefings",
-                "Negotiating pattern intelligence",
-                "Contradiction detection across your contract library",
-              ],
-              link: "/register",
-              external: false,
-            },
-            {
-              tier: "Growth",
-              monthlyRate: "£1,350",
-              quarterly: "£4,050",
-              annual: "£14,400",
-              annualSave: "Save 11%",
-              highlight: false,
-              description: "Unlimited users.",
-              trial: true,
-              features: [
-                "Everything in Team",
-                "Advanced regulatory intelligence with live feeds",
-                "Board-ready reporting",
-                "Full audit trail for regulatory compliance",
-                "Priority support",
-              ],
-              link: "https://calendly.com/ahmedljasem/30min",
-              external: true,
-            },
-          ].map(({ tier, monthlyRate, quarterly, annual, annualSave, highlight, description, trial, features, link, external }) => (
-            <motion.div
-              key={tier}
-              className={`rounded-xl border p-6 space-y-5 ${highlight ? "border-primary/25 shadow-sm shadow-primary/10" : "border-black/8"} bg-[#F2F1EE]`}
-              variants={staggerItem}
-              whileHover={{ y: -4, boxShadow: "0 12px 32px rgba(0,0,0,0.08)" }}
-              transition={SPRING_SOFT}
-            >
-              <div>
-                <div className="text-xs text-gray-500 font-medium mb-1">{tier}</div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-gray-900">{monthlyRate}</span>
-                  <span className="text-xs text-gray-500">/mo</span>
-                </div>
-                {billing === "quarterly" ? (
-                  <p className="text-[11px] text-gray-400 mt-1">Billed {quarterly} quarterly</p>
-                ) : (
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <p className="text-[11px] text-gray-400">Billed {annual} annually</p>
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-100 text-green-700">{annualSave}</span>
-                  </div>
-                )}
-                <p className="text-xs text-gray-500 mt-2 leading-relaxed">{description}</p>
-                {trial && (
-                  <p className="text-[11px] text-primary font-medium mt-1">14 day free trial — no credit card required</p>
-                )}
-              </div>
-              <ul className="space-y-2">
-                {features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-xs text-gray-600">
-                    <CheckCircle size={11} className={highlight ? "text-primary" : "text-gray-300"} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              {external ? (
-                <a
-                  href={link}
-                  target="_blank" rel="noopener noreferrer"
-                  className={`block text-center px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                    highlight ? "bg-primary text-white hover:opacity-90 shadow shadow-primary/20" : "border border-black/10 text-gray-600 hover:text-gray-800 hover:border-black/20"
-                  }`}>
-                  Book a demo →
-                </a>
-              ) : (
-                <button onClick={() => setShowRequestAccess(true)}
-                  className={`block w-full text-center px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                    highlight ? "bg-primary text-white hover:opacity-90 shadow shadow-primary/20" : "border border-black/10 text-gray-600 hover:text-gray-800 hover:border-black/20"
-                  }`}>
-                  Request access →
-                </button>
-              )}
-            </motion.div>
-          ))}
-        </motion.div>
-
-        {/* Trust callout */}
-        <motion.div
-          className="max-w-xl mx-auto rounded-xl border border-slate-200 bg-slate-50 px-6 py-4 text-center space-y-1"
-          {...fadeUp(0.15)}
-        >
-          <p className="text-xs font-medium text-slate-600">
-            Your contracts are never used to train AI models. Your data stays yours.
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Pricing built around your team</h2>
+          <p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto">
+            Zane is priced for lean legal functions, not enterprise budgets. Every pilot starts with a conversation so we can configure Zane around your contracts, your sector, and your risk positions. Pricing is agreed before you commit to anything.
           </p>
+          <motion.div className="inline-block" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+            <a href="https://calendly.com/ahmedljasem/30min"
+              target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 text-sm">
+              Book a conversation <ArrowRight size={15} />
+            </a>
+          </motion.div>
         </motion.div>
-
-        <motion.p className="text-center text-xs text-gray-500 max-w-lg mx-auto" {...fadeUp(0.2)}>
-          All plans include a 14 day free trial. No implementation fee. No setup cost. Billed quarterly or annually.
-        </motion.p>
-      </section>
-
-      {/* ─── LEGACY CONTRACT REVIEW - one-off projects ───────────────────────── */}
-      <section className="py-20" style={{ background: "#0B1020" }}>
-        <div className="max-w-6xl mx-auto px-6 space-y-10">
-          <motion.div className="text-center space-y-3" {...headingReveal}>
-            <div className="inline-block text-xs font-bold text-primary tracking-widest uppercase">One-off projects</div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Legacy Contract Review</h2>
-            <p className="text-sm text-white/50 max-w-xl mx-auto">
-              Already have contracts that need reviewing? Get a full audit of your existing contract estate as a standalone project. No subscription required.
-            </p>
-          </motion.div>
-
-          <motion.div
-            className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"
-            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
-          >
-            {[
-              {
-                tier: "Up to 100 contracts",
-                price: "£800",
-                description: "Extracted key provisions, risk flags, renewal dates, and a structured summary for every contract.",
-              },
-              {
-                tier: "Up to 250 contracts",
-                price: "£1,750",
-                description: "Everything above plus portfolio risk report and exposure summary in pounds.",
-              },
-              {
-                tier: "Up to 500 contracts",
-                price: "£3,000",
-                description: "Everything above plus counterparty analysis and recommended actions by clause type.",
-              },
-              {
-                tier: "Up to 1,000 contracts",
-                price: "£5,000",
-                description: "Everything above plus full Legal Inheritance setup and 3 months Starter subscription included.",
-              },
-            ].map(({ tier, price, description }) => (
-              <motion.div
-                key={tier}
-                className="rounded-xl border border-[#1B2533] bg-[#111A24] p-6 space-y-3"
-                variants={staggerItem}
-                whileHover={{ y: -4, boxShadow: "0 12px 32px rgba(0,0,0,0.35)" }}
-                transition={SPRING_SOFT}
-              >
-                <div className="text-xs text-white/50 font-medium">{tier}</div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-bold text-white">{price}</span>
-                  <span className="text-xs text-white/40">one-off</span>
-                </div>
-                <p className="text-xs text-white/60 leading-relaxed">{description}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          <motion.div className="text-center space-y-4" {...fadeUp(0.15)}>
-            <p className="text-sm text-[#F8FAFC] max-w-xl mx-auto">
-              After your legacy review move to a subscription to keep your contract intelligence active. First quarter at 20% off.
-            </p>
-            <motion.div className="inline-block" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-              <a href="https://calendly.com/ahmedljasem/30min"
-                target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 text-sm">
-                Book a legacy review <ArrowRight size={15} />
-              </a>
-            </motion.div>
-          </motion.div>
-        </div>
       </section>
 
       {/* ─── REGULATORY - dark ───────────────────────────────────────────────── */}
