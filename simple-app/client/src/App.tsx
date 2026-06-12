@@ -32,6 +32,7 @@ import FounderDashboard from "./pages/founder/FounderDashboard";
 import FounderReview from "./pages/founder/FounderReview";
 import ContractLibrary from "./pages/ContractLibrary";
 import LegacyReview from "./pages/LegacyReview";
+import AdminMetrics from "./pages/AdminMetrics";
 import TeamManagement from "./pages/TeamManagement";
 import OutcomeConfirmation from "./pages/OutcomeConfirmation";
 import Settings from "./pages/Settings";
@@ -204,6 +205,11 @@ function AppRoutes() {
       <Route
         path="/settings"
         element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><Settings /></RequireAuth>}
+      />
+      {/* Admin-only (server-gated): internal compounding metrics dashboard */}
+      <Route
+        path="/admin/metrics"
+        element={!user ? <Navigate to="/login" replace /> : <AdminMetrics />}
       />
       {/* Litigation disabled — commercial contracts focus.
       <Route

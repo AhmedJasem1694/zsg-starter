@@ -468,6 +468,149 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ rows, renewals, summary });
   }));
 
+  // ── Admin gate ──────────────────────────────────────────────────────────────
+  // Admin = email in ADMIN_EMAILS (comma-separated; defaults to the founder),
+  // or an is_admin flag on the user record (supported if the field is added).
+  async function isAdminRequest(req: Request): Promise<boolean> {
+    const adminEmails = (process.env.ADMIN_EMAILS ?? "ahmed@zanelegal.ai")
+      .split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+    const userEmail = (req.user?.email ?? "").toLowerCase();
+    if (adminEmails.includes(userEmail)) return true;
+    if (req.user?.userId) {
+      const userRec = await pb.collection("users").getOne(req.user.userId).catch(() => null);
+      if (userRec && (userRec as PBRecord)["is_admin"] === true) return true;
+    }
+    return false;
+  }
+
+  // ── Admin: compounding metrics dashboard ───────────────────────────────────
+  // Internal metrics proving the accumulation story — computed live from
+  // PocketBase, no external analytics dependency.
+  app.get("/api/admin/metrics", requireAuth, ah(async (req: Request, res: Response) => {
+    if (!(await isAdminRequest(req))) { sendError(res, 403, "Admin access required"); return; }
+
+    const [companies, docs, results, decisions] = await Promise.all([
+      pb.collection("companies").getFullList({ fields: "id,name,subscription_tier" }).catch(() => [] as PBRecord[]),
+      pb.collection("uploaded_documents").getFullList({
+        fields: "id,company,status,legacy,reviewCost,outcome,counterpartyName,created",
+      }).catch(() => [] as PBRecord[]),
+      pb.collection("review_results").getFullList({ fields: "id,document,ragStatus" }).catch(() => [] as PBRecord[]),
+      pb.collection("decision_events").getFullList({ fields: "id,company" }).catch(() => [] as PBRecord[]),
+    ]);
+
+    const HOURS_SAVED_PER_REVIEW = 2.5;
+    const TIER_MONTHLY_PRICE: Record<string, number> = { trial: 0, starter: 450, team: 800, growth: 1350 };
+
+    interface Metrics {
+      contractsReviewed: number;
+      reviewsByMonth: Record<string, number>;
+      clausesAnalysed: number;
+      ragBreakdown: { RED: number; AMBER: number; GREEN: number; GREY: number };
+      deviationRate: number;        // % of analysed clauses (RED+AMBER) vs RED+AMBER+GREEN
+      decisionEvents: number;
+      outcomeCaptureRate: number;   // % of completed reviews with a logged outcome
+      outcomesLogged: number;
+      counterpartiesTracked: number; // distinct counterparties with 2+ contracts
+      hoursSaved: number;
+      reviewCost: number;
+      estMonthlyRevenue: number;
+      legacyProcessed: number;
+    }
+    const blank = (): Metrics => ({
+      contractsReviewed: 0, reviewsByMonth: {}, clausesAnalysed: 0,
+      ragBreakdown: { RED: 0, AMBER: 0, GREEN: 0, GREY: 0 },
+      deviationRate: 0, decisionEvents: 0, outcomeCaptureRate: 0, outcomesLogged: 0,
+      counterpartiesTracked: 0, hoursSaved: 0, reviewCost: 0, estMonthlyRevenue: 0, legacyProcessed: 0,
+    });
+
+    const docCompany = new Map<string, string>();
+    const perCompany = new Map<string, Metrics>();
+    const cpDocsByCompany = new Map<string, Map<string, number>>();
+    const aggregate = blank();
+    const get = (companyId: string): Metrics => {
+      let m = perCompany.get(companyId);
+      if (!m) { m = blank(); perCompany.set(companyId, m); }
+      return m;
+    };
+
+    for (const d of docs) {
+      const companyId = (d["company"] as string) || "unattached";
+      docCompany.set(d.id, companyId);
+      const m = get(companyId);
+      const isComplete = d["status"] === "COMPLETE";
+      const month = String(d["created"] ?? "").slice(0, 7);
+      if (isComplete) {
+        m.contractsReviewed++; aggregate.contractsReviewed++;
+        if (month) {
+          m.reviewsByMonth[month] = (m.reviewsByMonth[month] ?? 0) + 1;
+          aggregate.reviewsByMonth[month] = (aggregate.reviewsByMonth[month] ?? 0) + 1;
+        }
+        if (d["outcome"]) { m.outcomesLogged++; aggregate.outcomesLogged++; }
+      }
+      if (d["legacy"] === true && isComplete) { m.legacyProcessed++; aggregate.legacyProcessed++; }
+      const cost = (d["reviewCost"] as number) ?? 0;
+      m.reviewCost += cost; aggregate.reviewCost += cost;
+      const cp = ((d["counterpartyName"] as string) || "").trim();
+      if (cp && cp.toLowerCase() !== "unknown") {
+        const cpMap = cpDocsByCompany.get(companyId) ?? new Map<string, number>();
+        cpMap.set(cp, (cpMap.get(cp) ?? 0) + 1);
+        cpDocsByCompany.set(companyId, cpMap);
+      }
+    }
+
+    for (const r of results) {
+      const companyId = docCompany.get(r["document"] as string);
+      if (!companyId) continue;
+      const m = get(companyId);
+      m.clausesAnalysed++; aggregate.clausesAnalysed++;
+      const rag = (r["ragStatus"] as string) ?? "GREY";
+      if (rag in m.ragBreakdown) {
+        m.ragBreakdown[rag as keyof Metrics["ragBreakdown"]]++;
+        aggregate.ragBreakdown[rag as keyof Metrics["ragBreakdown"]]++;
+      }
+    }
+
+    for (const e of decisions) {
+      const companyId = (e["company"] as string) || "";
+      if (companyId) get(companyId).decisionEvents++;
+      aggregate.decisionEvents++;
+    }
+
+    const finalise = (m: Metrics, companyId?: string) => {
+      const assessed = m.ragBreakdown.RED + m.ragBreakdown.AMBER + m.ragBreakdown.GREEN;
+      m.deviationRate = assessed > 0 ? Math.round(((m.ragBreakdown.RED + m.ragBreakdown.AMBER) / assessed) * 100) : 0;
+      m.outcomeCaptureRate = m.contractsReviewed > 0 ? Math.round((m.outcomesLogged / m.contractsReviewed) * 100) : 0;
+      m.hoursSaved = Math.round(m.contractsReviewed * HOURS_SAVED_PER_REVIEW * 10) / 10;
+      m.reviewCost = Math.round(m.reviewCost * 100) / 100;
+      if (companyId) {
+        const cpMap = cpDocsByCompany.get(companyId);
+        m.counterpartiesTracked = cpMap ? Array.from(cpMap.values()).filter((n) => n >= 2).length : 0;
+      }
+    };
+
+    const companyRows = companies.map((c) => {
+      const m = get(c.id);
+      const tier = resolveTier(c["subscription_tier"]);
+      m.estMonthlyRevenue = TIER_MONTHLY_PRICE[tier] ?? 0;
+      finalise(m, c.id);
+      return { companyId: c.id, name: (c["name"] as string) ?? c.id, tier, ...m };
+    }).sort((a, b) => b.contractsReviewed - a.contractsReviewed);
+
+    aggregate.estMonthlyRevenue = companyRows.reduce((s, c) => s + c.estMonthlyRevenue, 0);
+    aggregate.counterpartiesTracked = companyRows.reduce((s, c) => s + c.counterpartiesTracked, 0);
+    finalise(aggregate);
+
+    // Months axis: last 12 months including current
+    const months: string[] = [];
+    const nowDate = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(nowDate.getFullYear(), nowDate.getMonth() - i, 1);
+      months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    }
+
+    res.json({ aggregate, companies: companyRows, months });
+  }));
+
   // ── Admin: monthly review cost per company ────────────────────────────────
   // Unit-economics view fed by the per-run cost logging in reviewOrchestrator.
   // Admin-only: gated on ADMIN_EMAILS (comma-separated; defaults to the founder).

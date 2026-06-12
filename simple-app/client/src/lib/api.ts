@@ -311,6 +311,32 @@ export const getLegacyReport = () =>
     "GET", "/api/legacy/report"
   );
 
+// Admin-only: compounding metrics dashboard
+export interface AdminMetrics {
+  contractsReviewed: number;
+  reviewsByMonth: Record<string, number>;
+  clausesAnalysed: number;
+  ragBreakdown: { RED: number; AMBER: number; GREEN: number; GREY: number };
+  deviationRate: number;
+  decisionEvents: number;
+  outcomeCaptureRate: number;
+  outcomesLogged: number;
+  counterpartiesTracked: number;
+  hoursSaved: number;
+  reviewCost: number;
+  estMonthlyRevenue: number;
+  legacyProcessed: number;
+}
+export interface AdminMetricsCompanyRow extends AdminMetrics {
+  companyId: string;
+  name: string;
+  tier: string;
+}
+export const getAdminMetrics = () =>
+  req<{ aggregate: AdminMetrics; companies: AdminMetricsCompanyRow[]; months: string[] }>(
+    "GET", "/api/admin/metrics"
+  );
+
 // Admin-only: monthly review cost per company (unit economics)
 export interface ReviewCostReport {
   months: string[];
