@@ -13,6 +13,7 @@ import { transcribeAudioFile } from "./services/transcription.js";
 import { chatComplete } from "./services/openrouter.js";
 import { searchCompanies, enrichCompany } from "./services/companySearch.js";
 import { audit } from "./services/auditLogger.js";
+import { recordDecisionEvent, recordDecisionEventForResult, deriveZaneRecommendation } from "./services/decisionEvents.js";
 import { getFeatureFlags, resolveTier, trialDaysRemaining } from "./services/featureFlags.js";
 import { runDeltaComparison } from "./services/deltaComparison.js";
 import { runPatternDetection } from "./services/patternDetector.js";
@@ -1932,6 +1933,24 @@ ${rawText}`,
       userId: req.user?.userId,
     });
 
+    // Decision data capture (silent, fire-and-forget):
+    // ACCEPTED  → accepted Zane's recommendation as-is
+    // EDITED    → modified the suggested fallback language before using it
+    // DISMISSED → ignored the flag
+    // ESCALATED → acted at the escalation step per Zane's recommendation
+    {
+      const decisionMap: Record<string, { action: import("./services/decisionEvents.js").HumanAction; position: string }> = {
+        ACCEPTED:  { action: "accepted",  position: "Accepted Zane's recommendation as-is" },
+        EDITED:    { action: "modified",  position: parsed.data.finalClauseText || parsed.data.editedOutput || "Edited the suggested language" },
+        DISMISSED: { action: "ignored",   position: "Dismissed the flag" },
+        ESCALATED: { action: "accepted",  position: "Escalated for approval per recommendation" },
+      };
+      const d = decisionMap[parsed.data.userAction];
+      if (d) {
+        void recordDecisionEventForResult(req.params.resultId, req.user?.userId, d.action, d.position, parsed.data.notes);
+      }
+    }
+
     res.json(mapFeedback(feedback));
   }));
 
@@ -1979,6 +1998,15 @@ ${rawText}`,
       detail: { correctOutputLength: parsed.data.correctOutput.length },
     });
 
+    // Decision data capture: a Teach Zane correction is an override of Zane's analysis
+    void recordDecisionEventForResult(
+      req.params.resultId,
+      req.user?.userId,
+      "overridden",
+      parsed.data.correctOutput,
+      parsed.data.notes || `Correction of: ${parsed.data.incorrectOutput.slice(0, 500)}`,
+    );
+
     res.json(mapFeedback(feedback));
   }));
 
@@ -2019,6 +2047,15 @@ ${rawText}`,
       userId: req.user?.userId,
     });
 
+    // Decision data capture: marking a false positive overrides Zane's flag
+    void recordDecisionEventForResult(
+      req.params.resultId,
+      req.user?.userId,
+      "overridden",
+      "Flag marked as false positive",
+      parsed.data.notes ?? "Marked as false positive",
+    );
+
     res.json(mapFeedback(feedback));
   }));
 
@@ -2026,7 +2063,7 @@ ${rawText}`,
 
   app.get("/api/feedback/patterns", requireAuth, ah(async (req: Request, res: Response) => {
     const company = await getCompany(req.user?.email);
-    if (!company) { res.json({ patterns: [], clauseOutcomes: [], counterpartyPatterns: [], negotiationDrift: [] }); return; }
+    if (!company) { res.json({ patterns: [], clauseOutcomes: [], counterpartyPatterns: [], negotiationDrift: [], decisionSummary: null }); return; }
 
     const docs = await pb.collection("uploaded_documents").getFullList({
       filter: `company = "${company.id}"`,
@@ -2222,11 +2259,50 @@ ${rawText}`,
     }
     driftEntries.sort((a, b) => b.driftPct - a.driftPct);
 
+    // ── Decision events (structured human-judgment capture) ──────────────────
+    // The moat layer: every accept / override / modify / ignore decision feeds
+    // the negotiation intelligence view directly.
+    const decisionEvents = await pb.collection("decision_events").getFullList({
+      filter: `company = "${company.id}"`,
+      sort: "-created",
+    }).catch(() => [] as PBRecord[]);
+
+    const byAction: Record<string, number> = {};
+    const byCategory: Record<string, { total: number; overridden: number }> = {};
+    for (const e of decisionEvents) {
+      const action = (e["human_action"] as string) || "unknown";
+      byAction[action] = (byAction[action] ?? 0) + 1;
+      const cat = (e["clause_category"] as string) || "UNKNOWN";
+      const c = (byCategory[cat] ??= { total: 0, overridden: 0 });
+      c.total += 1;
+      if (action === "overridden") c.overridden += 1;
+    }
+    const decisionSummary = decisionEvents.length === 0 ? null : {
+      total: decisionEvents.length,
+      byAction,
+      agreementRate: Math.round(((byAction["accepted"] ?? 0) / decisionEvents.length) * 100),
+      overrideRate: Math.round(((byAction["overridden"] ?? 0) / decisionEvents.length) * 100),
+      mostOverriddenCategories: Object.entries(byCategory)
+        .filter(([, c]) => c.overridden > 0)
+        .sort((a, b) => b[1].overridden - a[1].overridden)
+        .slice(0, 5)
+        .map(([clauseCategory, c]) => ({ clauseCategory, overridden: c.overridden, total: c.total })),
+      recent: decisionEvents.slice(0, 20).map((e) => ({
+        clauseCategory: e["clause_category"],
+        zaneRecommendation: e["zane_recommendation"],
+        humanAction: e["human_action"],
+        humanFinalPosition: String(e["human_final_position"] ?? "").slice(0, 200),
+        overrideReason: String(e["override_reason"] ?? "").slice(0, 200),
+        created: e["created"],
+      })),
+    };
+
     res.json({
       patterns: patterns.slice(0, 8),
       clauseOutcomes,
       counterpartyPatterns: counterpartyPatterns.slice(0, 10),
       negotiationDrift: driftEntries.slice(0, 6),
+      decisionSummary,
     });
   }));
 
@@ -3341,6 +3417,19 @@ Draft the complete clause.`;
       detail: { overrideFrom: result["ragStatus"], overrideTo: correctedStatus, reason },
     });
 
+    // Decision data capture: RAG status override with the user's stated reason
+    void recordDecisionEvent({
+      companyId: doc["company"] as string,
+      userId: req.user?.userId,
+      documentId: docId,
+      clauseCategory: (result["clauseCategory"] as string) ?? "",
+      zaneRecommendation: deriveZaneRecommendation(result),
+      zaneSuggestedText: (result["suggestedFallback"] as string) ?? "",
+      humanAction: "overridden",
+      humanFinalPosition: `RAG status overridden: ${result["ragStatus"]} → ${correctedStatus}`,
+      overrideReason: reason.trim(),
+    });
+
     res.json({ ok: true });
   }));
 
@@ -3388,6 +3477,19 @@ Draft the complete clause.`;
       companyId: doc["company"] as string,
       userId: req.user!.userId,
       detail: { errorType, clauseCategory: result["clauseCategory"] },
+    });
+
+    // Decision data capture: false-positive signal overrides Zane's flag
+    void recordDecisionEvent({
+      companyId: doc["company"] as string,
+      userId: req.user?.userId,
+      documentId: docId,
+      clauseCategory: (result["clauseCategory"] as string) ?? "",
+      zaneRecommendation: deriveZaneRecommendation(result),
+      zaneSuggestedText: (result["suggestedFallback"] as string) ?? "",
+      humanAction: "overridden",
+      humanFinalPosition: correctInterpretation ?? "Flag marked as false positive",
+      overrideReason: `False positive (${errorType})`,
     });
 
     res.json({ ok: true });

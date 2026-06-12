@@ -960,6 +960,19 @@ async function main() {
     textField("errorMessage"),
   ]);
 
+  // ── decision_events (the moat layer: structured human-judgment capture) ───
+  await ensureCollection("decision_events", [
+    textField("company", { required: true }),
+    textField("user"),
+    textField("contract"),
+    textField("clause_category"),
+    textField("zane_recommendation"),   // accept | negotiate | escalate | reject
+    textField("zane_suggested_text"),
+    textField("human_action"),          // accepted | overridden | modified | ignored
+    textField("human_final_position"),
+    textField("override_reason"),
+  ]);
+
   // ── access_requests (manual onboarding "Request access" form) ─────────────
   await ensureCollection("access_requests", [
     textField("name", { required: true }),
@@ -1035,6 +1048,7 @@ async function verify() {
     { name: "integration_connections", requiredFields: ["integration_type"] },
     { name: "integration_events", requiredFields: ["event_type"] },
     { name: "access_requests", requiredFields: ["name", "email"] },
+    { name: "decision_events", requiredFields: ["company", "human_action"] },
   ];
 
   let pass = 0;

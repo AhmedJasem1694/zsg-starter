@@ -432,6 +432,46 @@ export default function Patterns() {
           </div>
         )}
 
+        {/* ── Decision data (structured human-judgment capture) ──────────────── */}
+        {data?.decisionSummary && flags.patternIntelligence && (
+          <div className="space-y-3">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+              Decision data
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="card p-4">
+                <div className="text-2xl font-bold">{data.decisionSummary.total}</div>
+                <div className="text-xs text-muted-foreground mt-1">Decisions captured</div>
+              </div>
+              <div className="card p-4">
+                <div className="text-2xl font-bold">{data.decisionSummary.agreementRate}%</div>
+                <div className="text-xs text-muted-foreground mt-1">Recommendations accepted</div>
+              </div>
+              <div className="card p-4">
+                <div className="text-2xl font-bold">{data.decisionSummary.overrideRate}%</div>
+                <div className="text-xs text-muted-foreground mt-1">Overridden</div>
+              </div>
+              <div className="card p-4">
+                <div className="text-2xl font-bold">{data.decisionSummary.byAction["modified"] ?? 0}</div>
+                <div className="text-xs text-muted-foreground mt-1">Language edited before use</div>
+              </div>
+            </div>
+            {data.decisionSummary.mostOverriddenCategories.length > 0 && (
+              <div className="card p-4 space-y-2">
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  Most overridden clause positions
+                </div>
+                {data.decisionSummary.mostOverriddenCategories.map((c) => (
+                  <div key={c.clauseCategory} className="flex items-center justify-between text-sm">
+                    <span className="text-foreground/80">{c.clauseCategory.replace(/_/g, " ")}</span>
+                    <span className="text-muted-foreground">{c.overridden} of {c.total} decisions overridden</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* ── Pattern cards ───────────────────────────────────────────────────── */}
         {enrichedPatterns.length > 0 && (
           <div className="space-y-3">

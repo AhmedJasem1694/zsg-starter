@@ -436,12 +436,30 @@ export interface NegotiationDrift {
   driftPct: number;
 }
 
+// Decision events (structured human-judgment capture — the moat layer)
+export interface DecisionSummary {
+  total: number;
+  byAction: Record<string, number>;
+  agreementRate: number;
+  overrideRate: number;
+  mostOverriddenCategories: Array<{ clauseCategory: string; overridden: number; total: number }>;
+  recent: Array<{
+    clauseCategory: string;
+    zaneRecommendation: string;
+    humanAction: string;
+    humanFinalPosition: string;
+    overrideReason: string;
+    created: string;
+  }>;
+}
+
 export const getFeedbackPatterns = () =>
   req<{
     patterns: ZanePattern[];
     clauseOutcomes: ClauseOutcome[];
     counterpartyPatterns: CounterpartyPattern[];
     negotiationDrift: NegotiationDrift[];
+    decisionSummary: DecisionSummary | null;
   }>(
     "GET",
     "/api/feedback/patterns"
