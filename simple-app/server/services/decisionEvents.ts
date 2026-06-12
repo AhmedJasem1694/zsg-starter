@@ -79,6 +79,9 @@ export async function recordDecisionEvent(input: DecisionEventInput): Promise<vo
             { name: "human_action", type: "text", required: false },
             { name: "human_final_position", type: "text", required: false },
             { name: "override_reason", type: "text", required: false },
+            // PB 0.23+ needs explicit autodate fields for created/updated
+            { name: "created", type: "autodate", onCreate: true, onUpdate: false },
+            { name: "updated", type: "autodate", onCreate: true, onUpdate: true },
           ],
         });
         await pb.collection("decision_events").create(record);

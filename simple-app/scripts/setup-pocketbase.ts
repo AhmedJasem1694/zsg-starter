@@ -821,6 +821,9 @@ async function main() {
     // Legacy contract review layer
     boolField("legacy"),
     textField("legacyExtract"),
+    // PB 0.23+ requires explicit autodate fields (sorts on "created" 400 without them)
+    { name: "created", type: "autodate", onCreate: true, onUpdate: false },
+    { name: "updated", type: "autodate", onCreate: true, onUpdate: true },
     numberField("clausesTotal"),
     numberField("clausesCompleted"),
   ]);
@@ -974,6 +977,8 @@ async function main() {
     textField("human_action"),          // accepted | overridden | modified | ignored
     textField("human_final_position"),
     textField("override_reason"),
+    { name: "created", type: "autodate", onCreate: true, onUpdate: false },
+    { name: "updated", type: "autodate", onCreate: true, onUpdate: true },
   ]);
 
   // ── access_requests (manual onboarding "Request access" form) ─────────────
@@ -983,6 +988,8 @@ async function main() {
     textField("company"),
     textField("role"),
     textField("contracts_description"),
+    { name: "created", type: "autodate", onCreate: true, onUpdate: false },
+    { name: "updated", type: "autodate", onCreate: true, onUpdate: true },
   ]);
 
   // ── integration_sync_log ──────────────────────────────────────────────────

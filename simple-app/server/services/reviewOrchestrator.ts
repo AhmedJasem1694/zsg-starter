@@ -13,6 +13,7 @@ import {
   type BatchClauseInput,
 } from "./playbookComparison.js";
 import { withCostTracking } from "./costTracker.js";
+import { ensureLegacyFields } from "./legacyReview.js";
 import { detectContradictions } from "./contradictionDetector.js";
 import { getRegulationSummaryForLLM } from "./regulatoryDetection.js";
 import { getRegulatoryContext, formatRegulatoryContextForPrompt } from "./regulatoryEngine.js";
@@ -201,6 +202,9 @@ async function runWithConcurrencyLimit<T>(
 }
 
 async function _runReview(documentId: string, isTimedOut: () => boolean = () => false): Promise<void> {
+  // Make sure cost-logging / caching fields exist on older deployments
+  // (cached after the first call — effectively free on subsequent runs).
+  await ensureLegacyFields();
   // Load document and company sequentially (each depends on the previous).
   // Playbook rules, approval thresholds, and governance triggers all depend on
   // company.id: fetch them in parallel once company is known.

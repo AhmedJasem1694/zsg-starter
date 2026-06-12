@@ -43,8 +43,9 @@ export interface LegacyExtract {
 }
 
 // ─── Schema self-heal ─────────────────────────────────────────────────────────
-// Older deployments may predate the legacy/legacyExtract fields. Ensure once
-// per process before the first legacy run.
+// Older deployments may predate the legacy/legacyExtract fields and the cost
+// logging fields (contentHash/reviewCost/reviewCostDetail). Ensure once per
+// process before the first legacy run.
 
 let legacyFieldsEnsured = false;
 export async function ensureLegacyFields(): Promise<void> {
@@ -58,6 +59,14 @@ export async function ensureLegacyFields(): Promise<void> {
     const missing = [];
     if (!names.has("legacy")) missing.push({ name: "legacy", type: "bool", required: false });
     if (!names.has("legacyExtract")) missing.push({ name: "legacyExtract", type: "text", required: false });
+    if (!names.has("contentHash")) missing.push({ name: "contentHash", type: "text", required: false });
+    if (!names.has("reviewCost")) missing.push({ name: "reviewCost", type: "number", required: false });
+    if (!names.has("reviewCostDetail")) missing.push({ name: "reviewCostDetail", type: "text", required: false });
+    // PocketBase 0.23+ does not auto-add created/updated — without them every
+    // sort by "created" 400s (legacy report, cache lookup) and month bucketing
+    // is empty. Autodate fields populate from the moment they exist.
+    if (!names.has("created")) missing.push({ name: "created", type: "autodate", onCreate: true, onUpdate: false });
+    if (!names.has("updated")) missing.push({ name: "updated", type: "autodate", onCreate: true, onUpdate: true });
     if (missing.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (pb.collections as any).update(col.id, { fields: [...fields, ...missing] });
