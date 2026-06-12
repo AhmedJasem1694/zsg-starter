@@ -137,7 +137,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 onClick={() => setOpen(false)}
                 className={`nav-item ${active ? "nav-item-active" : ""}`}
               >
-                <Icon size={16} className="shrink-0" style={{ color: active ? "#60A5FA" : "#64748B" }} />
+                <Icon size={16} className="shrink-0" style={{ color: active ? "#3B82F6" : "#64748B" }} />
                 {label}
               </Link>
             );
@@ -156,7 +156,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     onClick={() => setOpen(false)}
                     className={`nav-item ${active ? "nav-item-active" : "opacity-60 hover:opacity-100"}`}
                   >
-                    <Icon size={16} className="shrink-0" style={{ color: active ? "#60A5FA" : "#64748B" }} />
+                    <Icon size={16} className="shrink-0" style={{ color: active ? "#3B82F6" : "#64748B" }} />
                     {label}
                   </Link>
                 );
@@ -177,7 +177,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 onClick={() => setOpen(false)}
                 className={`nav-item opacity-60 hover:opacity-100 ${active ? "nav-item-active !opacity-100" : ""}`}
               >
-                <Icon size={16} className="shrink-0" style={{ color: active ? "#60A5FA" : "#64748B" }} />
+                <Icon size={16} className="shrink-0" style={{ color: active ? "#3B82F6" : "#64748B" }} />
                 {label}
               </Link>
             );

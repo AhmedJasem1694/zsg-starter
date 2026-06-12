@@ -4,50 +4,53 @@
 
 /* ─── Zane Design System ─────────────────────────────────────────────────────
    Brand: Refined Split-Path Symbol + Wordmark
-   Palette: #0B1118 base · #4A6CF7 accent · #E6E8EB text
+   Palette: #080E1C deep navy · #060A14 near-black · #2563EB cobalt accent
+            (used sparingly) · #F8FAFC text on dark · hairline #1E293B borders
    Typography: Inter (UI) · JetBrains Mono (clauses)
+   Radius: 12px cards (rounded-xl) · 8px buttons (rounded-lg)
+   Shadows: one soft elevation level — no glows
    ─────────────────────────────────────────────────────────────────────────── */
 
 :root {
   /* ── Page background ─────────────────────────────────────────────────── */
-  --background:    214 34% 7%;         /* #0B1118 — brand deep dark          */
-  --foreground:    210 14% 91%;        /* #E6E8EB — brand light text         */
+  --background:    222 56% 7%;         /* #080E1C — deep navy                */
+  --foreground:    210 40% 98%;        /* #F8FAFC — text on dark             */
 
   /* ── Card & panel surfaces ───────────────────────────────────────────── */
-  --card:          214 38% 11%;        /* #111A24 — brand dark surface       */
-  --card-foreground: 210 14% 91%;
-  --card-border:   214 26% 18%;        /* #1B2533 — brand card border        */
+  --card:          221 48% 9%;         /* #0C1322 — card surface             */
+  --card-foreground: 210 40% 98%;
+  --card-border:   217 33% 17%;        /* #1E293B — hairline border          */
 
   /* ── Sidebar ─────────────────────────────────────────────────────────── */
-  --sidebar:              214 34% 7%;  /* #0B1118 — same as background       */
-  --sidebar-foreground:   214 16% 60%; /* muted text                         */
-  --sidebar-border:       214 26% 15%; /* subtle divider                     */
-  --sidebar-primary:      232 91% 63%; /* #4A6CF7 brand blue                 */
+  --sidebar:              224 54% 5%;  /* #060A14 — near-black               */
+  --sidebar-foreground:   215 20% 65%; /* #94A3B8 — muted text               */
+  --sidebar-border:       217 33% 14%; /* subtle divider                     */
+  --sidebar-primary:      221 83% 53%; /* #2563EB cobalt                     */
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent:       232 50% 18%; /* active bg — deep brand blue        */
-  --sidebar-accent-foreground: 232 91% 75%; /* lighter brand blue            */
-  --sidebar-ring:         232 91% 63%;
-  --sidebar-primary-border: #4A6CF7;
+  --sidebar-accent:       221 60% 15%; /* active bg — deep cobalt ghost      */
+  --sidebar-accent-foreground: 212 96% 78%; /* light cobalt                  */
+  --sidebar-ring:         221 83% 53%;
+  --sidebar-primary-border: #2563EB;
 
-  /* ── Primary action — brand blue ─────────────────────────────────────── */
-  --primary:       232 91% 63%;        /* #4A6CF7                            */
+  /* ── Primary action — cobalt ─────────────────────────────────────────── */
+  --primary:       221 83% 53%;        /* #2563EB                            */
   --primary-foreground: 0 0% 100%;
-  --primary-border: #4A6CF7;
+  --primary-border: #2563EB;
 
   /* ── Secondary ───────────────────────────────────────────────────────── */
-  --secondary:     214 26% 15%;        /* #1B2533                            */
-  --secondary-foreground: 214 16% 60%;
-  --secondary-border: hsl(214 26% 22%);
+  --secondary:     217 33% 17%;        /* #1E293B                            */
+  --secondary-foreground: 215 20% 65%;
+  --secondary-border: hsl(217 33% 22%);
 
   /* ── Muted / elevated surface ────────────────────────────────────────── */
-  --muted:         214 32% 10%;        /* #0F1820                            */
-  --muted-foreground: 214 14% 45%;    /* muted text                         */
-  --muted-border:  hsl(214 26% 15%);
+  --muted:         222 47% 9%;         /* muted navy surface                 */
+  --muted-foreground: 215 20% 55%;    /* muted text                         */
+  --muted-border:  hsl(217 33% 14%);
 
-  /* ── Accent — brand blue ghost highlight ─────────────────────────────── */
-  --accent:        232 50% 18%;        /* deep brand blue ghost              */
-  --accent-foreground: 232 91% 75%;   /* light brand blue                   */
-  --accent-border: hsl(232 50% 24%);
+  /* ── Accent — cobalt ghost highlight ─────────────────────────────────── */
+  --accent:        221 60% 15%;        /* deep cobalt ghost                  */
+  --accent-foreground: 212 96% 78%;   /* light cobalt                       */
+  --accent-border: hsl(221 60% 22%);
 
   /* ── Destructive ─────────────────────────────────────────────────────── */
   --destructive:   0 72% 41%;          /* #B91C1C                            */
@@ -55,30 +58,30 @@
   --destructive-border: hsl(0 80% 28%);
 
   /* ── Borders / inputs / ring ─────────────────────────────────────────── */
-  --border:        214 26% 15%;        /* #1B2533                            */
-  --input:         214 26% 15%;
-  --ring:          232 91% 63%;        /* #4A6CF7                            */
-  --popover:       214 38% 11%;
-  --popover-foreground: 210 14% 91%;
-  --popover-border: 214 26% 15%;
+  --border:        217 33% 17%;        /* #1E293B — hairline                 */
+  --input:         217 33% 17%;
+  --ring:          221 83% 53%;        /* #2563EB                            */
+  --popover:       221 48% 9%;
+  --popover-foreground: 210 40% 98%;
+  --popover-border: 217 33% 17%;
 
   /* ── Typography ──────────────────────────────────────────────────────── */
   --font-sans: 'Inter', sans-serif;
   --font-display: 'Syncopate', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'JetBrains Mono', 'Roboto Mono', monospace;
-  --radius: 0.5rem;
+  --radius: 0.75rem;                   /* 12px cards                         */
 
   /* ── Elevation overlays (light on dark) ──────────────────────────────── */
   --elevate-1: rgba(255,255,255,.025);
   --elevate-2: rgba(255,255,255,.05);
 
-  /* ── Shadows ─────────────────────────────────────────────────────────── */
-  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.5);
-  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.4);
-  --shadow:    0 4px 6px rgb(0 0 0 / 0.4), 0 2px 4px rgb(0 0 0 / 0.3);
-  --shadow-md: 0 8px 16px rgb(0 0 0 / 0.5), 0 4px 6px rgb(0 0 0 / 0.4);
-  --shadow-lg: 0 12px 24px rgb(0 0 0 / 0.6), 0 8px 16px rgb(0 0 0 / 0.5);
+  /* ── Shadows — one soft elevation level, no glows ────────────────────── */
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.25);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.25);
+  --shadow:    0 4px 16px rgb(0 0 0 / 0.25);
+  --shadow-md: 0 4px 16px rgb(0 0 0 / 0.25);
+  --shadow-lg: 0 4px 16px rgb(0 0 0 / 0.25);
 }
 
 @layer base {
@@ -100,8 +103,8 @@
     color: #F1F5F9;
   }
   .input:focus {
-    border-color: #4A6CF7;
-    box-shadow: 0 0 0 3px #0F1A3A;
+    border-color: #2563EB;
+    box-shadow: 0 0 0 3px rgb(37 99 235 / 0.15);
   }
   .input:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -111,9 +114,9 @@
       px-4 py-2 text-sm font-semibold text-white
       transition-colors active:scale-[0.98]
       disabled:opacity-50 disabled:pointer-events-none;
-    background: #4A6CF7;
+    background: #2563EB;
   }
-  .btn-primary:hover:not(:disabled) { background: #6B8EF9; }
+  .btn-primary:hover:not(:disabled) { background: #1D4ED8; }
 
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 rounded-lg
@@ -124,7 +127,7 @@
     border: 1px solid #334155;
   }
   .btn-secondary:hover:not(:disabled) {
-    background: #111A24;
+    background: #0C1322;
     border-color: #475569;
   }
 
@@ -195,9 +198,9 @@
     background: rgba(255,255,255,0.05);
   }
   .nav-item-active {
-    background: rgba(74, 108, 247, 0.12);
-    color: #E6E8EB;
-    box-shadow: inset 2px 0 0 #4A6CF7;
+    background: rgba(37, 99, 235, 0.12);
+    color: #F8FAFC;
+    box-shadow: inset 2px 0 0 #2563EB;
   }
 
   /* ── Clause / fallback language block (JetBrains Mono) ─────────────── */
@@ -221,7 +224,7 @@
 
 /* ─── Scrollbars ─────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar           { width: 6px; height: 6px; }
-::-webkit-scrollbar-track     { background: #0B1118; }
+::-webkit-scrollbar-track     { background: #080E1C; }
 ::-webkit-scrollbar-thumb     { background: #334155; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #475569; }
 

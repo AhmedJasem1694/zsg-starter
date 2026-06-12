@@ -6,11 +6,29 @@ export default {
   theme: {
     extend: {
       borderRadius: {
-        lg: ".5625rem", /* 9px */
+        lg: ".5rem", /* 8px — buttons (cards use rounded-xl = 12px) */
         md: ".375rem", /* 6px */
-        sm: ".1875rem", /* 3px */
+        sm: ".25rem", /* 4px */
       },
       colors: {
+        // ── Zane design tokens (design elevation pass) ──────────────────
+        // Backgrounds: navy-950 hero near-black, navy-900 deep sections,
+        // navy-800 card surfaces. paper/ink for light sections.
+        // cobalt is THE accent — used sparingly, one accent per viewport.
+        navy: {
+          950: "#060A14",
+          900: "#080E1C",
+          800: "#0C1322",
+          700: "#1E293B",
+        },
+        paper: "#FAFAF8",
+        ink: "#0B1020",
+        // cobalt / cobalt-hover / cobalt-light live in the flat token block
+        // below (duplicate object keys would silently override these).
+        line: {
+          dark: "#1E293B",
+          light: "#E2E8F0",
+        },
         // Flat / base colors (regular buttons)
         background: "hsl(var(--background) / <alpha-value>)",
         foreground: "hsl(var(--foreground) / <alpha-value>)",
@@ -83,14 +101,15 @@ export default {
         },
         // ── Zane design system tokens ────────────────────────────────────
         // Navy backgrounds
-        "navy-bg":       "#0B1020",
-        "navy-card":     "#0F172A",
+        "navy-bg":       "#080E1C",
+        "navy-card":     "#0C1322",
         "navy-elevated": "#111827",
         "navy-surface":  "#1E293B",
         "navy-hover":    "#1A2540",
-        // Cobalt action
+        // Cobalt action — hover darkens (calmer than the old lighter hover)
         "cobalt":         "#2563EB",
-        "cobalt-hover":   "#3B82F6",
+        "cobalt-hover":   "#1D4ED8",
+        "cobalt-light":   "#3B82F6",
         "cobalt-pressed": "#1D4ED8",
         "cobalt-subtle":  "#1E3A5F",
         "cobalt-ghost":   "#172B4D",

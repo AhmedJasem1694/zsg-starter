@@ -1,99 +1,52 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle, AlertTriangle, Zap, BookOpen, Scale, TrendingUp, X } from "lucide-react";
+import { ArrowRight, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ZaneLogo } from "../components/ZaneLogo";
 import { requestAccess } from "../lib/api";
 
-// ─── Animation presets (matching aloft's spring physics) ─────────────────────
+// ─── Animation presets ────────────────────────────────────────────────────────
 const SPRING_SNAP  = { type: "spring", damping: 100, mass: 3, stiffness: 500 } as const;
 const SPRING_SOFT  = { type: "spring", damping: 27,  mass: 0.3, stiffness: 121 } as const;
 const EASE_OUT_EXPO = { type: "tween", ease: [0.22, 1, 0.36, 1], duration: 0.9 } as const;
 
 const fadeUp = (delay = 0) => ({
-  initial:    { opacity: 0, y: 40 },
+  initial:    { opacity: 0, y: 32 },
   whileInView:{ opacity: 1, y: 0 },
-  viewport:   { once: true, amount: 0.4 },
+  viewport:   { once: true, amount: 0.3 },
   transition: { ...SPRING_SNAP, delay },
 });
 
 const fadeUpHero = (delay = 0) => ({
-  initial:   { opacity: 0, y: 32 },
+  initial:   { opacity: 0, y: 24 },
   animate:   { opacity: 1, y: 0 },
   transition:{ ...SPRING_SOFT, delay },
 });
 
-const slideLeft = (delay = 0) => ({
-  initial:    { opacity: 0, x: -80 },
-  whileInView:{ opacity: 1, x: 0 },
-  viewport:   { once: true, amount: 0.3 },
-  transition: { ...SPRING_SNAP, delay },
-});
-
-const slideRight = (delay = 0) => ({
-  initial:    { opacity: 0, x: 80 },
-  whileInView:{ opacity: 1, x: 0 },
-  viewport:   { once: true, amount: 0.3 },
-  transition: { ...SPRING_SNAP, delay },
-});
-
 const headingReveal = {
-  initial:    { opacity: 0, y: 60 },
+  initial:    { opacity: 0, y: 40 },
   whileInView:{ opacity: 1, y: 0 },
   viewport:   { once: true, amount: 0.5 },
   transition: EASE_OUT_EXPO,
 };
 
-// ─── Stagger container ────────────────────────────────────────────────────────
 const staggerContainer = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.1, delayChildren: 0.15 } },
+  show: { transition: { staggerChildren: 0.1, delayChildren: 0.1 } },
 };
 const staggerItem = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 16 },
   show:   { opacity: 1, y: 0, transition: SPRING_SNAP },
 };
 
-// ─── Cycling phrases ──────────────────────────────────────────────────────────
-const PHRASES = ["always on.", "always current.", "always auditable.", "built for you."];
+// ─── Type scale ───────────────────────────────────────────────────────────────
+// hero:     text-4xl sm:text-6xl font-bold tracking-tight leading-[1.05]
+// section:  text-3xl sm:text-4xl font-bold tracking-tight
+// card:     text-base font-semibold
+// body:     text-base leading-relaxed, muted colour
+// caption:  text-xs font-semibold uppercase tracking-[0.18em], muted colour
 
-function CyclingPhrase() {
-  const [index, setIndex] = useState(0);
-  const [phase, setPhase] = useState<"in" | "out">("in");
-
-  useEffect(() => {
-    const tick = setInterval(() => {
-      setPhase("out");
-      setTimeout(() => {
-        setIndex((i) => (i + 1) % PHRASES.length);
-        setPhase("in");
-      }, 150);
-    }, 1800);
-    return () => clearInterval(tick);
-  }, []);
-
-  return (
-    // Fixed min-width = width of the longest phrase ("always auditable.")
-    // Prevents the badge from reflowing/shifting width as the text cycles.
-    <span
-      style={{ display: "inline-block", minWidth: "10em", textAlign: "center" }}
-    >
-      <span
-        key={index}
-        className={phase === "in" ? "phrase-in" : "phrase-out"}
-        style={{
-          background: "linear-gradient(90deg, #4A6CF7, #7B9BFA)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-        }}
-      >
-        {PHRASES[index]}
-      </span>
-    </span>
-  );
-}
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── FAQ copy ─────────────────────────────────────────────────────────────────
 const LANDING_FAQS = [
   { q: "How long does it take to get started?", a: "Around 20 minutes. You configure your playbook positions, set your approval thresholds, and upload your first contract. No implementation project. No technical setup. No enterprise sales process." },
   { q: "Do I need a technical team to set this up?", a: "No. Zane is entirely self-serve. If you can fill in a form you can configure Zane. The only technical requirement is a browser." },
@@ -104,6 +57,8 @@ const LANDING_FAQS = [
   { q: "What contract types does Zane support?", a: "Commercial contracts, supplier agreements, customer MSAs, NDAs, technology agreements, employment contracts, and more. The playbook engine works for any contract type you configure it for." },
   { q: "Is there a minimum contract or commitment?", a: "No implementation fee. No setup cost. Pilot terms and pricing are agreed up front before you commit." },
 ];
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function Landing() {
   const shouldReduce = useReducedMotion();
@@ -140,808 +95,354 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#F7F6F3]">
+    <div className="min-h-screen flex flex-col bg-paper">
 
       {/* ─── NAV ─────────────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-20 border-b border-white/8 backdrop-blur-md" style={{ background: "rgba(11,17,24,0.97)" }}>
+      <header className="sticky top-0 z-20 border-b border-line-dark/60 backdrop-blur-md" style={{ background: "rgba(6,10,20,0.92)" }}>
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="hover:opacity-80 transition-opacity">
             <ZaneLogo size="sm" light={true} />
           </Link>
-          <nav className="hidden md:flex items-center gap-6 text-xs">
+          <nav className="hidden md:flex items-center gap-7 text-xs">
             {["#why-zane:Why Zane","#how-it-works:How it works","#pricing:Pricing"].map(s => {
               const [href, label] = s.split(":");
               return (
                 <a key={href} href={href} onClick={(e) => scrollToSection(e, href)}
-                  className="text-white/50 hover:text-white transition-colors duration-300">
+                  className="text-slate-400 hover:text-white transition-colors duration-300">
                   {label}
                 </a>
               );
             })}
-            <Link to="/case-study" className="text-white/50 hover:text-white transition-colors duration-300">Case study</Link>
-            <Link to="/resources" className="text-white/50 hover:text-white transition-colors duration-300">Resources</Link>
-            <Link to="/security" className="text-white/50 hover:text-white transition-colors duration-300">Security</Link>
+            <Link to="/case-study" className="text-slate-400 hover:text-white transition-colors duration-300">Case study</Link>
+            <Link to="/resources" className="text-slate-400 hover:text-white transition-colors duration-300">Resources</Link>
+            <Link to="/security" className="text-slate-400 hover:text-white transition-colors duration-300">Security</Link>
           </nav>
           <div className="flex items-center gap-2">
-            <Link to="/login" className="px-4 py-1.5 text-sm text-white/50 hover:text-white transition-colors duration-300">Sign in</Link>
-            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-              <button onClick={() => setShowRequestAccess(true)}
-                className="flex items-center gap-1.5 px-4 py-1.5 bg-primary text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity shadow shadow-primary/20">
-                Request access <ArrowRight size={13} />
-              </button>
-            </motion.div>
+            <Link to="/login" className="px-4 py-1.5 text-sm text-slate-400 hover:text-white transition-colors duration-300">Sign in</Link>
+            <button onClick={() => setShowRequestAccess(true)}
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-cobalt hover:bg-cobalt-hover text-white text-sm font-medium rounded-lg transition-colors">
+              Request access <ArrowRight size={13} />
+            </button>
           </div>
         </div>
       </header>
 
-      {/* ─── HERO - dark ─────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden flex flex-col justify-center" style={{ minHeight: "calc(100vh - 57px)", background: "#111827" }}>
-        {/* Grid */}
-        <div className="absolute inset-0 opacity-[0.04]" style={{
-          backgroundImage: "linear-gradient(#4A6CF7 1px, transparent 1px), linear-gradient(90deg, #4A6CF7 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-        }} />
-        {/* Glow */}
-        <motion.div
+      {/* ─── HERO — near-black, one idea ─────────────────────────────────────── */}
+      <section className="relative overflow-hidden bg-navy-950">
+        {/* Single hero accent — soft cobalt wash, the page's one glow */}
+        <div
           className="absolute inset-0 pointer-events-none"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 2, delay: 0.5 }}
-          style={{ background: "radial-gradient(ellipse 70% 50% at 50% -10%, rgba(74,108,247,0.22), transparent 65%)" }}
+          style={{ background: "radial-gradient(ellipse 60% 45% at 50% -10%, rgba(37,99,235,0.14), transparent 65%)" }}
         />
 
-        <div className="relative max-w-4xl mx-auto px-6 py-6 text-center space-y-4">
-
-          {/* Cycling badge */}
-          <motion.div
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/4 text-xs text-white/50"
+        <div className="relative max-w-3xl mx-auto px-6 pt-28 pb-20 sm:pt-40 sm:pb-28 text-center">
+          <motion.h1
+            className="text-4xl sm:text-6xl font-bold tracking-tight leading-[1.05] text-[#F8FAFC]"
             {...(shouldReduce ? {} : fadeUpHero(0.1))}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse inline-block" />
-            Legal intelligence that's{" "}<CyclingPhrase />
-          </motion.div>
-
-          {/* Headline */}
-          <motion.h1
-            className="text-4xl sm:text-5xl font-bold tracking-tight leading-[1.08] text-white"
-            {...(shouldReduce ? {} : fadeUpHero(0.25))}
-          >
-            Your legal team already has a playbook.{" "}
-            <br className="hidden sm:block" />
+            Your legal team already has a playbook.
+            <br className="hidden sm:block" />{" "}
             Zane makes sure the company{" "}
-            <span style={{ background: "linear-gradient(90deg, #4A6CF7, #7B9BFA)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              actually follows it.
-            </span>
+            <span className="text-cobalt-light">actually follows it.</span>
           </motion.h1>
 
-          {/* Subheadline */}
           <motion.p
-            className="text-base sm:text-lg text-white/55 leading-relaxed max-w-2xl mx-auto"
-            {...(shouldReduce ? {} : fadeUpHero(0.4))}
+            className="mt-6 text-base sm:text-lg text-slate-400 leading-relaxed max-w-xl mx-auto"
+            {...(shouldReduce ? {} : fadeUpHero(0.25))}
           >
             Review contracts against your real positions. Not generic market standard. Yours.
           </motion.p>
 
-          {/* CTA */}
           <motion.div
-            className="flex flex-col items-center gap-2.5 pt-1"
-            {...(shouldReduce ? {} : fadeUpHero(0.52))}
+            className="mt-10 flex flex-col items-center gap-3"
+            {...(shouldReduce ? {} : fadeUpHero(0.4))}
           >
-            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-              <a href="https://calendly.com/ahmedljasem/30min"
-                target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 text-sm">
-                Book a 20 minute demo <ArrowRight size={15} />
-              </a>
-            </motion.div>
-            <p className="text-xs text-[#F8FAFC]">No implementation. No enterprise contract. Working in 20 minutes.</p>
+            <button onClick={() => setShowRequestAccess(true)}
+              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-colors text-sm">
+              Request access <ArrowRight size={15} />
+            </button>
+            <p className="text-xs text-slate-500">No implementation. No enterprise contract. Working in 20 minutes.</p>
           </motion.div>
 
-          {/* Stats */}
+          {/* One subtle product visual — next-actions frame */}
           <motion.div
-            className="pt-2 grid grid-cols-4 gap-4 max-w-lg mx-auto border-t border-white/8"
-            {...(shouldReduce ? {} : fadeUpHero(0.64))}
+            className="mt-16 mx-auto max-w-xl text-left rounded-xl border border-line-dark bg-navy-800 shadow-lg overflow-hidden"
+            {...(shouldReduce ? {} : fadeUpHero(0.55))}
           >
-            {[
-              { value: "11 minutes",      label: "Average review time" },
-              { value: "100%",             label: "Company-specific from day one" },
-              { value: "Every decision",  label: "Remembered and applied" },
-              { value: "1 to 5 lawyers",  label: "The team size we are built for" },
-            ].map(({ value, label }) => (
-              <div key={label} className="text-center space-y-0.5">
-                <div className="text-lg font-bold text-white">{value}</div>
-                <div className="text-[10px] text-white/35">{label}</div>
-              </div>
-            ))}
-          </motion.div>
-
-          {/* Scroll hint */}
-          <motion.div
-            className="pt-1 flex flex-col items-center gap-1.5 opacity-25"
-            {...(shouldReduce ? {} : fadeUpHero(0.9))}
-          >
-            <div className="w-px h-5 bg-white/40 rounded-full" />
-            <span className="text-[10px] text-white/50 tracking-widest uppercase">scroll</span>
+            <div className="px-4 py-2.5 border-b border-line-dark text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+              Next actions
+            </div>
+            <div className="divide-y divide-line-dark/60">
+              {[
+                { name: "Technology Services Agreement", cp: "Acme Technologies Ltd",  dot: "bg-red-400/80",   label: "Do not sign yet" },
+                { name: "Master Services Agreement",     cp: "Nexus Solutions Ltd",    dot: "bg-amber-400/80", label: "Negotiate first" },
+                { name: "Software Licence Agreement",    cp: "DataFlow Technologies",  dot: "bg-red-400/80",   label: "Review required" },
+              ].map((item) => (
+                <div key={item.name} className="px-4 py-3 flex items-center gap-3">
+                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.dot}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium text-[#F8FAFC] truncate">{item.name}</div>
+                    <div className="text-[11px] text-slate-500 truncate">{item.cp}</div>
+                  </div>
+                  <span className="text-[11px] text-slate-400 shrink-0">{item.label}</span>
+                </div>
+              ))}
+            </div>
           </motion.div>
         </div>
       </section>
 
       {/* ─── PROBLEM ─────────────────────────────────────────────────────────── */}
-      <section id="why-zane" className="py-20 bg-[#F7F6F3] border-t border-black/5">
-        <div className="max-w-3xl mx-auto px-6 space-y-8">
-
-          {/* GC version */}
-          <motion.div className="space-y-8" {...headingReveal} key="gc-problem">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-                Most legal teams get this wrong every day.
-              </h2>
-              <div className="space-y-5 text-gray-600 leading-relaxed text-sm">
-                <p>
-                  They review the same clauses repeatedly because nobody documented the last decision. They make inconsistent risk calls because the playbook lives in one person's head. They miss approval thresholds because there is no system enforcing them. And when someone leaves the team, everything they knew leaves with them.
-                </p>
-                <p>
-                  The problem is not speed. It is that legal knowledge was never captured in the first place.
-                </p>
-              </div>
-            </motion.div>
-
-          {/* Visual separator between audiences */}
-            <div className="flex items-center gap-4 py-2">
-              <div className="flex-1 h-px bg-black/8" />
-              <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest shrink-0">For founders and startup operators</span>
-              <div className="flex-1 h-px bg-black/8" />
-            </div>
-
-          {/* Founder version */}
-            <motion.div className="space-y-8" {...fadeUp(0.1)} key="founder-problem">
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-                Every founder reviews contracts they should not have to review alone.
-              </h2>
-              <div className="space-y-5 text-gray-600 leading-relaxed text-sm">
-                <p>
-                  A supplier sends you an MSA. A customer wants you to sign their standard terms. A partner sends over an NDA. You are not a lawyer. You do not have one on staff. You either sign without really knowing what you are agreeing to or you spend £400 an hour finding out.
-                </p>
-                <p className="font-medium text-gray-800">
-                  There is a better way.
-                </p>
-              </div>
-            </motion.div>
-
-        </div>
-      </section>
-
-
-      {/* ─── WHAT ZANE DOES / HOW IT WORKS ───────────────────────────────────── */}
-      <section id="how-it-works" className="py-20 bg-[#F2F1EE] border-t border-black/5">
-        <div className="max-w-5xl mx-auto px-6">
-          <div className="rounded-2xl overflow-hidden bg-white border border-black/6">
-            <div className="grid lg:grid-cols-2 gap-0">
-              <motion.div className="p-10 space-y-5 border-b lg:border-b-0 lg:border-r border-black/5 flex flex-col justify-center" {...slideLeft(0)}>
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight leading-snug">
-                  Zane does not just review contracts. It builds institutional legal memory.
-                </h2>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  Every contract your team reviews, every position accepted or pushed back on, every exception approved, every override made - it all feeds into Zane's memory. Over time Zane learns how your company actually negotiates. Not how it thinks it does.
-                </p>
-                <button onClick={() => setShowRequestAccess(true)} className="inline-flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity font-medium self-start">
-                  See it in action <ArrowRight size={13} />
-                </button>
-              </motion.div>
-              <motion.div className="p-10 space-y-6" {...slideRight(0.15)}>
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">How the memory compounds</div>
-                <motion.div className="space-y-6" variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true }}>
-                  {[
-                    { icon: BookOpen,   title: "After 10 contracts",  body: "Zane knows your common risk patterns." },
-                    { icon: Scale,      title: "After 50 contracts",  body: "Zane knows which counterparties push back hardest and where." },
-                    { icon: TrendingUp, title: "After 100 contracts", body: "Zane knows the gap between your written playbook and your real risk tolerance." },
-                  ].map(({ icon: Icon, title, body }) => (
-                    <motion.div key={title} className="flex gap-3" variants={staggerItem}>
-                      <div className="w-8 h-8 rounded-lg bg-[#EEECEA] border border-black/6 flex items-center justify-center shrink-0">
-                        <Icon size={14} className="text-primary" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold text-gray-800">{title}</div>
-                        <div className="text-xs text-gray-600 mt-1 leading-relaxed">{body}</div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </motion.div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── FOUNDER OUTPUT SECTION ──────────────────────────────────────────── */}
-        <section className="py-20 bg-[#111827]">
-          <div className="max-w-4xl mx-auto px-6 space-y-12">
-            <motion.div className="text-center space-y-3" {...headingReveal}>
-              <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-                Upload the contract. Get a plain English verdict in minutes.
-              </h2>
-              <p className="text-white/50 text-sm max-w-xl mx-auto">
-                No legal jargon. No ambiguity. Just a clear answer and exactly what to do next.
-              </p>
-            </motion.div>
-
-            <motion.div className="grid md:grid-cols-3 gap-5" {...fadeUp(0.1)}>
-              {/* SAFE TO SIGN */}
-              <div className="rounded-2xl border border-[#14532D] bg-[#052E16] p-6 space-y-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#14532D] text-white text-xs font-bold uppercase tracking-wide">
-                  <div className="w-2 h-2 rounded-full bg-green-400" />
-                  Safe to sign
-                </div>
-                <div className="space-y-2">
-                  <p className="text-white text-sm font-semibold leading-snug">Nothing material to worry about.</p>
-                  <p className="text-white/60 text-xs leading-relaxed">Standard terms that do not expose you.</p>
-                </div>
-                <div className="pt-2 border-t border-white/10">
-                  <p className="text-white/40 text-[11px] leading-relaxed italic">
-                    Example: Mutual liability cap at 12 months of fees. Standard English law. Clean DPA attached.
-                  </p>
-                </div>
-              </div>
-
-              {/* NEGOTIATE FIRST */}
-              <div className="rounded-2xl border border-[#431407] bg-[#1C0F00] p-6 space-y-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#431407] text-white text-xs font-bold uppercase tracking-wide">
-                  <div className="w-2 h-2 rounded-full bg-amber-400" />
-                  Negotiate first
-                </div>
-                <div className="space-y-2">
-                  <p className="text-white text-sm font-semibold leading-snug">These clauses need pushing back on.</p>
-                  <p className="text-white/60 text-xs leading-relaxed">Here is exactly what to say.</p>
-                </div>
-                <div className="pt-2 border-t border-white/10">
-                  <p className="text-white/40 text-[11px] leading-relaxed italic">
-                    Example: Auto-renewal with only 14 days notice. Miss the window and you're locked in for another year at £24,000.
-                  </p>
-                </div>
-              </div>
-
-              {/* DO NOT SIGN YET */}
-              <div className="rounded-2xl border border-[#450A0A] bg-[#1F0A0A] p-6 space-y-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#450A0A] text-white text-xs font-bold uppercase tracking-wide">
-                  <div className="w-2 h-2 rounded-full bg-red-400" />
-                  Do not sign yet
-                </div>
-                <div className="space-y-2">
-                  <p className="text-white text-sm font-semibold leading-snug">This contract has serious problems.</p>
-                  <p className="text-white/60 text-xs leading-relaxed">Here is what needs fixing before you commit.</p>
-                </div>
-                <div className="pt-2 border-t border-white/10">
-                  <p className="text-white/40 text-[11px] leading-relaxed italic">
-                    Example: They have capped their liability at one month of fees. If their software fails and costs you £50,000 to fix, you have no recourse.
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Founder testimonial */}
-            <motion.div
-              className="rounded-2xl border border-white/8 bg-white/4 p-8 max-w-2xl mx-auto"
-              {...fadeUp(0.2)}
-            >
-              <div className="space-y-4">
-                <div className="text-2xl text-white/20 font-serif leading-none">"</div>
-                <p className="text-white/80 text-sm leading-relaxed italic">
-                  I used to spend a week going back and forth with lawyers before signing supplier agreements. Now I upload the contract and know what to do in ten minutes.
-                </p>
-                <div className="flex items-center gap-3 pt-2">
-                  <div className="w-8 h-8 rounded-full bg-primary/30 flex items-center justify-center text-xs font-bold text-primary">
-                    FD
-                  </div>
-                  <div>
-                    <div className="text-xs font-semibold text-white/60">Founder, B2B SaaS</div>
-                    <div className="text-[10px] text-white/30">Early design partner — testimonial placeholder</div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
-      {/* ─── PRODUCT SCREENSHOT SHOWCASE ─────────────────────────────────────── */}
-      <section className="py-20 px-6 bg-[#080F18]">
-        <div className="max-w-6xl mx-auto space-y-16">
-          <div className="text-center space-y-3">
-            <h2 className="text-3xl font-semibold text-white">See exactly what Zane produces.</h2>
-            <p className="text-muted-foreground text-lg">Every screen. No mockups. This is the real product.</p>
-          </div>
-          {/* ── Mockup 1: Dashboard next actions ── */}
-          <div className="flex flex-col md:flex-row gap-10 items-center">
-            <div className="flex-1 rounded-xl bg-[#0B1118] border border-[#1B2533] aspect-video overflow-hidden p-5 space-y-3 select-none pointer-events-none">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-[#4A6CF7]/60 pb-1 border-b border-[#1E293B]">Next Actions</div>
-              {[
-                { name: "Technology Services Agreement", cp: "Acme Technologies Ltd", red: true, label: "Do not sign yet" },
-                { name: "Master Services Agreement",     cp: "Nexus Solutions Ltd",    red: false, label: "Negotiate first" },
-                { name: "Software Licence Agreement",    cp: "DataFlow Technologies", red: true, label: "Review required" },
-              ].map((item) => (
-                <div key={item.name} className="rounded-lg bg-[#111A24] border border-[#1E293B] px-3 py-2.5 flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${item.red ? "bg-red-400" : "bg-amber-400"}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[11px] font-semibold text-white truncate">{item.name}</div>
-                    <div className="text-[10px] text-white/40 truncate">{item.cp}</div>
-                  </div>
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded border shrink-0 ${item.red ? "bg-[#1F0A0A] text-white border-[#450A0A]" : "bg-[#1C0F00] text-white border-[#431407]"}`}>
-                    {item.label}
-                  </span>
-                  <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-[#4A6CF7] text-white shrink-0">Review →</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex-1 space-y-3">
-              <h3 className="text-xl font-semibold text-white">What needs attention today</h3>
-              <p className="text-muted-foreground leading-relaxed">Every contract requiring action surfaces immediately. No digging through emails. No missed deadlines.</p>
-            </div>
-          </div>
-
-          {/* ── Mockup 2: Contract review clause detail ── */}
-          <div className="flex flex-col md:flex-row-reverse gap-10 items-center">
-            <div className="flex-1 rounded-xl bg-[#0B1118] border border-[#1B2533] aspect-video overflow-hidden p-5 space-y-3 select-none pointer-events-none">
-              <div className="flex items-center gap-2 pb-2 border-b border-[#1E293B]">
-                <div className="w-2 h-2 rounded-full bg-red-400" />
-                <span className="text-[11px] font-bold text-white">Liability Cap</span>
-                <span className="ml-auto text-[9px] bg-[#1F0A0A] text-white border border-[#450A0A] rounded px-1.5 py-0.5">RED: High Risk</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] px-2.5 py-2 space-y-1">
-                  <div className="text-[8px] font-bold uppercase tracking-widest text-white/50">Issue</div>
-                  <div className="text-[10px] text-white leading-snug">Cap set at £500k, below your 1x annual fees minimum threshold.</div>
-                </div>
-                <div className="rounded-lg bg-[#0D1521] border border-[#1E293B] px-2.5 py-2 space-y-1">
-                  <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Why it matters</div>
-                  <div className="text-[10px] text-white/70 leading-snug">Exposes you to uncapped loss if contract value exceeds the cap.</div>
-                </div>
-                <div className="rounded-lg bg-[#0D1521] border border-[#1E293B] px-2.5 py-2 space-y-1">
-                  <div className="text-[8px] font-bold uppercase tracking-widest text-white/30">Fallback</div>
-                  <div className="text-[9px] text-white/70 font-mono leading-snug">"...liability shall not exceed the greater of £1,000,000 or 1× annual fees..."</div>
-                </div>
-                <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] px-2.5 py-2 space-y-1">
-                  <div className="text-[8px] font-bold uppercase tracking-widest text-white/50">Escalation</div>
-                  <div className="text-[10px] text-white font-semibold">Legal → GC sign-off required</div>
-                  <div className="text-[9px] text-white/50">Clause exceeds unilateral authority</div>
-                </div>
-              </div>
-            </div>
-            <div className="flex-1 space-y-3">
-              <h3 className="text-xl font-semibold text-white">Not just a flag. A decision.</h3>
-              <p className="text-muted-foreground leading-relaxed">Every Red clause comes with the exact fallback language to send back, who needs to approve it, and the specific regulation that applies to your sector.</p>
-            </div>
-          </div>
-
-          {/* ── Mockup 3: Escalation and sign-off workflow ── */}
-          <div className="flex flex-col md:flex-row gap-10 items-center">
-            <div className="flex-1 rounded-xl bg-[#0B1118] border border-[#1B2533] aspect-video overflow-hidden p-5 space-y-3 select-none pointer-events-none">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-white/40 pb-2 border-b border-[#1E293B]">Escalation Required: 2 tiers triggered</div>
-              <div className="space-y-2">
-                <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] px-3 py-2.5 space-y-1.5">
-                  <div className="text-[9px] font-bold uppercase tracking-widest text-white">Tier 1: Clause Risk</div>
-                  <div className="text-[10px] text-white/80">· <span className="font-semibold">Liability Cap:</span> Cap set below your 1× annual fees minimum</div>
-                  <div className="text-[10px] text-white/80">· <span className="font-semibold">Indemnity:</span> Broad consequential loss coverage accepted</div>
-                </div>
-                <div className="rounded-lg bg-[#1C0F00] border border-[#431407] px-3 py-2.5">
-                  <div className="text-[9px] font-bold uppercase tracking-widest text-white mb-1">Tier 2: Contract Value</div>
-                  <div className="text-[10px] text-white/80">£840,000: CFO approval required above £500k threshold</div>
-                </div>
-              </div>
-              <div className="pt-1">
-                <div className="text-[9px] text-white/30 uppercase tracking-widest mb-2">Sign-off sequence</div>
-                <div className="flex items-center gap-1.5">
-                  {["Handler", "Legal", "GC", "CFO"].map((a, i, arr) => (
-                    <span key={a} className="flex items-center gap-1.5">
-                      <span className="bg-[#4A6CF7] text-white text-[9px] font-bold px-2.5 py-1 rounded-full">{a}</span>
-                      {i < arr.length - 1 && <span className="text-white/20 text-xs">→</span>}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="flex-1 space-y-3">
-              <h3 className="text-xl font-semibold text-white">Governance routing built in</h3>
-              <p className="text-muted-foreground leading-relaxed">Zane works out who needs to approve what based on your approval matrix. Clause risk, contract value, and governance triggers all checked simultaneously.</p>
-            </div>
-          </div>
-
-          {/* ── Mockup 4: Playbook with outcome variance ── */}
-          <div className="flex flex-col md:flex-row-reverse gap-10 items-center">
-            <div className="flex-1 rounded-xl bg-[#0B1118] border border-[#1B2533] aspect-video overflow-hidden p-5 select-none pointer-events-none">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-white/40 pb-2 border-b border-[#1E293B] mb-3">Liability Cap: Written vs Actual</div>
-              <div className="grid grid-cols-2 gap-5 h-[calc(100%-36px)]">
-                <div className="space-y-2">
-                  <div className="text-[9px] text-white/40 uppercase tracking-widest">Written position</div>
-                  <div className="rounded-lg bg-[#111A24] border border-[#1E293B] p-2.5">
-                    <div className="text-[10px] text-white/70 font-mono leading-relaxed">"Liability capped at the greater of £1M or 1× annual fees paid in the preceding 12 months."</div>
-                  </div>
-                  <div className="text-[9px] text-white/30 italic">Hard red line: no uncapped liability</div>
-                  <div className="mt-2 text-[9px] bg-[#1F0A0A] text-white border border-[#450A0A] rounded px-2 py-1">⚠ Drifting below preferred</div>
-                </div>
-                <div className="space-y-3">
-                  <div className="text-[9px] text-white/40 uppercase tracking-widest">Actual outcomes: 6 contracts</div>
-                  {[
-                    { label: "Preferred", pct: 33, bg: "bg-[#14532D]" },
-                    { label: "Fallback",  pct: 33, bg: "bg-[#431407]" },
-                    { label: "Below fallback", pct: 34, bg: "bg-[#450A0A]" },
-                  ].map((bar) => (
-                    <div key={bar.label} className="space-y-1">
-                      <div className="flex justify-between text-[9px]">
-                        <span className="text-white/50">{bar.label}</span>
-                        <span className="text-white/30">{bar.pct}%</span>
-                      </div>
-                      <div className="h-2 rounded-full bg-[#1E293B] overflow-hidden">
-                        <div className={`h-full rounded-full ${bar.bg}`} style={{ width: `${bar.pct}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="flex-1 space-y-3">
-              <h3 className="text-xl font-semibold text-white">Your playbook learns from reality</h3>
-              <p className="text-muted-foreground leading-relaxed">See the gap between what your playbook says and what your team actually signs. Automatically. After every contract.</p>
-            </div>
-          </div>
-
-          {/* ── Mockup 5: Portfolio risk ── */}
-          <div className="flex flex-col md:flex-row gap-10 items-center">
-            <div className="flex-1 rounded-xl bg-[#0B1118] border border-[#1B2533] aspect-video overflow-hidden p-5 space-y-3 select-none pointer-events-none">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-white/40 pb-2 border-b border-[#1E293B]">Portfolio Risk</div>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { label: "Value at risk",                value: "£2.8M", color: "text-red-400"     },
-                  { label: "Pending approval",             value: "3",     color: "text-amber-400"   },
-                  { label: "Counterparties pushing back",  value: "4",     color: "text-[#60A5FA]"  },
-                  { label: "Contracts reviewed",           value: "12",    color: "text-[#86EFAC]"  },
-                ].map((stat) => (
-                  <div key={stat.label} className="rounded-lg bg-[#111A24] border border-[#1E293B] px-3 py-2.5">
-                    <div className={`text-xl font-bold ${stat.color}`}>{stat.value}</div>
-                    <div className="text-[9px] text-white/30 mt-0.5 leading-tight">{stat.label}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="rounded-lg bg-[#111A24] border border-[#1E293B] px-3 py-2.5 space-y-2">
-                <div className="text-[9px] text-white/30 uppercase tracking-widest">Risk by clause category</div>
-                {[
-                  { label: "Liability Cap",  pct: 80, bg: "bg-red-400"   },
-                  { label: "Auto-Renewal",   pct: 55, bg: "bg-amber-400" },
-                  { label: "Indemnity",      pct: 45, bg: "bg-red-400"   },
-                  { label: "Payment Terms",  pct: 30, bg: "bg-amber-400" },
-                ].map((bar) => (
-                  <div key={bar.label} className="flex items-center gap-2">
-                    <span className="text-[9px] text-white/40 w-20 shrink-0">{bar.label}</span>
-                    <div className="flex-1 h-1.5 rounded-full bg-[#1E293B] overflow-hidden">
-                      <div className={`h-full rounded-full ${bar.bg}`} style={{ width: `${bar.pct}%` }} />
-                    </div>
-                    <span className="text-[9px] text-white/20 w-6 text-right">{bar.pct}%</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex-1 space-y-3">
-              <h3 className="text-xl font-semibold text-white">Your entire exposure in one view</h3>
-              <p className="text-muted-foreground leading-relaxed">Every contract in your portfolio. Every risk quantified in pounds. Every renewal flagged before it becomes a problem.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── FOUNDER SECTION ─────────────────────────────────────────────────── */}
-      <section className="py-20 px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex flex-col md:flex-row gap-10 items-start">
-            <div className="shrink-0">
-              <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-white text-2xl font-bold select-none">
-                AJ
-              </div>
-            </div>
-            <div className="space-y-4">
-              <h2 className="text-2xl font-semibold text-gray-900">Built by a lawyer who lived this problem.</h2>
-              <p className="text-muted-foreground leading-relaxed">
-                Ahmed is a commercial solicitor. He has worked across private practice at firms including Dentons, Macfarlanes and Norton Rose Fulbright, in private banking, in-house at Uber Boat by Thames Clippers and Fora, a Blackstone portfolio company, and more recently advising founders and startups independently.
-              </p>
-              <p className="text-muted-foreground leading-relaxed">
-                Across every environment he watched the same problem repeat itself. Legal knowledge built up over years of negotiations, hard-won positions and accepted risks, then disappeared the moment someone left. The next lawyer would start from scratch. The same clauses renegotiated. The same risks accepted without anyone knowing they had been accepted before.
-              </p>
-              <p className="text-muted-foreground leading-relaxed">
-                The tools that existed were built for law firms. Not for the one to five person legal function doing this work under pressure every day.
-              </p>
-              <p className="text-muted-foreground leading-relaxed">
-                So he built Zane himself.
-              </p>
-              <div className="flex flex-wrap gap-4 pt-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  Qualified solicitor, England and Wales
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  Built without a technical co-founder
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── WHY TRUST ZANE ──────────────────────────────────────────────────── */}
-      <section className="py-20 bg-[#F7F6F3] border-t border-black/5">
-        <div className="max-w-3xl mx-auto px-6 space-y-8">
-          <motion.div className="text-center space-y-3" {...headingReveal}>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Why legal teams trust Zane.</h2>
-          </motion.div>
-          <motion.div
-            className="space-y-3"
-            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
-          >
-            {[
-              "Built for in-house teams of 1 to 5 lawyers",
-              "Every recommendation linked to source material",
-              "Escalation routing based on your approval matrix",
-              "Contracts never used for model training",
-              "Full audit trail of every recommendation",
-            ].map((item) => (
-              <motion.div key={item} className="flex items-center gap-3 rounded-xl bg-white border border-black/6 px-5 py-4" variants={staggerItem}>
-                <CheckCircle size={14} className="text-primary shrink-0" />
-                <p className="text-sm text-gray-700 font-medium">{item}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ─── HOW ZANE GETS SMARTER - dark ────────────────────────────────────── */}
-      <section className="py-20" style={{ background: "#0B1118" }}>
-        <div className="max-w-4xl mx-auto px-6 space-y-8">
-          <motion.div className="space-y-4" {...headingReveal}>
-            <div className="inline-block text-xs font-bold text-primary tracking-widest uppercase">How it improves</div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight leading-snug">
-              Zane gets smarter about your company without touching your data.
+      <section id="why-zane" className="bg-paper py-24 sm:py-36">
+        <div className="max-w-2xl mx-auto px-6">
+          <motion.div className="space-y-6" {...headingReveal}>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">The problem</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
+              Most legal teams get this wrong every day.
             </h2>
           </motion.div>
-          <motion.div className="space-y-5 text-white/50 leading-relaxed text-sm" {...fadeUp(0.1)}>
+          <motion.div className="mt-8 space-y-5 text-base text-slate-600 leading-relaxed" {...fadeUp(0.1)}>
             <p>
-              Your contracts are never used to train AI models. Not ours, not anyone else's. That is not a limitation. It is a deliberate architectural choice that makes Zane safer for legal work than almost any alternative.
+              They review the same clauses repeatedly because nobody documented the last decision. They make inconsistent risk calls because the playbook lives in one person's head. They miss approval thresholds because there is no system enforcing them. And when someone leaves the team, everything they knew leaves with them.
             </p>
+            <p className="text-ink font-medium">
+              The problem is not speed. It is that legal knowledge was never captured in the first place.
+            </p>
+          </motion.div>
+
+          {/* The cost of the status quo — quiet stat row */}
+          <motion.div
+            className="mt-14 grid grid-cols-1 sm:grid-cols-3 gap-px rounded-xl border border-line-light overflow-hidden bg-line-light"
+            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }}
+          >
+            {[
+              { value: "2–4 hours",     label: "Manual review time per contract" },
+              { value: "£800–£1,600",   label: "The same review at outside counsel rates" },
+              { value: "11 minutes",    label: "Average review time with Zane" },
+            ].map(({ value, label }) => (
+              <motion.div key={label} className="bg-paper px-6 py-7" variants={staggerItem}>
+                <div className="text-2xl font-bold tracking-tight text-ink">{value}</div>
+                <div className="mt-1.5 text-xs text-slate-500 leading-relaxed">{label}</div>
+              </motion.div>
+            ))}
           </motion.div>
         </div>
       </section>
 
-      {/* ─── COMPARISON TABLE ────────────────────────────────────────────────── */}
-      <section className="py-20 bg-[#F7F6F3] border-t border-black/5">
-        <div className="max-w-5xl mx-auto px-6 space-y-10">
-          <motion.div className="text-center space-y-3" {...headingReveal}>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
-              How Zane compares to everything else out there.
+      {/* ─── HOW ZANE WORKS — 3 steps ────────────────────────────────────────── */}
+      <section id="how-it-works" className="bg-paper border-t border-line-light py-24 sm:py-36">
+        <div className="max-w-4xl mx-auto px-6">
+          <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">How Zane works</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
+              From counterparty paper to a decision in three steps.
             </h2>
           </motion.div>
 
-          {/* Philosophy table */}
           <motion.div
-            className="max-w-3xl mx-auto rounded-2xl overflow-hidden border border-black/8 bg-[#F2F1EE]"
-            {...fadeUp(0.1)}
-          >
-            <div className="grid grid-cols-2 border-b border-black/8">
-              <div className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-widest border-r border-black/8">Generic Legal AI</div>
-              <div className="px-6 py-3 text-xs font-bold text-primary uppercase tracking-widest">Zane</div>
-            </div>
-            {[
-              ["Reviews contracts in isolation",                   "Learns from your negotiation history"],
-              ["Produces generic market-standard outputs",         "Aligns every review to your actual playbook and past decisions"],
-              ["Stateless - starts from zero every session",       "Builds institutional memory that compounds over time"],
-              ["Focused on document review",                       "Focused on operational consistency across the business"],
-              ["One-off AI answers",                               "Remembers which risks were accepted and why"],
-            ].map(([left, right], i) => (
-              <div key={i} className="grid grid-cols-2 border-b border-black/5 last:border-0">
-                <div className="px-6 py-4 text-sm text-gray-500 border-r border-black/5 flex items-start gap-2">
-                  <X size={11} className="text-gray-300 shrink-0 mt-0.5" />
-                  {left}
-                </div>
-                <div className="px-6 py-4 text-sm text-gray-700 flex items-start gap-2">
-                  <CheckCircle size={11} className="text-primary shrink-0 mt-0.5" />
-                  {right}
-                </div>
-              </div>
-            ))}
-          </motion.div>
-
-        </div>
-      </section>
-
-      {/* ─── TIME AND VALUE ───────────────────────────────────────────────────── */}
-      <section className="py-20 border-t border-black/5">
-        <div className="max-w-3xl mx-auto px-6 space-y-10">
-          <motion.div className="text-center space-y-3" {...headingReveal}>
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">What this means in practice.</h2>
-          </motion.div>
-          <motion.div
-            className="space-y-4"
-            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
+            className="mt-14 grid sm:grid-cols-3 gap-5"
+            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.25 }}
           >
             {[
-              "A contract review that takes hours manually takes a fraction of the time with Zane.",
-              "A new lawyer joining the team gets a full briefing document generated from your contract history in minutes rather than spending six weeks reading through everything.",
-              "A GC who leaves takes their experience with them. With Zane that experience stays.",
-              "A regulation changes. Zane immediately identifies which active contracts are affected.",
-              "A contract comes up for renewal. Zane flags that the last version had a clause accepted below your red line that should be fixed this time.",
-            ].map((item) => (
-              <motion.div key={item} className="flex items-start gap-3 rounded-xl bg-[#F2F1EE] border border-black/5 px-5 py-4" variants={staggerItem}>
-                <CheckCircle size={13} className="text-primary shrink-0 mt-0.5" />
-                <p className="text-sm text-gray-700 leading-relaxed">{item}</p>
+              {
+                step: "01",
+                title: "Upload the contract",
+                body: "PDF or DOCX. Zane extracts and classifies the key clauses automatically.",
+              },
+              {
+                step: "02",
+                title: "Reviewed against your playbook",
+                body: "Each clause is compared against your positions and live regulations. You get a Red / Amber / Green report with fallback language.",
+              },
+              {
+                step: "03",
+                title: "You decide",
+                body: "Zane tells you exactly what to push back on and who needs to approve. Every recommendation requires a human decision.",
+              },
+            ].map(({ step, title, body }) => (
+              <motion.div key={step} className="rounded-xl border border-line-light bg-white px-6 py-7" variants={staggerItem}>
+                <div className="text-xs font-semibold tracking-[0.18em] text-slate-400">{step}</div>
+                <h3 className="mt-4 text-base font-semibold text-ink">{title}</h3>
+                <p className="mt-2 text-sm text-slate-600 leading-relaxed">{body}</p>
               </motion.div>
             ))}
-            <motion.p className="text-sm font-semibold text-gray-800 pt-2 text-center" variants={staggerItem}>
-              Stop renegotiating risks your team has already resolved before.
-            </motion.p>
           </motion.div>
         </div>
       </section>
 
-      {/* ─── VALUE FRAMING ───────────────────────────────────────────────────── */}
-      <section className="max-w-3xl mx-auto px-6 pt-16 pb-2 text-center space-y-4">
-          <motion.div className="space-y-4" {...headingReveal} key="gc-value">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
-              What does it actually cost you today?
+      {/* ─── THE MEMORY STORY — dark ─────────────────────────────────────────── */}
+      <section className="bg-navy-900 py-24 sm:py-36">
+        <div className="max-w-4xl mx-auto px-6">
+          <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Institutional memory</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F8FAFC]">
+              Zane does not just review contracts. It builds institutional legal memory.
             </h2>
-            <p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto">
-              Every contract your team reviews manually takes two to four hours. At outside counsel rates
-              that is £800 to £1,600 per contract. At in-house rates it is your most qualified person
-              doing work a structured system could handle in minutes.
-            </p>
-            <p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto">
-              Zane handles the first pass every time so your lawyer focuses on the decisions that actually need a lawyer.
+            <p className="text-base text-slate-400 leading-relaxed">
+              Every contract your team reviews, every position accepted or pushed back on, every exception approved, every override made — it all feeds into Zane's memory. Over time Zane learns how your company actually negotiates. Not how it thinks it does.
             </p>
           </motion.div>
-      </section>
 
-      {/* ─── PRICING - conversation-led ──────────────────────────────────────── */}
-      <section id="pricing" className="max-w-3xl mx-auto px-6 py-20">
-        <motion.div className="text-center space-y-5" {...headingReveal}>
-          <div className="inline-block text-xs font-bold text-primary tracking-widest uppercase">Pricing</div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Pricing built around your team</h2>
-          <p className="text-sm text-gray-500 leading-relaxed max-w-xl mx-auto">
-            Zane is priced for lean legal functions, not enterprise budgets. Every pilot starts with a conversation so we can configure Zane around your contracts, your sector, and your risk positions. Pricing is agreed before you commit to anything.
-          </p>
-          <motion.div className="inline-block" whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-            <a href="https://calendly.com/ahmedljasem/30min"
-              target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-primary text-white font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-lg shadow-primary/20 text-sm">
-              Book a conversation <ArrowRight size={15} />
-            </a>
+          <motion.div
+            className="mt-14 grid sm:grid-cols-3 gap-5"
+            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.25 }}
+          >
+            {[
+              { count: "10",  title: "After 10 contracts",  body: "Zane knows your common risk patterns." },
+              { count: "50",  title: "After 50 contracts",  body: "Zane knows which counterparties push back hardest and where." },
+              { count: "100", title: "After 100 contracts", body: "Zane knows the gap between your written playbook and your real risk tolerance." },
+            ].map(({ count, title, body }) => (
+              <motion.div key={count} className="rounded-xl border border-line-dark bg-navy-800 px-6 py-7" variants={staggerItem}>
+                <div className="text-2xl font-bold tracking-tight text-[#F8FAFC]">{count}</div>
+                <h3 className="mt-4 text-base font-semibold text-[#F8FAFC]">{title}</h3>
+                <p className="mt-2 text-sm text-slate-400 leading-relaxed">{body}</p>
+              </motion.div>
+            ))}
           </motion.div>
-        </motion.div>
+        </div>
       </section>
 
-      {/* ─── REGULATORY - dark ───────────────────────────────────────────────── */}
-      <section className="py-20" style={{ background: "#0B1118" }}>
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="rounded-2xl overflow-hidden" style={{ background: "#111A24" }}>
-            <div className="grid lg:grid-cols-2 gap-0">
-              <motion.div className="p-10 space-y-5" {...slideLeft(0)}>
-                <div className="inline-block text-xs font-bold text-primary tracking-widest uppercase">Regulatory intelligence</div>
-                <h2 className="text-2xl font-bold text-white tracking-tight leading-snug">
-                  A regulation changes.<br />Zane tells you which contracts are affected.
-                </h2>
-                <p className="text-sm text-white/50 leading-relaxed">
-                  Hardcoded regulatory context is a liability the moment something changes. For a regulated business, that is not a minor gap - it is a trust-destroying one.
-                </p>
-                <p className="text-sm text-white/50 leading-relaxed">
-                  Every contract review is cross-referenced against the regulatory frameworks that apply to your sector and jurisdiction. GDPR, FCA Consumer Duty, KSA GCAM, and more - automatically.
-                </p>
-                <a href="#how-it-works" onClick={(e) => scrollToSection(e, "#how-it-works")} className="inline-flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity font-medium">
-                  See how it works <ArrowRight size={13} />
-                </a>
+      {/* ─── WHO IT IS FOR ───────────────────────────────────────────────────── */}
+      <section className="bg-paper py-24 sm:py-36">
+        <div className="max-w-4xl mx-auto px-6">
+          <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Who it is for</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
+              Built for the legal function you actually have.
+            </h2>
+          </motion.div>
+
+          <motion.div
+            className="mt-14 grid sm:grid-cols-3 gap-5"
+            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.25 }}
+          >
+            {[
+              {
+                title: "GC or Head of Legal",
+                body: "The playbook lives in your head. Zane documents every position and decision so risk calls stay consistent — and nothing leaves when someone leaves.",
+              },
+              {
+                title: "In-house team of 1 to 5 lawyers",
+                body: "The team size Zane is built for. One shared playbook, approval thresholds enforced automatically, every review remembered and applied.",
+              },
+              {
+                title: "Founder or startup operator",
+                body: "A supplier sends you an MSA. You are not a lawyer, and £400 an hour is the alternative. Upload the contract and know what to do in minutes.",
+              },
+            ].map(({ title, body }) => (
+              <motion.div key={title} className="rounded-xl border border-line-light bg-white px-6 py-7" variants={staggerItem}>
+                <h3 className="text-base font-semibold text-ink">{title}</h3>
+                <p className="mt-2 text-sm text-slate-600 leading-relaxed">{body}</p>
               </motion.div>
-              <motion.div
-                className="border-l border-white/8 p-10 flex flex-col justify-center gap-3"
-                variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
-              >
-                {[
-                  { flag: "🇬🇧", label: "United Kingdom",  regs: "FCA Consumer Duty · UK GDPR · ICO · Bribery Act" },
-                  { flag: "🇪🇺", label: "European Union",  regs: "GDPR · EU AI Act · DORA · NIS2" },
-                  { flag: "🇺🇸", label: "United States",   regs: "CCPA · HIPAA · SOX · NY SHIELD · NYDFS" },
-                  { flag: "🇸🇦", label: "Saudi Arabia",    regs: "GCAM · PDPL · GEA · Vision 2030 compliance" },
-                  { flag: "🇰🇷", label: "South Korea",     regs: "Game Industry Act · PIPA · Loot box disclosure" },
-                  { flag: "🇨🇦", label: "Canada",          regs: "PIPEDA · Bill C-27 · CASL · Competition Act" },
-                ].map(({ flag, label, regs }) => (
-                  <motion.div key={label} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0" variants={staggerItem}>
-                    <span className="text-lg">{flag}</span>
-                    <div className="min-w-0">
-                      <div className="text-xs font-medium text-white/70">{label}</div>
-                      <div className="text-[10px] text-white/30 mt-0.5 truncate">{regs}</div>
-                    </div>
-                    <CheckCircle size={12} className="text-primary ml-auto shrink-0" />
-                  </motion.div>
-                ))}
-              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─── LEGACY REVIEW MENTION ───────────────────────────────────────────── */}
+      <section className="bg-paper border-t border-line-light py-24 sm:py-36">
+        <div className="max-w-2xl mx-auto px-6">
+          <motion.div className="rounded-xl border border-line-light bg-white px-8 py-10 text-center space-y-4" {...headingReveal}>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Legacy review</p>
+            <h2 className="text-2xl font-bold tracking-tight text-ink">Already have contracts that need reviewing?</h2>
+            <p className="text-sm text-slate-600 leading-relaxed max-w-lg mx-auto">
+              Zane can audit your existing contract estate as a standalone project — extracted key provisions, risk flags, renewal dates, and a portfolio risk view. Ask about a legacy review when you book a conversation.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─── PRICING — conversation-led ──────────────────────────────────────── */}
+      <section id="pricing" className="bg-navy-900 py-24 sm:py-36">
+        <div className="max-w-2xl mx-auto px-6 text-center">
+          <motion.div className="space-y-6" {...headingReveal}>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pricing</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F8FAFC]">Pricing built around your team</h2>
+            <p className="text-base text-slate-400 leading-relaxed max-w-xl mx-auto">
+              Zane is priced for lean legal functions, not enterprise budgets. Every pilot starts with a conversation so we can configure Zane around your contracts, your sector, and your risk positions. Pricing is agreed before you commit to anything.
+            </p>
+            <div className="pt-2">
+              <a href="https://calendly.com/ahmedljasem/30min"
+                target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-colors text-sm">
+                Book a conversation <ArrowRight size={15} />
+              </a>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* ─── FAQ ─────────────────────────────────────────────────────────────── */}
-      <section className="max-w-3xl mx-auto px-6 py-20">
-        <motion.div className="text-center mb-10" {...headingReveal}>
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Frequently asked questions</h2>
-        </motion.div>
-        <div className="space-y-3">
-          {LANDING_FAQS.map((faq, i) => {
-            const isOpen = openFaq === i;
-            return (
-              <motion.div
-                key={i}
-                className="rounded-xl border border-[#1B2533] bg-[#111A24] overflow-hidden"
-                {...fadeUp(i * 0.04)}
-              >
-                <button
-                  className="w-full flex items-center justify-between px-6 py-4 text-left gap-4"
-                  onClick={() => setOpenFaq(isOpen ? null : i)}
-                >
-                  <span className="text-sm font-semibold text-white">{faq.q}</span>
-                  <span className={`shrink-0 w-5 h-5 rounded-full border border-white/20 flex items-center justify-center transition-transform duration-200 ${isOpen ? "rotate-45" : ""}`}>
-                    <X size={10} className="text-white/50" />
-                  </span>
-                </button>
-                <div
-                  className="overflow-hidden transition-all duration-300 ease-in-out"
-                  style={{ maxHeight: isOpen ? "300px" : "0px", opacity: isOpen ? 1 : 0 }}
-                >
-                  <p className="px-6 pb-5 text-sm text-white/60 leading-relaxed">{faq.a}</p>
+      <section className="bg-paper py-24 sm:py-36">
+        <div className="max-w-2xl mx-auto px-6">
+          <motion.div className="space-y-6" {...headingReveal}>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Questions</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">Frequently asked questions</h2>
+          </motion.div>
+          <div className="mt-12 border-t border-line-light">
+            {LANDING_FAQS.map((faq, i) => {
+              const isOpen = openFaq === i;
+              return (
+                <div key={i} className="border-b border-line-light">
+                  <button
+                    className="w-full flex items-center justify-between py-5 text-left gap-4"
+                    onClick={() => setOpenFaq(isOpen ? null : i)}
+                  >
+                    <span className="text-base font-semibold text-ink">{faq.q}</span>
+                    <span className={`shrink-0 text-slate-400 transition-transform duration-200 ${isOpen ? "rotate-45" : ""}`}>
+                      <X size={14} className="rotate-45" />
+                    </span>
+                  </button>
+                  <div
+                    className="overflow-hidden transition-all duration-300 ease-in-out"
+                    style={{ maxHeight: isOpen ? "300px" : "0px", opacity: isOpen ? 1 : 0 }}
+                  >
+                    <p className="pb-6 text-sm text-slate-600 leading-relaxed">{faq.a}</p>
+                  </div>
                 </div>
-              </motion.div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </section>
 
-      {/* ─── FINAL CTA ───────────────────────────────────────────────────────── */}
-      <section className="max-w-6xl mx-auto px-6 py-20">
-        <motion.div
-          className="relative rounded-2xl overflow-hidden p-12 text-center space-y-6"
-          style={{ background: "#0B1118", border: "1px solid #1B2533" }}
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.4 }}
-          transition={EASE_OUT_EXPO}
-        >
-          <div className="absolute inset-0 opacity-[0.04]" style={{
-            backgroundImage: "linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-          }} />
-          <div className="relative space-y-5">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+      {/* ─── REQUEST ACCESS — final ──────────────────────────────────────────── */}
+      <section className="bg-navy-950 py-24 sm:py-36">
+        <div className="max-w-2xl mx-auto px-6 text-center">
+          <motion.div className="space-y-6" {...headingReveal}>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F8FAFC]">
               The first contract you review will show you exactly what it can do.
             </h2>
-            <p className="text-white/60 text-sm max-w-md mx-auto">
-              Most tools ask you to trust them before showing you anything. Zane asks for 20 minutes and a contract. Book a demo. Bring a real contract. We will run it through Zane live and show you the output before you make any decision.
+            <p className="text-base text-slate-400 leading-relaxed max-w-lg mx-auto">
+              Most tools ask you to trust them before showing you anything. Zane asks for 20 minutes and a contract.
             </p>
-            <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }}>
-              <a href="https://calendly.com/ahmedljasem/30min"
-                target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-8 py-3.5 bg-white text-gray-900 font-bold rounded-xl hover:opacity-95 transition-opacity shadow-xl text-sm">
-                Book a 20 minute demo <ArrowRight size={15} />
-              </a>
-            </motion.div>
-            <p className="text-white/30 text-xs">
+            <div className="pt-2">
+              <button onClick={() => setShowRequestAccess(true)}
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-colors text-sm">
+                Request access <ArrowRight size={15} />
+              </button>
+            </div>
+            <p className="text-xs text-slate-500">
               Or email{" "}
-              <a href="mailto:ahmed@zanelegal.ai" className="text-white/50 hover:text-white/70 transition-colors underline underline-offset-2">
+              <a href="mailto:ahmed@zanelegal.ai" className="text-slate-400 hover:text-white transition-colors underline underline-offset-2">
                 ahmed@zanelegal.ai
               </a>
               {" "}with any questions first.
             </p>
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
       </section>
 
       {/* ─── FOOTER ──────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-black/6 mt-auto">
-        <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
+      <footer className="bg-paper border-t border-line-light mt-auto">
+        <div className="max-w-6xl mx-auto px-6 py-8 flex items-center justify-between">
           <Link to="/" className="hover:opacity-80 transition-opacity">
             <ZaneLogo size="sm" light={false} />
           </Link>
-          <div className="flex items-center gap-6 text-xs text-gray-500">
-            <Link to="/case-study" className="hover:text-gray-600 transition-colors">Case study</Link>
-            <Link to="/security" className="hover:text-gray-600 transition-colors">Security</Link>
-            <Link to="/resources" className="hover:text-gray-600 transition-colors">Resources</Link>
+          <div className="flex items-center gap-6 text-xs text-slate-500">
+            <Link to="/case-study" className="hover:text-slate-700 transition-colors">Case study</Link>
+            <Link to="/security" className="hover:text-slate-700 transition-colors">Security</Link>
+            <Link to="/resources" className="hover:text-slate-700 transition-colors">Resources</Link>
             <span>2026</span>
           </div>
         </div>
@@ -992,34 +493,33 @@ function RequestAccessModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  const inputCls = "w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition-colors";
-  const labelCls = "text-[11px] font-semibold uppercase tracking-widest text-white/40";
+  const inputCls = "w-full rounded-lg border border-line-dark bg-white/5 px-3.5 py-2.5 text-sm text-[#F8FAFC] placeholder:text-slate-600 focus:outline-none focus:border-cobalt focus:ring-2 focus:ring-cobalt/15 transition-colors";
+  const labelCls = "text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4" role="dialog" aria-modal="true">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-md rounded-2xl border border-white/10 p-6 space-y-5 max-h-[90vh] overflow-y-auto" style={{ background: "#0F172A" }}>
-        <button onClick={onClose} aria-label="Close" className="absolute top-4 right-4 text-white/30 hover:text-white/70 transition-colors">
+      <div className="relative w-full max-w-md rounded-xl border border-line-dark bg-navy-800 p-6 space-y-5 max-h-[90vh] overflow-y-auto shadow-lg">
+        <button onClick={onClose} aria-label="Close" className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 transition-colors">
           <X size={16} />
         </button>
 
         {submitted ? (
           <div className="py-10 text-center space-y-4">
-            <CheckCircle size={30} className="text-emerald-400 mx-auto" />
-            <h3 className="text-lg font-bold text-white tracking-tight leading-snug">
+            <h3 className="text-lg font-bold text-[#F8FAFC] tracking-tight leading-snug">
               Thanks — Ahmed will personally onboard you within 24 hours.
             </h3>
-            <button onClick={onClose} className="text-xs text-white/40 hover:text-white/70 transition-colors underline underline-offset-2">
+            <button onClick={onClose} className="text-xs text-slate-500 hover:text-slate-300 transition-colors underline underline-offset-2">
               Close
             </button>
           </div>
         ) : (
           <>
             <div className="space-y-1.5 pr-6">
-              <h3 className="text-lg font-bold text-white tracking-tight">Request access</h3>
-              <p className="text-xs text-white/45 leading-relaxed">
+              <h3 className="text-lg font-bold text-[#F8FAFC] tracking-tight">Request access</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
                 Zane onboarding is currently done personally. Tell us a little about you and Ahmed will set you up within 24 hours.
               </p>
             </div>
@@ -1047,7 +547,7 @@ function RequestAccessModal({ onClose }: { onClose: () => void }) {
               </div>
 
               {error && (
-                <div className="text-xs text-white bg-[#1F0A0A] border border-[#450A0A] rounded-lg px-3 py-2">
+                <div className="text-xs text-red-300 bg-red-950/40 border border-red-900/50 rounded-lg px-3 py-2">
                   {error}
                 </div>
               )}
@@ -1055,7 +555,7 @@ function RequestAccessModal({ onClose }: { onClose: () => void }) {
               <button
                 type="submit"
                 disabled={!canSubmit || submitting}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-cobalt hover:bg-cobalt-hover text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {submitting ? "Sending…" : "Request access →"}
               </button>
