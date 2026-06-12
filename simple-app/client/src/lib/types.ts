@@ -675,6 +675,8 @@ export interface Company {
   industry: string;
   persona: Persona;
   workflowType?: WorkflowType;
+  /** Regulatory analysis override (Settings): "FULL" | "RELEVANT" | "MINIMAL" | "" = sector default */
+  regulationProminence?: string;
   createdAt: string;
   playbookRules?: PlaybookRule[];
   approvalContacts?: ApprovalContact[];

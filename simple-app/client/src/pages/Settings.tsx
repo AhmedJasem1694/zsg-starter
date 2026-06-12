@@ -15,7 +15,13 @@ import {
 } from "lucide-react";
 import AppLayout from "../components/layout/AppLayout";
 import IntegrationStatusBadge from "../components/IntegrationStatusBadge";
-import { req, clearAllContracts } from "../lib/api";
+import { req, clearAllContracts, getCompany, updateCompanySettings } from "../lib/api";
+import {
+  deriveRegulationProminence,
+  PROMINENCE_TO_SETTING,
+  SETTING_LABELS,
+  type RegulationAnalysisSetting,
+} from "../lib/regulationProminence";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -366,7 +372,7 @@ function IntegrationCard({
 
 // ── Settings page ─────────────────────────────────────────────────────────────
 
-type Tab = "integrations" | "danger";
+type Tab = "integrations" | "regulatory" | "danger";
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState<Tab>("integrations");
@@ -424,6 +430,16 @@ export default function Settings() {
             Integrations
           </button>
           <button
+            onClick={() => setActiveTab("regulatory")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
+              activeTab === "regulatory"
+                ? "border-blue-500 text-blue-400"
+                : "border-transparent text-muted-foreground/50 hover:text-muted-foreground"
+            }`}
+          >
+            Regulatory analysis
+          </button>
+          <button
             onClick={() => setActiveTab("danger")}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
               activeTab === "danger"
@@ -467,6 +483,9 @@ export default function Settings() {
             )}
           </div>
         )}
+
+        {/* Regulatory analysis tab */}
+        {activeTab === "regulatory" && <RegulatoryAnalysisSettings />}
 
         {/* Danger Zone tab */}
         {activeTab === "danger" && (
@@ -523,6 +542,104 @@ export default function Settings() {
         )}
       </div>
     </AppLayout>
+  );
+}
+
+// ── Regulatory analysis settings ──────────────────────────────────────────────
+
+const REGULATORY_OPTIONS: { value: RegulationAnalysisSetting; label: string; desc: string }[] = [
+  {
+    value: "FULL",
+    label: "Full",
+    desc: "Regulatory citations shown prominently on every clause, plus a regulatory summary panel on each review. Recommended for regulated sectors.",
+  },
+  {
+    value: "RELEVANT",
+    label: "Relevant only",
+    desc: "Citations appear inline only where directly relevant to a clause (e.g. UK GDPR on data clauses). No standalone regulatory panel.",
+  },
+  {
+    value: "MINIMAL",
+    label: "Minimal",
+    desc: "All regulatory content is collapsed into a single “Regulatory references” section at the bottom of each review, closed by default.",
+  },
+];
+
+function RegulatoryAnalysisSettings() {
+  const queryClient = useQueryClient();
+  const { data: company } = useQuery({ queryKey: ["company"], queryFn: getCompany, retry: false });
+
+  const derivedSetting = PROMINENCE_TO_SETTING[deriveRegulationProminence(company)];
+  const override = (company?.regulationProminence ?? "") as RegulationAnalysisSetting | "";
+  const effective: RegulationAnalysisSetting = override || derivedSetting;
+
+  const mutation = useMutation({
+    mutationFn: (value: string) => updateCompanySettings({ regulationProminence: value }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["company"] }),
+  });
+
+  return (
+    <div className="flex flex-col gap-5">
+      <p className="text-sm text-muted-foreground/60">
+        How prominently regulatory citations appear in contract reviews. The default
+        is derived from your sector
+        {company ? <> (<span className="text-foreground/70">{SETTING_LABELS[derivedSetting]}</span> for your profile)</> : null}
+        {" "}— override it here if regulation matters more or less for your work.
+      </p>
+
+      <div className="space-y-3">
+        {REGULATORY_OPTIONS.map(({ value, label, desc }) => {
+          const selected = effective === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              disabled={mutation.isPending || !company}
+              onClick={() => mutation.mutate(value)}
+              className={`w-full text-left rounded-xl border p-4 transition-colors disabled:opacity-60 ${
+                selected
+                  ? "border-blue-500/60 bg-blue-500/10"
+                  : "border-card-border bg-card hover:border-muted-foreground/40"
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`mt-0.5 w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                  selected ? "border-blue-400" : "border-muted-foreground/40"
+                }`}>
+                  {selected && <div className="w-2 h-2 rounded-full bg-blue-400" />}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    {label}
+                    {value === derivedSetting && (
+                      <span className="text-[10px] font-medium text-muted-foreground/60 border border-card-border rounded px-1.5 py-0.5">
+                        Sector default
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{desc}</p>
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center gap-4 text-xs">
+        {override && (
+          <button
+            onClick={() => mutation.mutate("")}
+            disabled={mutation.isPending}
+            className="text-muted-foreground/60 hover:text-foreground transition-colors underline underline-offset-2"
+          >
+            Reset to sector default ({SETTING_LABELS[derivedSetting]})
+          </button>
+        )}
+        {mutation.isPending && <span className="text-muted-foreground/60">Saving…</span>}
+        {mutation.isSuccess && !mutation.isPending && <span className="text-[#86EFAC]">Saved.</span>}
+        {mutation.isError && <span className="text-[#FCA5A5]">Could not save - please try again.</span>}
+      </div>
+    </div>
   );
 }
 

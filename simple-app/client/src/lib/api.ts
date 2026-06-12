@@ -259,6 +259,10 @@ export const register = async (data: { name: string; email: string; password: st
   if (res.token) storeAuthToken(res.token);
   return res;
 };
+// Company-level settings (currently: regulatory analysis prominence override)
+export const updateCompanySettings = (data: { regulationProminence: string }) =>
+  req<{ id: string; regulationProminence?: string }>("PATCH", "/api/company", data);
+
 // Manual onboarding: landing-page "Request access" form (no auth required)
 export const requestAccess = (data: {
   name: string;

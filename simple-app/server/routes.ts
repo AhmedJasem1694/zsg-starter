@@ -495,6 +495,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }));
 
+  // Company-level settings update (currently: regulatory analysis prominence).
+  // "" resets to the sector-derived default.
+  app.patch("/api/company", requireAuth, ah(async (req: Request, res: Response) => {
+    const parsed = z.object({
+      regulationProminence: z.enum(["", "FULL", "RELEVANT", "MINIMAL"]),
+    }).safeParse(req.body);
+    if (!parsed.success) { sendError(res, 400, parsed.error.message); return; }
+
+    const company = await getCompany(req.user?.email);
+    if (!company) { sendError(res, 404, "No company configured"); return; }
+
+    const doUpdate = () => pb.collection("companies").update(company.id, parsed.data);
+    let updated;
+    try {
+      updated = await doUpdate();
+    } catch {
+      // companies collection may predate the regulationProminence field —
+      // add it to the schema and retry once.
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const col = await (pb.collections as any).getOne("companies");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const fields: any[] = col.fields ?? col.schema ?? [];
+        if (!fields.some((f) => f.name === "regulationProminence")) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (pb.collections as any).update(col.id, {
+            fields: [...fields, { name: "regulationProminence", type: "text", required: false }],
+          });
+        }
+      } catch { /* schema patch best-effort */ }
+      updated = await doUpdate();
+    }
+
+    await audit({
+      action: "company_updated",
+      entityType: "company",
+      entityId: company.id,
+      userId: req.user?.userId,
+      detail: { regulationProminence: parsed.data.regulationProminence },
+    });
+    res.json(mapCompany(updated));
+  }));
+
   // ── Feature flags ─────────────────────────────────────────────────────────────
 
   app.get("/api/features", requireAuth, ah(async (req: Request, res: Response) => {

@@ -175,6 +175,8 @@ async function main() {
     textField("persona"),
     textField("workflowType"),
     textField("industry"),
+    // Regulatory analysis override: "" (sector default) | FULL | RELEVANT | MINIMAL
+    textField("regulationProminence"),
   ]);
 
   // ── 2. panel_firms ────────────────────────────────────────────────────────

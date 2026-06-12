@@ -11,6 +11,7 @@ import { getReview, saveFeedback, generateReply, teachZane, markFalsePositive, c
 import AppLayout from "../components/layout/AppLayout";
 import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, ConfidenceLabel, RegulatoryCitation } from "../lib/types";
 import { CLAUSE_LABELS } from "../lib/types";
+import { resolveRegulationProminence, isCitationDirectlyRelevant, type RegulationProminence } from "../lib/regulationProminence";
 import { MOCK_REVIEW_DETAIL } from "../lib/mockData";
 import React from "react";
 import { formatContractDate, formatDateShort } from "../lib/dateUtils";
@@ -167,6 +168,10 @@ export default function ReviewDetail() {
     queryFn:  getCompany,
     staleTime: 300_000,
   });
+
+  // Contextual regulation layer — prominence derived from company sector and
+  // contract type, with the company-level override from Settings.
+  const regProminence: RegulationProminence = resolveRegulationProminence(companyData, doc?.contractType);
 
   const { data: outcomeDeltaData } = useQuery({
     queryKey: ["outcome-deltas-check", id],
@@ -761,6 +766,8 @@ export default function ReviewDetail() {
                         onToggle={() => setExpandedId(expandedId === result.id ? null : result.id)}
                         onFeedback={(action, finalClauseText) => handleFeedback(result.id, action, finalClauseText)}
                         isMock={isMock}
+                        regulationProminence={regProminence}
+                        companyIndustry={companyData?.industry}
                       />
                     </ClauseErrorBoundary>
                   ))}
@@ -772,6 +779,9 @@ export default function ReviewDetail() {
                 </>
               )}
             </div>
+
+            {/* LOW prominence: all regulatory content lives here, collapsed */}
+            {regProminence === "LOW" && <RegulatoryReferencesAccordion results={results} />}
           </div>
 
           {/* Right - sticky sidebar */}
@@ -779,6 +789,8 @@ export default function ReviewDetail() {
             <SignOffTracker doc={doc} results={results} />
             <IntelligenceSignals doc={doc} results={results} isMock={isMock} companyName={companyData?.name} />
             <RiskDistribution counts={counts} total={results.length} />
+            {/* HIGH prominence: standalone regulatory summary panel */}
+            {regProminence === "HIGH" && <RegulatorySummaryPanel results={results} />}
           </div>
         </div>
       </div>
@@ -1491,6 +1503,8 @@ function ClauseCard({
   onToggle,
   onFeedback,
   isMock,
+  regulationProminence,
+  companyIndustry,
 }: {
   result: ReviewResult;
   index: number;
@@ -1498,6 +1512,8 @@ function ClauseCard({
   onToggle: () => void;
   onFeedback: (action: FeedbackAction, finalClauseText?: string) => Promise<void>;
   isMock: boolean;
+  regulationProminence: RegulationProminence;
+  companyIndustry?: string;
 }) {
   const queryClient = useQueryClient();
   const [submitting, setSubmitting] = useState<FeedbackAction | null>(null);
@@ -1725,22 +1741,31 @@ function ClauseCard({
             </Detail>
           )}
 
-          {/* Regulatory citations */}
-          {result.regulatoryCitations && result.regulatoryCitations.length > 0 && (
-            <Detail title="Regulatory references">
-              <div className="space-y-2">
-                {result.regulatoryCitations.map((c: RegulatoryCitation, i: number) => (
-                  <div key={i} className="flex items-start gap-2.5 rounded-lg border border-[#312E81] bg-[#1E1B4B] px-3 py-2">
-                    <BookOpen size={11} className="text-[#A5B4FC] shrink-0 mt-0.5" />
-                    <div className="min-w-0">
-                      <div className="text-xs font-semibold text-[#A5B4FC]">{c.regulation} - {c.article}</div>
-                      <div className="text-[11px] text-[#A5B4FC]/70 mt-0.5">{c.relevance}</div>
+          {/* Regulatory citations — contextual prominence:
+              HIGH = all citations inline; MEDIUM = only directly relevant ones;
+              LOW = none here (collapsed into page-level accordion) */}
+          {regulationProminence !== "LOW" && result.regulatoryCitations && result.regulatoryCitations.length > 0 && (() => {
+            const visibleCitations = regulationProminence === "HIGH"
+              ? result.regulatoryCitations
+              : result.regulatoryCitations.filter((c: RegulatoryCitation) =>
+                  isCitationDirectlyRelevant(c, result.clauseCategory, companyIndustry));
+            if (visibleCitations.length === 0) return null;
+            return (
+              <Detail title="Regulatory references">
+                <div className="space-y-2">
+                  {visibleCitations.map((c: RegulatoryCitation, i: number) => (
+                    <div key={i} className="flex items-start gap-2.5 rounded-lg border border-[#312E81] bg-[#1E1B4B] px-3 py-2">
+                      <BookOpen size={11} className="text-[#A5B4FC] shrink-0 mt-0.5" />
+                      <div className="min-w-0">
+                        <div className="text-xs font-semibold text-[#A5B4FC]">{c.regulation} - {c.article}</div>
+                        <div className="text-[11px] text-[#A5B4FC]/70 mt-0.5">{c.relevance}</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </Detail>
-          )}
+                  ))}
+                </div>
+              </Detail>
+            );
+          })()}
 
           {/* Generate reply */}
           {!isMock && (result.ragStatus === "RED" || result.ragStatus === "AMBER") && (
@@ -2178,6 +2203,72 @@ function FallbackCopyButton({ text }: { text: string }) {
       <Copy size={11} />
       {copied ? "Copied!" : "Copy fallback language"}
     </button>
+  );
+}
+
+// ─── Contextual regulation layer components ───────────────────────────────────
+
+/** HIGH prominence: standalone summary of every regulation cited in this review. */
+function RegulatorySummaryPanel({ results }: { results: ReviewResult[] }) {
+  const counts = new Map<string, number>();
+  for (const r of results) {
+    for (const c of r.regulatoryCitations ?? []) {
+      if (c.regulation) counts.set(c.regulation, (counts.get(c.regulation) ?? 0) + 1);
+    }
+  }
+  if (counts.size === 0) return null;
+  return (
+    <div className="card p-4 space-y-3">
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+        <Shield size={11} />
+        Regulatory summary
+      </div>
+      <div className="space-y-1.5">
+        {Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).map(([regulation, n]) => (
+          <div key={regulation} className="flex items-center justify-between gap-3 text-xs">
+            <span className="text-foreground/80 truncate">{regulation}</span>
+            <span className="text-muted-foreground shrink-0">{n} clause{n !== 1 ? "s" : ""}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** LOW prominence: all regulatory content collapsed into one closed accordion. */
+function RegulatoryReferencesAccordion({ results }: { results: ReviewResult[] }) {
+  const [open, setOpen] = useState(false);
+  const items = results.flatMap((r) =>
+    (r.regulatoryCitations ?? []).map((c) => ({ citation: c, clauseCategory: r.clauseCategory }))
+  );
+  if (items.length === 0) return null;
+  return (
+    <div className="card overflow-hidden mt-4">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <span className="flex items-center gap-2">
+          <BookOpen size={13} />
+          Regulatory references ({items.length})
+        </span>
+        <ChevronDown size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="border-t border-card-border px-4 py-3 space-y-3">
+          {items.map(({ citation, clauseCategory }, i) => (
+            <div key={i} className="flex items-start gap-2.5 text-xs">
+              <BookOpen size={11} className="text-muted-foreground shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <span className="font-semibold text-foreground/80">{citation.regulation} - {citation.article}</span>
+                <span className="text-muted-foreground"> · {CLAUSE_LABELS[clauseCategory] ?? clauseCategory}</span>
+                <div className="text-muted-foreground/80 mt-0.5 leading-relaxed">{citation.relevance}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
