@@ -1043,6 +1043,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
     const company = await getCompany(req.user?.email);
     if (!company) { res.json({ intelligence: {} }); return; }
 
+    // Counterparty names come from the documents the data points reference
     const docs = await pb.collection("uploaded_documents").getFullList({
       filter: `company = "${company.id}"`,
       fields: "id,counterpartyName",
@@ -1050,64 +1051,107 @@ Each field should be 1-3 sentences of clear, practical legal language.
 
     if (docs.length === 0) { res.json({ intelligence: {} }); return; }
 
-    const docIdFilter = docs.map((d) => `document = "${d.id}"`).join(" || ");
-    const results = await pb.collection("review_results").getFullList({
-      filter: docIdFilter,
-      fields: "id,clauseCategory,ragStatus,document",
-    }).catch(() => [] as PBRecord[]);
-
-    if (results.length === 0) { res.json({ intelligence: {} }); return; }
-
-    const resultIdFilter = results.map((r) => `result = "${r.id}"`).join(" || ");
-    const feedbacks = await pb.collection("user_feedback").getFullList({
-      filter: resultIdFilter,
-      fields: "id,result,userAction",
-    }).catch(() => [] as PBRecord[]);
-
-    const fbMap = new Map<string, string>();
-    for (const f of feedbacks) fbMap.set(f["result"] as string, f["userAction"] as string);
-
     const docMap = new Map<string, string>();
-    for (const d of docs) docMap.set(d.id, (d["counterpartyName"] as string) || "Unknown");
+    for (const d of docs) docMap.set(d.id, ((d["counterpartyName"] as string) || "").trim());
 
-    // clauseCategory → counterpartyName → { total, accepted, escalated, pushed_back, docIds }
-    const tree: Record<string, Record<string, { total: number; accepted: number; escalated: number; pushed_back: number; docIds: Set<string> }>> = {};
+    // Data sources: logged outcomes (signed final versions compared against the
+    // original review) + structured decision events (every human judgment).
+    const [deltas, decisions] = await Promise.all([
+      pb.collection("outcome_deltas").getFullList({
+        filter: `company = "${company.id}"`,
+        fields: "document,clauseCategory,llmOutcome,confirmedOutcome",
+      }).catch(() => [] as PBRecord[]),
+      pb.collection("decision_events").getFullList({
+        filter: `company = "${company.id}"`,
+        fields: "contract,clause_category,human_action",
+      }).catch(() => [] as PBRecord[]),
+    ]);
 
-    for (const r of results) {
-      const cat = r["clauseCategory"] as string;
-      const docId = r["document"] as string;
-      const cp = docMap.get(docId) ?? "Unknown";
-      if (cp === "Unknown") continue;
+    const OUTCOME_LABELS: Record<string, string> = {
+      PREFERRED:      "accepted our preferred position",
+      FALLBACK:       "settled at our fallback position",
+      BELOW_FALLBACK: "pushed below our fallback",
+      NO_CHANGE:      "left the clause unchanged",
+      REMOVED:        "removed the clause entirely",
+    };
+    const ACTION_LABELS: Record<string, string> = {
+      accepted:   "accepted Zane's recommendation",
+      modified:   "negotiated amended language",
+      overridden: "required a position override",
+      ignored:    "flag dismissed without change",
+    };
 
-      if (!tree[cat]) tree[cat] = {};
-      if (!tree[cat][cp]) tree[cat][cp] = { total: 0, accepted: 0, escalated: 0, pushed_back: 0, docIds: new Set() };
+    // clauseCategory → counterpartyName → aggregate
+    interface CpAgg {
+      docs: Set<string>;
+      acceptedDocs: Set<string>;
+      pushedBackDocs: Set<string>;
+      counters: Map<string, number>;
+      dataPoints: number;
+    }
+    const tree: Record<string, Record<string, CpAgg>> = {};
+    const bump = (cat: string, docId: string): CpAgg | null => {
+      const cp = docMap.get(docId) ?? "";
+      if (!cp || cp.toLowerCase() === "unknown") return null;
+      tree[cat] ??= {};
+      const agg = (tree[cat][cp] ??= {
+        docs: new Set(), acceptedDocs: new Set(), pushedBackDocs: new Set(),
+        counters: new Map(), dataPoints: 0,
+      });
+      agg.docs.add(docId);
+      agg.dataPoints++;
+      return agg;
+    };
 
-      const entry = tree[cat][cp];
-      entry.total++;
-      entry.docIds.add(docId);
+    for (const d of deltas) {
+      const cat = (d["clauseCategory"] as string) || "";
+      const docId = (d["document"] as string) || "";
+      if (!cat || !docId) continue;
+      const agg = bump(cat, docId);
+      if (!agg) continue;
+      // A human-confirmed outcome takes precedence over the LLM-inferred one
+      const outcome = (((d["confirmedOutcome"] as string) || (d["llmOutcome"] as string)) ?? "").toUpperCase();
+      if (outcome === "PREFERRED") agg.acceptedDocs.add(docId);
+      else if (outcome === "FALLBACK" || outcome === "BELOW_FALLBACK" || outcome === "REMOVED") agg.pushedBackDocs.add(docId);
+      const label = OUTCOME_LABELS[outcome];
+      if (label) agg.counters.set(label, (agg.counters.get(label) ?? 0) + 1);
+    }
 
-      const action = fbMap.get(r.id);
-      if (action === "ACCEPTED") {
-        entry.accepted++;
-      } else if (action === "ESCALATED") {
-        entry.escalated++;
-      } else if (r["ragStatus"] === "RED" && action !== "ACCEPTED") {
-        entry.pushed_back++;
-      }
+    for (const e of decisions) {
+      const cat = (e["clause_category"] as string) || "";
+      const docId = (e["contract"] as string) || "";
+      if (!cat || !docId) continue;
+      const agg = bump(cat, docId);
+      if (!agg) continue;
+      const action = (e["human_action"] as string) || "";
+      if (action === "accepted") agg.acceptedDocs.add(docId);
+      else if (action === "overridden" || action === "modified") agg.pushedBackDocs.add(docId);
+      const label = ACTION_LABELS[action];
+      if (label) agg.counters.set(label, (agg.counters.get(label) ?? 0) + 1);
     }
 
     const intelligence: Record<string, Array<{ counterpartyName: string; total: number; accepted: number; pushedBack: number; typicalOutcome: string }>> = {};
 
     for (const [cat, cpData] of Object.entries(tree)) {
       const entries = [];
-      for (const [cp, stats] of Object.entries(cpData)) {
-        if (stats.docIds.size < 2) continue; // only counterparties with >= 2 distinct contracts
-        const typicalOutcome = stats.accepted > stats.pushed_back ? "Typically accepts" : "Typically pushes back";
+      for (const [cp, agg] of Object.entries(cpData)) {
+        if (agg.dataPoints < 2) continue; // only counterparties with 2+ data points
+        // Typical counter = the most common logged outcome for this pairing
+        let typicalOutcome = "";
+        let maxCount = 0;
+        agg.counters.forEach((count, label) => {
+          if (count > maxCount) { maxCount = count; typicalOutcome = label; }
+        });
+        if (!typicalOutcome) {
+          typicalOutcome = agg.acceptedDocs.size >= agg.pushedBackDocs.size
+            ? "accepted our preferred position"
+            : "negotiated amended language";
+        }
         entries.push({
           counterpartyName: cp,
-          total: stats.total,
-          accepted: stats.accepted,
-          pushedBack: stats.pushed_back,
+          total: agg.docs.size,
+          accepted: agg.acceptedDocs.size,
+          pushedBack: agg.pushedBackDocs.size,
           typicalOutcome,
         });
       }

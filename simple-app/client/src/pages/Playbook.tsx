@@ -269,13 +269,15 @@ function RuleCard({ rule, outcome, counterpartyEntries }: { rule: PlaybookRule; 
             {cpOpen && (
               <div className="mt-3 space-y-3">
                 {!counterpartyEntries || counterpartyEntries.length === 0 ? (
-                  <p className="text-xs text-muted-foreground/50">No counterparty data yet. Outcomes will appear here after contracts are signed and logged.</p>
+                  <p className="text-xs text-muted-foreground/50">No counterparty data yet. This builds automatically as contracts are reviewed and outcomes logged.</p>
                 ) : counterpartyEntries.map((entry) => (
                   <div key={entry.counterpartyName} className="space-y-0.5">
                     <div className="text-xs font-semibold text-white">{entry.counterpartyName}</div>
-                    <div className="text-xs text-muted-foreground">Accepted preferred: {entry.accepted} of {entry.total} contracts</div>
-                    <div className="text-xs text-muted-foreground">Pushed back: {entry.pushedBack} of {entry.total} contracts</div>
-                    <div className="text-xs text-muted-foreground">Typical: {entry.typicalOutcome}</div>
+                    <div className="text-xs text-muted-foreground leading-relaxed">
+                      Accepted our preferred position in {entry.accepted} of {entry.total} contracts.{" "}
+                      Pushed back in {entry.pushedBack} of {entry.total}.{" "}
+                      Typical counter: {entry.typicalOutcome}.
+                    </div>
                   </div>
                 ))}
               </div>
