@@ -259,6 +259,16 @@ export const register = async (data: { name: string; email: string; password: st
   if (res.token) storeAuthToken(res.token);
   return res;
 };
+// Admin-only: monthly review cost per company (unit economics)
+export interface ReviewCostReport {
+  months: string[];
+  companies: Array<{ companyId: string; name: string; monthly: Record<string, number>; total: number; reviews: number }>;
+  grandTotal: number;
+  currency: string;
+}
+export const getReviewCosts = () =>
+  req<ReviewCostReport>("GET", "/api/admin/review-costs");
+
 // Company-level settings (currently: regulatory analysis prominence override)
 export const updateCompanySettings = (data: { regulationProminence: string }) =>
   req<{ id: string; regulationProminence?: string }>("PATCH", "/api/company", data);

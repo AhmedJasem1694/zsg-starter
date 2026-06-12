@@ -339,6 +339,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ ok: true });
   }));
 
+  // ── Admin: monthly review cost per company ────────────────────────────────
+  // Unit-economics view fed by the per-run cost logging in reviewOrchestrator.
+  // Admin-only: gated on ADMIN_EMAILS (comma-separated; defaults to the founder).
+  app.get("/api/admin/review-costs", requireAuth, ah(async (req: Request, res: Response) => {
+    const adminEmails = (process.env.ADMIN_EMAILS ?? "ahmed@zanelegal.ai")
+      .split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+    const userEmail = (req.user?.email ?? "").toLowerCase();
+    if (!adminEmails.includes(userEmail)) { sendError(res, 403, "Admin access required"); return; }
+
+    const [docs, companies] = await Promise.all([
+      pb.collection("uploaded_documents").getFullList({
+        filter: "reviewCost > 0",
+        fields: "id,company,reviewCost,created",
+      }).catch(() => []),
+      pb.collection("companies").getFullList({ fields: "id,name" }).catch(() => []),
+    ]);
+    const companyNames = new Map(companies.map((c) => [c.id, (c["name"] as string) ?? c.id]));
+
+    // Aggregate: company → month (YYYY-MM) → total cost
+    const byCompany = new Map<string, { name: string; monthly: Record<string, number>; total: number; reviews: number }>();
+    const monthsSet = new Set<string>();
+    let grandTotal = 0;
+    for (const d of docs) {
+      const companyId = (d["company"] as string) ?? "unknown";
+      const cost = (d["reviewCost"] as number) ?? 0;
+      const month = String(d["created"] ?? "").slice(0, 7); // "YYYY-MM"
+      if (!month) continue;
+      monthsSet.add(month);
+      const entry = byCompany.get(companyId) ?? {
+        name: companyNames.get(companyId) ?? companyId,
+        monthly: {},
+        total: 0,
+        reviews: 0,
+      };
+      entry.monthly[month] = Math.round(((entry.monthly[month] ?? 0) + cost) * 10_000) / 10_000;
+      entry.total = Math.round((entry.total + cost) * 10_000) / 10_000;
+      entry.reviews += 1;
+      byCompany.set(companyId, entry);
+      grandTotal += cost;
+    }
+
+    res.json({
+      months: Array.from(monthsSet).sort(),
+      companies: Array.from(byCompany.entries()).map(([companyId, e]) => ({ companyId, ...e }))
+        .sort((a, b) => b.total - a.total),
+      grandTotal: Math.round(grandTotal * 10_000) / 10_000,
+      currency: "USD",
+    });
+  }));
+
   app.post("/api/auth/login", ah(async (req: Request, res: Response) => {
     const parsed = z.object({
       email: z.string().email(),

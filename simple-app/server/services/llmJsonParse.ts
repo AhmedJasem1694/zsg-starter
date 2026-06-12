@@ -10,13 +10,15 @@ interface LLMJsonOptions {
   model?: string;
   maxTokens?: number;
   description?: string; // for logging
+  /** Per-attempt timeout. Default 60s; batched calls with large outputs need more. */
+  timeoutMs?: number;
 }
 
 export async function llmJsonCall<T>(opts: LLMJsonOptions): Promise<T> {
-  const { messages, model, maxTokens, description = "LLM call" } = opts;
+  const { messages, model, maxTokens, description = "LLM call", timeoutMs = 60_000 } = opts;
 
   // First attempt
-  const firstResponse = await chatComplete(messages, maxTokens, 60_000, model);
+  const firstResponse = await chatComplete(messages, maxTokens, timeoutMs, model);
   const firstResult = tryParseJson<T>(firstResponse);
   if (firstResult !== null) return firstResult;
 
@@ -35,8 +37,8 @@ export async function llmJsonCall<T>(opts: LLMJsonOptions): Promise<T> {
     },
   ];
 
-  // Retry with a 30s timeout (shorter than the first attempt) to limit total wait
-  const secondResponse = await chatComplete(retryMessages, maxTokens, 30_000, model);
+  // Retry with a shorter timeout than the first attempt to limit total wait
+  const secondResponse = await chatComplete(retryMessages, maxTokens, Math.max(30_000, Math.floor(timeoutMs / 2)), model);
   const secondResult = tryParseJson<T>(secondResponse);
   if (secondResult !== null) return secondResult;
 

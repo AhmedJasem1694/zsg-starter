@@ -814,6 +814,10 @@ async function main() {
     textField("extractionMethod"),
     boolField("ocrUsed"),
     numberField("textLength"),
+    // Contract-hash caching + per-run cost logging (model routing optimisation)
+    textField("contentHash"),
+    numberField("reviewCost"),
+    textField("reviewCostDetail"),
     numberField("clausesTotal"),
     numberField("clausesCompleted"),
   ]);

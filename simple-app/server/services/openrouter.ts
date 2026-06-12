@@ -6,9 +6,11 @@
  * Optionally override the model with OPENROUTER_MODEL.
  */
 
+import { recordLlmUsage } from "./costTracker.js";
+
 const BASE_URL = "https://openrouter.ai/api/v1";
 
-export const MODEL = process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4-5";
+export const MODEL = process.env.OPENROUTER_MODEL ?? "anthropic/claude-sonnet-4-6";
 
 interface Message {
   role: "system" | "user" | "assistant";
@@ -19,6 +21,11 @@ interface ChatResponse {
   choices: Array<{
     message: { content: string };
   }>;
+  // OpenRouter echoes provider token usage on non-streaming responses
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+  };
 }
 
 export async function chatComplete(
@@ -65,6 +72,17 @@ export async function chatComplete(
   }
 
   const data = await res.json() as ChatResponse;
+
+  // Cost logging: report token usage to the active cost-tracking context
+  // (no-op outside a tracked pipeline run, e.g. onboarding company search).
+  if (data.usage) {
+    recordLlmUsage(
+      resolvedModel,
+      data.usage.prompt_tokens ?? 0,
+      data.usage.completion_tokens ?? 0,
+    );
+  }
+
   return data.choices[0]?.message?.content ?? "";
 }
 

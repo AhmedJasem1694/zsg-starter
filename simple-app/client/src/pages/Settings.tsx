@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import AppLayout from "../components/layout/AppLayout";
 import IntegrationStatusBadge from "../components/IntegrationStatusBadge";
-import { req, clearAllContracts, getCompany, updateCompanySettings } from "../lib/api";
+import { req, clearAllContracts, getCompany, updateCompanySettings, getReviewCosts } from "../lib/api";
 import {
   deriveRegulationProminence,
   PROMINENCE_TO_SETTING,
@@ -372,12 +372,19 @@ function IntegrationCard({
 
 // ── Settings page ─────────────────────────────────────────────────────────────
 
-type Tab = "integrations" | "regulatory" | "danger";
+type Tab = "integrations" | "regulatory" | "costs" | "danger";
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState<Tab>("integrations");
   const [clearConfirm, setClearConfirm] = useState(false);
   const queryClient = useQueryClient();
+
+  // Admin-only: review cost report. 403 for non-admins → tab stays hidden.
+  const { data: costReport } = useQuery({
+    queryKey: ["reviewCosts"],
+    queryFn: getReviewCosts,
+    retry: false,
+  });
 
   const clearMutation = useMutation({
     mutationFn: clearAllContracts,
@@ -439,6 +446,18 @@ export default function Settings() {
           >
             Regulatory analysis
           </button>
+          {costReport && (
+            <button
+              onClick={() => setActiveTab("costs")}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
+                activeTab === "costs"
+                  ? "border-blue-500 text-blue-400"
+                  : "border-transparent text-muted-foreground/50 hover:text-muted-foreground"
+              }`}
+            >
+              Costs
+            </button>
+          )}
           <button
             onClick={() => setActiveTab("danger")}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
@@ -486,6 +505,60 @@ export default function Settings() {
 
         {/* Regulatory analysis tab */}
         {activeTab === "regulatory" && <RegulatoryAnalysisSettings />}
+
+        {/* Admin-only: review costs tab */}
+        {activeTab === "costs" && costReport && (
+          <div className="flex flex-col gap-5">
+            <p className="text-sm text-muted-foreground/60">
+              Estimated LLM cost per company per month, from token usage logged on every
+              pipeline run. Cached reviews cost $0.
+            </p>
+            <div className="card overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-card-border text-left text-xs uppercase tracking-wider text-muted-foreground/60">
+                    <th className="px-4 py-3">Company</th>
+                    {costReport.months.map((m) => (
+                      <th key={m} className="px-4 py-3 text-right">{m}</th>
+                    ))}
+                    <th className="px-4 py-3 text-right">Reviews</th>
+                    <th className="px-4 py-3 text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {costReport.companies.length === 0 && (
+                    <tr>
+                      <td colSpan={costReport.months.length + 3} className="px-4 py-6 text-center text-muted-foreground/60">
+                        No review costs logged yet. Costs appear after the next pipeline run.
+                      </td>
+                    </tr>
+                  )}
+                  {costReport.companies.map((c) => (
+                    <tr key={c.companyId} className="border-b border-card-border/50 last:border-0">
+                      <td className="px-4 py-3 text-foreground/90">{c.name}</td>
+                      {costReport.months.map((m) => (
+                        <td key={m} className="px-4 py-3 text-right text-muted-foreground">
+                          {c.monthly[m] != null ? `$${c.monthly[m].toFixed(2)}` : "—"}
+                        </td>
+                      ))}
+                      <td className="px-4 py-3 text-right text-muted-foreground">{c.reviews}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-foreground/90">${c.total.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                {costReport.companies.length > 0 && (
+                  <tfoot>
+                    <tr className="border-t border-card-border">
+                      <td className="px-4 py-3 font-semibold text-foreground/90">All companies</td>
+                      <td colSpan={costReport.months.length + 1} />
+                      <td className="px-4 py-3 text-right font-semibold text-foreground/90">${costReport.grandTotal.toFixed(2)}</td>
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Danger Zone tab */}
         {activeTab === "danger" && (

@@ -1,14 +1,18 @@
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import { pb } from "../pb.js";
-import { parseDocument, chunkText } from "./documentParser.js";
+import { parseDocument, chunkText, stripBoilerplate } from "./documentParser.js";
 import { classifyClauses } from "./clauseClassifier.js";
 import {
   compareClauseToPlaybook,
+  compareClausesBatch,
   buildAbsentClauseResult,
   buildFavourableAbsentResult,
   FAVOURABLE_WHEN_ABSENT,
+  type BatchClauseInput,
 } from "./playbookComparison.js";
+import { withCostTracking } from "./costTracker.js";
 import { detectContradictions } from "./contradictionDetector.js";
 import { getRegulationSummaryForLLM } from "./regulatoryDetection.js";
 import { getRegulatoryContext, formatRegulatoryContextForPrompt } from "./regulatoryEngine.js";
@@ -97,7 +101,75 @@ export async function runReview(documentId: string): Promise<void> {
       reject(new Error(`Review pipeline timed out after ${REVIEW_TIMEOUT_MS / 60000} minutes`));
     }, REVIEW_TIMEOUT_MS)
   );
-  return Promise.race([_runReview(documentId, () => timedOut), timeoutPromise]);
+  // Cost logging: every OpenRouter call inside this run reports its token usage
+  // to the tracking context; the summary is persisted on the document record
+  // whether the run succeeds or fails (partial cost of failed runs still counts).
+  return withCostTracking(
+    () => Promise.race([_runReview(documentId, () => timedOut), timeoutPromise]),
+    (summary) => {
+      if (summary.llmCalls === 0) return; // cached reviews set their own cost
+      console.log(`[cost] ${documentId}: $${summary.totalCostUsd.toFixed(4)} across ${summary.llmCalls} LLM calls (in=${summary.promptTokens} out=${summary.completionTokens} tokens)`);
+      pb.collection("uploaded_documents").update(documentId, {
+        reviewCost: summary.totalCostUsd,
+        reviewCostDetail: JSON.stringify(summary),
+      }).catch((e: unknown) => console.warn("[cost] Could not persist review cost (non-fatal):", (e as Error)?.message));
+    }
+  );
+}
+
+// ─── Contract-hash caching ────────────────────────────────────────────────────
+// If the identical document text has already been reviewed for the same company,
+// serve the cached result instantly instead of re-running the pipeline.
+
+async function findCachedReview(companyId: string, contentHash: string, excludeDocId: string): Promise<PBRecord | null> {
+  if (!contentHash) return null;
+  try {
+    const dupes = await pb.collection("uploaded_documents").getFullList({
+      filter: `company = "${companyId}" && contentHash = "${contentHash}" && status = "COMPLETE" && id != "${excludeDocId}"`,
+      sort: "-created",
+    });
+    return (dupes[0] as PBRecord) ?? null;
+  } catch {
+    // contentHash field may not exist on older deployments — treat as cache miss
+    return null;
+  }
+}
+
+async function serveCachedReview(documentId: string, source: PBRecord, companyId: string): Promise<void> {
+  const sourceResults = await pb.collection("review_results").getFullList({
+    filter: `document = "${source.id}"`,
+  });
+
+  const copies = await Promise.allSettled(sourceResults.map((r) => {
+    // Strip system fields and the old document/clause relations; keep everything else.
+    const {
+      id: _id, created: _created, updated: _updated,
+      collectionId: _cid, collectionName: _cname,
+      document: _doc, clause: _clause,
+      ...fields
+    } = r as PBRecord;
+    return pb.collection("review_results").create({ ...fields, document: documentId });
+  }));
+  const copied = copies.filter((c) => c.status === "fulfilled").length;
+
+  await pb.collection("uploaded_documents").update(documentId, {
+    status: "COMPLETE",
+    clausesTotal: copied,
+    clausesCompleted: copied,
+    contradictions: (source["contradictions"] as string) ?? "",
+    auditFindings: (source["auditFindings"] as string) ?? "",
+    reviewCost: 0,
+    reviewCostDetail: JSON.stringify({ cached: true, sourceDocumentId: source.id }),
+  });
+
+  console.log(`[review] CACHE HIT ${documentId}: served ${copied} results from ${source.id} (identical content hash) — zero LLM cost`);
+  void audit({
+    action: "review_completed",
+    entityType: "uploaded_document",
+    entityId: documentId,
+    companyId,
+    detail: { cached: true, sourceDocumentId: source.id, totalClauses: copied },
+  });
 }
 
 // Concurrency limiter: run at most MAX_CONCURRENT LLM clause comparisons simultaneously.
@@ -238,6 +310,19 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
       console.warn(`[review] Very sparse text (${parseResult.textLength} chars) for ${documentId} - review quality may be low`);
     }
 
+    // ── Contract-hash cache check ─────────────────────────────────────────────
+    // Hash the document text; if the identical hash was reviewed before for this
+    // company, copy the cached results instead of re-running the pipeline.
+    const contentHash = crypto.createHash("sha256").update(rawText).digest("hex");
+    pb.collection("uploaded_documents").update(documentId, { contentHash })
+      .catch(() => { /* field may not exist on older deployments */ });
+    const cachedSource = await findCachedReview(company.id, contentHash, documentId);
+    if (cachedSource) {
+      t.mark("cache hit: serving previous review for identical content hash");
+      await serveCachedReview(documentId, cachedSource, company.id);
+      return;
+    }
+
     // ── Stage 1: Document classification via Gemini Flash ───────────────────
     // Fast first pass: determines contract type to guide the rest of the pipeline.
     // Uses Gemini 2.5 Flash — low latency, cheap, ideal for simple classification.
@@ -294,6 +379,18 @@ ${classifySnippet}`,
       }
     }
 
+    // ── Boilerplate stripping (token cost reduction) ──────────────────────────
+    // Remove recital boilerplate, signature blocks, and notice address lists
+    // before analysis. The full rawText is kept for counterparty extraction,
+    // document audit, and the NHS schedule check; only the clause-analysis
+    // path uses the stripped text.
+    const stripped = stripBoilerplate(rawText, classifiedDocType);
+    const analysisText = stripped.text;
+    if (stripped.removedChars > 0) {
+      console.log(`[review] BOILERPLATE STRIPPED ${documentId}: ${stripped.removedChars} chars removed (${stripped.removedSections.join(", ")})`);
+      t.mark(`boilerplate stripped: ${stripped.removedChars} chars (${stripped.removedSections.join(", ")})`);
+    }
+
     // Granular status: ANONYMISING
     await pb.collection("uploaded_documents").update(documentId, { status: "ANONYMISING" });
     console.log(`[review] ANONYMISING ${documentId}`);
@@ -314,7 +411,7 @@ ${classifySnippet}`,
     );
 
     const { anonymisedText, entityMap, sessionId } = await anonymise(
-      rawText,
+      analysisText,
       knownEntities,
       documentId
     );
@@ -535,70 +632,80 @@ ${classifySnippet}`,
       ? `\n\nContract governing law: ${docGoverningLaw}${docJurisdiction ? ` (jurisdiction: ${docJurisdiction})` : ""}. Apply the law of this jurisdiction when assessing the clause.`
       : "";
 
-    // Build clause comparison tasks, wrapped as thunks so the concurrency limiter controls launch order
-    const clauseTasks = playbookRules.map((rule) => async () => {
+    // ── Split playbook rules into absent vs present clauses ──────────────────
+    const personaForReview = (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER";
+    const absentRules  = playbookRules.filter((rule) => !bestByCategory.get(rule["clauseCategory"] as string));
+    const presentRules = playbookRules.filter((rule) =>  bestByCategory.get(rule["clauseCategory"] as string));
+
+    // ── Absent clauses: no LLM call needed, persist immediately ──────────────
+    const absentTasks = absentRules.map((rule) => async () => {
         const category = rule["clauseCategory"] as string;
-        const match = bestByCategory.get(category);
+        // ── Absent clause: check if absence is favourable before flagging missing ─
+        const absent = FAVOURABLE_WHEN_ABSENT.has(category)
+          ? buildFavourableAbsentResult(category, rule as any, personaForReview)
+          : buildAbsentClauseResult(
+              category,
+              rule as any,
+              personaForReview,
+              (doc["contractType"] as string) ?? "",
+              effectiveCompanyName
+            );
 
-        if (!match) {
-          // ── Absent clause: check if absence is favourable before flagging missing ─
-          const persona = (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER";
-          const absent = FAVOURABLE_WHEN_ABSENT.has(category)
-            ? buildFavourableAbsentResult(category, rule as any, persona)
-            : buildAbsentClauseResult(
-                category,
-                rule as any,
-                persona,
-                (doc["contractType"] as string) ?? "",
-                effectiveCompanyName
-              );
+        // Favourable-absent clauses get GREEN + no missingSeverity
+        const isFavourableAbsent = FAVOURABLE_WHEN_ABSENT.has(category);
+        const missingSeverity = isFavourableAbsent
+          ? null
+          : computeMissingSeverity(category, (doc["contractType"] as string) ?? "");
+        const r: LocalResult = {
+          clauseCategory: category,
+          ...absent,
+          regulatoryCitations: JSON.stringify(absent.regulatoryCitations),
+          escalationTrigger: absent.escalationTrigger || null,
+          isAbsent: !isFavourableAbsent,
+          missingSeverity,
+          clauseId: null,
+          ruleId: rule.id,
+          resultId: null,
+          model_used: "none", // absent clauses need no LLM call
+          founderStatus: absent.founderStatus,
+          founderPlainEnglish: absent.founderPlainEnglish,
+          founderBusinessImpact: absent.founderBusinessImpact,
+          founderAskFor: absent.founderAskFor,
+          founderCopyPaste: absent.founderCopyPaste,
+          founderFundraisingRelevance: absent.founderFundraisingRelevance,
+          founderIfIgnored: absent.founderIfIgnored,
+          founderConfidenceScore: null,
+          founderVerificationPassed: null,
+          iracIssue: absent.iracIssue ?? "",
+          iracRule: absent.iracRule ?? "",
+          iracApplication: absent.iracApplication ?? "",
+          iracConclusion: absent.iracConclusion ?? "",
+          urgencyLevel: absent.urgencyLevel ?? "BACKGROUND",
+          errorCategory: absent.errorCategory ?? "SUBSTANTIVE_RISK",
+        };
+        r.resultId = await persistResult(r);
+        results.push(r);
+    });
 
-          // Favourable-absent clauses get GREEN + no missingSeverity
-          const isFavourableAbsent = FAVOURABLE_WHEN_ABSENT.has(category);
-          const missingSeverity = isFavourableAbsent
-            ? null
-            : computeMissingSeverity(category, (doc["contractType"] as string) ?? "");
-          const r: LocalResult = {
-            clauseCategory: category,
-            ...absent,
-            regulatoryCitations: JSON.stringify(absent.regulatoryCitations),
-            escalationTrigger: absent.escalationTrigger || null,
-            isAbsent: !isFavourableAbsent,
-            missingSeverity,
-            clauseId: null,
-            ruleId: rule.id,
-            resultId: null,
-            model_used: "none", // absent clauses need no LLM call
-            founderStatus: absent.founderStatus,
-            founderPlainEnglish: absent.founderPlainEnglish,
-            founderBusinessImpact: absent.founderBusinessImpact,
-            founderAskFor: absent.founderAskFor,
-            founderCopyPaste: absent.founderCopyPaste,
-            founderFundraisingRelevance: absent.founderFundraisingRelevance,
-            founderIfIgnored: absent.founderIfIgnored,
-            founderConfidenceScore: null,
-            founderVerificationPassed: null,
-            iracIssue: absent.iracIssue ?? "",
-            iracRule: absent.iracRule ?? "",
-            iracApplication: absent.iracApplication ?? "",
-            iracConclusion: absent.iracConclusion ?? "",
-            urgencyLevel: absent.urgencyLevel ?? "BACKGROUND",
-            errorCategory: absent.errorCategory ?? "SUBSTANTIVE_RISK",
-          };
-          r.resultId = await persistResult(r);
-          results.push(r);
-          return;
-        }
-
-        // ── Present clause: LLM comparison ──────────────────────────────────
-        // Run the PocketBase write (extracted_clauses) and the regulatory context
-        // lookup in parallel, neither depends on the other, and both must complete
-        // before the LLM comparison call can use their results.
+    // ── Present clauses: prefetch PB writes + regulatory context in parallel ──
+    // The PocketBase write (extracted_clauses) and the regulatory context lookup
+    // are independent of each other but both must complete before comparison.
+    interface PresentEntry {
+      rule: PBRecord;
+      category: string;
+      match: NonNullable<ReturnType<typeof bestByCategory.get>>;
+      extractedClauseId: string;
+      combinedRegContext: string;
+      isIndirect: boolean;
+    }
+    const prefetchSettled = await runWithConcurrencyLimit(
+      presentRules.map((rule) => async (): Promise<PresentEntry> => {
+        const category = rule["clauseCategory"] as string;
+        const match = bestByCategory.get(category)!;
         const isIndirect = match.presenceState === "INDIRECT";
         if (isIndirect) {
           console.log(`[review] INDIRECT match for ${category} at "${match.clauseReference ?? "unknown location"}" in ${documentId}`);
         }
-        t.mark(`${category}: starting PB write + reg context fetch in parallel`);
         const [extractedClause, clauseRegDocs] = await Promise.all([
           pb.collection("extracted_clauses").create({
             document: documentId,
@@ -615,26 +722,88 @@ ${classifySnippet}`,
             sector: company["sector"] as string,
           }),
         ]);
-        const combinedRegContext = regulatoryContext + formatRegulatoryContextForPrompt(clauseRegDocs);
+        return {
+          rule,
+          category,
+          match,
+          extractedClauseId: extractedClause.id as string,
+          combinedRegContext: regulatoryContext + formatRegulatoryContextForPrompt(clauseRegDocs),
+          isIndirect,
+        };
+      }),
+      MAX_CONCURRENT_COMPARISONS
+    );
+    const presentEntries = prefetchSettled
+      .filter((s): s is PromiseFulfilledResult<PresentEntry> => s.status === "fulfilled")
+      .map((s) => s.value);
+    const prefetchFailures = prefetchSettled.filter((s) => s.status === "rejected");
+    if (prefetchFailures.length > 0) {
+      console.error(`[review] ${prefetchFailures.length} clause prefetch(es) failed:`,
+        prefetchFailures.map((s) => ((s as PromiseRejectedResult).reason as Error)?.message ?? s));
+    }
+    t.mark(`prefetch complete: ${presentEntries.length} present clauses ready for comparison`);
 
-        const sonnetModel = getModelForTask("playbook_comparison");
-        t.mark(`${category}: LLM comparison starting (${getModelLabel(sonnetModel)})`);
-        const comparison = await compareClauseToPlaybook(
-          match.rawText,
+    // ── BATCHED playbook comparison ───────────────────────────────────────────
+    // All present clauses go to Sonnet in ONE request with a structured JSON
+    // array output, instead of one request per clause — the single biggest cost
+    // reduction in the pipeline (system prompt and persona context are paid for
+    // once). Clauses missing from the batch response fall back to individual
+    // calls in the post-processing tasks below.
+    const sonnetModel = getModelForTask("playbook_comparison");
+    let batchResults = new Map<string, Awaited<ReturnType<typeof compareClauseToPlaybook>>>();
+    if (presentEntries.length > 0) {
+      t.mark(`batched comparison starting: ${presentEntries.length} clauses in one ${getModelLabel(sonnetModel)} call`);
+      try {
+        const batchInputs: BatchClauseInput[] = presentEntries.map((e) => ({
+          clauseText: e.match.rawText,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          rule as any,
+          rule: e.rule as any,
+          regulatoryContext: e.combinedRegContext + govLawSuffix,
+          isIndirectReference: e.isIndirect,
+          indirectClauseRef: e.match.clauseReference ?? "",
+        }));
+        batchResults = await compareClausesBatch(
+          batchInputs,
           effectiveCompanyName,
           company["sector"] as string,
-          combinedRegContext + govLawSuffix,
-          (company["persona"] ?? "CORPORATE") as "CORPORATE" | "FOUNDER",
+          personaForReview,
           effectiveWorkflow,
           company.id,
           doc["counterpartyType"] as string || "",
           doc["contractType"] as string || "",
-          isIndirect,
-          match.clauseReference ?? "",
           sonnetModel,
         );
+        t.mark(`batched comparison complete: ${batchResults.size}/${presentEntries.length} clauses returned`);
+      } catch (err) {
+        console.warn(`[review] Batched comparison failed — falling back to per-clause calls:`, (err as Error)?.message);
+        t.mark("batched comparison failed: falling back to per-clause calls");
+      }
+    }
+
+    // ── Per-clause post-processing (uses batch result; falls back per clause) ──
+    const presentTasks = presentEntries.map((entry) => async () => {
+        const { rule, category, match, isIndirect, combinedRegContext } = entry;
+
+        let comparison = batchResults.get(category);
+        if (!comparison) {
+          console.warn(`[review] ${category}: not in batch result — running individual comparison`);
+          comparison = await compareClauseToPlaybook(
+            match.rawText,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            rule as any,
+            effectiveCompanyName,
+            company["sector"] as string,
+            combinedRegContext + govLawSuffix,
+            personaForReview,
+            effectiveWorkflow,
+            company.id,
+            doc["counterpartyType"] as string || "",
+            doc["contractType"] as string || "",
+            isIndirect,
+            match.clauseReference ?? "",
+            sonnetModel,
+          );
+        }
 
         // ── Fix 1: Guard against GREY or empty fields from the LLM ─────────────
         // If the LLM returns GREY (which it should never do for a present clause)
@@ -744,7 +913,7 @@ Mark safe_to_display false only if invented facts are present or confidence_scor
         void audit({
           action: "rag_status_assigned",
           entityType: "review_result",
-          entityId: extractedClause.id,
+          entityId: entry.extractedClauseId,
           companyId: company.id,
           detail: { documentId, clauseCategory: category, ragStatus: deanonComparison.ragStatus, confidenceLabel: deanonComparison.confidenceLabel, escalationRequired: deanonComparison.escalationRequired, founderConfidenceScore, founderVerificationPassed },
         });
@@ -766,7 +935,7 @@ Mark safe_to_display false only if invented facts are present or confidence_scor
           regulatoryCitations: JSON.stringify(deanonComparison.regulatoryCitations ?? []),
           isAbsent: false,
           missingSeverity: null,
-          clauseId: extractedClause.id,
+          clauseId: entry.extractedClauseId,
           ruleId: rule.id,
           resultId: null,
           model_used: sonnetModel,
@@ -792,9 +961,11 @@ Mark safe_to_display false only if invented facts are present or confidence_scor
         results.push(r);
     });
 
-    // Run at most MAX_CONCURRENT_COMPARISONS clause LLM calls simultaneously.
-    // This prevents overwhelming the upstream API with 10+ requests at once.
-    const settled = await runWithConcurrencyLimit(clauseTasks, MAX_CONCURRENT_COMPARISONS);
+    // Run absent (instant) and present post-processing tasks with bounded
+    // concurrency. The heavy LLM work already happened in the single batched
+    // call above; per-clause LLM calls only fire as fallbacks or for founder
+    // verification.
+    const settled = await runWithConcurrencyLimit([...absentTasks, ...presentTasks], MAX_CONCURRENT_COMPARISONS);
 
     // Log any individual clause failures (they don't abort the review).
     const clauseFailures = settled.filter((s) => s.status === "rejected");
@@ -804,7 +975,10 @@ Mark safe_to_display false only if invented facts are present or confidence_scor
     }
     t.mark(`playbook comparison complete: ${results.length} clauses (${clauseFailures.length} failed)`);
 
-    // ── Confidence-based Opus reanalysis ──────────────────────────────────────
+    // ── Confidence-tiered Opus escalation ─────────────────────────────────────
+    // Opus is only ever called when (a) contradiction detection runs, or
+    // (b) a clause's confidence is below the review threshold (the LOW label —
+    // the <70 band of the confidence scale). Routine clauses never reach Opus.
     // Any clause where Claude Sonnet returned LOW confidence gets a second pass
     // from Claude Opus for deeper reasoning. High-confidence clauses skip Opus.
     const opusModel = getModelForTask("low_confidence_reanalysis");

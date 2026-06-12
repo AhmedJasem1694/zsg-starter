@@ -167,6 +167,72 @@ export async function parseDocumentText(filePath: string): Promise<string> {
   return result.text;
 }
 
+// ─── Boilerplate stripping (token cost reduction) ─────────────────────────────
+// Removes content with no analytical value before the text is sent to LLMs:
+// recital boilerplate, signature/execution blocks, and notice address lists.
+// Conservative by design: every removal is bounded, and if stripping would
+// remove more than 35% of the document the original text is returned untouched.
+
+export interface StripResult {
+  text: string;
+  removedChars: number;
+  removedSections: string[];
+}
+
+// Contract types where notice mechanics are analytically relevant — never
+// strip notice address blocks for these.
+const NOTICE_SENSITIVE_CONTRACT_TYPES = /lease|property|nhs|healthcare|insurance|logistics/i;
+
+export function stripBoilerplate(text: string, contractType: string = ""): StripResult {
+  const original = text;
+  const removedSections: string[] = [];
+  let working = text;
+
+  // 1. Signature / execution block: truncate from the execution language onward,
+  //    but only if it sits in the final 25% of the document.
+  const signatureRe = /\b(IN WITNESS WHEREOF|AS WITNESS the hands|EXECUTED as a deed|EXECUTED AND DELIVERED|SIGNED for and on behalf of|SIGNATURE PAGE FOLLOWS)\b/i;
+  const sigMatch = signatureRe.exec(working);
+  if (sigMatch && sigMatch.index > working.length * 0.75) {
+    working = working.slice(0, sigMatch.index);
+    removedSections.push("signature_block");
+  }
+
+  // 2. Recital boilerplate: the WHEREAS/RECITALS/BACKGROUND block between the
+  //    parties intro and the operative-provisions marker. Only removed when the
+  //    block starts in the first 20% of the document and the operative marker
+  //    follows within a bounded span (15% of the document).
+  const recitalStartRe = /\b(WHEREAS\b|RECITALS\b|BACKGROUND[:\s]*\n)/i;
+  const operativeRe = /\b(NOW,?\s+THEREFORE|IT IS (HEREBY )?AGREED|THE PARTIES (HEREBY )?AGREE|OPERATIVE PROVISIONS|AGREED TERMS)\b/i;
+  const recitalStart = recitalStartRe.exec(working);
+  if (recitalStart && recitalStart.index < working.length * 0.2) {
+    const tail = working.slice(recitalStart.index);
+    const operative = operativeRe.exec(tail);
+    if (operative && operative.index < working.length * 0.15) {
+      working = working.slice(0, recitalStart.index) + working.slice(recitalStart.index + operative.index);
+      removedSections.push("recitals");
+    }
+  }
+
+  // 3. Notice address lists: runs of 3+ consecutive address/attention/fax lines
+  //    (the "addresses for service" tables inside notices clauses). Skipped when
+  //    the contract type makes notice mechanics relevant. The notice clause text
+  //    itself (periods, methods) is never touched — only the address lists.
+  if (!NOTICE_SENSITIVE_CONTRACT_TYPES.test(contractType)) {
+    const addressRunRe = /((?:^[ \t]*(?:Address|Attention|Attn|For the attention of|Email|E-mail|Fax|Copy to|Postcode)[:\s][^\n]*\n){3,})/gim;
+    const before = working.length;
+    working = working.replace(addressRunRe, "[notice address details omitted]\n");
+    if (working.length < before) removedSections.push("notice_addresses");
+  }
+
+  const removedChars = original.length - working.length;
+
+  // Safety guard: never strip more than 35% of the document.
+  if (removedChars <= 0 || removedChars > original.length * 0.35) {
+    return { text: original, removedChars: 0, removedSections: [] };
+  }
+  return { text: working, removedChars, removedSections };
+}
+
 export function chunkText(text: string): string[] {
   const raw = text
     .split(/\n{2,}|\r\n{2,}/)

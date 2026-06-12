@@ -105,6 +105,66 @@ function workflowContext(workflowType: WorkflowType): { role: string; audienceNo
   }
 }
 
+// ─── Shared prompt fragments (single + batched comparison) ───────────────────
+
+/** The per-clause result JSON schema. extraFirstLine lets the batched call add a clauseCategory discriminator. */
+function resultJsonSchema(companyName: string, extraFirstLine: string = ""): string {
+  return `{${extraFirstLine ? `\n  ${extraFirstLine}` : ""}
+  "ragStatus": "RED" | "AMBER" | "GREEN",
+  "comparisonStatement": "EXACT format: 'Your playbook requires [X]. This clause provides [Y]. The following protections are missing: [Z].' Be specific - name the actual words, caps, carve-outs, or conditions that differ.",
+  "clauseSummary": "1-2 sentence plain English summary of what the clause actually says",
+  "whyItMatters": "Why this matters for ${companyName} specifically - tied to the playbook and any applicable regulations",
+  "recommendedAction": "Specific action: accept / push back / push back strongly / escalate",
+  "suggestedFallback": "Specific redraft or negotiation talking point",
+  "escalationRequired": true | false,
+  "escalationTrigger": "Condition under which escalation is mandatory (or empty string if none)",
+  "businessSummary": "One paragraph in plain English for a non-lawyer stakeholder",
+  "confidenceLabel": "HIGH" | "MEDIUM" | "LOW",
+  "regulatoryCitations": [
+    { "article": "Article 28", "regulation": "UK GDPR", "relevance": "One sentence on why this article applies" }
+  ],
+  "founderStatus": "SAFE" | "CAUTION" | "DO NOT SIGN YET",
+  "founderPlainEnglish": "1-2 sentences a founder would understand — what THIS specific clause (as written above) actually means. Base it only on the clause text provided. Do not invent implications not in the text.",
+  "founderBusinessImpact": "Commercial impact if this clause is accepted as written - what it costs, what it prevents, what it exposes",
+  "founderAskFor": "Specific and direct ask - the exact change to request from the counterparty",
+  "founderCopyPaste": "A short professional email the founder can paste and send to request the change. Rules: (1) Address to 'Dear [Counterparty Name]' — use that exact placeholder, never invent a name. (2) Reference ONLY specific terms, caps, or numbers that appear verbatim in the clause text above — never invent figures. (3) State the specific change being requested. (4) Sign off as '[Your Name]'. (5) Maximum 150 words. (6) No legal jargon. Example format: 'Dear [Counterparty Name], Thanks for sending across the agreement. One clause needs changing before we can sign: [clause name]. Currently it says [quote or paraphrase from actual clause]. We need it changed to [specific request]. Please confirm you can make this amendment. Thanks, [Your Name]'",
+  "founderFundraisingRelevance": "How this clause affects fundraising, investor diligence, or future deal terms - or 'Not relevant to fundraising' if it does not",
+  "founderIfIgnored": "Specific commercial consequence of signing this clause AS WRITTEN. Use only figures and terms from the clause text. If the clause caps liability at £X, say £X. If no specific figure is in the clause, say 'whatever the default position is under the governing law' rather than inventing a number.",
+  "iracIssue": "One precise sentence stating the exact legal question this clause raises - not a summary of the clause but the specific legal question to be answered",
+  "iracRule": "What the contract says PLUS the applicable legal principle in 1-2 sentences. Quote or paraphrase the relevant clause. Cite the regulatory provision where applicable.",
+  "iracApplication": "How the rule applies to this specific clause against the company's playbook position. Go through each element systematically. Acknowledge the strongest counterargument and explain why it does not change the conclusion. Identify genuine uncertainty.",
+  "iracConclusion": "Three-level conclusion: (1) Legal answer - what the position is. (2) Risk assessment - probability and materiality of the risk. (3) Specific recommendation - what to do, in what order, before what deadline.",
+  "urgencyLevel": "IMMEDIATE" | "MATERIAL" | "BACKGROUND",
+  "errorCategory": "SUBSTANTIVE_RISK" | "DRAFTING_ERROR" | "MECHANICAL_ERROR"
+}`;
+}
+
+/** RAG / confidence / citation / urgency / error-category rules shared by both prompts. */
+const OUTPUT_RULES_BLOCK = `RAG rules (CRITICAL, follow exactly):
+- GREEN: clause meets preferred position or acceptable fallback
+- AMBER: clause is below preferred but above red line; negotiation needed
+- RED: clause breaches red line or is missing a required protection
+- NEVER return GREY. GREY is reserved exclusively for absent clauses and is handled separately. If you are uncertain, return AMBER.
+
+Confidence rules:
+- HIGH: clause text is clear and your comparison is definitive
+- MEDIUM: clause is ambiguous or partially overlapping - some interpretation required
+- LOW: clause is unclear, heavily cross-referenced, or you cannot confirm the position from the text alone; flag for mandatory lawyer review
+
+Regulatory citations: include only citations where you can name the specific article or rule number. If none apply, return an empty array.
+
+Urgency rules:
+- IMMEDIATE: requires action before the contract can proceed. A red line breach, a governance trigger requiring board sign-off, or a regulatory compliance issue that could invalidate the contract.
+- MATERIAL: determines the commercial outcome. High-value clauses, IP ownership, liability exposure, key commercial terms.
+- BACKGROUND: important but not blocking. Audit rights, notice periods, minor deviations from playbook.
+
+Error category rules:
+- SUBSTANTIVE_RISK: the clause creates a legal or commercial risk based on its content.
+- DRAFTING_ERROR: the clause or document contains a structural error that could undermine legal effectiveness (undefined terms, broken cross-references, missing subjects).
+- MECHANICAL_ERROR: typographical or transcription error that may be legally material (inconsistent numbers, ambiguous date formats, party name errors).`;
+
+const RECOMMENDATION_DISCIPLINE = `RECOMMENDATION DISCIPLINE: Never give a conclusion that says it could go either way without providing a view. Always commit to a recommendation while noting material uncertainty. Structure every conclusion as: "My recommendation is [X] because [Y]. The risk of this being wrong is [Z]. If [Z] materialises, the consequence is [W]." Remove any hedging that does not add specific information. Phrases like "it may" or "it could" or "depending on the circumstances" are only acceptable if followed immediately by the specific condition that would change the recommendation.`;
+
 export async function compareClauseToPlaybook(
   clauseText: string,
   rule: PlaybookRule,
@@ -154,7 +214,7 @@ export async function compareClauseToPlaybook(
 ${ctx.audienceNote}
 ${ctx.actionStyle}${indirectNote}
 
-RECOMMENDATION DISCIPLINE: Never give a conclusion that says it could go either way without providing a view. Always commit to a recommendation while noting material uncertainty. Structure every conclusion as: "My recommendation is [X] because [Y]. The risk of this being wrong is [Z]. If [Z] materialises, the consequence is [W]." Remove any hedging that does not add specific information. Phrases like "it may" or "it could" or "depending on the circumstances" are only acceptable if followed immediately by the specific condition that would change the recommendation.
+${RECOMMENDATION_DISCIPLINE}
 
 Playbook Rule for ${rule.clauseCategory}:
 - Preferred position: ${rule.preferredPosition}
@@ -169,57 +229,9 @@ CLAUSE TEXT:
 ${clauseText}
 
 Return ONLY valid JSON with this exact structure:
-{
-  "ragStatus": "RED" | "AMBER" | "GREEN",
-  "comparisonStatement": "EXACT format: 'Your playbook requires [X]. This clause provides [Y]. The following protections are missing: [Z].' Be specific - name the actual words, caps, carve-outs, or conditions that differ.",
-  "clauseSummary": "1-2 sentence plain English summary of what the clause actually says",
-  "whyItMatters": "Why this matters for ${companyName} specifically - tied to the playbook and any applicable regulations",
-  "recommendedAction": "Specific action: accept / push back / push back strongly / escalate",
-  "suggestedFallback": "Specific redraft or negotiation talking point",
-  "escalationRequired": true | false,
-  "escalationTrigger": "Condition under which escalation is mandatory (or empty string if none)",
-  "businessSummary": "One paragraph in plain English for a non-lawyer stakeholder",
-  "confidenceLabel": "HIGH" | "MEDIUM" | "LOW",
-  "regulatoryCitations": [
-    { "article": "Article 28", "regulation": "UK GDPR", "relevance": "One sentence on why this article applies" }
-  ],
-  "founderStatus": "SAFE" | "CAUTION" | "DO NOT SIGN YET",
-  "founderPlainEnglish": "1-2 sentences a founder would understand — what THIS specific clause (as written above) actually means. Base it only on the clause text provided. Do not invent implications not in the text.",
-  "founderBusinessImpact": "Commercial impact if this clause is accepted as written - what it costs, what it prevents, what it exposes",
-  "founderAskFor": "Specific and direct ask - the exact change to request from the counterparty",
-  "founderCopyPaste": "A short professional email the founder can paste and send to request the change. Rules: (1) Address to 'Dear [Counterparty Name]' — use that exact placeholder, never invent a name. (2) Reference ONLY specific terms, caps, or numbers that appear verbatim in the clause text above — never invent figures. (3) State the specific change being requested. (4) Sign off as '[Your Name]'. (5) Maximum 150 words. (6) No legal jargon. Example format: 'Dear [Counterparty Name], Thanks for sending across the agreement. One clause needs changing before we can sign: [clause name]. Currently it says [quote or paraphrase from actual clause]. We need it changed to [specific request]. Please confirm you can make this amendment. Thanks, [Your Name]'",
-  "founderFundraisingRelevance": "How this clause affects fundraising, investor diligence, or future deal terms - or 'Not relevant to fundraising' if it does not",
-  "founderIfIgnored": "Specific commercial consequence of signing this clause AS WRITTEN. Use only figures and terms from the clause text. If the clause caps liability at £X, say £X. If no specific figure is in the clause, say 'whatever the default position is under the governing law' rather than inventing a number.",
-  "iracIssue": "One precise sentence stating the exact legal question this clause raises - not a summary of the clause but the specific legal question to be answered",
-  "iracRule": "What the contract says PLUS the applicable legal principle in 1-2 sentences. Quote or paraphrase the relevant clause. Cite the regulatory provision where applicable.",
-  "iracApplication": "How the rule applies to this specific clause against the company's playbook position. Go through each element systematically. Acknowledge the strongest counterargument and explain why it does not change the conclusion. Identify genuine uncertainty.",
-  "iracConclusion": "Three-level conclusion: (1) Legal answer - what the position is. (2) Risk assessment - probability and materiality of the risk. (3) Specific recommendation - what to do, in what order, before what deadline.",
-  "urgencyLevel": "IMMEDIATE" | "MATERIAL" | "BACKGROUND",
-  "errorCategory": "SUBSTANTIVE_RISK" | "DRAFTING_ERROR" | "MECHANICAL_ERROR"
-}
+${resultJsonSchema(companyName)}
 
-RAG rules (CRITICAL, follow exactly):
-- GREEN: clause meets preferred position or acceptable fallback
-- AMBER: clause is below preferred but above red line; negotiation needed
-- RED: clause breaches red line or is missing a required protection
-- NEVER return GREY. GREY is reserved exclusively for absent clauses and is handled separately. If you are uncertain, return AMBER.
-
-Confidence rules:
-- HIGH: clause text is clear and your comparison is definitive
-- MEDIUM: clause is ambiguous or partially overlapping - some interpretation required
-- LOW: clause is unclear, heavily cross-referenced, or you cannot confirm the position from the text alone; flag for mandatory lawyer review
-
-Regulatory citations: include only citations where you can name the specific article or rule number. If none apply, return an empty array.
-
-Urgency rules:
-- IMMEDIATE: requires action before the contract can proceed. A red line breach, a governance trigger requiring board sign-off, or a regulatory compliance issue that could invalidate the contract.
-- MATERIAL: determines the commercial outcome. High-value clauses, IP ownership, liability exposure, key commercial terms.
-- BACKGROUND: important but not blocking. Audit rights, notice periods, minor deviations from playbook.
-
-Error category rules:
-- SUBSTANTIVE_RISK: the clause creates a legal or commercial risk based on its content.
-- DRAFTING_ERROR: the clause or document contains a structural error that could undermine legal effectiveness (undefined terms, broken cross-references, missing subjects).
-- MECHANICAL_ERROR: typographical or transcription error that may be legally material (inconsistent numbers, ambiguous date formats, party name errors).`;
+${OUTPUT_RULES_BLOCK}`;
 
   return await llmJsonCall<ComparisonResult>({
     messages: [
@@ -230,6 +242,109 @@ Error category rules:
     description: `playbook comparison for ${rule.clauseCategory}`,
     model: modelOverride,
   });
+}
+
+// ─── Batched comparison (cost optimisation) ──────────────────────────────────
+// All playbook comparisons for a contract run as ONE Sonnet request containing
+// every present clause, with a structured JSON array output — instead of one
+// request per clause. System prompt + persona + rules are paid for once.
+// Callers fall back to compareClauseToPlaybook for any clause missing from the
+// batch response (or if the whole batch call fails).
+
+export interface BatchClauseInput {
+  clauseText: string;
+  rule: PlaybookRule;
+  /** Per-clause regulatory context (company summary + clause-specific provisions) */
+  regulatoryContext: string;
+  isIndirectReference: boolean;
+  indirectClauseRef: string;
+}
+
+export async function compareClausesBatch(
+  clauses: BatchClauseInput[],
+  companyName: string,
+  sector: string,
+  persona: Persona = "CORPORATE",
+  workflowType: string = "COMMERCIAL_CONTRACT",
+  companyId: string = "",
+  counterpartyType: string = "",
+  contractType: string = "",
+  modelOverride?: string,
+): Promise<Map<string, ComparisonResult>> {
+  if (clauses.length === 0) return new Map();
+
+  const wfCtx = workflowContext(workflowType as WorkflowType);
+  const ctx = wfCtx ?? personaContext(persona, companyName, sector);
+
+  // Per-clause accumulated company signals, fetched in parallel (non-fatal).
+  // Capped per clause so signals can't blow up the batched prompt.
+  const signalBlocks = await Promise.all(
+    clauses.map(async (c) => {
+      if (!companyId) return "";
+      try {
+        const block = await buildContextBlock(companyId, c.rule.clauseCategory, counterpartyType, contractType);
+        return block ? block.slice(0, 1500) : "";
+      } catch {
+        return "";
+      }
+    })
+  );
+
+  const sections = clauses.map((c, i) => {
+    const cat = c.rule.clauseCategory;
+    const label = cat.replace(/_/g, " ");
+    const indirectNote = c.isIndirectReference
+      ? `\nNOTE: INDIRECT REFERENCE. ${label} is not a dedicated clause — it is addressed indirectly${c.indirectClauseRef ? ` at ${c.indirectClauseRef}` : " within another clause"}. Begin clauseSummary with "${label} (addressed indirectly${c.indirectClauseRef ? ` at ${c.indirectClauseRef}` : ""}): " and comparisonStatement with "${label} (addressed indirectly): ", then assess whether the indirect treatment meets, falls below, or breaches the playbook position.`
+      : "";
+    return `### CLAUSE ${i + 1} of ${clauses.length}: ${cat}
+Playbook rule:
+- Preferred position: ${c.rule.preferredPosition}
+- Acceptable fallback: ${c.rule.acceptableFallback}
+- Hard red line: ${c.rule.hardRedLine}
+- Approval required for exceptions: ${c.rule.approvalRequired ?? "None specified"}
+${c.rule.fallbackTemplate ? `- Preferred fallback wording: ${c.rule.fallbackTemplate}\n` : ""}${c.regulatoryContext ? `Regulatory context:\n${c.regulatoryContext}\n` : ""}${signalBlocks[i] ? `Accumulated company signals:\n${signalBlocks[i]}\n` : ""}${indirectNote}
+CLAUSE TEXT:
+${c.clauseText}`;
+  }).join("\n\n────────────────────\n\n");
+
+  const systemPrompt = `${ctx.role}
+${ctx.audienceNote}
+${ctx.actionStyle}
+
+${RECOMMENDATION_DISCIPLINE}
+
+You will be given ${clauses.length} clauses from one contract, each with its own playbook rule. Analyse EVERY clause independently and completely against its own rule. Do not let one clause's analysis bleed into another's.`;
+
+  const userPrompt = `Review EACH of the ${clauses.length} clauses below against its own playbook rule.
+
+${sections}
+
+Return ONLY a valid JSON array with EXACTLY ${clauses.length} elements — one per clause, in the same order as presented. Each element must follow this exact structure (note the "clauseCategory" field identifying which clause it analyses):
+${resultJsonSchema(companyName, `"clauseCategory": "THE_CLAUSE_CATEGORY_FROM_THE_HEADER",`)}
+
+${OUTPUT_RULES_BLOCK}`;
+
+  const raw = await llmJsonCall<Array<ComparisonResult & { clauseCategory: string }>>({
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user",   content: userPrompt },
+    ],
+    // Output scales with clause count (~1.2-1.7K tokens per full result)
+    maxTokens: Math.min(24_000, 2_500 + 1_700 * clauses.length),
+    timeoutMs: 240_000,
+    description: `batched playbook comparison (${clauses.length} clauses)`,
+    model: modelOverride,
+  });
+
+  const out = new Map<string, ComparisonResult>();
+  if (Array.isArray(raw)) {
+    for (const item of raw) {
+      if (item && typeof item === "object" && typeof item.clauseCategory === "string") {
+        out.set(item.clauseCategory, item as ComparisonResult);
+      }
+    }
+  }
+  return out;
 }
 
 // ─── Favourable-when-absent logic ────────────────────────────────────────────
