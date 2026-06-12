@@ -31,6 +31,7 @@ import AuditTrail from "./pages/AuditTrail";
 import FounderDashboard from "./pages/founder/FounderDashboard";
 import FounderReview from "./pages/founder/FounderReview";
 import ContractLibrary from "./pages/ContractLibrary";
+import LegacyReview from "./pages/LegacyReview";
 import TeamManagement from "./pages/TeamManagement";
 import OutcomeConfirmation from "./pages/OutcomeConfirmation";
 import Settings from "./pages/Settings";
@@ -191,6 +192,10 @@ function AppRoutes() {
       <Route
         path="/app/legal/library"
         element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><ContractLibrary /></RequireAuth>}
+      />
+      <Route
+        path="/app/legal/legacy-review"
+        element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><LegacyReview /></RequireAuth>}
       />
       <Route
         path="/app/legal/team"

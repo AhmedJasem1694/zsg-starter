@@ -339,15 +339,22 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── LEGACY REVIEW MENTION ───────────────────────────────────────────── */}
+      {/* ─── LEGACY CONTRACT REVIEW ──────────────────────────────────────────── */}
       <section className="bg-paper border-t border-line-light py-24 sm:py-36">
         <div className="max-w-2xl mx-auto px-6">
-          <motion.div className="rounded-xl border border-line-light bg-white px-8 py-10 text-center space-y-4" {...headingReveal}>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Legacy review</p>
-            <h2 className="text-2xl font-bold tracking-tight text-ink">Already have contracts that need reviewing?</h2>
+          <motion.div className="rounded-xl border border-line-light bg-white px-8 py-10 text-center space-y-5" {...headingReveal}>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Legacy contract review</p>
+            <h2 className="text-2xl font-bold tracking-tight text-ink">Have hundreds of historical contracts nobody has reviewed?</h2>
             <p className="text-sm text-slate-600 leading-relaxed max-w-lg mx-auto">
-              Zane can audit your existing contract estate as a standalone project — extracted key provisions, risk flags, renewal dates, and a portfolio risk view. Ask about a legacy review when you book a conversation.
+              Zane builds a structured map of your entire contract estate — terms, renewals, risks — in days not months.
             </p>
+            <div className="pt-1">
+              <a href="https://calendly.com/ahmedljasem/30min"
+                target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-colors text-sm">
+                Book a conversation <ArrowRight size={15} />
+              </a>
+            </div>
           </motion.div>
         </div>
       </section>

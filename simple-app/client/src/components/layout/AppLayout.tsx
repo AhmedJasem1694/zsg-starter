@@ -4,7 +4,7 @@ import { ZaneLogo } from "../ZaneLogo";
 import {
   LayoutDashboard, BookOpen, Settings, LogOut, Menu, Shield,
   Lock, PieChart, CalendarClock, LayoutGrid, Activity, ClipboardList, Library, Users,
-  AlertTriangle,
+  AlertTriangle, Archive,
 } from "lucide-react";
 import { useAuth, useLogout } from "../../hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -17,6 +17,7 @@ import { useFeatureFlags } from "../../contexts/FeatureFlagsContext";
 const LEGAL_NAV = [
   { to: "/app/legal/dashboard",   icon: LayoutDashboard, label: "Dashboard" },
   { to: "/app/legal/library",     icon: Library,          label: "Library" },
+  { to: "/app/legal/legacy-review", icon: Archive,        label: "Legacy Review" },
   { to: "/app/legal/patterns",    icon: Activity,         label: "Negotiation Intelligence" },
   { to: "/app/legal/playbook",    icon: BookOpen,         label: "Playbook" },
   { to: "/app/legal/portfolio",   icon: PieChart,         label: "Portfolio Risk" },

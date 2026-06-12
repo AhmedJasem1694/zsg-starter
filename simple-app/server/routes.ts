@@ -7,6 +7,7 @@ import { pb, newPBClient } from "./pb.js";
 import multer from "multer";
 import { upload, uploadAncillary, classifyFileType } from "./upload.js";
 import { runReview } from "./services/reviewOrchestrator.js";
+import { runLegacyReview, ensureLegacyFields } from "./services/legacyReview.js";
 import { detectAndSaveRegulations } from "./services/regulatoryDetection.js";
 import { requireAuth, signToken } from "./middleware/auth.js";
 import { transcribeAudioFile } from "./services/transcription.js";
@@ -338,6 +339,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
     res.json({ ok: true });
+  }));
+
+  // ── Legacy contract review (cost-controlled estate mapping) ────────────────
+
+  // Kick off the lightweight legacy pipeline for an uploaded document.
+  // Flags the document legacy: true so it feeds portfolio intelligence and
+  // counterparty history as a normal library record.
+  app.post("/api/legacy/review/:documentId", requireAuth, ah(async (req: Request, res: Response) => {
+    const { documentId } = req.params;
+    try {
+      await pb.collection("uploaded_documents").getOne(documentId);
+    } catch {
+      sendError(res, 404, "Document not found"); return;
+    }
+    await ensureLegacyFields();
+    await pb.collection("uploaded_documents").update(documentId, { status: "PROCESSING", legacy: true });
+    // Fire-and-forget — the client polls the report endpoint for status
+    runLegacyReview(documentId).catch((err: unknown) =>
+      console.error(`[legacy] review failed for ${documentId}:`, (err as Error)?.message));
+    res.json({ ok: true, documentId });
+  }));
+
+  // Estate report: portfolio rows, renewals timeline (next 12 months),
+  // risk flags, and exposure summary across all legacy contracts.
+  app.get("/api/legacy/report", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
+    if (!company) { res.json({ rows: [], renewals: [], summary: null }); return; }
+
+    const docs = await pb.collection("uploaded_documents").getFullList({
+      filter: `company = "${company.id}" && legacy = true`,
+      sort: "-created",
+    }).catch(() => [] as PBRecord[]);
+
+    const now = Date.now();
+    const DAY = 24 * 3600 * 1000;
+    const in12mo = now + 365 * DAY;
+
+    const rows = docs.map((d) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let extract: any = null;
+      try { extract = d["legacyExtract"] ? JSON.parse(d["legacyExtract"] as string) : null; } catch { /* malformed */ }
+
+      const status = (d["status"] as string) ?? "";
+      const isComplete = status === "COMPLETE";
+      const renewalDate = ((d["renewalDate"] as string) || extract?.renewal?.renewalDate || "").slice(0, 10);
+      const noticePeriodDays = (d["noticePeriodDays"] as number) ?? extract?.renewal?.noticePeriodDays ?? null;
+      const autoRenewal = !!d["autoRenewal"] || extract?.renewal?.autoRenewal === true;
+      const governingLaw = (d["governingLaw"] as string) || extract?.governingLaw || "";
+
+      // Risk flags — computed only for completed extractions
+      const riskFlags: string[] = [];
+      if (isComplete && extract) {
+        if (extract.liabilityCap?.present === true && extract.liabilityCap?.capped === false) {
+          riskFlags.push("Uncapped liability");
+        } else if (extract.liabilityCap?.present === false) {
+          riskFlags.push("No liability cap clause");
+        }
+        if (autoRenewal && renewalDate) {
+          const rts = Date.parse(renewalDate);
+          if (!isNaN(rts) && rts >= now) {
+            const noticeDeadline = noticePeriodDays ? rts - noticePeriodDays * DAY : rts;
+            if (noticeDeadline <= now + 30 * DAY) riskFlags.push("Auto-renewal notice window open");
+          }
+        }
+        if (!governingLaw) riskFlags.push("Missing governing law");
+      }
+
+      return {
+        id: d.id,
+        name: (d["originalName"] as string) ?? "",
+        status,
+        counterparty: (d["counterpartyName"] as string) || extract?.counterparty || "",
+        contractType: (d["contractType"] as string) ?? "",
+        value: (d["contractValue"] as number) ?? extract?.value?.amount ?? null,
+        currency: (d["currency"] as string) || extract?.value?.currency || "GBP",
+        governingLaw,
+        autoRenewal,
+        renewalDate: renewalDate || null,
+        noticePeriodDays,
+        endDate: extract?.term?.endDate ?? null,
+        termSummary: extract?.term?.summary ?? "",
+        liabilityCap: extract?.liabilityCap?.summary ?? "",
+        terminationRights: extract?.terminationRights ?? "",
+        assignment: extract?.assignment ?? "",
+        dataProtection: extract?.dataProtection ?? "",
+        riskFlags,
+        created: d["created"],
+      };
+    });
+
+    // Renewals timeline: anything renewing or expiring in the next 12 months
+    const renewals = rows
+      .map((r) => {
+        const dateStr = r.renewalDate || r.endDate;
+        if (!dateStr) return null;
+        const ts = Date.parse(dateStr);
+        if (isNaN(ts) || ts < now || ts > in12mo) return null;
+        return {
+          id: r.id,
+          name: r.name,
+          counterparty: r.counterparty,
+          date: dateStr,
+          kind: r.renewalDate ? (r.autoRenewal ? "auto-renews" : "renews") : "expires",
+          autoRenewal: r.autoRenewal,
+          noticePeriodDays: r.noticePeriodDays,
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null)
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    const complete = rows.filter((r) => r.status === "COMPLETE");
+    const flagged = complete.filter((r) => r.riskFlags.length > 0);
+    const summary = rows.length === 0 ? null : {
+      total: rows.length,
+      complete: complete.length,
+      processing: rows.filter((r) => r.status !== "COMPLETE" && r.status !== "FAILED").length,
+      failed: rows.filter((r) => r.status === "FAILED").length,
+      totalValue: complete.reduce((s, r) => s + (r.value ?? 0), 0),
+      flaggedValue: flagged.reduce((s, r) => s + (r.value ?? 0), 0),
+      flaggedCount: flagged.length,
+      uncappedLiability: complete.filter((r) => r.riskFlags.some((f) => f.includes("liability") || f.includes("Uncapped"))).length,
+      autoRenewalsInWindow: complete.filter((r) => r.riskFlags.some((f) => f.startsWith("Auto-renewal"))).length,
+      missingGoverningLaw: complete.filter((r) => r.riskFlags.includes("Missing governing law")).length,
+      renewalsNext12mo: renewals.length,
+    };
+
+    res.json({ rows, renewals, summary });
   }));
 
   // ── Admin: monthly review cost per company ────────────────────────────────

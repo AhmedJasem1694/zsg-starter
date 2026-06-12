@@ -259,6 +259,58 @@ export const register = async (data: { name: string; email: string; password: st
   if (res.token) storeAuthToken(res.token);
   return res;
 };
+// Legacy contract review (cost-controlled estate mapping)
+export const startLegacyReview = (documentId: string) =>
+  req<{ ok: boolean; documentId: string }>("POST", `/api/legacy/review/${documentId}`);
+
+export interface LegacyReportRow {
+  id: string;
+  name: string;
+  status: string;
+  counterparty: string;
+  contractType: string;
+  value: number | null;
+  currency: string;
+  governingLaw: string;
+  autoRenewal: boolean;
+  renewalDate: string | null;
+  noticePeriodDays: number | null;
+  endDate: string | null;
+  termSummary: string;
+  liabilityCap: string;
+  terminationRights: string;
+  assignment: string;
+  dataProtection: string;
+  riskFlags: string[];
+  created: string;
+}
+export interface LegacyRenewalEntry {
+  id: string;
+  name: string;
+  counterparty: string;
+  date: string;
+  kind: string;
+  autoRenewal: boolean;
+  noticePeriodDays: number | null;
+}
+export interface LegacyReportSummary {
+  total: number;
+  complete: number;
+  processing: number;
+  failed: number;
+  totalValue: number;
+  flaggedValue: number;
+  flaggedCount: number;
+  uncappedLiability: number;
+  autoRenewalsInWindow: number;
+  missingGoverningLaw: number;
+  renewalsNext12mo: number;
+}
+export const getLegacyReport = () =>
+  req<{ rows: LegacyReportRow[]; renewals: LegacyRenewalEntry[]; summary: LegacyReportSummary | null }>(
+    "GET", "/api/legacy/report"
+  );
+
 // Admin-only: monthly review cost per company (unit economics)
 export interface ReviewCostReport {
   months: string[];

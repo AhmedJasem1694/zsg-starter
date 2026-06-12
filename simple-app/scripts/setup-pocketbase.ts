@@ -818,6 +818,9 @@ async function main() {
     textField("contentHash"),
     numberField("reviewCost"),
     textField("reviewCostDetail"),
+    // Legacy contract review layer
+    boolField("legacy"),
+    textField("legacyExtract"),
     numberField("clausesTotal"),
     numberField("clausesCompleted"),
   ]);
