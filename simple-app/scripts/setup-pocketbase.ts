@@ -954,6 +954,15 @@ async function main() {
     textField("errorMessage"),
   ]);
 
+  // ── access_requests (manual onboarding "Request access" form) ─────────────
+  await ensureCollection("access_requests", [
+    textField("name", { required: true }),
+    textField("email", { required: true }),
+    textField("company"),
+    textField("role"),
+    textField("contracts_description"),
+  ]);
+
   // ── integration_sync_log ──────────────────────────────────────────────────
   await ensureCollection("integration_sync_log", [
     textField("integrationId", { required: true }),
@@ -1019,6 +1028,7 @@ async function verify() {
     { name: "new_hire_context_periods", requiredFields: ["started_at", "ends_at"] },
     { name: "integration_connections", requiredFields: ["integration_type"] },
     { name: "integration_events", requiredFields: ["event_type"] },
+    { name: "access_requests", requiredFields: ["name", "email"] },
   ];
 
   let pass = 0;

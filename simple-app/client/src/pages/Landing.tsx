@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle, AlertTriangle, Zap, BookOpen, Scale, TrendingUp, X } from "lucide-react";
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ZaneLogo } from "../components/ZaneLogo";
+import { requestAccess } from "../lib/api";
 
 // ─── Animation presets (matching aloft's spring physics) ─────────────────────
 const SPRING_SNAP  = { type: "spring", damping: 100, mass: 3, stiffness: 500 } as const;
@@ -109,6 +110,8 @@ export default function Landing() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   // Billing toggle: quarterly (default) or annual
   const [billing, setBilling] = useState<"quarterly" | "annual">("quarterly");
+  // Manual onboarding: "Request access" form modal
+  const [showRequestAccess, setShowRequestAccess] = useState(false);
   const lenisRef = useRef<import("@studio-freight/lenis").default | null>(null);
 
   // Lenis smooth scroll
@@ -164,10 +167,10 @@ export default function Landing() {
           <div className="flex items-center gap-2">
             <Link to="/login" className="px-4 py-1.5 text-sm text-white/50 hover:text-white transition-colors duration-300">Sign in</Link>
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-              <Link to="/register"
+              <button onClick={() => setShowRequestAccess(true)}
                 className="flex items-center gap-1.5 px-4 py-1.5 bg-primary text-white text-sm font-medium rounded-lg hover:opacity-90 transition-opacity shadow shadow-primary/20">
-                Get started <ArrowRight size={13} />
-              </Link>
+                Request access <ArrowRight size={13} />
+              </button>
             </motion.div>
           </div>
         </div>
@@ -322,9 +325,9 @@ export default function Landing() {
                 <p className="text-sm text-gray-600 leading-relaxed">
                   Every contract your team reviews, every position accepted or pushed back on, every exception approved, every override made - it all feeds into Zane's memory. Over time Zane learns how your company actually negotiates. Not how it thinks it does.
                 </p>
-                <Link to="/register" className="inline-flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity font-medium self-start">
+                <button onClick={() => setShowRequestAccess(true)} className="inline-flex items-center gap-1.5 text-sm text-primary hover:opacity-80 transition-opacity font-medium self-start">
                   See it in action <ArrowRight size={13} />
-                </Link>
+                </button>
               </motion.div>
               <motion.div className="p-10 space-y-6" {...slideRight(0.15)}>
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-widest">How the memory compounds</div>
@@ -938,12 +941,12 @@ export default function Landing() {
                   Book a demo →
                 </a>
               ) : (
-                <Link to={link}
-                  className={`block text-center px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                <button onClick={() => setShowRequestAccess(true)}
+                  className={`block w-full text-center px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                     highlight ? "bg-primary text-white hover:opacity-90 shadow shadow-primary/20" : "border border-black/10 text-gray-600 hover:text-gray-800 hover:border-black/20"
                   }`}>
-                  Start free trial →
-                </Link>
+                  Request access →
+                </button>
               )}
             </motion.div>
           ))}
@@ -1168,6 +1171,123 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+
+      {/* ─── REQUEST ACCESS MODAL (manual onboarding) ────────────────────────── */}
+      {showRequestAccess && <RequestAccessModal onClose={() => setShowRequestAccess(false)} />}
+    </div>
+  );
+}
+
+// ─── Request access modal ─────────────────────────────────────────────────────
+
+function RequestAccessModal({ onClose }: { onClose: () => void }) {
+  const [form, setForm] = useState({ name: "", email: "", company: "", role: "", contractsDescription: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+
+  const canSubmit =
+    form.name.trim().length > 0 &&
+    form.email.trim().includes("@") &&
+    form.company.trim().length > 0 &&
+    form.role.trim().length > 0;
+
+  function set(field: keyof typeof form) {
+    return (e: { target: { value: string } }) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!canSubmit || submitting) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      await requestAccess({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        company: form.company.trim(),
+        role: form.role.trim(),
+        contractsDescription: form.contractsDescription.trim(),
+      });
+      setSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong - please try again or email ahmed@zanelegal.ai.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const inputCls = "w-full rounded-xl border border-white/10 bg-white/5 px-3.5 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition-colors";
+  const labelCls = "text-[11px] font-semibold uppercase tracking-widest text-white/40";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" role="dialog" aria-modal="true">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+
+      <div className="relative w-full max-w-md rounded-2xl border border-white/10 p-6 space-y-5 max-h-[90vh] overflow-y-auto" style={{ background: "#0F172A" }}>
+        <button onClick={onClose} aria-label="Close" className="absolute top-4 right-4 text-white/30 hover:text-white/70 transition-colors">
+          <X size={16} />
+        </button>
+
+        {submitted ? (
+          <div className="py-10 text-center space-y-4">
+            <CheckCircle size={30} className="text-emerald-400 mx-auto" />
+            <h3 className="text-lg font-bold text-white tracking-tight leading-snug">
+              Thanks — Ahmed will personally onboard you within 24 hours.
+            </h3>
+            <button onClick={onClose} className="text-xs text-white/40 hover:text-white/70 transition-colors underline underline-offset-2">
+              Close
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-1.5 pr-6">
+              <h3 className="text-lg font-bold text-white tracking-tight">Request access</h3>
+              <p className="text-xs text-white/45 leading-relaxed">
+                Zane onboarding is currently done personally. Tell us a little about you and Ahmed will set you up within 24 hours.
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-3.5">
+              <div className="space-y-1.5">
+                <label className={labelCls}>Name</label>
+                <input type="text" className={inputCls} placeholder="Jane Smith" value={form.name} onChange={set("name")} autoFocus />
+              </div>
+              <div className="space-y-1.5">
+                <label className={labelCls}>Work email</label>
+                <input type="email" className={inputCls} placeholder="jane@company.com" value={form.email} onChange={set("email")} />
+              </div>
+              <div className="space-y-1.5">
+                <label className={labelCls}>Company</label>
+                <input type="text" className={inputCls} placeholder="Acme Ltd" value={form.company} onChange={set("company")} />
+              </div>
+              <div className="space-y-1.5">
+                <label className={labelCls}>Role</label>
+                <input type="text" className={inputCls} placeholder="e.g. GC, Head of Legal, Founder" value={form.role} onChange={set("role")} />
+              </div>
+              <div className="space-y-1.5">
+                <label className={labelCls}>What kind of contracts do you deal with?</label>
+                <textarea className={`${inputCls} min-h-[80px] resize-y`} placeholder="e.g. Supplier MSAs, customer agreements, NDAs…" value={form.contractsDescription} onChange={set("contractsDescription")} />
+              </div>
+
+              {error && (
+                <div className="text-xs text-white bg-[#1F0A0A] border border-[#450A0A] rounded-lg px-3 py-2">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={!canSubmit || submitting}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {submitting ? "Sending…" : "Request access →"}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
     </div>
   );
 }

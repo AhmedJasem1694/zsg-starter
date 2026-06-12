@@ -248,6 +248,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const { name, email, password } = parsed.data;
 
+    // Manual onboarding model: public self-serve registration is disabled.
+    // Accounts are created by admin via PocketBase, or via a pending team
+    // invite (invited emails may still register here).
+    const pendingInvites = await pb.collection("team_invites").getFullList({
+      filter: `email = "${email.replace(/"/g, '\\"')}" && status = "pending"`,
+      fields: "id",
+    }).catch(() => []);
+    if (pendingInvites.length === 0) {
+      sendError(res, 403, "Self-serve registration is disabled. Request access from the home page and Ahmed will personally onboard you within 24 hours.");
+      return;
+    }
+
     try {
       // Use PocketBase native auth - it handles hashing internally
       const user = await pb.collection("users").create({
@@ -276,6 +288,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       sendError(res, 500, "Account creation failed. Please try again."); return;
     }
+  }));
+
+  // ── Access requests (manual onboarding) ──────────────────────────────────────
+  // Public endpoint backing the landing-page "Request access" form. Stores the
+  // submission in the access_requests collection for Ahmed to onboard manually.
+  app.post("/api/access-request", ah(async (req: Request, res: Response) => {
+    const parsed = z.object({
+      name: z.string().min(1).max(200),
+      email: z.string().email(),
+      company: z.string().min(1).max(200),
+      role: z.string().min(1).max(200),
+      contractsDescription: z.string().max(2000).optional().default(""),
+    }).safeParse(req.body);
+    if (!parsed.success) { sendError(res, 400, "Please fill in your name, work email, company, and role."); return; }
+
+    const { name, email, company, role, contractsDescription } = parsed.data;
+    const record = {
+      name,
+      email,
+      company,
+      role,
+      contracts_description: contractsDescription,
+    };
+
+    try {
+      await pb.collection("access_requests").create(record);
+    } catch (err: unknown) {
+      // If the collection doesn't exist yet (pb:setup not re-run), create it
+      // on the fly so no request is ever lost, then retry once.
+      const status = (err as { status?: number }).status;
+      if (status === 404) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (pb.collections as any).create({
+          name: "access_requests",
+          type: "base",
+          fields: [
+            { name: "name", type: "text", required: true },
+            { name: "email", type: "text", required: true },
+            { name: "company", type: "text", required: false },
+            { name: "role", type: "text", required: false },
+            { name: "contracts_description", type: "text", required: false },
+          ],
+        }).catch(() => {});
+        await pb.collection("access_requests").create(record);
+      } else {
+        throw err;
+      }
+    }
+    res.json({ ok: true });
   }));
 
   app.post("/api/auth/login", ah(async (req: Request, res: Response) => {

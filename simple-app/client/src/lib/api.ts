@@ -259,6 +259,15 @@ export const register = async (data: { name: string; email: string; password: st
   if (res.token) storeAuthToken(res.token);
   return res;
 };
+// Manual onboarding: landing-page "Request access" form (no auth required)
+export const requestAccess = (data: {
+  name: string;
+  email: string;
+  company: string;
+  role: string;
+  contractsDescription: string;
+}) => req<{ ok: boolean }>("POST", "/api/access-request", data);
+
 export const login = async (data: { email: string; password: string }) => {
   const res = await req<{ userId: string; email: string; name: string; token?: string }>(
     "POST", "/api/auth/login", data
