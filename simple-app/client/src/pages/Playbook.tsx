@@ -22,7 +22,7 @@ const APPROVAL_OPTIONS = [
 
 // ── Rule card ─────────────────────────────────────────────────────────────────
 
-function RuleCard({ rule, outcome, counterpartyEntries }: { rule: PlaybookRule; outcome?: ClauseOutcome; counterpartyEntries?: CounterpartyIntelligenceEntry[] }) {
+function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule: PlaybookRule; outcome?: ClauseOutcome; counterpartyEntries?: CounterpartyIntelligenceEntry[]; cpIntelEnabled?: boolean }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<PlaybookRule>(rule);
@@ -255,7 +255,8 @@ function RuleCard({ rule, outcome, counterpartyEntries }: { rule: PlaybookRule; 
             </select>
           </div>
 
-          {/* CHANGE 2, Counterparty intelligence */}
+          {/* CHANGE 2, Counterparty intelligence, gated by the counterpartyIntelligence tier flag */}
+          {cpIntelEnabled && (
           <div className="rounded-lg bg-[#0C1929] border border-[#1E3A5F] rounded-lg p-3">
             <button
               className="flex items-center justify-between w-full text-left"
@@ -283,6 +284,7 @@ function RuleCard({ rule, outcome, counterpartyEntries }: { rule: PlaybookRule; 
               </div>
             )}
           </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-1">
             {saved && <span className="text-xs text-[#86EFAC] flex items-center gap-1">✓ Saved</span>}
@@ -1287,6 +1289,7 @@ export default function Playbook() {
                   rule={rule}
                   outcome={outcomeMap.get(rule.clauseCategory)}
                   counterpartyEntries={counterpartyData?.intelligence[rule.clauseCategory]}
+                  cpIntelEnabled={flags.counterpartyIntelligence}
                 />
               ))}
               <AddClausePanel
