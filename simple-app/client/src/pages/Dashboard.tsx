@@ -882,6 +882,10 @@ export default function Dashboard() {
     .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
     .slice(0, 5);
 
+  // A brand-new account with no contracts yet: show a single guiding empty state
+  // rather than a page of empty boxes (no actions / zeroed metrics / no reviews).
+  const isEmptyAccount = !useMock && (realDocuments as UploadedDocument[]).length === 0;
+
   return (
     <>
     <AppLayout>
@@ -904,7 +908,7 @@ export default function Dashboard() {
             )}
             <Link
               to="/app/legal/library"
-              className="btn-secondary flex items-center gap-1.5 text-sm px-4 py-2"
+              className="btn-primary flex items-center gap-1.5 text-sm px-4 py-2"
             >
               <Upload size={14} />
               Upload a contract
@@ -921,9 +925,76 @@ export default function Dashboard() {
             <ReviewProcessingCard key={d.id} doc={d} />
           ))}
 
-        {/* ── Section 1: Next Actions ─────────────────────────────────────── */}
+        {isEmptyAccount ? (
+          /* ── Empty account: one calm state that guides the first action ─── */
+          <div className="card px-6 py-12 text-center space-y-6 max-w-xl mx-auto">
+            <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center mx-auto">
+              <FileText size={22} className="text-[#60A5FA]" />
+            </div>
+            <div className="space-y-1.5">
+              <h2 className="text-lg font-semibold">Review your first contract</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                Upload a contract or CC it to Zane. You will get a clause-by-clause review against your playbook, with a clear Red, Amber, Green verdict, in minutes.
+              </p>
+            </div>
+            <div className="flex justify-center">
+              <Link to="/app/legal/library" className="btn-primary text-sm px-5 py-2.5">
+                <Upload size={15} /> Upload a contract
+              </Link>
+            </div>
+            {company?.inbound_email && (
+              <div className="mx-auto max-w-md rounded-lg border border-card-border bg-card/60 px-4 py-3 flex items-start gap-3 text-left">
+                <div className="mt-0.5 w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+                  <Mail size={16} className="text-blue-400" />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-medium text-foreground">Prefer email?</div>
+                  <div className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                    CC <code className="font-mono text-foreground">{company.inbound_email}</code> on any contract and Zane handles it.
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="pt-4 border-t border-card-border space-y-3 text-left">
+              <div className="text-xs text-muted-foreground text-center">Or connect your document storage to auto-review contracts as they arrive.</div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <a href="/app/settings?tab=integrations&connect=google-drive"
+                  className="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3 hover:border-primary/40 transition-colors">
+                  <div className="w-8 h-8 rounded-md bg-[#1E3A5F] flex items-center justify-center shrink-0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <path d="M6.5 20L1 11l4-7h14l4 7-5.5 9H6.5z" stroke="#60A5FA" strokeWidth="1.5" strokeLinejoin="round"/>
+                      <path d="M1 11h22M9 4l3 7m3-7l-3 7" stroke="#60A5FA" strokeWidth="1.5"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">Connect Google Drive</div>
+                    <div className="text-xs text-muted-foreground">Auto-review from a folder</div>
+                  </div>
+                </a>
+                <a href="/app/settings?tab=integrations&connect=sharepoint"
+                  className="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3 hover:border-primary/40 transition-colors">
+                  <div className="w-8 h-8 rounded-md bg-[#1E1B4B] flex items-center justify-center shrink-0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                      <rect x="2" y="2" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.8"/>
+                      <rect x="13" y="2" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.5"/>
+                      <rect x="2" y="13" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.5"/>
+                      <rect x="13" y="13" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.3"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">Connect SharePoint</div>
+                    <div className="text-xs text-muted-foreground">Sync from Microsoft library</div>
+                  </div>
+                </a>
+              </div>
+            </div>
+          </div>
+        ) : (
+        <>
+
+        {/* ── Primary attention area: what needs you now ──────────────────── */}
         <div className="space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Next Actions</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Needs your attention</h2>
 
           {!hasActions && !useMock && (
             <div className="card px-5 py-8 text-center space-y-2">
@@ -1027,7 +1098,7 @@ export default function Dashboard() {
         {/* ── Section 2: Executive Overview ──────────────────────────────── */}
         <div className="space-y-3">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Overview</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="card grid grid-cols-2 sm:grid-cols-4 sm:divide-x divide-card-border overflow-hidden">
             {[
               {
                 label: "Contracts reviewed this month",
@@ -1052,9 +1123,9 @@ export default function Dashboard() {
                 highlight: false,
               },
             ].map((s) => (
-              <div key={s.label} className="card px-4 py-4 space-y-1">
-                <div className={`text-2xl font-bold ${s.highlight ? "text-[#FCA5A5]" : ""}`}>{s.value}</div>
-                <div className="text-xs text-muted-foreground leading-snug">{s.label}</div>
+              <div key={s.label} className="px-4 py-3.5">
+                <div className={`text-lg font-semibold ${s.highlight ? "text-[#FCA5A5]" : "text-foreground"}`}>{s.value}</div>
+                <div className="text-[11px] text-muted-foreground leading-snug mt-0.5">{s.label}</div>
               </div>
             ))}
           </div>
@@ -1064,7 +1135,7 @@ export default function Dashboard() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Recent Reviews</h2>
-            <Link to="/app/legal/library" className="text-xs text-primary hover:opacity-80 transition-opacity">View all →</Link>
+            <Link to="/app/legal/library" className="text-xs text-muted-foreground hover:text-foreground transition-colors">View all →</Link>
           </div>
 
           <div className="card">
@@ -1224,6 +1295,9 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        </>
+        )}
 
       </div>
     </AppLayout>
