@@ -2,13 +2,14 @@ import { useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Archive, Upload, Loader2, CheckCircle, XCircle, AlertTriangle,
-  CalendarClock, Download, ChevronUp, ChevronDown,
+  CalendarClock, Download, ChevronUp, ChevronDown, Calculator,
 } from "lucide-react";
 import AppLayout from "../components/layout/AppLayout";
 import {
-  uploadDocument, startLegacyReview, getLegacyReport,
-  type LegacyReportRow,
+  uploadDocument, startLegacyReview, getLegacyReport, getLegacyQuote,
+  type LegacyReportRow, type LegacyQuote,
 } from "../lib/api";
+import { useAuth } from "../hooks/useAuth";
 
 // ─── Client-side upload queue ─────────────────────────────────────────────────
 
@@ -76,10 +77,83 @@ function fmtMoney(v: number | null, currency: string): string {
   return `${sym}${v.toLocaleString()}`;
 }
 
+// ─── Admin-only: internal indicative quoting helper ────────────────────────────
+// A sales aid for quoting legacy review during conversations. NOT customer-facing;
+// price bands live server-side and the endpoint is admin-gated.
+
+function AdminLegacyQuote() {
+  const [input, setInput] = useState("");
+  const [quote, setQuote] = useState<LegacyQuote | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const gbp = (n: number) => `£${n.toLocaleString("en-GB")}`;
+
+  async function calculate() {
+    const n = Math.max(0, Math.floor(Number(input) || 0));
+    if (!n) { setQuote(null); setError("Enter a number of contracts."); return; }
+    setLoading(true); setError(null);
+    try {
+      setQuote(await getLegacyQuote(n));
+    } catch {
+      setError("Could not calculate (admin access required).");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="card p-6 space-y-4 border-dashed">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Calculator size={16} className="text-primary" />
+        <div className="text-sm font-semibold">Internal indicative pricing</div>
+        <span className="text-[10px] uppercase tracking-widest text-[#FCD34D] border border-[#FCD34D]/30 rounded px-1.5 py-0.5">Admin only</span>
+      </div>
+      <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
+        Sales helper for quoting legacy review. Not a customer-facing price list and not shown publicly. Pricing stays conversation-led.
+      </p>
+      <div className="flex items-end gap-3 flex-wrap">
+        <div>
+          <label className="text-xs text-muted-foreground block mb-1">Number of contracts</label>
+          <input
+            type="number" min={0} value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void calculate(); }}
+            placeholder="e.g. 300"
+            className="bg-card border border-card-border rounded-lg px-3 py-2 text-sm w-40 focus:outline-none focus:border-primary"
+          />
+        </div>
+        <button className="btn-secondary text-sm gap-2" onClick={() => void calculate()} disabled={loading}>
+          {loading ? <Loader2 size={14} className="animate-spin" /> : null} Calculate
+        </button>
+      </div>
+      {error && <p className="text-xs text-[#FCA5A5]">{error}</p>}
+      {quote && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-lg border border-card-border px-4 py-3">
+            <div className="text-[11px] text-muted-foreground">Band</div>
+            <div className="text-sm font-semibold mt-0.5">{quote.band}</div>
+          </div>
+          <div className="rounded-lg border border-card-border px-4 py-3">
+            <div className="text-[11px] text-muted-foreground">Per contract</div>
+            <div className="text-lg font-semibold mt-0.5">{gbp(quote.perContract)}</div>
+          </div>
+          <div className="rounded-lg border border-card-border px-4 py-3">
+            <div className="text-[11px] text-muted-foreground">Indicative total</div>
+            <div className="text-lg font-semibold mt-0.5">{gbp(quote.total)}</div>
+          </div>
+        </div>
+      )}
+      <p className="text-[10px] text-muted-foreground/60">Indicative only. Final pricing agreed in conversation.</p>
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function LegacyReview() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [uploadingBatch, setUploadingBatch] = useState(false);
@@ -181,6 +255,9 @@ export default function LegacyReview() {
             </button>
           )}
         </div>
+
+        {/* Admin-only internal quoting helper */}
+        {user?.isAdmin && <AdminLegacyQuote />}
 
         {/* Upload zone */}
         <div className="card p-6 space-y-4">

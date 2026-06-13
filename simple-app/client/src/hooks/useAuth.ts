@@ -4,6 +4,7 @@ import { getMe, logout as apiLogout } from "../lib/api";
 interface AuthUser {
   userId: string;
   email: string;
+  isAdmin?: boolean;
 }
 
 async function fetchMe(): Promise<AuthUser> {

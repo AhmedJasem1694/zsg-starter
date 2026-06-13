@@ -755,6 +755,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // ── Admin: compounding metrics dashboard ───────────────────────────────────
+  // Internal indicative quote for legacy contract review. Admin only: the price
+  // bands live server-side so they never ship in the public bundle, and this is a
+  // sales helper, not a customer-facing price list. Pricing stays conversation-led.
+  app.get("/api/admin/legacy-quote", requireAuth, ah(async (req: Request, res: Response) => {
+    if (!(await isAdminRequest(req))) { sendError(res, 403, "Admin access required"); return; }
+    const contracts = Math.max(0, Math.floor(Number(req.query.contracts) || 0));
+    // Bands: per-contract rate by estate size.
+    const perContract =
+      contracts <= 100  ? 12 :
+      contracts <= 250  ? 10 :
+      contracts <= 500  ? 8  :
+      contracts <= 1000 ? 6  :
+                          5;
+    const band =
+      contracts <= 100  ? "Up to 100 contracts" :
+      contracts <= 250  ? "101 to 250 contracts" :
+      contracts <= 500  ? "251 to 500 contracts" :
+      contracts <= 1000 ? "501 to 1000 contracts" :
+                          "1000+ contracts";
+    res.json({ contracts, perContract, total: contracts * perContract, band });
+  }));
+
   // Internal metrics proving the accumulation story, computed live from
   // PocketBase, no external analytics dependency.
   app.get("/api/admin/metrics", requireAuth, ah(async (req: Request, res: Response) => {
@@ -989,7 +1011,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ ok: true });
   });
 
-  app.get("/api/auth/me", requireAuth, (req: Request, res: Response) => {
+  app.get("/api/auth/me", requireAuth, ah(async (req: Request, res: Response) => {
     // The JWT has already been verified by requireAuth. We trust it.
     // Include a fresh token so the client can use Authorization: Bearer as a fallback
     // when httpOnly cookies are stripped by a reverse proxy (e.g. Railway).
@@ -999,8 +1021,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // "payload already has an exp property" when combined with expiresIn option.
     const { userId, email } = req.user!;
     const freshToken = signToken({ userId, email });
-    res.json({ userId, email, token: freshToken });
-  });
+    // isAdmin lets the client gate admin-only UI (e.g. the internal legacy quote helper).
+    const isAdmin = await isAdminRequest(req);
+    res.json({ userId, email, token: freshToken, isAdmin });
+  }));
 
   // ── Company search / enrichment ──────────────────────────────────────────────
 

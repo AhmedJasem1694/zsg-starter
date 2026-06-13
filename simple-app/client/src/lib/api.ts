@@ -311,6 +311,11 @@ export const getLegacyReport = () =>
     "GET", "/api/legacy/report"
   );
 
+// Admin-only: internal indicative quote for legacy review (sales helper, not customer-facing).
+export interface LegacyQuote { contracts: number; perContract: number; total: number; band: string }
+export const getLegacyQuote = (contracts: number) =>
+  req<LegacyQuote>("GET", `/api/admin/legacy-quote?contracts=${encodeURIComponent(contracts)}`);
+
 // Admin-only: compounding metrics dashboard
 export interface AdminMetrics {
   contractsReviewed: number;
@@ -374,9 +379,9 @@ export const logout = () => {
   storeAuthToken(null);
   return req<{ ok: boolean }>("POST", "/api/auth/logout");
 };
-export const getMe = async (): Promise<{ userId: string; email: string }> => {
+export const getMe = async (): Promise<{ userId: string; email: string; isAdmin?: boolean }> => {
   try {
-    const data = await req<{ userId: string; email: string; token?: string }>("GET", "/api/auth/me");
+    const data = await req<{ userId: string; email: string; token?: string; isAdmin?: boolean }>("GET", "/api/auth/me");
     // Bootstrap the in-memory token from the /me response so Bearer auth works
     // even when httpOnly cookies aren't forwarded by a reverse proxy.
     if (data.token) storeAuthToken(data.token);
