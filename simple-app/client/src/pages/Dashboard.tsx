@@ -889,7 +889,7 @@ export default function Dashboard() {
   return (
     <>
     <AppLayout>
-      <div className="px-6 py-8 max-w-4xl mx-auto space-y-10">
+      <div className="px-6 py-10 max-w-4xl mx-auto space-y-12">
 
         {/* Page header */}
         <div className="flex items-center justify-between gap-4">
@@ -927,7 +927,7 @@ export default function Dashboard() {
 
         {isEmptyAccount ? (
           /* ── Empty account: one calm state that guides the first action ─── */
-          <div className="card px-6 py-12 text-center space-y-6 max-w-xl mx-auto">
+          <div className="card px-6 py-14 text-center space-y-6 max-w-xl mx-auto shadow-sm">
             <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center mx-auto">
               <FileText size={22} className="text-[#60A5FA]" />
             </div>
@@ -993,11 +993,11 @@ export default function Dashboard() {
         <>
 
         {/* ── Primary attention area: what needs you now ──────────────────── */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Needs your attention</h2>
 
           {!hasActions && !useMock && (
-            <div className="card px-5 py-8 text-center space-y-2">
+            <div className="card px-5 py-10 text-center space-y-2 shadow-sm">
               <CheckCircle size={22} className="text-[#86EFAC] mx-auto" />
               <div className="text-sm font-medium">No actions required today.</div>
               <div className="text-xs text-muted-foreground">All contracts are up to date.</div>
@@ -1006,8 +1006,8 @@ export default function Dashboard() {
 
           {useMock && (
             <a href="/app/legal/review/mock-1"
-              className="flex items-start gap-4 px-5 py-4 rounded-xl border border-[#450A0A] bg-[#1A0404] hover:bg-[#200505] transition-colors group">
-              <div className="w-8 h-8 rounded-lg bg-[#450A0A] flex items-center justify-center shrink-0">
+              className="flex items-start gap-4 px-5 py-5 rounded-xl border border-red-500/15 bg-red-500/[0.035] hover:bg-red-500/[0.06] transition-colors group shadow-sm">
+              <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
                 <AlertTriangle size={14} className="text-[#FCA5A5]" />
               </div>
               <div className="flex-1 min-w-0">
@@ -1024,8 +1024,8 @@ export default function Dashboard() {
             const cp = (d as UploadedDocument & { counterpartyName?: string }).counterpartyName;
             return (
               <a key={d.id} href={`/app/legal/review/${d.id}`}
-                className="flex items-start gap-4 px-5 py-4 rounded-xl border border-[#450A0A] bg-[#1A0404] hover:bg-[#200505] transition-colors group">
-                <div className="w-8 h-8 rounded-lg bg-[#450A0A] flex items-center justify-center shrink-0">
+                className="flex items-start gap-4 px-5 py-5 rounded-xl border border-red-500/15 bg-red-500/[0.035] hover:bg-red-500/[0.06] transition-colors group shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
                   <AlertTriangle size={14} className="text-[#FCA5A5]" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1044,8 +1044,8 @@ export default function Dashboard() {
             const cp = (d as UploadedDocument & { counterpartyName?: string }).counterpartyName;
             return (
               <a key={`esc-${d.id}`} href={`/app/legal/review/${d.id}`}
-                className="flex items-start gap-4 px-5 py-4 rounded-xl border border-[#431407] bg-[#1A1000] hover:bg-[#201300] transition-colors group">
-                <div className="w-8 h-8 rounded-lg bg-[#431407] flex items-center justify-center shrink-0">
+                className="flex items-start gap-4 px-5 py-5 rounded-xl border border-amber-500/15 bg-amber-500/[0.035] hover:bg-amber-500/[0.06] transition-colors group shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
                   <Bell size={14} className="text-[#FCD34D]" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1062,8 +1062,8 @@ export default function Dashboard() {
             const daysLeft = Math.ceil((new Date(d.renewalDate!).getTime() - now30) / (1000 * 60 * 60 * 24));
             return (
               <a key={`ren-${d.id}`} href={`/app/legal/review/${d.id}`}
-                className="flex items-start gap-4 px-5 py-4 rounded-xl border border-[#1B2D4A] bg-[#0C1929] hover:bg-[#0F1E35] transition-colors group">
-                <div className="w-8 h-8 rounded-lg bg-[#1B2D4A] flex items-center justify-center shrink-0">
+                className="flex items-start gap-4 px-5 py-5 rounded-xl border border-blue-500/15 bg-blue-500/[0.035] hover:bg-blue-500/[0.06] transition-colors group shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
                   <CalendarClock size={14} className="text-[#60A5FA]" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1096,9 +1096,9 @@ export default function Dashboard() {
         </div>
 
         {/* ── Section 2: Executive Overview ──────────────────────────────── */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Overview</h2>
-          <div className="card grid grid-cols-2 sm:grid-cols-4 sm:divide-x divide-card-border overflow-hidden">
+          <div className="card grid grid-cols-2 sm:grid-cols-4 sm:divide-x divide-card-border overflow-hidden shadow-sm">
             {[
               {
                 label: "Contracts reviewed this month",
@@ -1123,22 +1123,22 @@ export default function Dashboard() {
                 highlight: false,
               },
             ].map((s) => (
-              <div key={s.label} className="px-4 py-3.5">
-                <div className={`text-lg font-semibold ${s.highlight ? "text-[#FCA5A5]" : "text-foreground"}`}>{s.value}</div>
-                <div className="text-[11px] text-muted-foreground leading-snug mt-0.5">{s.label}</div>
+              <div key={s.label} className="px-5 py-6">
+                <div className={`text-xl font-semibold tracking-tight ${s.highlight ? "text-[#FCA5A5]" : "text-foreground"}`}>{s.value}</div>
+                <div className="text-[11px] text-muted-foreground/80 leading-snug mt-1.5">{s.label}</div>
               </div>
             ))}
           </div>
         </div>
 
         {/* ── Section 3: Recent Reviews ───────────────────────────────────── */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Recent Reviews</h2>
             <Link to="/app/legal/library" className="text-xs text-muted-foreground hover:text-foreground transition-colors">View all →</Link>
           </div>
 
-          <div className="card">
+          <div className="card shadow-sm">
             {docsError ? (
               <div className="card-body text-center py-8">
                 <AlertCircle size={24} className="text-[#FCA5A5] mx-auto mb-2" />
