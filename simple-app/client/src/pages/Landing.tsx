@@ -203,6 +203,23 @@ export default function Landing() {
             </button>
             <p className="text-xs text-slate-500">No implementation. No enterprise contract. Working in 20 minutes.</p>
           </motion.div>
+
+          {/* Quiet stats row, part of the hero group, directly under the supporting line */}
+          <motion.div
+            className="mt-10 flex flex-wrap items-start justify-center gap-x-10 sm:gap-x-16 gap-y-5 text-center"
+            {...(shouldReduce ? {} : fadeUpHero(0.6))}
+          >
+            {[
+              { value: "11 minutes",     label: "Average review time" },
+              { value: "100%",           label: "Company-specific from day one" },
+              { value: "1 to 5 lawyers", label: "The team size we are built for" },
+            ].map(({ value, label }) => (
+              <div key={label} className="space-y-0.5">
+                <div className="text-base sm:text-lg font-semibold text-[#F8FAFC]">{value}</div>
+                <div className="text-[11px] text-slate-500 leading-snug">{label}</div>
+              </div>
+            ))}
+          </motion.div>
         </div>
       </section>
 
@@ -240,27 +257,6 @@ export default function Landing() {
                 </div>
               ))}
             </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ─── STATS: calm horizontal band ────────────────────────────────────── */}
-      <section className="bg-navy-900 border-t border-line-dark/60 py-16 sm:py-20">
-        <div className="max-w-3xl mx-auto px-6">
-          <motion.div
-            className="grid grid-cols-1 sm:grid-cols-3 gap-y-8 sm:gap-y-0 sm:gap-x-6 text-center"
-            {...(shouldReduce ? {} : fadeUp(0.05))}
-          >
-            {[
-              { value: "11 minutes",     label: "Average review time" },
-              { value: "100%",           label: "Company-specific from day one" },
-              { value: "1 to 5 lawyers", label: "The team size we are built for" },
-            ].map(({ value, label }) => (
-              <div key={label} className="space-y-1">
-                <div className="text-2xl font-bold text-[#F8FAFC]">{value}</div>
-                <div className="text-xs text-slate-500 leading-snug">{label}</div>
-              </div>
-            ))}
           </motion.div>
         </div>
       </section>
