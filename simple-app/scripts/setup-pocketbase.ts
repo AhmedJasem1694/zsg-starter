@@ -177,6 +177,8 @@ async function main() {
     textField("industry"),
     // Regulatory analysis override: "" (sector default) | FULL | RELEVANT | MINIMAL
     textField("regulationProminence"),
+    // Inbound email: dedicated {slug}@inbox.zanelegal.ai address
+    textField("inbound_email"),
   ]);
 
   // ── 2. panel_firms ────────────────────────────────────────────────────────
@@ -946,6 +948,27 @@ async function main() {
     textField("status"),
   ]);
 
+  // ── inbound_emails (accepted inbound mail, awaiting/after processing) ──────
+  await ensureCollection("inbound_emails", [
+    textField("company", { required: true }),
+    textField("sender"),
+    textField("recipient"),
+    textField("subject"),
+    textField("bodyText"),
+    textField("attachments"),   // JSON array of { filename, originalName, size, mime }
+    textField("messageId"),
+    textField("status"),        // RECEIVED | PROCESSED | ...
+  ]);
+
+  // ── inbound_rejections (silent log of unverified / unauthorised inbound) ──
+  await ensureCollection("inbound_rejections", [
+    textField("sender"),
+    textField("recipient"),
+    textField("subject"),
+    textField("reason"),        // no_company | unknown_sender | ...
+    textField("companyId"),
+  ]);
+
   // ── integration_configs ───────────────────────────────────────────────────
   await ensureCollection("integration_configs", [
     textField("companyId", { required: true }),
@@ -1059,6 +1082,8 @@ async function verify() {
     { name: "integration_events", requiredFields: ["event_type"] },
     { name: "access_requests", requiredFields: ["name", "email"] },
     { name: "decision_events", requiredFields: ["company", "human_action"] },
+    { name: "inbound_emails", requiredFields: ["company", "status"] },
+    { name: "inbound_rejections", requiredFields: ["sender", "reason"] },
   ];
 
   let pass = 0;

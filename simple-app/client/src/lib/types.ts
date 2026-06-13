@@ -677,6 +677,8 @@ export interface Company {
   workflowType?: WorkflowType;
   /** Regulatory analysis override (Settings): "FULL" | "RELEVANT" | "MINIMAL" | "" = sector default */
   regulationProminence?: string;
+  /** Dedicated inbound address: {slug}@inbox.zanelegal.ai */
+  inbound_email?: string;
   createdAt: string;
   playbookRules?: PlaybookRule[];
   approvalContacts?: ApprovalContact[];

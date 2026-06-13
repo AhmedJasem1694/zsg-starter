@@ -92,6 +92,43 @@ simple-app/
 | demo@zanelegal.ai | ZaneDemo2026! | Meridian Financial Technologies Ltd (GC interface) |
 | founder-demo@zanelegal.ai | ZaneDemo2026! | Sora Technologies Ltd (Founder interface) |
 
+## Inbound Email (Email Zane)
+
+Every company gets a dedicated address — `{company-slug}@inbox.zanelegal.ai` (e.g. `seko@inbox.zanelegal.ai`). Users CC, forward, or email contracts and requests there in plain English; Zane parses the intent, does the work, and replies by email with a link to the full result in the app. No portal, no upload.
+
+Inbound mail is received via **Mailgun Inbound Routes**, which webhook into `POST /api/inbound-email`. Every request's signature is verified with `MAILGUN_SIGNING_KEY`, and only emails from a **registered user of the recipient company** are processed — anything else is logged silently to `inbound_rejections` and ignored (no reply, nothing revealing).
+
+### Environment variables
+
+```
+MAILGUN_API_KEY=          # Mailgun API key (sending / management)
+MAILGUN_SIGNING_KEY=      # HTTP webhook signing key — verifies every inbound POST
+INBOUND_EMAIL_DOMAIN=inbox.zanelegal.ai
+```
+
+### Mailgun setup
+
+1. In Mailgun, add the domain **`inbox.zanelegal.ai`** (Sending → Domains → Add New Domain).
+2. Create an inbound **Route** (Receiving → Routes → Create Route):
+   - **Expression type**: Match Recipient → `.*@inbox.zanelegal.ai`
+   - **Action**: `forward("https://<your-app-url>/api/inbound-email")`, and tick **Store and notify** so attachments are included.
+   - Priority `0`.
+3. Copy the **HTTP webhook signing key** (Sending → Webhooks) into `MAILGUN_SIGNING_KEY`.
+
+### DNS records to add at Namecheap (for the `inbox` subdomain)
+
+Add these on the **zanelegal.ai** domain. Mailgun shows the exact values for your account on the domain's DNS page — the table below is the record *types and hosts* you need. **Namecheap's "Host" field is relative to `zanelegal.ai`, so use `inbox` (not `inbox.zanelegal.ai`).**
+
+| Type  | Host (Namecheap)           | Value                                       | Priority | Purpose             |
+|-------|----------------------------|---------------------------------------------|----------|---------------------|
+| MX    | `inbox`                    | `mxa.mailgun.org`                           | 10       | Receive mail        |
+| MX    | `inbox`                    | `mxb.mailgun.org`                           | 10       | Receive mail        |
+| TXT   | `inbox`                    | `v=spf1 include:mailgun.org ~all`           | —        | SPF (anti-spoof)    |
+| TXT   | `mailo._domainkey.inbox`   | `k=rsa; p=<DKIM public key from Mailgun>`   | —        | DKIM (signing)      |
+| CNAME | `email.inbox`              | `mailgun.org`                               | —        | Open/click tracking (optional) |
+
+> Use the exact DKIM `p=` value Mailgun generates for your domain — the one above is a placeholder. After adding the records, click **Verify DNS Settings** in Mailgun; propagation can take up to a few hours.
+
 ## Railway Deployment
 
 Two Railway services:

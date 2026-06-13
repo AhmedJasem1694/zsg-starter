@@ -12,6 +12,9 @@ import {
   Clock,
   ChevronDown,
   Trash2,
+  Mail,
+  Copy,
+  Check,
 } from "lucide-react";
 import AppLayout from "../components/layout/AppLayout";
 import IntegrationStatusBadge from "../components/IntegrationStatusBadge";
@@ -372,7 +375,7 @@ function IntegrationCard({
 
 // ── Settings page ─────────────────────────────────────────────────────────────
 
-type Tab = "integrations" | "regulatory" | "costs" | "danger";
+type Tab = "integrations" | "email" | "regulatory" | "costs" | "danger";
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState<Tab>("integrations");
@@ -435,6 +438,16 @@ export default function Settings() {
             }`}
           >
             Integrations
+          </button>
+          <button
+            onClick={() => setActiveTab("email")}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
+              activeTab === "email"
+                ? "border-blue-500 text-blue-400"
+                : "border-transparent text-muted-foreground/50 hover:text-muted-foreground"
+            }`}
+          >
+            Email Zane
           </button>
           <button
             onClick={() => setActiveTab("regulatory")}
@@ -502,6 +515,9 @@ export default function Settings() {
             )}
           </div>
         )}
+
+        {/* Email Zane tab */}
+        {activeTab === "email" && <EmailZaneSettings />}
 
         {/* Regulatory analysis tab */}
         {activeTab === "regulatory" && <RegulatoryAnalysisSettings />}
@@ -637,6 +653,59 @@ const REGULATORY_OPTIONS: { value: RegulationAnalysisSetting; label: string; des
     desc: "All regulatory content is collapsed into a single “Regulatory references” section at the bottom of each review, closed by default.",
   },
 ];
+
+function EmailZaneSettings() {
+  const { data: company } = useQuery({ queryKey: ["company"], queryFn: getCompany, retry: false });
+  const [copied, setCopied] = useState(false);
+  const address = company?.inbound_email ?? "";
+
+  function copy() {
+    if (!address) return;
+    void navigator.clipboard?.writeText(address).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+          <Mail size={18} className="text-blue-400" />
+        </div>
+        <div>
+          <div className="text-sm font-semibold text-foreground">Your company's Zane address</div>
+          <p className="text-sm text-muted-foreground/70 mt-1 leading-relaxed">
+            CC or forward any contract to this address and Zane will handle it — review it,
+            summarise it, or draft from your playbook — then reply by email with the result.
+          </p>
+        </div>
+      </div>
+
+      {address ? (
+        <div className="flex items-center gap-2 rounded-lg border border-card-border bg-card px-4 py-3 max-w-xl">
+          <code className="flex-1 text-sm text-foreground font-mono truncate">{address}</code>
+          <button
+            onClick={copy}
+            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-card-border hover:bg-white/5 transition-colors"
+          >
+            {copied ? <Check size={13} className="text-[#86EFAC]" /> : <Copy size={13} />}
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground/60">
+          Your inbound address is being set up. Refresh in a moment, or contact support if it doesn't appear.
+        </p>
+      )}
+
+      <p className="text-xs text-muted-foreground/50 max-w-xl leading-relaxed">
+        Only emails sent from a registered member of your team are processed. Anything from an
+        unrecognised address is ignored.
+      </p>
+    </div>
+  );
+}
 
 function RegulatoryAnalysisSettings() {
   const queryClient = useQueryClient();

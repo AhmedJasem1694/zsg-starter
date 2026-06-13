@@ -53,3 +53,20 @@ export const upload = multer({
     }
   },
 });
+
+// Inbound email (Mailgun) parser. Accepts arbitrary form fields (timestamp,
+// token, signature, sender, recipient, subject, body-plain, attachment-N...)
+// via .any(). Attachments are saved to ./uploads with nanoid names. Only
+// PDF/DOCX are kept; other attachment types are skipped silently
+// (cb(null, false)) rather than failing the whole request — incidental
+// attachments (logos, email signatures) are normal in real mail. Per-file
+// limit is 25MB.
+export const inboundUpload = multer({
+  storage,
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB per attachment
+  fileFilter: (_req, file, cb) => {
+    const allowed = [".pdf", ".docx", ".doc"];
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, allowed.includes(ext));
+  },
+});

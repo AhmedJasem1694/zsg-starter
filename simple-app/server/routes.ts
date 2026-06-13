@@ -5,7 +5,12 @@ import fs from "fs";
 import { z } from "zod";
 import { pb, newPBClient } from "./pb.js";
 import multer from "multer";
-import { upload, uploadAncillary, classifyFileType } from "./upload.js";
+import { upload, uploadAncillary, classifyFileType, inboundUpload } from "./upload.js";
+import {
+  ensureInboundSchema, backfillInboundEmails, generateUniqueInboundEmail,
+  verifyMailgunSignature, extractInboundAddresses, resolveCompanyByRecipient,
+  getAuthorisedSenders, normaliseEmail, logRejection,
+} from "./services/inboundEmail.js";
 import { runReview } from "./services/reviewOrchestrator.js";
 import { runLegacyReview, ensureLegacyFields } from "./services/legacyReview.js";
 import { detectAndSaveRegulations } from "./services/regulatoryDetection.js";
@@ -237,6 +242,105 @@ async function assertOwnsDocument(userId: string, documentId: string, userCompan
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+
+  // Inbound email: ensure schema (companies.inbound_email + inbound_emails /
+  // inbound_rejections collections) and backfill addresses for existing
+  // companies. Fire-and-forget so a slow/unavailable PB never blocks boot.
+  void backfillInboundEmails().catch((e: unknown) =>
+    console.warn("[inbound] startup backfill failed:", (e as Error)?.message));
+
+  // ── Inbound email webhook (Mailgun) ───────────────────────────────────────────
+  // Public endpoint — Mailgun cannot present our auth cookie, so every request's
+  // Mailgun signature is verified instead. Only emails from a registered user of
+  // the recipient company are persisted; everything else (no matching company,
+  // unknown sender) is logged silently to inbound_rejections and ignored. We
+  // always return 200 on policy rejections so nothing is revealed to a sender
+  // and Mailgun does not retry. No model call happens here — when attachments
+  // are processed downstream they run through the existing PII anonymisation
+  // pipeline, exactly like manual uploads.
+  app.post(
+    "/api/inbound-email",
+    (req: Request, res: Response, next: NextFunction) => {
+      inboundUpload.any()(req, res, (err: unknown) => {
+        if (err) {
+          console.warn("[inbound] multipart parse error:", (err as Error)?.message);
+          res.status(200).json({ ok: false }); // acknowledge; do nothing else
+          return;
+        }
+        next();
+      });
+    },
+    ah(async (req: Request, res: Response) => {
+      const body = (req.body ?? {}) as Record<string, string>;
+      const files = ((req.files as Express.Multer.File[] | undefined) ?? []);
+      const cleanupFiles = () => {
+        for (const f of files) { try { fs.unlinkSync(f.path); } catch { /* ignore */ } }
+      };
+
+      // 1. Verify the Mailgun signature on EVERY request.
+      if (!verifyMailgunSignature(body.timestamp, body.token, body.signature)) {
+        cleanupFiles();
+        sendError(res, 401, "Invalid signature");
+        return;
+      }
+
+      await ensureInboundSchema().catch(() => {});
+
+      const sender = normaliseEmail(body.sender || body.from || body.From);
+      const recipientField = body.recipient || body.To || body.to || "";
+      const subject = body.subject || body.Subject || "";
+      const bodyText = body["stripped-text"] || body["body-plain"] || body["body-html"] || "";
+      const messageId = body["Message-Id"] || body["message-id"] || "";
+
+      // 2. Resolve the company from the recipient (handles To + Cc + forwards).
+      const addresses = extractInboundAddresses(recipientField, body.To, body.Cc, body.recipient);
+      const company = await resolveCompanyByRecipient(addresses);
+      if (!company) {
+        cleanupFiles();
+        await logRejection({ sender, recipient: recipientField, subject, reason: "no_company" });
+        res.status(200).json({ ok: true }); // neutral — reveal nothing
+        return;
+      }
+
+      // 3. Sender must be a registered user of THAT company (security, 1d).
+      const authorised = await getAuthorisedSenders(company);
+      if (!sender || !authorised.has(sender)) {
+        cleanupFiles();
+        await logRejection({ sender, recipient: recipientField, subject, reason: "unknown_sender", companyId: company.id as string });
+        res.status(200).json({ ok: true }); // neutral
+        return;
+      }
+
+      // 4. Accepted — persist the parsed email + attachment references for the
+      //    downstream intent/processing section. Attachments are already saved
+      //    to ./uploads (nanoid names) by the inbound multer; only PDF/DOCX are
+      //    kept.
+      const attachments = files.map((f) => ({
+        filename: f.filename,        // on-disk name in ./uploads
+        originalName: f.originalname,
+        size: f.size,
+        mime: f.mimetype,
+      }));
+
+      try {
+        await pb.collection("inbound_emails").create({
+          company: company.id,
+          sender,
+          recipient: addresses[0] ?? recipientField,
+          subject: subject.slice(0, 500),
+          bodyText: bodyText.slice(0, 50_000),
+          attachments: JSON.stringify(attachments),
+          messageId,
+          status: "RECEIVED",
+        });
+      } catch (err) {
+        console.error("[inbound] failed to persist inbound_emails record:", (err as Error)?.message);
+      }
+
+      console.log(`[inbound] accepted email from ${sender} → ${company["name"]} (${attachments.length} attachment(s))`);
+      res.status(200).json({ ok: true });
+    })
+  );
 
   // ── Auth ─────────────────────────────────────────────────────────────────────
 
@@ -771,10 +875,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch { /* no existing company for this user — fine */ }
     }
 
+    // Generate this company's dedicated inbound email address ({slug}@inbox...).
+    // Best-effort: never block company creation if address generation fails.
+    await ensureInboundSchema().catch(() => {});
+    const inboundEmail = await generateUniqueInboundEmail(parsed.data.name)
+      .catch(() => "");
+
     const company = await pb.collection("companies").create({
       ...parsed.data,
       [OWNER_FIELD]: userEmail ?? "", // role_in_contracts stores owner email
       subscription_tier: "trial",
+      ...(inboundEmail ? { inbound_email: inboundEmail } : {}),
     });
 
     await audit({
