@@ -39,6 +39,16 @@ const staggerItem = {
   show:   { opacity: 1, y: 0, transition: SPRING_SNAP },
 };
 
+// Slow, sequential reveal for the product-preview rows: elegant, one after another.
+const rowsReveal = {
+  hidden: {},
+  show:   { transition: { staggerChildren: 0.18, delayChildren: 0.2 } },
+};
+const rowReveal = {
+  hidden: { opacity: 0, y: 10 },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as const } },
+};
+
 // ─── Type scale ───────────────────────────────────────────────────────────────
 // hero:     text-4xl sm:text-6xl font-bold tracking-tight leading-[1.05]
 // section:  text-3xl sm:text-4xl font-bold tracking-tight
@@ -161,10 +171,14 @@ export default function Landing() {
 
       {/* ─── HERO: near-black, one idea ─────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-navy-950">
-        {/* Single hero accent: soft cobalt wash, the page's one glow */}
-        <div
+        {/* Single hero accent: soft cobalt wash that drifts very slowly, the page's one glow */}
+        <motion.div
           className="absolute inset-0 pointer-events-none"
           style={{ background: "radial-gradient(ellipse 60% 45% at 50% -10%, rgba(37,99,235,0.14), transparent 65%)" }}
+          {...(shouldReduce ? {} : {
+            animate: { opacity: [0.8, 1, 0.8], scale: [1, 1.05, 1], x: ["-1.5%", "1.5%", "-1.5%"] },
+            transition: { duration: 22, ease: "easeInOut", repeat: Infinity },
+          })}
         />
 
         <div className="relative max-w-3xl mx-auto px-6 pt-16 pb-20 sm:pt-24 sm:pb-28 text-center">
@@ -198,7 +212,7 @@ export default function Landing() {
             {...(shouldReduce ? {} : fadeUpHero(0.5))}
           >
             <button onClick={() => setShowRequestAccess(true)}
-              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-colors text-sm">
+              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-cobalt/25 motion-safe:hover:-translate-y-0.5 text-sm">
               Request access <ArrowRight size={15} />
             </button>
             <p className="text-xs text-slate-500">No implementation. No enterprise contract. Working in 20 minutes.</p>
@@ -241,22 +255,25 @@ export default function Landing() {
             <div className="px-4 py-2.5 border-b border-line-dark text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
               Next actions
             </div>
-            <div className="divide-y divide-line-dark/60">
+            <motion.div
+              className="divide-y divide-line-dark/60"
+              {...(shouldReduce ? {} : { variants: rowsReveal, initial: "hidden", whileInView: "show", viewport: { once: true, amount: 0.4 } })}
+            >
               {[
                 { name: "Technology Services Agreement", cp: "Acme Technologies Ltd",  dot: "bg-red-400/80",   label: "Do not sign yet" },
                 { name: "Master Services Agreement",     cp: "Nexus Solutions Ltd",    dot: "bg-amber-400/80", label: "Negotiate first" },
                 { name: "Software Licence Agreement",    cp: "DataFlow Technologies",  dot: "bg-red-400/80",   label: "Review required" },
               ].map((item) => (
-                <div key={item.name} className="px-4 py-3 flex items-center gap-3">
+                <motion.div key={item.name} className="px-4 py-3 flex items-center gap-3" {...(shouldReduce ? {} : { variants: rowReveal })}>
                   <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.dot}`} />
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-medium text-[#F8FAFC] truncate">{item.name}</div>
                     <div className="text-[11px] text-slate-500 truncate">{item.cp}</div>
                   </div>
                   <span className="text-[11px] text-slate-400 shrink-0">{item.label}</span>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </motion.div>
         </div>
       </section>
@@ -329,7 +346,7 @@ export default function Landing() {
                 body: "Zane tells you exactly what to push back on and who needs to approve. Every recommendation requires a human decision.",
               },
             ].map(({ step, title, body }) => (
-              <motion.div key={step} className="rounded-xl border border-line-light bg-white px-6 py-7" variants={staggerItem}>
+              <motion.div key={step} className="rounded-xl border border-line-light bg-white px-6 py-7 transition-shadow duration-300 hover:shadow-xl" variants={staggerItem} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
                 <div className="text-xs font-semibold tracking-[0.18em] text-slate-400">{step}</div>
                 <h3 className="mt-4 text-base font-semibold text-ink">{title}</h3>
                 <p className="mt-2 text-sm text-slate-600 leading-relaxed">{body}</p>
@@ -420,7 +437,7 @@ export default function Landing() {
               { count: "50",  title: "After 50 contracts",  body: "Zane knows which counterparties push back hardest and where." },
               { count: "100", title: "After 100 contracts", body: "Zane knows the gap between your written playbook and your real risk tolerance." },
             ].map(({ count, title, body }) => (
-              <motion.div key={count} className="rounded-xl border border-line-dark bg-navy-800 px-6 py-7" variants={staggerItem}>
+              <motion.div key={count} className="rounded-xl border border-line-dark bg-navy-800 px-6 py-7 transition-shadow duration-300 hover:shadow-lg" variants={staggerItem} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
                 <div className="text-2xl font-bold tracking-tight text-[#F8FAFC]">{count}</div>
                 <h3 className="mt-4 text-base font-semibold text-[#F8FAFC]">{title}</h3>
                 <p className="mt-2 text-sm text-slate-400 leading-relaxed">{body}</p>
@@ -458,7 +475,7 @@ export default function Landing() {
                 body: "A supplier sends you an MSA. You are not a lawyer, and £400 an hour is the alternative. Upload the contract and know what to do in minutes.",
               },
             ].map(({ title, body }) => (
-              <motion.div key={title} className="rounded-xl border border-line-light bg-white px-6 py-7" variants={staggerItem}>
+              <motion.div key={title} className="rounded-xl border border-line-light bg-white px-6 py-7 transition-shadow duration-300 hover:shadow-xl" variants={staggerItem} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
                 <h3 className="text-base font-semibold text-ink">{title}</h3>
                 <p className="mt-2 text-sm text-slate-600 leading-relaxed">{body}</p>
               </motion.div>
@@ -470,7 +487,7 @@ export default function Landing() {
       {/* ─── LEGACY CONTRACT REVIEW ──────────────────────────────────────────── */}
       <section className="bg-paper border-t border-line-light py-24 sm:py-36">
         <div className="max-w-2xl mx-auto px-6">
-          <motion.div className="rounded-xl border border-line-light bg-white px-8 py-10 text-center space-y-5" {...headingReveal}>
+          <motion.div className="rounded-xl border border-line-light bg-white px-8 py-10 text-center space-y-5 transition-shadow duration-300 hover:shadow-xl" {...headingReveal} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Legacy contract review</p>
             <h2 className="text-2xl font-bold tracking-tight text-ink">Have hundreds of historical contracts nobody has reviewed?</h2>
             <p className="text-sm text-slate-600 leading-relaxed max-w-lg mx-auto">
@@ -479,7 +496,7 @@ export default function Landing() {
             <div className="pt-1">
               <a href="https://calendly.com/ahmedljasem/30min"
                 target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-colors text-sm">
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-cobalt/25 motion-safe:hover:-translate-y-0.5 text-sm">
                 Book a conversation <ArrowRight size={15} />
               </a>
             </div>
@@ -499,7 +516,7 @@ export default function Landing() {
             <div className="pt-2">
               <a href="https://calendly.com/ahmedljasem/30min"
                 target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-colors text-sm">
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-cobalt/25 motion-safe:hover:-translate-y-0.5 text-sm">
                 Book a conversation <ArrowRight size={15} />
               </a>
             </div>
@@ -553,7 +570,7 @@ export default function Landing() {
             </p>
             <div className="pt-2">
               <button onClick={() => setShowRequestAccess(true)}
-                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-colors text-sm">
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-cobalt/25 motion-safe:hover:-translate-y-0.5 text-sm">
                 Request access <ArrowRight size={15} />
               </button>
             </div>
