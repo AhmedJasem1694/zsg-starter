@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -259,9 +260,24 @@ function ReviewRedirectInner({ base }: { base: string }) {
   return <Navigate to={`${base}/${id}`} replace />;
 }
 
+// ── Scroll to top on route change ─────────────────────────────────────────────
+// main.tsx sets scrollRestoration = "manual", so SPA navigations otherwise inherit
+// the previous page's scroll position (landing at the bottom of case studies,
+// resources, security, etc.). Reset to the top on every path change. In-page hash
+// navigation (e.g. the landing page anchors) is left to handle its own scroll.
+function ScrollToTop() {
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    if (hash) return;
+    window.scrollTo(0, 0);
+  }, [pathname, hash]);
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AppRoutes />
     </BrowserRouter>
   );
