@@ -323,7 +323,7 @@ export default function Landing() {
               {
                 step: "02",
                 title: "Reviewed against your playbook",
-                body: "Each clause is compared against your positions and live regulations. You get a Red / Amber / Green report with fallback language.",
+                body: "Each clause is checked against your playbook positions, with relevant regulatory references surfaced where they matter for your sector. You get a clear Red, Amber, Green report with suggested fallback language.",
               },
               {
                 step: "03",
