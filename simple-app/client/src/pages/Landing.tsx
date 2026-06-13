@@ -48,14 +48,16 @@ const staggerItem = {
 
 // ─── FAQ copy ─────────────────────────────────────────────────────────────────
 const LANDING_FAQS = [
-  { q: "How long does it take to get started?", a: "Around 20 minutes. You configure your playbook positions, set your approval thresholds, and upload your first contract. No implementation project. No technical setup. No enterprise sales process." },
-  { q: "Do I need a technical team to set this up?", a: "No. Zane is entirely self-serve. If you can fill in a form you can configure Zane. The only technical requirement is a browser." },
+  { q: "How do I get started?", a: "A pilot begins with a short onboarding conversation to set up your playbook positions and approval thresholds. From there you can be set up and reviewing your first contract within about twenty minutes. No implementation project. No technical setup. No long sales process." },
+  { q: "Do I need a technical team to set this up?", a: "No. There is no technical setup and no implementation project. Your positions are configured during a short onboarding conversation, and all you need to use Zane day to day is a browser or your email." },
   { q: "Are my contracts used to train AI models?", a: "Never. Your contracts are anonymised before any AI model sees them and are never used for model training of any kind. Your data stays yours." },
   { q: "How is Zane different from Claude for Legal or Harvey?", a: "Claude for Legal is a generic assistant that starts from zero every session. Harvey is built for Magic Circle law firms at six figures a year. Neither of them knows your company. Zane is built specifically for lean in-house teams and gets smarter about your company with every contract reviewed." },
+  { q: "Can I use Zane from my email?", a: "Yes. You can CC or forward any contract to your dedicated Zane address and it will review it against your playbook and reply in the thread, with everything filed in your library." },
+  { q: "Does Zane cover regulatory requirements?", a: "Zane surfaces relevant regulatory references where they matter for your sector, for example healthcare or financial services, and keeps them out of the way for straightforward commercial work." },
   { q: "What happens to my data if I cancel?", a: "Your data is yours. You can export everything before you cancel. We do not hold your data hostage." },
   { q: "Does Zane replace my lawyer?", a: "No. Zane handles the objective layer so your lawyer can focus on the judgment calls that actually require a lawyer. Every recommendation Zane makes requires a human decision before anything happens." },
   { q: "What contract types does Zane support?", a: "Commercial contracts, supplier agreements, customer MSAs, NDAs, technology agreements, employment contracts, and more. The playbook engine works for any contract type you configure it for." },
-  { q: "Is there a minimum contract or commitment?", a: "No implementation fee. No setup cost. Pilot terms and pricing are agreed up front before you commit." },
+  { q: "Is there a minimum contract or commitment?", a: "No implementation fee. No setup cost. Pilot terms are agreed up front in conversation before you commit." },
 ];
 
 // ─── Cycling phrases: the hero's rolling text ──────────────────────────────────
