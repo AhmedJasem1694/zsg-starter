@@ -29,6 +29,8 @@ import { chatComplete } from "./services/openrouter.js";
 import { searchCompanies, enrichCompany } from "./services/companySearch.js";
 import { audit } from "./services/auditLogger.js";
 import { recordDecisionEvent, recordDecisionEventForResult, deriveZaneRecommendation } from "./services/decisionEvents.js";
+import { captureThreadNegotiation, carriesThreadHistory } from "./services/negotiationCapture.js";
+import { buildCounterpartyProfile } from "./services/counterpartyProfile.js";
 import { getFeatureFlags, resolveTier, trialDaysRemaining } from "./services/featureFlags.js";
 import { runDeltaComparison } from "./services/deltaComparison.js";
 import { runPatternDetection } from "./services/patternDetector.js";
@@ -296,22 +298,20 @@ async function handleInboundIntent(input: {
       `${threadContractId ? ` [thread→contract ${threadContractId}]` : ""}`
     );
 
-    // 6b: a forwarded counterparty response in a contract-linked thread is a
-    // negotiation event — log it against that contract (feeds decision_events +
-    // counterparty intelligence). Additive: normal intent handling still runs.
-    if (threadContractId && looksForwarded(input.subject, input.bodyText)) {
-      await recordDecisionEvent({
+    // Section 3: when an inbound email belongs to a thread already linked to a
+    // contract and carries negotiation history (forwarded or quoted reply chain),
+    // parse the ENTIRE thread — not just this message — into structured
+    // per-counterparty negotiation moves (decision_events + negotiation_events).
+    // The sender is already verified as a company user (3e). Additive: normal
+    // intent handling still runs. Non-fatal.
+    if (threadContractId && (looksForwarded(input.subject, input.bodyText) || carriesThreadHistory(input.bodyText))) {
+      await captureThreadNegotiation({
         companyId,
-        userId: input.sender,
-        documentId: threadContractId,
-        clauseCategory: "",
-        zaneRecommendation: "negotiate",
-        zaneSuggestedText: "",
-        humanAction: "modified",
-        humanFinalPosition: input.bodyText.slice(0, 2000),
-        overrideReason: "Counterparty response forwarded by email",
-      });
-      console.log(`[intent] logged negotiation event for contract ${threadContractId}`);
+        contractId: threadContractId,
+        threadId,
+        currentBody: input.bodyText,
+        sender: input.sender,
+      }).catch((e) => console.warn("[intent] negotiation capture failed (non-fatal):", (e as Error)?.message));
     }
 
     const ctxBase = { companyId, user: input.sender, threadId, intent: result.intent };
@@ -1709,7 +1709,32 @@ Each field should be 1-3 sentences of clear, practical legal language.
       }
     }
 
-    res.json({ intelligence });
+    // Section 3c: per-counterparty negotiation profiles built from captured
+    // negotiation_events (email-thread moves). Surfaced alongside the per-clause
+    // intelligence on the playbook's counterparty section.
+    const counterpartyNames = Array.from(new Set(
+      Array.from(docMap.values()).map((n) => n.trim()).filter((n) => n && n.toLowerCase() !== "unknown"),
+    ));
+    const profiles: Record<string, Awaited<ReturnType<typeof buildCounterpartyProfile>>> = {};
+    await Promise.all(counterpartyNames.map(async (name) => {
+      const profile = await buildCounterpartyProfile(company.id as string, name).catch(() => null);
+      if (profile) profiles[name] = profile;
+    }));
+
+    res.json({ intelligence, profiles });
+  }));
+
+  // Section 3c: the negotiation profile for a single contract's counterparty —
+  // surfaced on the contract review page.
+  app.get("/api/contracts/:id/counterparty-profile", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
+    if (!company) { res.json({ profile: null }); return; }
+    const doc = await pb.collection("uploaded_documents").getOne(req.params.id).catch(() => null);
+    if (!doc || (doc["company"] as string) !== company.id) { res.json({ profile: null }); return; }
+    const counterparty = String(doc["counterpartyName"] ?? "").trim();
+    if (!counterparty) { res.json({ profile: null }); return; }
+    const profile = await buildCounterpartyProfile(company.id as string, counterparty).catch(() => null);
+    res.json({ profile });
   }));
 
   // ── New hire briefing ────────────────────────────────────────────────────────

@@ -21,6 +21,7 @@ import { runReview } from "./reviewOrchestrator.js";
 import { ensureInboundSchema } from "./inboundEmail.js";
 import { audit } from "./auditLogger.js";
 import { threadReplyText, threadReplyHtml, linkThreadContract, type ThreadContext } from "./emailThreads.js";
+import { buildCounterpartyProfile, profileReviewNote } from "./counterpartyProfile.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PBRecord = Record<string, any>;
@@ -126,9 +127,9 @@ function issueText(r: PBRecord, founder: boolean): { why: string; action: string
 }
 
 export function buildResultHtml(opts: {
-  filename: string; verdict: ResultSummary; founder: boolean; reviewUrl: string;
+  filename: string; verdict: ResultSummary; founder: boolean; reviewUrl: string; counterpartyNote?: string;
 }): string {
-  const { filename, verdict, founder, reviewUrl } = opts;
+  const { filename, verdict, founder, reviewUrl, counterpartyNote } = opts;
   const issueBlocks = verdict.issues.map((r, i) => {
     const { why, action } = issueText(r, founder);
     const tag = r["ragStatus"] === "RED" ? "RED" : "AMBER";
@@ -171,6 +172,13 @@ export function buildResultHtml(opts: {
 
   ${escalationBlock}
 
+  ${counterpartyNote ? `<tr><td style="padding:12px 28px 0;">
+        <div style="border:1px solid #E2E8F0;border-radius:10px;background:#F8FAFC;padding:14px 16px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#64748B;text-transform:uppercase;margin-bottom:6px;">Counterparty intelligence</div>
+          <div style="font-size:13px;color:#0B1020;line-height:1.6;">${esc(counterpartyNote).replace(/\n/g, "<br>")}</div>
+        </div>
+      </td></tr>` : ""}
+
   <tr><td style="padding:20px 28px 28px;">
     <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:8px;background:#2563EB;">
       <a href="${esc(reviewUrl)}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px;">View full review in Zane →</a>
@@ -184,8 +192,8 @@ export function buildResultHtml(opts: {
 </table></td></tr></table></body></html>`;
 }
 
-export function buildResultText(opts: { filename: string; verdict: ResultSummary; founder: boolean; reviewUrl: string }): string {
-  const { filename, verdict, founder, reviewUrl } = opts;
+export function buildResultText(opts: { filename: string; verdict: ResultSummary; founder: boolean; reviewUrl: string; counterpartyNote?: string }): string {
+  const { filename, verdict, founder, reviewUrl, counterpartyNote } = opts;
   const lines = [`Zane — contract review: ${filename}`, "", `Verdict: ${verdict.verdictLabel}`, ""];
   if (verdict.issues.length > 0) {
     lines.push(founder ? "What to watch:" : "Top issues:");
@@ -202,6 +210,9 @@ export function buildResultText(opts: { filename: string; verdict: ResultSummary
     lines.push("Needs sign-off:");
     for (const r of verdict.escalations) lines.push(`- ${clauseLabel(r["clauseCategory"])}: ${r["escalationTrigger"] || "approval required"}`);
     lines.push("");
+  }
+  if (counterpartyNote) {
+    lines.push(counterpartyNote, "");
   }
   lines.push(`View full review: ${reviewUrl}`, "", "— Zane");
   return lines.join("\n");
@@ -302,8 +313,17 @@ export async function processReviewByEmail(input: {
   // 3c / 3d. Build and send the result email, in-thread.
   const results = await pb.collection("review_results").getFullList({ filter: `document = "${doc.id}"` }).catch(() => [] as PBRecord[]);
   const verdict = buildSummary(results, founder);
-  const html = buildResultHtml({ filename: contract.originalName, verdict, founder, reviewUrl });
-  const text = buildResultText({ filename: contract.originalName, verdict, founder, reviewUrl });
+
+  // 3d: if this contract is with a known counterparty, note their negotiation
+  // patterns (built from prior captured threads/contracts) on the review.
+  const counterpartyName = String(doc["counterpartyName"] ?? "").trim();
+  const profile = counterpartyName
+    ? await buildCounterpartyProfile(company.id as string, counterpartyName).catch(() => null)
+    : null;
+  const counterpartyNote = profileReviewNote(profile);
+
+  const html = buildResultHtml({ filename: contract.originalName, verdict, founder, reviewUrl, counterpartyNote });
+  const text = buildResultText({ filename: contract.originalName, verdict, founder, reviewUrl, counterpartyNote });
 
   await threadReplyHtml(docCtx, {
     to: sender, from: fromAddr, inReplyTo: messageId,

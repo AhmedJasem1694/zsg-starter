@@ -1023,6 +1023,25 @@ async function main() {
     { name: "updated", type: "autodate", onCreate: true, onUpdate: true },
   ]);
 
+  // ── negotiation_events (Section 3: structured email-thread negotiation moves) ─
+  await ensureCollection("negotiation_events", [
+    textField("company", { required: true }),
+    textField("contract"),                 // uploaded_documents id
+    textField("counterparty"),             // denormalised counterparty name
+    textField("thread_id"),
+    textField("clause_category"),
+    numberField("round"),
+    textField("proposer"),                 // counterparty | us
+    textField("counterparty_position"),
+    textField("our_position"),
+    textField("movement"),
+    textField("outcome"),                  // proposed | countered | accepted | rejected | open
+    textField("final_landing"),
+    textField("source"),                   // email_thread
+    { name: "created", type: "autodate", onCreate: true, onUpdate: false },
+    { name: "updated", type: "autodate", onCreate: true, onUpdate: true },
+  ]);
+
   // ── access_requests (manual onboarding "Request access" form) ─────────────
   await ensureCollection("access_requests", [
     textField("name", { required: true }),
@@ -1104,6 +1123,7 @@ async function verify() {
     { name: "inbound_emails", requiredFields: ["company", "status"] },
     { name: "inbound_rejections", requiredFields: ["sender", "reason"] },
     { name: "email_threads", requiredFields: ["company"] },
+    { name: "negotiation_events", requiredFields: ["company"] },
   ];
 
   let pass = 0;

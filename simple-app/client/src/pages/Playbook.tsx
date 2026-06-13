@@ -1253,6 +1253,33 @@ export default function Playbook() {
                 </div>
               )}
 
+              {/* Section 3c — Counterparty negotiation profiles (from captured email threads) */}
+              {counterpartyData?.profiles && Object.keys(counterpartyData.profiles).length > 0 && (
+                <div className="rounded-lg border border-card-border bg-card p-5 space-y-3">
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Counterparty negotiation profiles</div>
+                    <p className="text-[11px] text-muted-foreground/50 mt-1">Built automatically from negotiation threads emailed to Zane.</p>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {Object.values(counterpartyData.profiles)
+                      .sort((a, b) => b.totalMoves - a.totalMoves)
+                      .map((p) => (
+                        <div key={p.counterparty} className="rounded-md border border-card-border/60 bg-background/40 p-3 space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="text-xs font-semibold text-white truncate">{p.counterparty}</div>
+                            <div className="text-[10px] text-muted-foreground/50 shrink-0">{p.contracts} contract(s) · {p.totalMoves} move(s)</div>
+                          </div>
+                          <ul className="space-y-0.5">
+                            {p.summaryLines.map((line, i) => (
+                              <li key={i} className="text-[11px] text-muted-foreground leading-snug">• {line}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
               {/* Full clause list */}
               {rules.map((rule) => (
                 <RuleCard

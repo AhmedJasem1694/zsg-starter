@@ -21,6 +21,7 @@ import { llmJsonCall } from "./llmJsonParse.js";
 import { getModelForTask } from "./modelRouter.js";
 import { ensureInboundSchema } from "./inboundEmail.js";
 import { threadReplyText, threadReplyHtml, linkThreadContract, type ThreadContext } from "./emailThreads.js";
+import { buildCounterpartyProfile, profileDraftToConfirm } from "./counterpartyProfile.js";
 import { audit } from "./auditLogger.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -292,10 +293,22 @@ export async function processDraftByEmail(input: {
     : "Items needing your input are marked TO CONFIRM.";
   const reviewUrl = docId ? `${APP_URL}/review/${docId}` : "";
 
+  // 3d: if the draft is for a known counterparty, pre-empt their likely pushback
+  // as TO CONFIRM notes (advisory — these are NOT written into the draft text).
+  const counterparty = (intentParams.counterparty ?? "").trim();
+  const profile = counterparty
+    ? await buildCounterpartyProfile(company.id as string, counterparty).catch(() => null)
+    : null;
+  const counterpartyToConfirm = profileDraftToConfirm(profile);
+  const counterpartyNote = counterpartyToConfirm.length > 0
+    ? `Likely pushback from ${counterparty} — TO CONFIRM before you send:\n${counterpartyToConfirm.map((t) => `  • ${t}`).join("\n")}`
+    : "";
+
   const text =
     `First draft attached: ${content.title}.\n\n` +
     `Built on your playbook:\n${bullets.map((b) => `  • ${b}`).join("\n")}\n\n` +
     `${toConfirmNote}\n\n` +
+    (counterpartyNote ? `${counterpartyNote}\n\n` : "") +
     (reviewUrl ? `Also saved to your Zane Library: ${reviewUrl}\n\n` : "") +
     `${FOOTER_TEXT(companyName)}`;
 
@@ -315,6 +328,12 @@ export async function processDraftByEmail(input: {
   <tr><td style="padding:8px 28px;">
     <div style="font-size:13px;color:#475569;line-height:1.6;">${esc(toConfirmNote).replace(/\n/g, "<br>")}</div>
   </td></tr>
+  ${counterpartyNote ? `<tr><td style="padding:8px 28px;">
+    <div style="border:1px solid #E2E8F0;border-radius:10px;background:#F8FAFC;padding:14px 16px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;color:#64748B;text-transform:uppercase;margin-bottom:6px;">Counterparty intelligence</div>
+      <div style="font-size:13px;color:#0B1020;line-height:1.6;">${esc(counterpartyNote).replace(/\n/g, "<br>")}</div>
+    </div>
+  </td></tr>` : ""}
   ${reviewUrl ? `<tr><td style="padding:16px 28px 8px;"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:8px;background:#2563EB;"><a href="${esc(reviewUrl)}" style="display:inline-block;padding:11px 20px;color:#fff;font-size:14px;font-weight:600;text-decoration:none;border-radius:8px;">Open in Zane Library →</a></td></tr></table></td></tr>` : ""}
   <tr><td style="padding:16px 28px;border-top:1px solid #E2E8F0;"><div style="font-size:11px;color:#94A3B8;line-height:1.5;">${esc(FOOTER_TEXT(companyName))}</div></td></tr>
 </table></td></tr></table></body></html>`;

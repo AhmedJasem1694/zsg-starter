@@ -849,10 +849,29 @@ export interface CounterpartyIntelligenceEntry {
   typicalOutcome: string;
 }
 
+// Section 3c: vendor-specific negotiation profile, built from captured email-thread moves.
+export interface CounterpartyProfile {
+  counterparty: string;
+  contracts: number;
+  threads: number;
+  totalMoves: number;
+  avgRoundsToClose: number | null;
+  alwaysPushOn: string[];
+  neverConcede: string[];
+  typicalMovement: string;
+  summaryLines: string[];
+}
+
 export const getCounterpartyIntelligence = () =>
-  req<{ intelligence: Record<string, CounterpartyIntelligenceEntry[]> }>(
+  req<{ intelligence: Record<string, CounterpartyIntelligenceEntry[]>; profiles: Record<string, CounterpartyProfile> }>(
     "GET",
     "/api/playbook/counterparty-intelligence"
+  );
+
+export const getContractCounterpartyProfile = (contractId: string) =>
+  req<{ profile: CounterpartyProfile | null }>(
+    "GET",
+    `/api/contracts/${contractId}/counterparty-profile`
   );
 
 // New hire briefing

@@ -7,7 +7,7 @@ import {
   TrendingDown, Layers, CalendarClock, FileCheck, Users, BarChart2, ChevronRight,
   MessageSquare, Shield, Edit2, Flag, Upload, Brain, Dot,
 } from "lucide-react";
-import { getReview, saveFeedback, generateReply, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany } from "../lib/api";
+import { getReview, saveFeedback, generateReply, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany, getContractCounterpartyProfile } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, ConfidenceLabel, RegulatoryCitation } from "../lib/types";
 import { CLAUSE_LABELS } from "../lib/types";
@@ -179,6 +179,15 @@ export default function ReviewDetail() {
     enabled:  !isMock && !!id && !!doc && doc.status === "COMPLETE",
     staleTime: 60_000,
   });
+
+  // Section 3c — vendor negotiation profile for this contract's counterparty.
+  const { data: counterpartyProfileData } = useQuery({
+    queryKey: ["counterparty-profile", id],
+    queryFn:  () => getContractCounterpartyProfile(id!),
+    enabled:  !isMock && !!id && !!doc && !!doc.counterpartyName,
+    staleTime: 300_000,
+  });
+  const counterpartyProfile = counterpartyProfileData?.profile ?? null;
 
   const [outcomeDismissed,  setOutcomeDismissed]  = useState(false);
   const [outcomeCaptured,   setOutcomeCaptured]   = useState(false);
@@ -502,6 +511,25 @@ export default function ReviewDetail() {
           onExport={handleExport}
           isMock={isMock}
         />
+
+        {/* ── Section 3c: known counterparty negotiation patterns ──────── */}
+        {counterpartyProfile && (
+          <div className="rounded-xl border border-[#1E293B] bg-[#0D1521] px-4 py-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Known patterns · {counterpartyProfile.counterparty}
+              </span>
+              <span className="text-[10px] text-muted-foreground/50 shrink-0">
+                {counterpartyProfile.contracts} contract(s) · {counterpartyProfile.totalMoves} captured move(s)
+              </span>
+            </div>
+            <ul className="space-y-0.5">
+              {counterpartyProfile.summaryLines.map((line, i) => (
+                <li key={i} className="text-xs text-foreground/80 leading-snug">• {line}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* ── Urgency strip (RED only) ─────────────────────────────────── */}
         {counts.RED > 0 && (
