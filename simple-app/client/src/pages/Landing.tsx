@@ -164,7 +164,7 @@ export default function Landing() {
           style={{ background: "radial-gradient(ellipse 60% 45% at 50% -10%, rgba(37,99,235,0.14), transparent 65%)" }}
         />
 
-        <div className="relative max-w-3xl mx-auto px-6 pt-28 pb-20 sm:pt-40 sm:pb-28 text-center">
+        <div className="relative max-w-3xl mx-auto px-6 pt-14 pb-20 sm:pt-20 sm:pb-28 text-center">
           {/* Rolling text — cycling phrase badge */}
           <motion.div
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] text-xs text-slate-400"
@@ -230,7 +230,7 @@ export default function Landing() {
 
           {/* Stats */}
           <motion.div
-            className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-6 max-w-lg mx-auto pt-8 border-t border-white/10"
+            className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-6 max-w-lg mx-auto pt-8 border-t border-white/10"
             {...(shouldReduce ? {} : fadeUpHero(0.7))}
           >
             {[
