@@ -14,6 +14,7 @@ import {
 import { parseEmailIntent, UNCLEAR_REPLY_TEXT } from "./services/emailIntentParser.js";
 import { sendPlainEmail } from "./services/emailService.js";
 import { processReviewByEmail, type InboundAttachment } from "./services/emailReview.js";
+import { processDraftByEmail } from "./services/draftGenerator.js";
 import { runReview } from "./services/reviewOrchestrator.js";
 import { runLegacyReview, ensureLegacyFields } from "./services/legacyReview.js";
 import { detectAndSaveRegulations } from "./services/regulatoryDetection.js";
@@ -293,6 +294,19 @@ async function handleInboundIntent(input: {
       return;
     }
 
+    // Section 4: draft_document → playbook-grounded first draft (scoped).
+    if (result.intent === "draft_document") {
+      await processDraftByEmail({
+        company: input.company,
+        sender: input.sender,
+        subject: input.subject,
+        messageId: input.messageId,
+        intentParams: result,
+        inboundRecordId: input.recordId,
+      });
+      return;
+    }
+
     // Section 2b: unclear → short helpful clarification reply.
     if (result.intent === "unclear") {
       const sent = await sendPlainEmail({
@@ -308,7 +322,7 @@ async function handleInboundIntent(input: {
         }).catch(() => {});
       }
     }
-    // draft_document / question are handled in later sections.
+    // question is handled in a later section.
   } catch (err) {
     console.error("[intent] handleInboundIntent failed:", (err as Error)?.message);
   }

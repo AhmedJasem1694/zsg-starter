@@ -714,6 +714,8 @@ export interface UploadedDocument {
   status: DocumentStatus;
   /** Origin: undefined / "" (in-app upload) | "email" | "integration" */
   source?: string;
+  /** True when this is a Zane-generated first draft */
+  draft?: boolean;
   counterpartyName?: string;
   counterpartyType?: string;
   reviewType?: string;

@@ -795,6 +795,8 @@ async function main() {
     textField("status"),
     // Origin of the document: "" (in-app upload) | "email" | "integration"
     textField("source"),
+    // True when this is a Zane-generated first draft (not a counterparty doc)
+    boolField("draft"),
     textField("counterpartyName"),
     textField("counterpartyType"),
     textField("reviewType"),

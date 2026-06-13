@@ -123,10 +123,13 @@ export async function ensureInboundSchema(): Promise<void> {
     const docs = await collections.getOne("uploaded_documents").catch(() => null);
     if (docs) {
       const docFields: PBRecord[] = docs.fields ?? docs.schema ?? [];
-      if (!docFields.some((f) => f.name === "source")) {
-        await collections.update(docs.id, {
-          fields: [...docFields, { name: "source", type: "text", required: false }],
-        });
+      const want = [
+        { name: "source", type: "text", required: false },
+        { name: "draft", type: "bool", required: false },
+      ];
+      const missing = want.filter((w) => !docFields.some((f) => f.name === w.name));
+      if (missing.length > 0) {
+        await collections.update(docs.id, { fields: [...docFields, ...missing] });
       }
     }
 

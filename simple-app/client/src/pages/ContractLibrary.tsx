@@ -168,6 +168,11 @@ function TableRow({ doc, allDocs, onFolderChange }: {
           <span className="text-sm text-foreground/90 font-medium truncate group-hover/link:text-white transition-colors">
             {doc.originalName ?? doc.filename}
           </span>
+          {doc.draft && (
+            <span title="Zane-generated first draft" className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-500/10 text-amber-400">
+              Draft
+            </span>
+          )}
           {doc.source === "email" && (
             <span title="Received by email" className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-blue-500/10 text-blue-400">
               <Mail size={8} /> Email

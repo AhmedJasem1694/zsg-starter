@@ -63,6 +63,7 @@ export async function sendHtmlEmail(p: {
   text: string;
   from?: string;
   inReplyTo?: string;
+  attachments?: Array<{ filename: string; path?: string; content?: Buffer; contentType?: string }>;
 }): Promise<boolean> {
   const transporter = getTransporter();
   if (!transporter) {
@@ -76,7 +77,10 @@ export async function sendHtmlEmail(p: {
     ? { "In-Reply-To": p.inReplyTo, "References": p.inReplyTo }
     : undefined;
   try {
-    await transporter.sendMail({ from, to: p.to, subject: p.subject, html: p.html, text: p.text, headers });
+    await transporter.sendMail({
+      from, to: p.to, subject: p.subject, html: p.html, text: p.text, headers,
+      attachments: p.attachments,
+    });
     return true;
   } catch (err) {
     console.error(`[Zane] Failed to send HTML email to ${p.to}:`, (err as Error)?.message);
