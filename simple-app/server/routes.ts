@@ -11,6 +11,8 @@ import {
   verifyMailgunSignature, extractInboundAddresses, resolveCompanyByRecipient,
   getAuthorisedSenders, normaliseEmail, logRejection,
 } from "./services/inboundEmail.js";
+import { parseEmailIntent, UNCLEAR_REPLY_TEXT } from "./services/emailIntentParser.js";
+import { sendPlainEmail } from "./services/emailService.js";
 import { runReview } from "./services/reviewOrchestrator.js";
 import { runLegacyReview, ensureLegacyFields } from "./services/legacyReview.js";
 import { detectAndSaveRegulations } from "./services/regulatoryDetection.js";
@@ -241,6 +243,60 @@ async function assertOwnsDocument(userId: string, documentId: string, userCompan
   }
 }
 
+// Classify a verified inbound email's intent and act on it. Runs fire-and-forget
+// after the webhook has acknowledged Mailgun. Persists the parsed intent on the
+// inbound_emails record for downstream sections; for "unclear" it replies with a
+// short helpful email (Section 2b). Never throws.
+async function handleInboundIntent(input: {
+  recordId: string;
+  companyInboundEmail: string;
+  sender: string;
+  subject: string;
+  bodyText: string;
+  attachmentNames: string[];
+  messageId: string;
+}): Promise<void> {
+  try {
+    const result = await parseEmailIntent({
+      subject: input.subject,
+      bodyText: input.bodyText,
+      attachmentNames: input.attachmentNames,
+    });
+
+    if (input.recordId) {
+      await pb.collection("inbound_emails").update(input.recordId, {
+        intent: result.intent,
+        intentParams: JSON.stringify(result),
+      }).catch((e: unknown) => console.warn("[intent] could not persist intent:", (e as Error)?.message));
+    }
+
+    console.log(
+      `[intent] ${input.sender}: ${result.intent}` +
+      `${result.documentType ? ` (${result.documentType})` : ""}` +
+      `${result.counterparty ? ` / ${result.counterparty}` : ""}`
+    );
+
+    // Section 2b: unclear → short helpful clarification reply.
+    if (result.intent === "unclear") {
+      const sent = await sendPlainEmail({
+        to: input.sender,
+        from: input.companyInboundEmail || undefined,
+        subject: input.subject ? `Re: ${input.subject}` : "How can I help?",
+        text: UNCLEAR_REPLY_TEXT,
+        inReplyTo: input.messageId || undefined,
+      });
+      if (input.recordId) {
+        await pb.collection("inbound_emails").update(input.recordId, {
+          status: sent ? "CLARIFICATION_SENT" : "UNCLEAR",
+        }).catch(() => {});
+      }
+    }
+    // review_contract / draft_document / question are handled in later sections.
+  } catch (err) {
+    console.error("[intent] handleInboundIntent failed:", (err as Error)?.message);
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
 
   // Inbound email: ensure schema (companies.inbound_email + inbound_emails /
@@ -322,8 +378,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mime: f.mimetype,
       }));
 
+      let inboundRecordId = "";
       try {
-        await pb.collection("inbound_emails").create({
+        const rec = await pb.collection("inbound_emails").create({
           company: company.id,
           sender,
           recipient: addresses[0] ?? recipientField,
@@ -333,12 +390,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           messageId,
           status: "RECEIVED",
         });
+        inboundRecordId = rec.id as string;
       } catch (err) {
         console.error("[inbound] failed to persist inbound_emails record:", (err as Error)?.message);
       }
 
       console.log(`[inbound] accepted email from ${sender} → ${company["name"]} (${attachments.length} attachment(s))`);
+      // Acknowledge Mailgun immediately; classify intent + handle async so the
+      // webhook stays fast.
       res.status(200).json({ ok: true });
+
+      void handleInboundIntent({
+        recordId: inboundRecordId,
+        companyInboundEmail: (company["inbound_email"] as string) || "",
+        sender,
+        subject,
+        bodyText,
+        attachmentNames: attachments.map((a) => a.originalName),
+        messageId,
+      });
     })
   );
 

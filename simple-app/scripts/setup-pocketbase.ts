@@ -957,7 +957,9 @@ async function main() {
     textField("bodyText"),
     textField("attachments"),   // JSON array of { filename, originalName, size, mime }
     textField("messageId"),
-    textField("status"),        // RECEIVED | PROCESSED | ...
+    textField("status"),        // RECEIVED | CLARIFICATION_SENT | ...
+    textField("intent"),        // review_contract | draft_document | question | unclear
+    textField("intentParams"),  // JSON of extracted parameters
   ]);
 
   // ── inbound_rejections (silent log of unverified / unauthorised inbound) ──

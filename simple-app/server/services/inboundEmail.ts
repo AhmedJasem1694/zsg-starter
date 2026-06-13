@@ -127,7 +127,9 @@ export async function ensureInboundSchema(): Promise<void> {
       { name: "bodyText", type: "text", required: false },
       { name: "attachments", type: "text", required: false }, // JSON array
       { name: "messageId", type: "text", required: false },
-      { name: "status", type: "text", required: false },       // RECEIVED | PROCESSED | ...
+      { name: "status", type: "text", required: false },       // RECEIVED | CLARIFICATION_SENT | ...
+      { name: "intent", type: "text", required: false },       // review_contract | draft_document | question | unclear
+      { name: "intentParams", type: "text", required: false }, // JSON of extracted parameters
       ...AUTODATE,
     ]);
 

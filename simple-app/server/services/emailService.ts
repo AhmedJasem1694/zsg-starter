@@ -17,6 +17,41 @@ function getTransporter() {
   });
 }
 
+/**
+ * Generic plain-text email send, used by the inbound "Email Zane" flow to
+ * reply to a sender. `from` defaults to the company's inbound address when
+ * provided (so replies thread naturally and the user can reply again), else
+ * SMTP_FROM. `inReplyTo` (the inbound Message-Id) threads the reply.
+ * Returns true if sent, false if SMTP isn't configured / send failed —
+ * never throws (a failed reply must not break inbound processing).
+ */
+export async function sendPlainEmail(p: {
+  to: string;
+  subject: string;
+  text: string;
+  from?: string;
+  inReplyTo?: string;
+}): Promise<boolean> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.warn(`[Zane] SMTP not configured - skipping email to ${p.to} ("${p.subject}")`);
+    return false;
+  }
+  const from = p.from
+    ? (p.from.includes("<") ? p.from : `Zane <${p.from}>`)
+    : SMTP_FROM;
+  const headers = p.inReplyTo
+    ? { "In-Reply-To": p.inReplyTo, "References": p.inReplyTo }
+    : undefined;
+  try {
+    await transporter.sendMail({ from, to: p.to, subject: p.subject, text: p.text, headers });
+    return true;
+  } catch (err) {
+    console.error(`[Zane] Failed to send email to ${p.to}:`, (err as Error)?.message);
+    return false;
+  }
+}
+
 export interface EscalationEmailParams {
   to:                { name: string; email: string };
   contractName:      string;
