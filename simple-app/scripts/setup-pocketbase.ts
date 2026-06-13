@@ -143,6 +143,32 @@ async function getCollectionId(name: string): Promise<string> {
   return col.id as string;
 }
 
+/**
+ * Downgrade `required: true` to optional on named fields of an existing
+ * collection. ensureCollection only ADDS missing fields, so it cannot fix an
+ * existing field that production created as required. Relaxing required only
+ * loosens validation; it never breaks existing rows or writes.
+ */
+async function relaxRequiredFields(name: string, fieldNames: string[]): Promise<void> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const existing: any = await (pb.collections as any).getOne(name);
+    const fields: Array<{ name: string; required?: boolean }> = existing.fields ?? existing.schema ?? [];
+    const targets = new Set(fieldNames);
+    let changed = false;
+    for (const f of fields) {
+      if (targets.has(f.name) && f.required) { f.required = false; changed = true; }
+    }
+    if (changed) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (pb.collections as any).update(existing.id, { fields });
+      console.log(`  ✓ Relaxed required on '${name}': ${fieldNames.join(", ")}`);
+    }
+  } catch (err) {
+    console.warn(`  ! Could not relax required on '${name}' (non-fatal):`, (err as Error)?.message);
+  }
+}
+
 async function main() {
   console.log(`\nConnecting to PocketBase at ${POCKETBASE_URL}...`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -653,9 +679,13 @@ async function main() {
   ]);
 
   // ── 26. pii_sessions ─────────────────────────────────────────────────────
+  // piiAnonymiser.ts writes ONLY sessionId / documentId / entityMap /
+  // entitiesDetected (the compat fields). Every other field MUST be optional, or
+  // the per-call session insert 400s in production. The legacy relation and
+  // timestamp fields below are explicitly optional, and relaxRequiredFields()
+  // afterwards repairs any production collection that created them as required.
   await ensureCollection("pii_sessions", [
     textField("session_id"),
-    // Relation fields are optional - piiAnonymiser.ts uses compat text fields below
     relationField("contract", contractsId),
     relationField("company", companiesId),
     relationField("user", usersId),
@@ -663,11 +693,14 @@ async function main() {
     dateField("created_at"),
     dateField("expires_at"),
     boolField("archived"),
-    // compat fields written by piiAnonymiser.ts
+    // compat fields actually written by piiAnonymiser.ts
     textField("sessionId"),
     textField("documentId"),
     textField("entityMap"),
     numberField("entitiesDetected"),
+  ]);
+  await relaxRequiredFields("pii_sessions", [
+    "session_id", "contract", "company", "user", "created_at", "expires_at",
   ]);
 
   // ── 27. ancillary_documents ───────────────────────────────────────────────
