@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Upload, FileText, AlertTriangle, CheckCircle, Clock,
   RotateCcw, Shield, ChevronRight, AlertCircle, LayoutGrid, ArrowRight,
-  CalendarClock, Bell, Lock, Activity, X, Trash2,
+  CalendarClock, Bell, Lock, Activity, X, Trash2, Mail,
 } from "lucide-react";
 import { getDocuments, uploadDocument, startReview, getCompany, getDocumentStats, deleteDocument, deleteDocuments } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
@@ -1081,6 +1081,21 @@ export default function Dashboard() {
                 <div className="text-xs text-muted-foreground mt-2 max-w-xs mx-auto">
                   Go to <Link to="/app/legal/library" className="text-primary underline">Library</Link> to upload your first contract.
                 </div>
+
+                {/* Prefer email? — CC the company's Zane address (Section 7a) */}
+                {company?.inbound_email && (
+                  <div className="mt-6 mx-auto max-w-md rounded-lg border border-card-border bg-card px-4 py-3 flex items-start gap-3 text-left">
+                    <div className="mt-0.5 w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+                      <Mail size={16} className="text-blue-400" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-medium text-foreground">Prefer email?</div>
+                      <div className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                        CC <code className="font-mono text-foreground">{company.inbound_email}</code> on any contract and Zane handles it.
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="divide-y divide-card-border">

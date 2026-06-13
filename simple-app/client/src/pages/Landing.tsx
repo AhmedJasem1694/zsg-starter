@@ -270,6 +270,65 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ─── EMAIL AGENT — works where you already work ──────────────────────── */}
+      <section id="email-agent" className="bg-paper border-t border-line-light py-24 sm:py-36">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+            <motion.div className="space-y-6" {...headingReveal}>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">No portal</p>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
+                Zane works where you already work.
+              </h2>
+              <p className="text-base text-slate-600 leading-relaxed">
+                CC Zane on an email and it reviews the attached contract against your playbook,
+                replies in the thread, and files everything in your library. First drafts of NDAs
+                and routine agreements on request. No portal. No new system to learn.
+              </p>
+            </motion.div>
+
+            {/* Simple email-thread visual */}
+            <motion.div {...fadeUp(0.1)}>
+              <div className="rounded-xl border border-line-light bg-white shadow-sm overflow-hidden">
+                <div className="border-b border-line-light px-5 py-3 flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
+                  <span className="ml-2 text-xs text-slate-400 truncate">Re: Acme MSA — for review</span>
+                </div>
+                <div className="divide-y divide-line-light">
+                  <div className="px-5 py-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-ink">You</span>
+                      <span className="text-xs text-slate-400">9:02</span>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-600 leading-relaxed">
+                      Cc’ing zane@ — can you take a look at the attached MSA before I reply?
+                    </p>
+                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-line-light px-2 py-1 text-xs text-slate-500">
+                      📎 Acme_MSA_v2.pdf
+                    </div>
+                  </div>
+                  <div className="px-5 py-4 bg-paper">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-ink">Zane</span>
+                      <span className="text-xs text-slate-400">9:04</span>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-600 leading-relaxed">
+                      Reviewed against your playbook — <span className="font-semibold text-ink">2 amber, 1 red</span>.
+                      Liability cap is below your 24-month floor; indemnity is one-sided. Suggested
+                      fallback language is in the full review. Filed to your library.
+                    </p>
+                    <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-blue-600">
+                      View full review →
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* ─── THE MEMORY STORY — dark ─────────────────────────────────────────── */}
       <section className="bg-navy-900 py-24 sm:py-36">
         <div className="max-w-4xl mx-auto px-6">
