@@ -106,7 +106,7 @@ type Decision = { cat: string; rag: "GREEN" | "AMBER" | "RED"; action: "accepted
 type Contract = { counterparty: string; name: string; type: string; value: number; decisions: Decision[] };
 
 const CONTRACTS: Contract[] = [
-  // Acme Technologies Ltd — generally agreeable, accepts our preferred liability cap.
+  // Acme Technologies Ltd, generally agreeable, accepts our preferred liability cap.
   { counterparty: "Acme Technologies Ltd", name: "Acme Technologies, Master Services Agreement", type: "MSA", value: 180_000, decisions: [
     { cat: "LIABILITY_CAP", rag: "GREEN", action: "accepted", final: "24 months of fees, data protection and IP carved out", reason: "Counterparty accepted our preferred cap", summary: "Liability capped at 24 months of fees with data and IP carve-outs, matching our preferred position." },
     { cat: "INDEMNITY", rag: "GREEN", action: "accepted", final: "Counterparty IP and data protection indemnity, uncapped", reason: "Accepted our indemnity position", summary: "Counterparty gives uncapped IP and data protection indemnities." },
@@ -121,7 +121,7 @@ const CONTRACTS: Contract[] = [
     { cat: "INDEMNITY", rag: "AMBER", action: "modified", final: "Mutual indemnity, capped except IP and data", reason: "Moved to a mutual indemnity", summary: "Indemnity became mutual, capped except IP and data limbs." },
   ] },
 
-  // Nexus Solutions Ltd — consistently pushes back on liability, typical counter 12 months.
+  // Nexus Solutions Ltd, consistently pushes back on liability, typical counter 12 months.
   { counterparty: "Nexus Solutions Ltd", name: "Nexus Solutions, Master Services Agreement", type: "MSA", value: 240_000, decisions: [
     { cat: "LIABILITY_CAP", rag: "AMBER", action: "modified", final: "12 months of fees, carve-outs retained", reason: "Counterparty countered to a 12 month cap", summary: "Cap negotiated down to 12 months of fees, the counterparty's standard counter." },
     { cat: "PAYMENT_TERMS", rag: "GREEN", action: "accepted", final: "30 days, CPI-capped increases", reason: "Accepted our payment terms", summary: "30 day terms with CPI-capped annual increases." },
@@ -135,7 +135,7 @@ const CONTRACTS: Contract[] = [
     { cat: "INDEMNITY", rag: "AMBER", action: "modified", final: "Mutual indemnity with caps", reason: "Negotiated to mutual", summary: "Indemnity negotiated to mutual with caps." },
   ] },
 
-  // DataFlow Technologies — mixed, negotiates IP and payment terms.
+  // DataFlow Technologies, mixed, negotiates IP and payment terms.
   { counterparty: "DataFlow Technologies", name: "DataFlow Technologies, Reseller Agreement", type: "MSA", value: 150_000, decisions: [
     { cat: "IP_OWNERSHIP", rag: "AMBER", action: "modified", final: "Perpetual licence to deliverables rather than assignment", reason: "Counterparty would license, not assign", summary: "Bespoke deliverables licensed perpetually rather than assigned." },
     { cat: "CONFIDENTIALITY", rag: "GREEN", action: "accepted", final: "Mutual, 5 year survival", reason: "Accepted confidentiality terms", summary: "Mutual confidentiality surviving 5 years." },
