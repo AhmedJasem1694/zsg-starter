@@ -13,7 +13,7 @@
 import { pb } from "../pb.js";
 import { llmJsonCall } from "./llmJsonParse.js";
 import { getModelForTask } from "./modelRouter.js";
-import { sendPlainEmail } from "./emailService.js";
+import { threadReplyText, type ThreadContext } from "./emailThreads.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PBRecord = Record<string, any>;
@@ -87,21 +87,37 @@ export async function processQuestionByEmail(input: {
   messageId: string;
   intentParams: IntentParams;
   inboundRecordId: string;
+  threadId?: string;
+  forceContractId?: string;
 }): Promise<QuestionResult> {
   const { company, sender, subject, bodyText, messageId, intentParams, inboundRecordId } = input;
   const fromAddr = (company["inbound_email"] as string) || undefined;
   const replySubject = subject ? `Re: ${subject}` : "Re: your question";
   const companyName = ((company["name"] as string) ?? "").trim() || "your company";
   const questionText = `${subject}\n${bodyText}`.trim();
+  const threadId = input.threadId ?? "";
+  const forceContractId = (input.forceContractId ?? "").trim();
+  const ctx = (contractId?: string): ThreadContext => ({
+    companyId: company.id as string, user: sender, threadId, intent: "question", contractId: contractId || forceContractId || undefined,
+  });
 
   const markStatus = (status: string) =>
     inboundRecordId ? pb.collection("inbound_emails").update(inboundRecordId, { status, intent: "question" }).catch(() => {}) : Promise.resolve();
 
   // ── Retrieve grounding context (company data only) ──────────────────────────
-  const [playbookRules, contracts] = await Promise.all([
+  const [playbookRules, relevantContracts] = await Promise.all([
     pb.collection("playbook_rules").getFullList({ filter: `company = "${company.id}"` }).catch(() => [] as PBRecord[]),
     findRelevantContracts(company.id as string, questionText, intentParams.counterparty ?? ""),
   ]);
+
+  // A reply in an existing thread resolves against that thread's contract — pull it
+  // to the front so a follow-up like "what about the indemnity clause?" is grounded
+  // in the contract already under discussion without re-attaching anything.
+  let contracts = relevantContracts;
+  if (forceContractId && !contracts.some((c) => c.id === forceContractId)) {
+    const forced = await pb.collection("uploaded_documents").getOne(forceContractId).catch(() => null);
+    if (forced) contracts = [forced, ...contracts].slice(0, 3);
+  }
 
   const positionsBlock = playbookRules.length > 0
     ? playbookRules.map((r) =>
@@ -170,7 +186,7 @@ Return ONLY this JSON:
     };
   } catch (err) {
     console.error(`[question] answering failed for ${sender}:`, (err as Error)?.message);
-    await sendPlainEmail({ to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
+    await threadReplyText(ctx(), { to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
       text: `Sorry — I couldn't answer that just now. Please try again or contact ahmed@zanelegal.ai.\n\n— Zane` });
     await markStatus("FAILED");
     return { scope: "error", answer: "", link: "" };
@@ -178,7 +194,7 @@ Return ONLY this JSON:
 
   // General legal question → refuse with the standard message.
   if (parsed.scope === "general") {
-    await sendPlainEmail({ to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId, text: GENERAL_REFUSAL });
+    await threadReplyText(ctx(), { to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId, text: GENERAL_REFUSAL });
     await markStatus("ANSWERED_GENERAL_REFUSED");
     console.log(`[question] ${sender}: general legal question refused`);
     return { scope: "general", answer: GENERAL_REFUSAL, link: "" };
@@ -186,7 +202,7 @@ Return ONLY this JSON:
 
   // Not in their data → say so plainly.
   if (parsed.scope === "none" || !parsed.answer) {
-    await sendPlainEmail({ to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
+    await threadReplyText(ctx(), { to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
       text: `${NOT_IN_RECORDS}\n\n— Zane` });
     await markStatus("ANSWERED_NO_DATA");
     console.log(`[question] ${sender}: not in records`);
@@ -200,7 +216,7 @@ Return ONLY this JSON:
     : `${APP_URL}/app/legal/playbook`;
   const linkLabel = validContract ? `View the contract in Zane: ${link}` : `Your playbook in Zane: ${link}`;
 
-  await sendPlainEmail({
+  await threadReplyText(ctx(validContract?.id), {
     to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
     text: `${parsed.answer}\n\n${linkLabel}\n\n— Zane`,
   });

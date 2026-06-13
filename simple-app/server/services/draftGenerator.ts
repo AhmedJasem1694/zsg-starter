@@ -20,7 +20,7 @@ import { pb } from "../pb.js";
 import { llmJsonCall } from "./llmJsonParse.js";
 import { getModelForTask } from "./modelRouter.js";
 import { ensureInboundSchema } from "./inboundEmail.js";
-import { sendHtmlEmail, sendPlainEmail } from "./emailService.js";
+import { threadReplyText, threadReplyHtml, linkThreadContract, type ThreadContext } from "./emailThreads.js";
 import { audit } from "./auditLogger.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -202,17 +202,22 @@ export async function processDraftByEmail(input: {
   messageId: string;
   intentParams: IntentParams;
   inboundRecordId: string;
+  threadId?: string;
 }): Promise<void> {
   const { company, sender, subject, messageId, intentParams, inboundRecordId } = input;
   const fromAddr = (company["inbound_email"] as string) || undefined;
   const replySubject = subject ? `Re: ${subject}` : "Your first draft";
   const companyName = ((company["name"] as string) ?? "").trim() || "Your company";
+  const threadId = input.threadId ?? "";
+  const ctx = (contractId?: string): ThreadContext => ({
+    companyId: company.id as string, user: sender, threadId, intent: "draft_document", contractId,
+  });
 
   // 4a. Scope check.
   const draftType = classifyDraftType(intentParams.documentType, intentParams.instructions);
   if (!draftType) {
     const requested = intentParams.documentType?.trim() || "that document";
-    await sendPlainEmail({
+    await threadReplyText(ctx(), {
       to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
       text: `First drafts are currently available for NDAs, services agreements, and variation letters. For ${requested} I can review a counterparty draft instead — just forward it to me.\n\n— Zane`,
     });
@@ -242,7 +247,7 @@ export async function processDraftByEmail(input: {
     });
   } catch (err) {
     console.error(`[draft] generation failed for ${sender}:`, (err as Error)?.message);
-    await sendPlainEmail({
+    await threadReplyText(ctx(), {
       to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
       text: `Sorry — I couldn't generate that draft just now. Please try again or contact ahmed@zanelegal.ai.\n\n— Zane`,
     });
@@ -273,6 +278,7 @@ export async function processDraftByEmail(input: {
       draft: true,
     });
     docId = doc.id as string;
+    await linkThreadContract(company.id as string, threadId, docId).catch(() => {});
   } catch (err) {
     console.error("[draft] could not store draft in library:", (err as Error)?.message);
   }
@@ -313,7 +319,7 @@ export async function processDraftByEmail(input: {
   <tr><td style="padding:16px 28px;border-top:1px solid #E2E8F0;"><div style="font-size:11px;color:#94A3B8;line-height:1.5;">${esc(FOOTER_TEXT(companyName))}</div></td></tr>
 </table></td></tr></table></body></html>`;
 
-  await sendHtmlEmail({
+  await threadReplyHtml(ctx(docId || undefined), {
     to: sender, from: fromAddr, inReplyTo: messageId, subject: replySubject, html, text,
     attachments: [{ filename: originalName, content: buffer, contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }],
   });

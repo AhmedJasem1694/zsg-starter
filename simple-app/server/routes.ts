@@ -16,6 +16,10 @@ import { sendPlainEmail } from "./services/emailService.js";
 import { processReviewByEmail, type InboundAttachment } from "./services/emailReview.js";
 import { processDraftByEmail } from "./services/draftGenerator.js";
 import { processQuestionByEmail } from "./services/emailQuestion.js";
+import {
+  ensureThreadSchema, computeThreadId, logEmail, getThreadContractId,
+  threadReplyText, looksForwarded,
+} from "./services/emailThreads.js";
 import { runReview } from "./services/reviewOrchestrator.js";
 import { runLegacyReview, ensureLegacyFields } from "./services/legacyReview.js";
 import { detectAndSaveRegulations } from "./services/regulatoryDetection.js";
@@ -259,8 +263,12 @@ async function handleInboundIntent(input: {
   bodyText: string;
   attachments: InboundAttachment[];
   messageId: string;
+  threadId: string;
+  threadContractId: string;
 }): Promise<void> {
   const companyInboundEmail = (input.company["inbound_email"] as string) || "";
+  const companyId = input.company.id as string;
+  const { threadId, threadContractId } = input;
   try {
     const result = await parseEmailIntent({
       subject: input.subject,
@@ -274,23 +282,59 @@ async function handleInboundIntent(input: {
         intentParams: JSON.stringify(result),
       }).catch((e: unknown) => console.warn("[intent] could not persist intent:", (e as Error)?.message));
     }
+    // Record the intent on the inbound thread record too.
+    void pb.collection("email_threads").getFullList({
+      filter: `thread_id = "${threadId.replace(/"/g, "")}" && direction = "inbound" && intent = ""`,
+      fields: "id",
+    }).then((rows) => rows.forEach((r) => pb.collection("email_threads").update(r.id, { intent: result.intent }).catch(() => {})))
+      .catch(() => {});
 
     console.log(
       `[intent] ${input.sender}: ${result.intent}` +
       `${result.documentType ? ` (${result.documentType})` : ""}` +
-      `${result.counterparty ? ` / ${result.counterparty}` : ""}`
+      `${result.counterparty ? ` / ${result.counterparty}` : ""}` +
+      `${threadContractId ? ` [thread→contract ${threadContractId}]` : ""}`
     );
 
-    // Section 3: review_contract → run the full pipeline + reply in-thread.
-    if (result.intent === "review_contract") {
+    // 6b: a forwarded counterparty response in a contract-linked thread is a
+    // negotiation event — log it against that contract (feeds decision_events +
+    // counterparty intelligence). Additive: normal intent handling still runs.
+    if (threadContractId && looksForwarded(input.subject, input.bodyText)) {
+      await recordDecisionEvent({
+        companyId,
+        userId: input.sender,
+        documentId: threadContractId,
+        clauseCategory: "",
+        zaneRecommendation: "negotiate",
+        zaneSuggestedText: "",
+        humanAction: "modified",
+        humanFinalPosition: input.bodyText.slice(0, 2000),
+        overrideReason: "Counterparty response forwarded by email",
+      });
+      console.log(`[intent] logged negotiation event for contract ${threadContractId}`);
+    }
+
+    const ctxBase = { companyId, user: input.sender, threadId, intent: result.intent };
+
+    // Section 3: review_contract WITH an attachment → run the full pipeline.
+    const hasContractAttachment = input.attachments.length > 0;
+    if (result.intent === "review_contract" && hasContractAttachment) {
       await processReviewByEmail({
-        company: input.company,
-        sender: input.sender,
-        subject: input.subject,
-        messageId: input.messageId,
-        attachments: input.attachments,
-        intentParams: result,
-        inboundRecordId: input.recordId,
+        company: input.company, sender: input.sender, subject: input.subject,
+        messageId: input.messageId, attachments: input.attachments, intentParams: result,
+        inboundRecordId: input.recordId, threadId,
+      });
+      return;
+    }
+
+    // Contextual reply: a review/question follow-up in a thread that already has
+    // a contract, with no new attachment, is answered against that contract
+    // without the user re-attaching anything (Section 6a).
+    if ((result.intent === "question" || result.intent === "review_contract") && threadContractId) {
+      await processQuestionByEmail({
+        company: input.company, sender: input.sender, subject: input.subject, bodyText: input.bodyText,
+        messageId: input.messageId, intentParams: result, inboundRecordId: input.recordId,
+        threadId, forceContractId: threadContractId,
       });
       return;
     }
@@ -298,39 +342,33 @@ async function handleInboundIntent(input: {
     // Section 4: draft_document → playbook-grounded first draft (scoped).
     if (result.intent === "draft_document") {
       await processDraftByEmail({
-        company: input.company,
-        sender: input.sender,
-        subject: input.subject,
-        messageId: input.messageId,
-        intentParams: result,
-        inboundRecordId: input.recordId,
+        company: input.company, sender: input.sender, subject: input.subject,
+        messageId: input.messageId, intentParams: result, inboundRecordId: input.recordId, threadId,
       });
       return;
     }
 
-    // Section 5: question → grounded answer from the company's own data.
+    // Section 5: question (no thread contract) → grounded answer from company data.
     if (result.intent === "question") {
       await processQuestionByEmail({
-        company: input.company,
-        sender: input.sender,
-        subject: input.subject,
-        bodyText: input.bodyText,
-        messageId: input.messageId,
-        intentParams: result,
-        inboundRecordId: input.recordId,
+        company: input.company, sender: input.sender, subject: input.subject, bodyText: input.bodyText,
+        messageId: input.messageId, intentParams: result, inboundRecordId: input.recordId, threadId,
       });
       return;
     }
 
     // Section 2b: unclear → short helpful clarification reply.
     if (result.intent === "unclear") {
-      const sent = await sendPlainEmail({
-        to: input.sender,
-        from: companyInboundEmail || undefined,
-        subject: input.subject ? `Re: ${input.subject}` : "How can I help?",
-        text: UNCLEAR_REPLY_TEXT,
-        inReplyTo: input.messageId || undefined,
-      });
+      const sent = await threadReplyText(
+        { ...ctxBase, contractId: threadContractId || undefined },
+        {
+          to: input.sender,
+          from: companyInboundEmail || undefined,
+          subject: input.subject ? `Re: ${input.subject}` : "How can I help?",
+          text: UNCLEAR_REPLY_TEXT,
+          inReplyTo: input.messageId || undefined,
+        }
+      );
       if (input.recordId) {
         await pb.collection("inbound_emails").update(input.recordId, {
           status: sent ? "CLARIFICATION_SENT" : "UNCLEAR",
@@ -386,12 +424,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await ensureInboundSchema().catch(() => {});
+      await ensureThreadSchema().catch(() => {});
 
       const sender = normaliseEmail(body.sender || body.from || body.From);
       const recipientField = body.recipient || body.To || body.to || "";
       const subject = body.subject || body.Subject || "";
       const bodyText = body["stripped-text"] || body["body-plain"] || body["body-html"] || "";
       const messageId = body["Message-Id"] || body["message-id"] || "";
+      const inReplyTo = body["In-Reply-To"] || body["in-reply-to"] || "";
+      const references = body["References"] || body["references"] || "";
 
       // 2. Resolve the company from the recipient (handles To + Cc + forwards).
       const addresses = extractInboundAddresses(recipientField, body.To, body.Cc, body.recipient);
@@ -440,6 +481,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("[inbound] failed to persist inbound_emails record:", (err as Error)?.message);
       }
 
+      // Thread awareness (Section 6a): derive a stable thread id, resolve any
+      // contract already linked to this thread, and log the inbound email.
+      const threadId = computeThreadId(messageId, inReplyTo, references);
+      const threadContractId = await getThreadContractId(company.id as string, threadId);
+      await logEmail({
+        companyId: company.id as string, user: sender, threadId, direction: "inbound",
+        contractId: threadContractId, subject, body: bodyText, messageId,
+      });
+
       console.log(`[inbound] accepted email from ${sender} → ${company["name"]} (${attachments.length} attachment(s))`);
       // Acknowledge Mailgun immediately; classify intent + handle async so the
       // webhook stays fast.
@@ -453,6 +503,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bodyText,
         attachments,
         messageId,
+        threadId,
+        threadContractId,
       });
     })
   );

@@ -975,6 +975,19 @@ async function main() {
     textField("companyId"),
   ]);
 
+  // ── email_threads (thread persistence + contextual replies, Section 6) ────
+  await ensureCollection("email_threads", [
+    textField("company", { required: true }),
+    textField("user"),             // sender / recipient email
+    textField("thread_id"),        // stable id derived from message headers
+    textField("direction"),        // inbound | outbound
+    textField("intent"),           // review_contract | draft_document | question | unclear
+    textField("linked_contract"),  // uploaded_documents id this thread is about
+    textField("subject"),
+    textField("body"),
+    textField("message_id"),
+  ]);
+
   // ── integration_configs ───────────────────────────────────────────────────
   await ensureCollection("integration_configs", [
     textField("companyId", { required: true }),
@@ -1090,6 +1103,7 @@ async function verify() {
     { name: "decision_events", requiredFields: ["company", "human_action"] },
     { name: "inbound_emails", requiredFields: ["company", "status"] },
     { name: "inbound_rejections", requiredFields: ["sender", "reason"] },
+    { name: "email_threads", requiredFields: ["company"] },
   ];
 
   let pass = 0;

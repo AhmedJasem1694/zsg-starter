@@ -19,8 +19,8 @@ import path from "path";
 import { pb } from "../pb.js";
 import { runReview } from "./reviewOrchestrator.js";
 import { ensureInboundSchema } from "./inboundEmail.js";
-import { sendPlainEmail, sendHtmlEmail } from "./emailService.js";
 import { audit } from "./auditLogger.js";
+import { threadReplyText, threadReplyHtml, linkThreadContract, type ThreadContext } from "./emailThreads.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PBRecord = Record<string, any>;
@@ -217,15 +217,18 @@ export async function processReviewByEmail(input: {
   attachments: InboundAttachment[];
   intentParams: IntentParams;
   inboundRecordId: string;
+  threadId?: string;
 }): Promise<void> {
   const { company, sender, subject, messageId, attachments, intentParams, inboundRecordId } = input;
   const fromAddr = (company["inbound_email"] as string) || undefined;
   const replySubject = subject ? `Re: ${subject}` : "Re: your contract";
+  const threadId = input.threadId ?? "";
+  const ctx = (contractId?: string): ThreadContext => ({ companyId: company.id as string, user: sender, threadId, intent: "review_contract", contractId });
 
   // Pick the first contract attachment that still exists on disk.
   const contract = attachments.find((a) => fs.existsSync(path.join(process.cwd(), "uploads", a.filename)));
   if (!contract) {
-    await sendPlainEmail({
+    await threadReplyText(ctx(), {
       to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
       text: "Thanks — but I didn't find a contract attached. Forward the PDF or Word file and I'll review it against your playbook.\n\n— Zane",
     });
@@ -251,12 +254,15 @@ export async function processReviewByEmail(input: {
     });
   } catch (err) {
     console.error("[email-review] could not create document:", (err as Error)?.message);
-    await sendPlainEmail({
+    await threadReplyText(ctx(), {
       to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
       text: "Sorry — something went wrong setting up the review. Please try again or contact ahmed@zanelegal.ai.\n\n— Zane",
     });
     return;
   }
+
+  // Link this contract to the thread so later replies resolve against it (6a).
+  await linkThreadContract(company.id as string, threadId, doc.id as string).catch(() => {});
 
   if (inboundRecordId) {
     await pb.collection("inbound_emails").update(inboundRecordId, { status: "PROCESSING", intent: "review_contract" }).catch(() => {});
@@ -272,8 +278,10 @@ export async function processReviewByEmail(input: {
   const founder = isFounderCompany(company);
   const reviewUrl = `${APP_URL}/review/${doc.id}`;
 
+  const docCtx = ctx(doc.id as string);
+
   // 3b. Immediate acknowledgement, in-thread.
-  await sendPlainEmail({
+  await threadReplyText(docCtx, {
     to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
     text: `On it. Reviewing ${contract.originalName} against your playbook now — you'll have the result shortly.\n\n— Zane`,
   });
@@ -283,7 +291,7 @@ export async function processReviewByEmail(input: {
     await runReview(doc.id as string);
   } catch (err) {
     console.error(`[email-review] pipeline failed for ${doc.id}:`, (err as Error)?.message);
-    await sendPlainEmail({
+    await threadReplyText(docCtx, {
       to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
       text: `I hit a problem reviewing ${contract.originalName}. You can retry from Zane: ${reviewUrl}\n\n— Zane`,
     });
@@ -297,7 +305,7 @@ export async function processReviewByEmail(input: {
   const html = buildResultHtml({ filename: contract.originalName, verdict, founder, reviewUrl });
   const text = buildResultText({ filename: contract.originalName, verdict, founder, reviewUrl });
 
-  await sendHtmlEmail({
+  await threadReplyHtml(docCtx, {
     to: sender, from: fromAddr, inReplyTo: messageId,
     subject: replySubject, html, text,
   });
