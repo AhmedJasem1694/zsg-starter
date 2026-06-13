@@ -58,6 +58,35 @@ const LANDING_FAQS = [
   { q: "Is there a minimum contract or commitment?", a: "No implementation fee. No setup cost. Pilot terms and pricing are agreed up front before you commit." },
 ];
 
+// ─── Cycling phrases — the hero's rolling text ──────────────────────────────────
+const PHRASES = ["always on.", "always current.", "always auditable.", "built for you."];
+
+function CyclingPhrase() {
+  const [index, setIndex] = useState(0);
+  const [phase, setPhase] = useState<"in" | "out">("in");
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setPhase("out");
+      setTimeout(() => {
+        setIndex((i) => (i + 1) % PHRASES.length);
+        setPhase("in");
+      }, 150);
+    }, 1800);
+    return () => clearInterval(tick);
+  }, []);
+
+  return (
+    // Fixed min-width = width of the longest phrase ("always auditable.")
+    // Prevents the badge from reflowing/shifting width as the text cycles.
+    <span style={{ display: "inline-block", minWidth: "10em", textAlign: "center" }}>
+      <span key={index} className={`text-cobalt-light ${phase === "in" ? "phrase-in" : "phrase-out"}`}>
+        {PHRASES[index]}
+      </span>
+    </span>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function Landing() {
@@ -136,8 +165,17 @@ export default function Landing() {
         />
 
         <div className="relative max-w-3xl mx-auto px-6 pt-28 pb-20 sm:pt-40 sm:pb-28 text-center">
+          {/* Rolling text — cycling phrase badge */}
+          <motion.div
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/[0.04] text-xs text-slate-400"
+            {...(shouldReduce ? {} : fadeUpHero(0.05))}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-cobalt animate-pulse inline-block" />
+            Legal intelligence that's{" "}<CyclingPhrase />
+          </motion.div>
+
           <motion.h1
-            className="text-4xl sm:text-6xl font-bold tracking-tight leading-[1.05] text-[#F8FAFC]"
+            className="mt-8 text-4xl sm:text-6xl font-bold tracking-tight leading-[1.05] text-[#F8FAFC]"
             {...(shouldReduce ? {} : fadeUpHero(0.1))}
           >
             Your legal team already has a playbook.
@@ -188,6 +226,33 @@ export default function Landing() {
                 </div>
               ))}
             </div>
+          </motion.div>
+
+          {/* Stats */}
+          <motion.div
+            className="mt-16 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-6 max-w-lg mx-auto pt-8 border-t border-white/10"
+            {...(shouldReduce ? {} : fadeUpHero(0.7))}
+          >
+            {[
+              { value: "11 minutes",     label: "Average review time" },
+              { value: "100%",           label: "Company-specific from day one" },
+              { value: "Every decision", label: "Remembered and applied" },
+              { value: "1 to 5 lawyers", label: "The team size we are built for" },
+            ].map(({ value, label }) => (
+              <div key={label} className="text-center space-y-1">
+                <div className="text-lg font-bold text-[#F8FAFC]">{value}</div>
+                <div className="text-[10px] text-slate-500 leading-snug">{label}</div>
+              </div>
+            ))}
+          </motion.div>
+
+          {/* Scroll hint */}
+          <motion.div
+            className="mt-14 flex flex-col items-center gap-1.5 opacity-30"
+            {...(shouldReduce ? {} : fadeUpHero(0.9))}
+          >
+            <div className="w-px h-5 bg-white/40 rounded-full" />
+            <span className="text-[10px] text-slate-400 tracking-widest uppercase">scroll</span>
           </motion.div>
         </div>
       </section>
