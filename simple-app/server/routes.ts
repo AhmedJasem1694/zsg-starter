@@ -13,6 +13,7 @@ import {
 } from "./services/inboundEmail.js";
 import { parseEmailIntent, UNCLEAR_REPLY_TEXT } from "./services/emailIntentParser.js";
 import { sendPlainEmail } from "./services/emailService.js";
+import { processReviewByEmail, type InboundAttachment } from "./services/emailReview.js";
 import { runReview } from "./services/reviewOrchestrator.js";
 import { runLegacyReview, ensureLegacyFields } from "./services/legacyReview.js";
 import { detectAndSaveRegulations } from "./services/regulatoryDetection.js";
@@ -249,18 +250,20 @@ async function assertOwnsDocument(userId: string, documentId: string, userCompan
 // short helpful email (Section 2b). Never throws.
 async function handleInboundIntent(input: {
   recordId: string;
-  companyInboundEmail: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  company: Record<string, any>;
   sender: string;
   subject: string;
   bodyText: string;
-  attachmentNames: string[];
+  attachments: InboundAttachment[];
   messageId: string;
 }): Promise<void> {
+  const companyInboundEmail = (input.company["inbound_email"] as string) || "";
   try {
     const result = await parseEmailIntent({
       subject: input.subject,
       bodyText: input.bodyText,
-      attachmentNames: input.attachmentNames,
+      attachmentNames: input.attachments.map((a) => a.originalName),
     });
 
     if (input.recordId) {
@@ -276,11 +279,25 @@ async function handleInboundIntent(input: {
       `${result.counterparty ? ` / ${result.counterparty}` : ""}`
     );
 
+    // Section 3: review_contract → run the full pipeline + reply in-thread.
+    if (result.intent === "review_contract") {
+      await processReviewByEmail({
+        company: input.company,
+        sender: input.sender,
+        subject: input.subject,
+        messageId: input.messageId,
+        attachments: input.attachments,
+        intentParams: result,
+        inboundRecordId: input.recordId,
+      });
+      return;
+    }
+
     // Section 2b: unclear → short helpful clarification reply.
     if (result.intent === "unclear") {
       const sent = await sendPlainEmail({
         to: input.sender,
-        from: input.companyInboundEmail || undefined,
+        from: companyInboundEmail || undefined,
         subject: input.subject ? `Re: ${input.subject}` : "How can I help?",
         text: UNCLEAR_REPLY_TEXT,
         inReplyTo: input.messageId || undefined,
@@ -291,7 +308,7 @@ async function handleInboundIntent(input: {
         }).catch(() => {});
       }
     }
-    // review_contract / draft_document / question are handled in later sections.
+    // draft_document / question are handled in later sections.
   } catch (err) {
     console.error("[intent] handleInboundIntent failed:", (err as Error)?.message);
   }
@@ -402,11 +419,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       void handleInboundIntent({
         recordId: inboundRecordId,
-        companyInboundEmail: (company["inbound_email"] as string) || "",
+        company,
         sender,
         subject,
         bodyText,
-        attachmentNames: attachments.map((a) => a.originalName),
+        attachments,
         messageId,
       });
     })

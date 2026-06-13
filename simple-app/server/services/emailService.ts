@@ -52,6 +52,38 @@ export async function sendPlainEmail(p: {
   }
 }
 
+/**
+ * HTML email send with a plain-text fallback part. Used for the inbound review
+ * result email. Same threading / from semantics as sendPlainEmail. Never throws.
+ */
+export async function sendHtmlEmail(p: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  from?: string;
+  inReplyTo?: string;
+}): Promise<boolean> {
+  const transporter = getTransporter();
+  if (!transporter) {
+    console.warn(`[Zane] SMTP not configured - skipping HTML email to ${p.to} ("${p.subject}")`);
+    return false;
+  }
+  const from = p.from
+    ? (p.from.includes("<") ? p.from : `Zane <${p.from}>`)
+    : SMTP_FROM;
+  const headers = p.inReplyTo
+    ? { "In-Reply-To": p.inReplyTo, "References": p.inReplyTo }
+    : undefined;
+  try {
+    await transporter.sendMail({ from, to: p.to, subject: p.subject, html: p.html, text: p.text, headers });
+    return true;
+  } catch (err) {
+    console.error(`[Zane] Failed to send HTML email to ${p.to}:`, (err as Error)?.message);
+    return false;
+  }
+}
+
 export interface EscalationEmailParams {
   to:                { name: string; email: string };
   contractName:      string;

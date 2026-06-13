@@ -119,6 +119,17 @@ export async function ensureInboundSchema(): Promise<void> {
       });
     }
 
+    // uploaded_documents.source — origin flag ("" | "email" | "integration").
+    const docs = await collections.getOne("uploaded_documents").catch(() => null);
+    if (docs) {
+      const docFields: PBRecord[] = docs.fields ?? docs.schema ?? [];
+      if (!docFields.some((f) => f.name === "source")) {
+        await collections.update(docs.id, {
+          fields: [...docFields, { name: "source", type: "text", required: false }],
+        });
+      }
+    }
+
     await ensureCollection("inbound_emails", [
       { name: "company", type: "text", required: true },
       { name: "sender", type: "text", required: false },

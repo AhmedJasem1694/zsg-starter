@@ -712,6 +712,8 @@ export interface UploadedDocument {
   originalName: string;
   contractType: string;
   status: DocumentStatus;
+  /** Origin: undefined / "" (in-app upload) | "email" | "integration" */
+  source?: string;
   counterpartyName?: string;
   counterpartyType?: string;
   reviewType?: string;

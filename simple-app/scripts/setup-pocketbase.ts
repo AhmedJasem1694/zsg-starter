@@ -793,6 +793,8 @@ async function main() {
     textField("originalName", { required: true }),
     textField("contractType"),
     textField("status"),
+    // Origin of the document: "" (in-app upload) | "email" | "integration"
+    textField("source"),
     textField("counterpartyName"),
     textField("counterpartyType"),
     textField("reviewType"),
