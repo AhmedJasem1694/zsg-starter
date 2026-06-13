@@ -167,7 +167,7 @@ export default function Landing() {
           style={{ background: "radial-gradient(ellipse 60% 45% at 50% -10%, rgba(37,99,235,0.14), transparent 65%)" }}
         />
 
-        <div className="relative max-w-3xl mx-auto px-6 py-32 sm:py-44 text-center">
+        <div className="relative max-w-3xl mx-auto px-6 pt-16 pb-20 sm:pt-24 sm:pb-28 text-center">
           {/* Headline: carries the rolling text */}
           <motion.h1
             className="text-4xl sm:text-6xl font-bold tracking-tight leading-[1.08] text-[#F8FAFC]"
