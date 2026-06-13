@@ -140,7 +140,7 @@ function RuleCard({ rule, outcome, counterpartyEntries }: { rule: PlaybookRule; 
             </div>
           )}
 
-          {/* CHANGE 3 — Drift visualisation */}
+          {/* CHANGE 3, Drift visualisation */}
           {outcome && outcome.total >= 3 && (() => {
             const avgSigned =
               outcome.greenCount >= outcome.redCount + outcome.amberCount
@@ -255,7 +255,7 @@ function RuleCard({ rule, outcome, counterpartyEntries }: { rule: PlaybookRule; 
             </select>
           </div>
 
-          {/* CHANGE 2 — Counterparty intelligence */}
+          {/* CHANGE 2, Counterparty intelligence */}
           <div className="rounded-lg bg-[#0C1929] border border-[#1E3A5F] rounded-lg p-3">
             <button
               className="flex items-center justify-between w-full text-left"
@@ -1011,7 +1011,7 @@ export default function Playbook() {
   });
   const workflowType = (company as { workflowType?: string } | undefined)?.workflowType;
 
-  // CHANGE 2 — Counterparty intelligence
+  // CHANGE 2, Counterparty intelligence
   const { data: counterpartyData } = useQuery({
     queryKey: ["counterparty-intelligence"],
     queryFn: getCounterpartyIntelligence,
@@ -1020,7 +1020,7 @@ export default function Playbook() {
 
   const { flags } = useFeatureFlags();
 
-  // CHANGE 5 — Briefing state
+  // CHANGE 5, Briefing state
   const [showBriefing, setShowBriefing] = useState(false);
   const [briefingText, setBriefingText] = useState("");
   const [briefingLoading, setBriefingLoading] = useState(false);
@@ -1092,7 +1092,7 @@ export default function Playbook() {
           </div>
         </div>
 
-        {/* CHANGE 4 — Playbook health score (Team+) */}
+        {/* CHANGE 4, Playbook health score (Team+) */}
         {!flags.playbookHealthScore && (
           <UpgradePrompt feature="Playbook Health Score" requiredTier="team" />
         )}
@@ -1123,7 +1123,7 @@ export default function Playbook() {
           );
         })()}
 
-        {/* Tabs — drift visualisation gated below in RuleCard via flags prop */}
+        {/* Tabs, drift visualisation gated below in RuleCard via flags prop */}
         {/* Tabs */}
         <div className="flex gap-1 p-1 bg-muted rounded-lg w-fit">
           <button
@@ -1253,7 +1253,7 @@ export default function Playbook() {
                 </div>
               )}
 
-              {/* Section 3c — Counterparty negotiation profiles (from captured email threads) */}
+              {/* Section 3c, Counterparty negotiation profiles (from captured email threads) */}
               {counterpartyData?.profiles && Object.keys(counterpartyData.profiles).length > 0 && (
                 <div className="rounded-lg border border-card-border bg-card p-5 space-y-3">
                   <div>
@@ -1311,7 +1311,7 @@ export default function Playbook() {
           />
         )}
       </div>
-      {/* CHANGE 5 — Briefing modal */}
+      {/* CHANGE 5, Briefing modal */}
       {showBriefing && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowBriefing(false)}>
           <div className="bg-[#111A24] border border-[#1E293B] rounded-xl max-w-2xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>

@@ -9,7 +9,7 @@ export default function ApprovalMatrix() {
     >
       <p>
         The playbook tells Zane what is risky. The approval matrix tells Zane what to do about it.
-        Of the two, teams consistently underinvest in the approval matrix — and consistently
+        Of the two, teams consistently underinvest in the approval matrix, and consistently
         regret it when a significant clause deviation slips through because nobody was clearly
         responsible for signing off on it.
       </p>
@@ -25,14 +25,14 @@ export default function ApprovalMatrix() {
       <h2>The three escalation tiers Zane checks simultaneously</h2>
       <p>
         Zane evaluates three separate escalation dimensions for every contract review. These run
-        in parallel — all three are checked at the same time, and the highest escalation level
+        in parallel. All three are checked at the same time, and the highest escalation level
         from any dimension determines the required sign-off.
       </p>
 
       <h3>Tier 1: Clause risk escalation</h3>
       <p>
-        This tier is driven by your playbook. When a clause is assessed as RED — either because
-        it falls below your fallback position or breaches your hard red line — it triggers a
+        This tier is driven by your playbook. When a clause is assessed as RED, either because
+        it falls below your fallback position or breaches your hard red line, it triggers a
         clause-specific escalation request.
       </p>
       <p>
@@ -47,7 +47,7 @@ export default function ApprovalMatrix() {
         <li>
           <strong>Data protection deviations:</strong> DPO or Senior Privacy Counsel sign-off,
           in addition to any other required approver. This is not optional in a regulated
-          environment — it creates a documented decision trail for your data protection officer.
+          environment. It creates a documented decision trail for your data protection officer.
         </li>
         <li>
           <strong>IP ownership deviations:</strong> Head of Legal or GC sign-off. IP decisions

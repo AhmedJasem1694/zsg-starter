@@ -18,7 +18,7 @@ const GUIDES = [
     category: "Contract review",
     title: "Reading a Zane review: what each RAG status actually means",
     description:
-      "RED, AMBER, GREEN, and ABSENT — with specific examples. Understanding the difference between a negotiation risk and a legal stop.",
+      "RED, AMBER, GREEN, and ABSENT, with specific examples. Understanding the difference between a negotiation risk and a legal stop.",
     readTime: "5 min read",
     tag: "Guide",
     href: "/resources/rag-status",
@@ -68,7 +68,7 @@ const GUIDES = [
 const FAQS = [
   {
     q: "Is Zane a law firm or providing legal advice?",
-    a: "No. Zane is a decision support tool for in-house legal teams. It surfaces risks and suggests positions based on your playbook - but all decisions remain with your qualified lawyers. Zane does not provide legal advice and should not be relied upon as a substitute for professional legal judgment.",
+    a: "No. Zane is a decision support tool for in-house legal teams. It surfaces risks and suggests positions based on your playbook, but all decisions remain with your qualified lawyers. Zane does not provide legal advice and should not be relied upon as a substitute for professional legal judgment.",
   },
   {
     q: "What contract types does Zane support?",
@@ -114,7 +114,7 @@ const CLAUSE_EXPLAINERS = [
 export default function Resources() {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Nav — matches landing page sticky header exactly */}
+      {/* Nav matches landing page sticky header exactly */}
       <header className="sticky top-0 z-20 border-b border-white/8 backdrop-blur-md" style={{ background: "rgba(11,17,24,0.97)" }}>
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link to="/" className="hover:opacity-80 transition-opacity">
@@ -240,7 +240,7 @@ export default function Resources() {
         </div>
       </section>
 
-      {/* Footer — matches landing page footer exactly */}
+      {/* Footer matches landing page footer exactly */}
       <footer className="border-t border-black/6 mt-auto">
         <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
           <Link to="/" className="hover:opacity-80 transition-opacity">

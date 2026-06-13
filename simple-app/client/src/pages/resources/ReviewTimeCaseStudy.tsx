@@ -147,13 +147,13 @@ export default function ReviewTimeCaseStudy() {
         DPO sign-off.
       </p>
       <p>
-        The sign-off sequence is generated: Handler → Legal → GC → DPO.
+        The sign-off sequence is generated: Handler then Legal then GC then DPO.
       </p>
 
       <h3>Lawyer review: 10 minutes</h3>
       <p>
         The solicitor reviews Zane's output. She reads the Red clause analysis. She agrees with
-        the assessment and accepts the generated fallback language with one edit — she changes
+        the assessment and accepts the generated fallback language with one edit. She changes
         "30 days" to "14 days" based on her knowledge that this supplier has accepted 14-day
         notice periods with objection rights in similar contracts. She records her reasoning.
       </p>

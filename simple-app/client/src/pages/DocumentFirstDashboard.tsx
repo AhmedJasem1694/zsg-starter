@@ -302,7 +302,7 @@ export default function DocumentFirstDashboard() {
           <p className="text-white/60 text-sm font-medium">{messages[stage]}</p>
           {stage === "setting-up" && (
             <p className="text-white/30 text-xs max-w-xs text-center">
-              This takes about 30–90 seconds. We're running the full review pipeline now.
+              This takes about 30 to 90 seconds. We're running the full review pipeline now.
             </p>
           )}
         </div>

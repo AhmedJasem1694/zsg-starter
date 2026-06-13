@@ -55,7 +55,7 @@ app.use(cors({
 
 // Force HTTPS in production (Railway terminates TLS and sets x-forwarded-proto).
 // trust proxy (set above) ensures Express reads the header correctly.
-// Guard: only redirect when the header is EXPLICITLY "http" — if it is absent
+// Guard: only redirect when the header is EXPLICITLY "http". If it is absent
 // (undefined) do not redirect, as that would create a loop in environments
 // where the proxy does not forward the header.
 if (process.env.NODE_ENV === "production") {

@@ -1,5 +1,5 @@
 /**
- * Decision event capture — the moat layer.
+ * Decision event capture, the moat layer.
  *
  * Every human judgment inside Zane (accepting a recommendation, overriding a
  * RAG status, editing suggested fallback language, dismissing a flag, acting
@@ -22,7 +22,7 @@ export type HumanAction = "accepted" | "overridden" | "modified" | "ignored";
 export interface DecisionEventInput {
   companyId: string;
   userId?: string;
-  /** uploaded_documents id — the contract this judgment relates to */
+  /** uploaded_documents id, the contract this judgment relates to */
   documentId: string;
   clauseCategory: string;
   zaneRecommendation: ZaneRecommendation;
@@ -63,7 +63,7 @@ export async function recordDecisionEvent(input: DecisionEventInput): Promise<vo
   } catch (err) {
     const status = (err as { status?: number }).status;
     if (status === 404) {
-      // Collection doesn't exist yet (pb:setup not re-run) — create it and retry
+      // Collection doesn't exist yet (pb:setup not re-run), create it and retry
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (pb.collections as any).create({
@@ -96,7 +96,7 @@ export async function recordDecisionEvent(input: DecisionEventInput): Promise<vo
 }
 
 /**
- * Record a decision event given only a review_results id — looks up the result
+ * Record a decision event given only a review_results id. Looks up the result
  * and its document to derive company, contract, clause category, and what Zane
  * recommended. Silent: any lookup failure is swallowed.
  */

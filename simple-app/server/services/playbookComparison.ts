@@ -124,10 +124,10 @@ function resultJsonSchema(companyName: string, extraFirstLine: string = ""): str
     { "article": "Article 28", "regulation": "UK GDPR", "relevance": "One sentence on why this article applies" }
   ],
   "founderStatus": "SAFE" | "CAUTION" | "DO NOT SIGN YET",
-  "founderPlainEnglish": "1-2 sentences a founder would understand — what THIS specific clause (as written above) actually means. Base it only on the clause text provided. Do not invent implications not in the text.",
+  "founderPlainEnglish": "1-2 sentences a founder would understand, what THIS specific clause (as written above) actually means. Base it only on the clause text provided. Do not invent implications not in the text.",
   "founderBusinessImpact": "Commercial impact if this clause is accepted as written - what it costs, what it prevents, what it exposes",
   "founderAskFor": "Specific and direct ask - the exact change to request from the counterparty",
-  "founderCopyPaste": "A short professional email the founder can paste and send to request the change. Rules: (1) Address to 'Dear [Counterparty Name]' — use that exact placeholder, never invent a name. (2) Reference ONLY specific terms, caps, or numbers that appear verbatim in the clause text above — never invent figures. (3) State the specific change being requested. (4) Sign off as '[Your Name]'. (5) Maximum 150 words. (6) No legal jargon. Example format: 'Dear [Counterparty Name], Thanks for sending across the agreement. One clause needs changing before we can sign: [clause name]. Currently it says [quote or paraphrase from actual clause]. We need it changed to [specific request]. Please confirm you can make this amendment. Thanks, [Your Name]'",
+  "founderCopyPaste": "A short professional email the founder can paste and send to request the change. Rules: (1) Address to 'Dear [Counterparty Name]', using that exact placeholder, never invent a name. (2) Reference ONLY specific terms, caps, or numbers that appear verbatim in the clause text above, never invent figures. (3) State the specific change being requested. (4) Sign off as '[Your Name]'. (5) Maximum 150 words. (6) No legal jargon. Example format: 'Dear [Counterparty Name], Thanks for sending across the agreement. One clause needs changing before we can sign: [clause name]. Currently it says [quote or paraphrase from actual clause]. We need it changed to [specific request]. Please confirm you can make this amendment. Thanks, [Your Name]'",
   "founderFundraisingRelevance": "How this clause affects fundraising, investor diligence, or future deal terms - or 'Not relevant to fundraising' if it does not",
   "founderIfIgnored": "Specific commercial consequence of signing this clause AS WRITTEN. Use only figures and terms from the clause text. If the clause caps liability at £X, say £X. If no specific figure is in the clause, say 'whatever the default position is under the governing law' rather than inventing a number.",
   "iracIssue": "One precise sentence stating the exact legal question this clause raises - not a summary of the clause but the specific legal question to be answered",
@@ -163,7 +163,9 @@ Error category rules:
 - DRAFTING_ERROR: the clause or document contains a structural error that could undermine legal effectiveness (undefined terms, broken cross-references, missing subjects).
 - MECHANICAL_ERROR: typographical or transcription error that may be legally material (inconsistent numbers, ambiguous date formats, party name errors).`;
 
-const RECOMMENDATION_DISCIPLINE = `RECOMMENDATION DISCIPLINE: Never give a conclusion that says it could go either way without providing a view. Always commit to a recommendation while noting material uncertainty. Structure every conclusion as: "My recommendation is [X] because [Y]. The risk of this being wrong is [Z]. If [Z] materialises, the consequence is [W]." Remove any hedging that does not add specific information. Phrases like "it may" or "it could" or "depending on the circumstances" are only acceptable if followed immediately by the specific condition that would change the recommendation.`;
+const RECOMMENDATION_DISCIPLINE = `RECOMMENDATION DISCIPLINE: Never give a conclusion that says it could go either way without providing a view. Always commit to a recommendation while noting material uncertainty. Structure every conclusion as: "My recommendation is [X] because [Y]. The risk of this being wrong is [Z]. If [Z] materialises, the consequence is [W]." Remove any hedging that does not add specific information. Phrases like "it may" or "it could" or "depending on the circumstances" are only acceptable if followed immediately by the specific condition that would change the recommendation.
+
+HARD RULE: Never use em dashes or en dashes in any output. Use a comma or a full stop instead.`;
 
 export async function compareClauseToPlaybook(
   clauseText: string,
@@ -246,7 +248,7 @@ ${OUTPUT_RULES_BLOCK}`;
 
 // ─── Batched comparison (cost optimisation) ──────────────────────────────────
 // All playbook comparisons for a contract run as ONE Sonnet request containing
-// every present clause, with a structured JSON array output — instead of one
+// every present clause, with a structured JSON array output, instead of one
 // request per clause. System prompt + persona + rules are paid for once.
 // Callers fall back to compareClauseToPlaybook for any clause missing from the
 // batch response (or if the whole batch call fails).
@@ -294,7 +296,7 @@ export async function compareClausesBatch(
     const cat = c.rule.clauseCategory;
     const label = cat.replace(/_/g, " ");
     const indirectNote = c.isIndirectReference
-      ? `\nNOTE: INDIRECT REFERENCE. ${label} is not a dedicated clause — it is addressed indirectly${c.indirectClauseRef ? ` at ${c.indirectClauseRef}` : " within another clause"}. Begin clauseSummary with "${label} (addressed indirectly${c.indirectClauseRef ? ` at ${c.indirectClauseRef}` : ""}): " and comparisonStatement with "${label} (addressed indirectly): ", then assess whether the indirect treatment meets, falls below, or breaches the playbook position.`
+      ? `\nNOTE: INDIRECT REFERENCE. ${label} is not a dedicated clause. It is addressed indirectly${c.indirectClauseRef ? ` at ${c.indirectClauseRef}` : " within another clause"}. Begin clauseSummary with "${label} (addressed indirectly${c.indirectClauseRef ? ` at ${c.indirectClauseRef}` : ""}): " and comparisonStatement with "${label} (addressed indirectly): ", then assess whether the indirect treatment meets, falls below, or breaches the playbook position.`
       : "";
     return `### CLAUSE ${i + 1} of ${clauses.length}: ${cat}
 Playbook rule:
@@ -319,7 +321,7 @@ You will be given ${clauses.length} clauses from one contract, each with its own
 
 ${sections}
 
-Return ONLY a valid JSON array with EXACTLY ${clauses.length} elements — one per clause, in the same order as presented. Each element must follow this exact structure (note the "clauseCategory" field identifying which clause it analyses):
+Return ONLY a valid JSON array with EXACTLY ${clauses.length} elements, one per clause, in the same order as presented. Each element must follow this exact structure (note the "clauseCategory" field identifying which clause it analyses):
 ${resultJsonSchema(companyName, `"clauseCategory": "THE_CLAUSE_CATEGORY_FROM_THE_HEADER",`)}
 
 ${OUTPUT_RULES_BLOCK}`;

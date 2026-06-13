@@ -12,7 +12,7 @@
  *
  * Security (1d): only emails whose sender is a registered user of the recipient
  * company are persisted for processing. Anything else is logged silently to
- * inbound_rejections and ignored — no reply, nothing revealing. Attachment
+ * inbound_rejections and ignored, no reply, nothing revealing. Attachment
  * *processing* (intent + model calls) is a later section and always runs through
  * the existing PII anonymisation pipeline, exactly like manual uploads.
  */
@@ -65,7 +65,7 @@ export async function generateUniqueInboundEmail(name: string, excludeCompanyId?
         .filter(Boolean)
     );
   } catch {
-    // Field may not exist yet on older deployments — treat as no collisions.
+    // Field may not exist yet on older deployments, treat as no collisions.
   }
 
   let candidate = `${slug}@${domain}`;
@@ -119,7 +119,7 @@ export async function ensureInboundSchema(): Promise<void> {
       });
     }
 
-    // uploaded_documents.source — origin flag ("" | "email" | "integration").
+    // uploaded_documents.source: origin flag ("" | "email" | "integration").
     const docs = await collections.getOne("uploaded_documents").catch(() => null);
     if (docs) {
       const docFields: PBRecord[] = docs.fields ?? docs.schema ?? [];
@@ -191,7 +191,7 @@ export async function backfillInboundEmails(): Promise<number> {
 export function verifyMailgunSignature(timestamp?: string, token?: string, signature?: string): boolean {
   const signingKey = process.env.MAILGUN_SIGNING_KEY;
   if (!signingKey) {
-    console.warn("[inbound] MAILGUN_SIGNING_KEY not set — rejecting inbound email");
+    console.warn("[inbound] MAILGUN_SIGNING_KEY not set, rejecting inbound email");
     return false;
   }
   if (!timestamp || !token || !signature) return false;

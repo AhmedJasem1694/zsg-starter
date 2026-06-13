@@ -1,4 +1,4 @@
-# Zane — Legal Intelligence Platform
+# Zane: Legal Intelligence Platform
 
 The legal decision engine powered by organisational memory.
 
@@ -11,7 +11,7 @@ Zane reviews contracts against a company's specific playbook positions, captures
 - **Frontend**: React 18, TypeScript, React Query, Tailwind CSS, Framer Motion
 - **Backend**: Node.js, Express, TypeScript
 - **Database**: PocketBase (self-hosted SQLite via Railway)
-- **AI**: OpenRouter — Claude Sonnet (primary), Claude Opus (deep reasoning), GPT-4o (extraction), Gemini Flash (classification)
+- **AI**: OpenRouter, Claude Sonnet (primary), Claude Opus (deep reasoning), GPT-4o (extraction), Gemini Flash (classification)
 - **Deployment**: Railway (two services: App + PocketBase)
 
 ## Getting Started
@@ -79,7 +79,7 @@ simple-app/
 
 **Escalation routing**: Three-tier governance system routing contracts to the correct approvers based on (1) clause risk flags, (2) contract value thresholds, and (3) governance triggers.
 
-**Accumulation engine**: Every contract reviewed, every outcome logged, and every override recorded feeds back into future analysis — building institutional memory that compounds over time.
+**Accumulation engine**: Every contract reviewed, every outcome logged, and every override recorded feeds back into future analysis, building institutional memory that compounds over time.
 
 **Multi-model pipeline**: Document classification (Gemini Flash) → metadata extraction (GPT-4o) → clause extraction and comparison (Claude Sonnet) → contradiction detection and escalation analysis (Claude Opus) → low-confidence reanalysis (Claude Opus).
 
@@ -94,15 +94,15 @@ simple-app/
 
 ## Inbound Email (Email Zane)
 
-Every company gets a dedicated address — `{company-slug}@inbox.zanelegal.ai` (e.g. `seko@inbox.zanelegal.ai`). Users CC, forward, or email contracts and requests there in plain English; Zane parses the intent, does the work, and replies by email with a link to the full result in the app. No portal, no upload.
+Every company gets a dedicated address, `{company-slug}@inbox.zanelegal.ai` (e.g. `seko@inbox.zanelegal.ai`). Users CC, forward, or email contracts and requests there in plain English; Zane parses the intent, does the work, and replies by email with a link to the full result in the app. No portal, no upload.
 
-Inbound mail is received via **Mailgun Inbound Routes**, which webhook into `POST /api/inbound-email`. Every request's signature is verified with `MAILGUN_SIGNING_KEY`, and only emails from a **registered user of the recipient company** are processed — anything else is logged silently to `inbound_rejections` and ignored (no reply, nothing revealing).
+Inbound mail is received via **Mailgun Inbound Routes**, which webhook into `POST /api/inbound-email`. Every request's signature is verified with `MAILGUN_SIGNING_KEY`, and only emails from a **registered user of the recipient company** are processed. Anything else is logged silently to `inbound_rejections` and ignored (no reply, nothing revealing).
 
 ### Environment variables
 
 ```
 MAILGUN_API_KEY=          # Mailgun API key (sending / management)
-MAILGUN_SIGNING_KEY=      # HTTP webhook signing key — verifies every inbound POST
+MAILGUN_SIGNING_KEY=      # HTTP webhook signing key, verifies every inbound POST
 INBOUND_EMAIL_DOMAIN=inbox.zanelegal.ai
 ```
 
@@ -117,31 +117,31 @@ INBOUND_EMAIL_DOMAIN=inbox.zanelegal.ai
 
 ### DNS records to add at Namecheap (for the `inbox` subdomain)
 
-Add these on the **zanelegal.ai** domain. Mailgun shows the exact values for your account on the domain's DNS page — the table below is the record *types and hosts* you need. **Namecheap's "Host" field is relative to `zanelegal.ai`, so use `inbox` (not `inbox.zanelegal.ai`).**
+Add these on the **zanelegal.ai** domain. Mailgun shows the exact values for your account on the domain's DNS page. The table below is the record *types and hosts* you need. **Namecheap's "Host" field is relative to `zanelegal.ai`, so use `inbox` (not `inbox.zanelegal.ai`).**
 
 | Type  | Host (Namecheap)           | Value                                       | Priority | Purpose             |
 |-------|----------------------------|---------------------------------------------|----------|---------------------|
 | MX    | `inbox`                    | `mxa.mailgun.org`                           | 10       | Receive mail        |
 | MX    | `inbox`                    | `mxb.mailgun.org`                           | 10       | Receive mail        |
-| TXT   | `inbox`                    | `v=spf1 include:mailgun.org ~all`           | —        | SPF (anti-spoof)    |
-| TXT   | `mailo._domainkey.inbox`   | `k=rsa; p=<DKIM public key from Mailgun>`   | —        | DKIM (signing)      |
-| CNAME | `email.inbox`              | `mailgun.org`                               | —        | Open/click tracking (optional) |
+| TXT   | `inbox`                    | `v=spf1 include:mailgun.org ~all`           | -        | SPF (anti-spoof)    |
+| TXT   | `mailo._domainkey.inbox`   | `k=rsa; p=<DKIM public key from Mailgun>`   | -        | DKIM (signing)      |
+| CNAME | `email.inbox`              | `mailgun.org`                               | -        | Open/click tracking (optional) |
 
-> Use the exact DKIM `p=` value Mailgun generates for your domain — the one above is a placeholder. After adding the records, click **Verify DNS Settings** in Mailgun; propagation can take up to a few hours.
+> Use the exact DKIM `p=` value Mailgun generates for your domain. The one above is a placeholder. After adding the records, click **Verify DNS Settings** in Mailgun; propagation can take up to a few hours.
 
 ## Railway Deployment
 
 Two Railway services:
-1. **App service** — Node.js, runs `npm start`, auto-deploys on push to `master`
-2. **PocketBase service** — Docker image `ghcr.io/muchobien/pocketbase:latest`, persistent volume at `/pb/pb_data`
+1. **App service**: Node.js, runs `npm start`, auto-deploys on push to `master`
+2. **PocketBase service**: Docker image `ghcr.io/muchobien/pocketbase:latest`, persistent volume at `/pb/pb_data`
 
 ## Contact
 
-Ahmed Jasem — ahmed@zanelegal.ai
+Ahmed Jasem, ahmed@zanelegal.ai
 
 ---
 
-*Original scaffold notes below — kept for reference*
+*Original scaffold notes below, kept for reference*
 
 ---
 
@@ -164,7 +164,7 @@ Stop the server with `Ctrl+C`. Re-run `npm run dev` whenever you want to work on
 | `server/` | The backend (Express). API routes live in `server/routes.ts`. |
 | `test/` | Test setup. Tests live next to the code they test. |
 
-Both the frontend and backend run on the same port (3000) when you're developing — you don't need to think about it.
+Both the frontend and backend run on the same port (3000) when you're developing. You don't need to think about it.
 
 ## How to talk to Claude Code
 
@@ -194,20 +194,20 @@ Press `Shift+Tab` to toggle plan mode. Claude will describe what it's going to d
 
 ## Useful slash commands
 
-- `/clear` — Start a fresh conversation. Use this between unrelated tasks so context doesn't get muddled.
-- `/init` — Once you've built some of your app, run this to generate a `CLAUDE.md` file. Claude will read that file at the start of every future session, so it remembers your project's shape.
-- `/help` — Lists all built-in commands.
+- `/clear`: Start a fresh conversation. Use this between unrelated tasks so context doesn't get muddled.
+- `/init`: Once you've built some of your app, run this to generate a `CLAUDE.md` file. Claude will read that file at the start of every future session, so it remembers your project's shape.
+- `/help`: Lists all built-in commands.
 
 ## Patterns that work well
 
-- **Refer to files with `@`** — typing `@server/routes.ts` in the chat tells Claude to read that file.
-- **Paste error messages verbatim** — copy the entire error from the terminal or browser console.
-- **Ask Claude to verify** — *"Run the dev server and check that the new page actually loads."*
-- **Commit often** — after each working step, run `git add -A && git commit -m "what changed"`. If a later change breaks something, you can roll back.
+- **Refer to files with `@`**: typing `@server/routes.ts` in the chat tells Claude to read that file.
+- **Paste error messages verbatim**: copy the entire error from the terminal or browser console.
+- **Ask Claude to verify**: *"Run the dev server and check that the new page actually loads."*
+- **Commit often**: after each working step, run `git add -A && git commit -m "what changed"`. If a later change breaks something, you can roll back.
 
 ## Things to avoid
 
-- **Don't paste secrets into chat.** API keys, passwords, etc., go in a `.env` file (which is gitignored). Tell Claude *"the secret lives in `.env` as `OPENAI_API_KEY`"* — don't paste the value.
+- **Don't paste secrets into chat.** API keys, passwords, etc., go in a `.env` file (which is gitignored). Tell Claude *"the secret lives in `.env` as `OPENAI_API_KEY`"*; don't paste the value.
 - **Don't accept changes you don't understand.** Ask: *"Explain what you changed and why."* If the answer doesn't make sense, push back.
 - **Don't ask for "the whole app" in one prompt.** Build it piece by piece.
 
@@ -231,4 +231,4 @@ npm run check    # Type-check the code
 
 ## When you outgrow this guide
 
-Once your app has real shape, run `/init` to create a `CLAUDE.md`. Add anything Claude should know about your project — conventions, deploy targets, gotchas. That file becomes the long-term memory for the repo.
+Once your app has real shape, run `/init` to create a `CLAUDE.md`. Add anything Claude should know about your project: conventions, deploy targets, gotchas. That file becomes the long-term memory for the repo.

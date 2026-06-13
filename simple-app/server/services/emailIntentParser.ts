@@ -2,7 +2,7 @@
  * Email intent parsing (Section 2).
  *
  * Every verified inbound email is classified with ONE Gemini 3.5 Flash call
- * (cheap, fast — the same model used for document classification). We return
+ * (cheap, fast, the same model used for document classification). We return
  * the intent plus extracted parameters (counterparty, document type, our role,
  * any specific instructions) so a downstream section can do the actual work.
  */
@@ -121,4 +121,4 @@ export const UNCLEAR_REPLY_TEXT =
   `Try something like:\n` +
   `  "Review the attached MSA, we are the customer"\n` +
   `  "Draft a mutual NDA with Acme Ltd"\n\n` +
-  `— Zane`;
+  `Zane`;

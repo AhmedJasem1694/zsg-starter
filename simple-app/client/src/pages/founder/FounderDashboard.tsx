@@ -302,7 +302,7 @@ export default function FounderDashboard() {
                         <div>
                           <div className="text-sm font-semibold text-[#93C5FD]">Reviewing: {d.originalName}</div>
                           <div className="text-xs text-muted-foreground mt-0.5">
-                            {isStalled ? "Taking longer than expected" : "Usually takes 1–3 minutes"}
+                            {isStalled ? "Taking longer than expected" : "Usually takes 1 to 3 minutes"}
                           </div>
                         </div>
                       </div>

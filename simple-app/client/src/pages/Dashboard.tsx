@@ -777,7 +777,7 @@ export default function Dashboard() {
       await queryClient.invalidateQueries({ queryKey: ["documents"] });
       await queryClient.invalidateQueries({ queryKey: ["document-stats"] });
       await reviewMutation.mutateAsync(doc.id);
-      // Litigation disabled — commercial contracts focus.
+      // Litigation disabled, commercial contracts focus.
       // (Previously: INSURANCE_LITIGATION workflow redirected to the litigation intake flow.)
       // if (workflowType === "INSURANCE_LITIGATION") {
       //   navigate(`/app/legal/litigation-intake/${doc.id}`);
@@ -940,7 +940,7 @@ export default function Dashboard() {
                 <AlertTriangle size={14} className="text-[#FCA5A5]" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-bold uppercase tracking-widest text-[#FCA5A5]/60 mb-0.5">Red clauses — do not sign yet</div>
+                <div className="text-xs font-bold uppercase tracking-widest text-[#FCA5A5]/60 mb-0.5">Red clauses, do not sign yet</div>
                 <div className="text-sm font-semibold text-foreground">Acme Corp MSA</div>
                 <div className="text-xs text-muted-foreground mt-0.5">3 red clauses · GC sign-off required</div>
               </div>
@@ -958,7 +958,7 @@ export default function Dashboard() {
                   <AlertTriangle size={14} className="text-[#FCA5A5]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold uppercase tracking-widest text-[#FCA5A5]/60 mb-0.5">Red clauses — do not sign yet</div>
+                  <div className="text-xs font-bold uppercase tracking-widest text-[#FCA5A5]/60 mb-0.5">Red clauses, do not sign yet</div>
                   <div className="text-sm font-semibold text-foreground truncate">{cp ?? d.originalName}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">{redCount} red clause{redCount !== 1 ? "s" : ""}</div>
                 </div>
@@ -1082,7 +1082,7 @@ export default function Dashboard() {
                   Go to <Link to="/app/legal/library" className="text-primary underline">Library</Link> to upload your first contract.
                 </div>
 
-                {/* Prefer email? — CC the company's Zane address (Section 7a) */}
+                {/* Prefer email? CC the company's Zane address (Section 7a) */}
                 {company?.inbound_email && (
                   <div className="mt-6 mx-auto max-w-md rounded-lg border border-card-border bg-card px-4 py-3 flex items-start gap-3 text-left">
                     <div className="mt-0.5 w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
@@ -1189,7 +1189,7 @@ export default function Dashboard() {
             <div className="card p-5 space-y-4">
               <div>
                 <div className="text-sm font-semibold">Connect your document storage</div>
-                <p className="text-xs text-muted-foreground mt-0.5">So Zane can review contracts automatically as they arrive — no manual upload needed.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">So Zane can review contracts automatically as they arrive, no manual upload needed.</p>
               </div>
               <div className="grid sm:grid-cols-2 gap-3">
                 <a href="/app/settings?tab=integrations&connect=google-drive"

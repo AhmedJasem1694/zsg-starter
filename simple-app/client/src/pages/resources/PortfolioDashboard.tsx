@@ -15,7 +15,7 @@ export default function PortfolioDashboard() {
       </p>
       <p>
         The Portfolio Risk dashboard changes that. Every contract Zane has reviewed contributes to
-        a single view of your legal risk across the entire portfolio — in commercial terms, not in
+        a single view of your legal risk across the entire portfolio, in commercial terms, not in
         the abstract language of clause categories.
       </p>
 
@@ -30,7 +30,7 @@ export default function PortfolioDashboard() {
       <p>
         <strong>Total contract value at risk.</strong> The sum of contract values where at least
         one clause was assessed as Red and that Red clause has not been resolved. This is not the
-        total potential liability — it is a proxy for the commercial exposure represented by
+        total potential liability. It is a proxy for the commercial exposure represented by
         contracts where risk is unresolved. A £2 million figure here means £2 million of contract
         value is sitting in agreements where your legal team has identified unaddressed risk.
       </p>
@@ -68,8 +68,8 @@ export default function PortfolioDashboard() {
         respond.
       </p>
       <p>
-        If it is a playbook calibration problem, the outcome tracking data will show you — over
-        time — that you are accepting below-fallback positions on liability more than half the time.
+        If it is a playbook calibration problem, the outcome tracking data will show you, over
+        time, that you are accepting below-fallback positions on liability more than half the time.
         That means your fallback is not your actual fallback. Adjust it.
       </p>
       <p>
@@ -116,7 +116,7 @@ export default function PortfolioDashboard() {
         The renewals calendar surfaces every contract with a renewal or termination event in the
         next 90 days. For each contract it shows the notice deadline, the action required
         (opt out, renegotiate, or confirm renewal), and the contract value. Contracts with very
-        short notice windows — 30 days or less — are flagged prominently.
+        short notice windows of 30 days or less are flagged prominently.
       </p>
       <p>
         The calendar is most useful as a standing agenda item in the legal team's weekly or
@@ -140,8 +140,8 @@ export default function PortfolioDashboard() {
         clause is.
       </p>
       <p>
-        Compare that to the alternative — a verbal update that says legal risk is being managed
-        and no material issues have arisen — and the difference in board confidence is significant.
+        Compare that to the alternative, a verbal update that says legal risk is being managed
+        and no material issues have arisen, and the difference in board confidence is significant.
         Boards are increasingly expecting in-house legal teams to quantify their risk management
         in terms that the rest of the business can interpret. The portfolio dashboard makes that
         straightforward.

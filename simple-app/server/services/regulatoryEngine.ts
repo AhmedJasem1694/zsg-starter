@@ -90,7 +90,7 @@ const STATIC_REGULATORY_DOCUMENTS: RegulatoryDocument[] = [
     source: "legislation.gov.uk",
     jurisdiction: "GB",
     regulationName: "Unfair Contract Terms Act 1977",
-    provision: "Sections 2–4 - Restriction of liability",
+    provision: "Sections 2 to 4 - Restriction of liability",
     text: `The Unfair Contract Terms Act 1977 (UCTA) applies to indemnity clauses in business-to-business contracts. Section 4 provides that a person dealing on the other's written standard terms of business cannot by reference to any contract term be made to indemnify another person (whether a party to the contract or not) in respect of liability incurred by the other for negligence or breach of contract, except in so far as the contract term satisfies the requirement of reasonableness. The reasonableness test (Schedule 2, UCTA) considers: bargaining strength of parties, inducement to agree, knowledge of term, practicability of compliance, and custom and practice. One-sided indemnities in standard form contracts are at heightened risk of being struck down as unreasonable.`,
     sectorTags: ["all"],
     clauseTags: ["INDEMNITY", "LIABILITY_CAP"],
@@ -104,8 +104,8 @@ const STATIC_REGULATORY_DOCUMENTS: RegulatoryDocument[] = [
     source: "legislation.gov.uk",
     jurisdiction: "GB",
     regulationName: "Late Payment of Commercial Debts (Interest) Act 1998",
-    provision: "Sections 1–8 - Statutory interest on late commercial debts",
-    text: `The Late Payment of Commercial Debts (Interest) Act 1998 implies a term into commercial contracts for the supply of goods or services that unpaid contract debts carry statutory interest at 8% per annum above the Bank of England base rate from the date the debt becomes due. The Act also allows the creditor to claim a fixed sum as compensation for late payment (£40 for debts under £1,000; £70 for debts £1,000–£9,999; £100 for debts over £10,000) plus reasonable debt recovery costs. Contractual provisions that purport to oust or limit the Act's provisions are only valid where they provide a substantial contractual remedy for late payment. Payment terms shorter than 30 days may also conflict with the Prompt Payment Code and public sector supply chain requirements.`,
+    provision: "Sections 1 to 8 - Statutory interest on late commercial debts",
+    text: `The Late Payment of Commercial Debts (Interest) Act 1998 implies a term into commercial contracts for the supply of goods or services that unpaid contract debts carry statutory interest at 8% per annum above the Bank of England base rate from the date the debt becomes due. The Act also allows the creditor to claim a fixed sum as compensation for late payment (£40 for debts under £1,000; £70 for debts £1,000 to £9,999; £100 for debts over £10,000) plus reasonable debt recovery costs. Contractual provisions that purport to oust or limit the Act's provisions are only valid where they provide a substantial contractual remedy for late payment. Payment terms shorter than 30 days may also conflict with the Prompt Payment Code and public sector supply chain requirements.`,
     sectorTags: ["all"],
     clauseTags: ["PAYMENT_TERMS"],
     lastUpdated: new Date("2024-01-01"),
@@ -300,11 +300,11 @@ export function formatRegulatoryContextForPrompt(docs: RegulatoryDocument[]): st
     `[${doc.regulationName} - ${doc.provision} (${doc.jurisdiction}, source: ${doc.source})]\n${doc.text}`
   );
 
-  return `\n\nREGULATORY CONTEXT (current as of ${today}):\n${snippets.join("\n\n")}\n\nWhen assessing this clause, consider whether it conflicts with or is constrained by the above regulatory provisions. Cite specific provisions in your output where relevant.`;
+  return `\n\nREGULATORY CONTEXT (current as of ${today}):\n${snippets.join("\n\n")}\n\nWhen assessing this clause, consider whether it conflicts with or is constrained by the above regulatory provisions. Cite specific provisions in your output where relevant. Never use em dashes or en dashes in any output. Use a comma or a full stop instead.`;
 }
 
 // Fetch latest updates from live government APIs.
-// Not yet implemented — regulatory data is currently maintained as static
+// Not yet implemented. Regulatory data is currently maintained as static
 // knowledge in the engine. Future: integrate legislation.gov.uk API (GB),
 // EUR-Lex (EU), and equivalent feeds for other jurisdictions.
 export async function fetchLatestRegulations(_jurisdiction: string): Promise<void> {

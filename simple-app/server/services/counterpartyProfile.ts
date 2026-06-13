@@ -57,7 +57,7 @@ async function loadEvents(companyId: string, counterparty: string): Promise<PBRe
 
 /**
  * Build a counterparty profile, or null if there isn't enough captured data to
- * say anything meaningful (we never speculate beyond what was captured — 3e).
+ * say anything meaningful (we never speculate beyond what was captured, 3e).
  */
 export async function buildCounterpartyProfile(
   companyId: string,
@@ -142,7 +142,7 @@ export async function buildCounterpartyProfile(
   let typicalMovement: string;
   const decisive = accepted + rejected + countered;
   if (decisive === 0) typicalMovement = "negotiates but rarely lands a clear position on record";
-  else if (rejected >= accepted && rejected >= countered) typicalMovement = "holds firm — rarely moves off their position";
+  else if (rejected >= accepted && rejected >= countered) typicalMovement = "holds firm, rarely moves off their position";
   else if (accepted > rejected && accepted >= countered) typicalMovement = "tends to accept reasonable positions";
   else typicalMovement = "counters, then settles toward the middle";
 
@@ -181,11 +181,11 @@ export function profileDraftToConfirm(profile: CounterpartyProfile | null): stri
   if (!profile) return [];
   const items: string[] = [];
   for (const cat of profile.alwaysPushOn) {
-    items.push(`${label(cat)}: ${profile.counterparty} consistently pushes on this — confirm your fallback before sending.`);
+    items.push(`${label(cat)}: ${profile.counterparty} consistently pushes on this. Confirm your fallback before sending.`);
   }
   for (const cat of profile.neverConcede) {
     if (profile.alwaysPushOn.includes(cat)) continue;
-    items.push(`${label(cat)}: ${profile.counterparty} rarely concedes here — confirm whether to lead with your fallback.`);
+    items.push(`${label(cat)}: ${profile.counterparty} rarely concedes here. Confirm whether to lead with your fallback.`);
   }
   return items;
 }

@@ -3,7 +3,7 @@
  *
  * Creates the Pulse Health Technologies Ltd founder demo account in PocketBase.
  * The server's getCompany() uses name-based detection ("pulse" fragment) to
- * route founder-demo@zanelegal.ai to the Pulse company — no schema changes needed.
+ * route founder-demo@zanelegal.ai to the Pulse company, no schema changes needed.
  *
  * Run: npx tsx scripts/setup-founder-demo.ts
  */
@@ -184,10 +184,10 @@ async function run() {
       escalationTrigger:   "Liability cap (£1,500) is below the 3-month red line (£4,500 minimum). Unacceptable for a business-critical infrastructure contract.",
       businessSummary:     "The current cap means DataStack has almost no financial accountability. For a contract managing your cloud infrastructure, this is a significant exposure.",
       founderStatus:       "CAUTION",
-      founderPlainEnglish: "The liability cap is too low. If something goes wrong you could only recover £1,500. You should push for at least £18,000 — that's 12 months of fees, which is the standard position.",
+      founderPlainEnglish: "The liability cap is too low. If something goes wrong you could only recover £1,500. You should push for at least £18,000. That's 12 months of fees, which is the standard position.",
       founderBusinessImpact: "A service outage, data loss, or security breach from DataStack could cost you customers, revenue, and regulatory fines. £1,500 does not begin to cover those losses.",
       founderAskFor:       "Ask for a mutual liability cap of £18,000 (12 months of fees), applying equally to both sides.",
-      founderCopyPaste:    "Hi [name], we're broadly happy to move forward but need one amendment on the liability clause. The current cap of one month's fees is too low for us given what you're managing. Could we agree a mutual cap at 12 months of fees — so £18,000 applying to both sides equally? That's standard for infrastructure contracts of this type. Happy to discuss.",
+      founderCopyPaste:    "Hi [name], we're broadly happy to move forward but need one amendment on the liability clause. The current cap of one month's fees is too low for us given what you're managing. Could we agree a mutual cap at 12 months of fees, so £18,000 applying to both sides equally? That's standard for infrastructure contracts of this type. Happy to discuss.",
       founderFundraisingRelevance: "High investor concern",
       founderIfIgnored:    "You are financially exposed for anything above £1,500. If DataStack causes a serious incident, you bear the cost.",
       isAbsent:            false,
@@ -205,10 +205,10 @@ async function run() {
       escalationTrigger:   "",
       businessSummary:     "Auto-renewal with a short notice window is one of the most common ways startups get locked into contracts they wanted to exit. The current 30-day window is tight.",
       founderStatus:       "CAUTION",
-      founderPlainEnglish: "The contract auto-renews automatically. You need to give 30 days notice to cancel — but miss that window and you're locked in for another year and another £18,000.",
+      founderPlainEnglish: "The contract auto-renews automatically. You need to give 30 days notice to cancel, but miss that window and you're locked in for another year and another £18,000.",
       founderBusinessImpact: "Missing the 30-day window costs you £18,000 in committed spend on a service you may no longer need. There is no active reminder in the contract.",
       founderAskFor:       "Ask for a 60- to 90-day notice window and a notification from DataStack before the window opens.",
-      founderCopyPaste:    "Hi [name], one thing on the renewal clause. The 30-day notice window is tight for us operationally. Could we extend this to 60 days? It just gives us more time to make a considered decision at renewal. If possible, we'd also appreciate a reminder from your side 90 days before the renewal date — happy to add this to the contract.",
+      founderCopyPaste:    "Hi [name], one thing on the renewal clause. The 30-day notice window is tight for us operationally. Could we extend this to 60 days? It just gives us more time to make a considered decision at renewal. If possible, we'd also appreciate a reminder from your side 90 days before the renewal date. Happy to add this to the contract.",
       founderFundraisingRelevance: "Standard diligence item",
       founderIfIgnored:    "You risk accidentally committing to another £18,000 year of services. There's no reminder mechanism in the contract.",
       isAbsent:            false,
@@ -223,13 +223,13 @@ async function run() {
       recommendedAction:   "Reject upfront annual payment. Negotiate monthly billing or quarterly billing. If annual is required, negotiate a pro-rata refund on early termination.",
       suggestedFallback:   "Fees invoiced monthly in advance. Payment due within 30 days of invoice. On termination, prepaid fees for future periods refunded pro-rata.",
       escalationRequired:  true,
-      escalationTrigger:   "Advance payment of full annual fee without refund right — breaches the hard red line on prepayment.",
+      escalationTrigger:   "Advance payment of full annual fee without refund right. Breaches the hard red line on prepayment.",
       businessSummary:     "Paying £18,000 upfront removes your payment leverage and ties up working capital before you have tested the service.",
       founderStatus:       "CAUTION",
       founderPlainEnglish: "You're being asked to pay the full £18,000 for the year upfront with no refunds if you cancel. That ties up your cash and removes any leverage if the service isn't what was promised.",
       founderBusinessImpact: "Upfront annual payment locks £18,000 of working capital into an untested service relationship. If service quality is poor, you have no payment leverage and no refund right.",
       founderAskFor:       "Ask for monthly billing. If they insist on annual, ask for a pro-rata refund right if you terminate and the right to pause payment for unresolved service failures.",
-      founderCopyPaste:    "Hi [name], the payment terms are something we need to work through. We're not in a position to pay £18,000 upfront — we'd need monthly or at most quarterly billing. Most SaaS providers we work with use monthly. If annual billing is important to you, we'd also need a pro-rata refund right if we terminate and the right to dispute invoices for service failures. Let me know what works.",
+      founderCopyPaste:    "Hi [name], the payment terms are something we need to work through. We're not in a position to pay £18,000 upfront. We'd need monthly or at most quarterly billing. Most SaaS providers we work with use monthly. If annual billing is important to you, we'd also need a pro-rata refund right if we terminate and the right to dispute invoices for service failures. Let me know what works.",
       founderFundraisingRelevance: "Standard diligence item",
       founderIfIgnored:    "You pay £18,000 immediately with no recovery right. If the service underperforms or you want to exit, the money is gone.",
       isAbsent:            false,
@@ -265,7 +265,7 @@ async function run() {
   console.log("Company:  Pulse Health Technologies Ltd");
   console.log("Persona:  FOUNDER (simplified founder interface)");
   console.log("Contract: Cloud Infrastructure Services Agreement");
-  console.log("          DataStack Solutions Ltd — £18,000 — AMBER");
+  console.log("          DataStack Solutions Ltd, £18,000, AMBER");
 }
 
 run().catch((err) => {

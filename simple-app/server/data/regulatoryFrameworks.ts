@@ -257,7 +257,7 @@ export const REGULATORY_FRAMEWORKS: RegulatoryFramework[] = [
     contractRelevance: "Game development, publishing, and platform agreements must address GDPR parental consent, DSA content moderation, age verification, and prohibition on behavioural advertising to minors.",
     sectorTags: ["gaming", "game", "games", "interactive entertainment", "mobile game", "game studio", "game developer", "loot box", "in-app purchase", "virtual currency", "metaverse", "children"],
     keyObligations: [
-      "Parental consent required for data processing of children under 13–16 (member state dependent)",
+      "Parental consent required for data processing of children under 13 to 16 (member state dependent)",
       "Behavioural advertising to minors prohibited under DSA",
       "Risk assessments required for platforms likely accessed by minors",
       "Content moderation obligations for user-generated content in games",
@@ -521,7 +521,7 @@ export const REGULATORY_FRAMEWORKS: RegulatoryFramework[] = [
     jurisdiction: "GB",
     regulator: "Companies House / HMRC",
     frameworkName: "Companies Act 2006",
-    description: "Principal statute governing UK company law: incorporation, directors' duties (ss 171–177), share capital, shareholder rights, accounts, and public company obligations. Directors owe duties to act within their powers, promote company success, exercise independent judgement, and avoid conflicts of interest.",
+    description: "Principal statute governing UK company law: incorporation, directors' duties (ss 171 to 177), share capital, shareholder rights, accounts, and public company obligations. Directors owe duties to act within their powers, promote company success, exercise independent judgement, and avoid conflicts of interest.",
     contractRelevance: "Commercial contracts must be signed by authorised persons. Board resolutions or delegation authorities should be verified for high-value or unusual contracts. Director conflicts of interest affecting contract approval must be managed. Contracts with connected persons require disclosure.",
     sectorTags: ["all", "technology", "saas", "financial services", "gaming", "property", "professional services", "manufacturing", "retail"],
     keyObligations: [

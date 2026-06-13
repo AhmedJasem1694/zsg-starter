@@ -179,7 +179,7 @@ export interface StripResult {
   removedSections: string[];
 }
 
-// Contract types where notice mechanics are analytically relevant — never
+// Contract types where notice mechanics are analytically relevant. Never
 // strip notice address blocks for these.
 const NOTICE_SENSITIVE_CONTRACT_TYPES = /lease|property|nhs|healthcare|insurance|logistics/i;
 
@@ -216,7 +216,7 @@ export function stripBoilerplate(text: string, contractType: string = ""): Strip
   // 3. Notice address lists: runs of 3+ consecutive address/attention/fax lines
   //    (the "addresses for service" tables inside notices clauses). Skipped when
   //    the contract type makes notice mechanics relevant. The notice clause text
-  //    itself (periods, methods) is never touched — only the address lists.
+  //    itself (periods, methods) is never touched, only the address lists.
   if (!NOTICE_SENSITIVE_CONTRACT_TYPES.test(contractType)) {
     const addressRunRe = /((?:^[ \t]*(?:Address|Attention|Attn|For the attention of|Email|E-mail|Fax|Copy to|Postcode)[:\s][^\n]*\n){3,})/gim;
     const before = working.length;

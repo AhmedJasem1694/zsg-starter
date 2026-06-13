@@ -88,7 +88,7 @@ Severity guide:
         { role: "user", content: userPrompt },
       ],
       2000,
-      90_000, // Opus may take longer — 90s timeout
+      90_000, // Opus may take longer, 90s timeout
       opusModel,
     );
 

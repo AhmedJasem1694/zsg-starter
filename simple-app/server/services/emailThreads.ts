@@ -5,7 +5,7 @@
  * stable thread_id derived from the message headers (References → In-Reply-To →
  * Message-Id). This lets a reply in an existing thread ("what about the
  * indemnity clause?") resolve against the contract that thread already linked,
- * without the user re-attaching anything — and is the groundwork for capturing
+ * without the user re-attaching anything, and is the groundwork for capturing
  * forwarded counterparty responses as negotiation events.
  */
 

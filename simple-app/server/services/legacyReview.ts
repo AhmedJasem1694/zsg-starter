@@ -1,5 +1,5 @@
 /**
- * Legacy contract review — lightweight, cost-controlled pipeline.
+ * Legacy contract review, lightweight, cost-controlled pipeline.
  *
  * For historical contract estates (up to 100 files per batch). Each contract
  * runs: parse → boilerplate strip → classification (Gemini Flash) → PII
@@ -62,7 +62,7 @@ export async function ensureLegacyFields(): Promise<void> {
     if (!names.has("contentHash")) missing.push({ name: "contentHash", type: "text", required: false });
     if (!names.has("reviewCost")) missing.push({ name: "reviewCost", type: "number", required: false });
     if (!names.has("reviewCostDetail")) missing.push({ name: "reviewCostDetail", type: "text", required: false });
-    // PocketBase 0.23+ does not auto-add created/updated — without them every
+    // PocketBase 0.23+ does not auto-add created/updated. Without them every
     // sort by "created" 400s (legacy report, cache lookup) and month bucketing
     // is empty. Autodate fields populate from the moment they exist.
     if (!names.has("created")) missing.push({ name: "created", type: "autodate", onCreate: true, onUpdate: false });
@@ -126,7 +126,7 @@ async function _runLegacyReview(documentId: string): Promise<void> {
     }
     const rawText = parseResult.text;
 
-    // ── Classification (Gemini Flash — cheap first pass) ─────────────────────
+    // ── Classification (Gemini Flash, cheap first pass) ─────────────────────
     await pb.collection("uploaded_documents").update(documentId, { status: "CLASSIFYING" });
     let classifiedDocType = (doc["contractType"] as string) || "OTHER";
     try {
@@ -158,7 +158,7 @@ ${rawText.slice(0, 3000)}`,
       messages: [
         {
           role: "system",
-          content: `You are a legal data extraction engine reviewing a historical contract for ${companyName}. Extract the key provisions below precisely. Use only what is in the text — never invent figures, dates, or names. Where something is genuinely absent, use null (or false/empty as the schema indicates).`,
+          content: `You are a legal data extraction engine reviewing a historical contract for ${companyName}. Extract the key provisions below precisely. Use only what is in the text. Never invent figures, dates, or names. Where something is genuinely absent, use null (or false/empty as the schema indicates). Never use em dashes or en dashes in any output. Use a comma or a full stop instead.`,
         },
         {
           role: "user",

@@ -47,7 +47,7 @@ export function useLogout() {
         });
       } catch { /* ignore */ }
 
-      // Hard redirect — forces a full page reload which flushes ALL in-memory
+      // Hard redirect, forces a full page reload which flushes ALL in-memory
       // React Query cache and React state. Do not use navigate() here:
       // a soft nav leaves the stale `user` object in memory long enough for
       // route guards to fire and redirect back to /dashboard.

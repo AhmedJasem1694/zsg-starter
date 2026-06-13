@@ -2,8 +2,8 @@
  * Contract review via email (Section 3).
  *
  * For a verified inbound email classified `review_contract`, this runs the
- * attachment through the EXISTING full review pipeline — identical to an in-app
- * upload — attributed to the sender's company (so their playbook, sector pack,
+ * attachment through the EXISTING full review pipeline, identical to an in-app
+ * upload, attributed to the sender's company (so their playbook, sector pack,
  * and regulation prominence all apply). It:
  *   3a. creates an uploaded_documents record (source: "email") and runs runReview()
  *   3b. sends an immediate in-thread acknowledgement
@@ -11,7 +11,7 @@
  *   3d. uses founder framing (SAFE / NEGOTIATE / DO NOT SIGN) for founder companies
  *
  * Attachments are reviewed via runReview(), which anonymises (PII pipeline)
- * before any model call — same guarantee as uploads.
+ * before any model call, same guarantee as uploads.
  */
 
 import fs from "fs";
@@ -95,7 +95,7 @@ export function buildSummary(results: PBRecord[], founder: boolean): ResultSumma
   if (founder) {
     verdictLabel = hasRed ? "DO NOT SIGN YET" : hasAmber ? "NEGOTIATE FIRST" : "SAFE TO SIGN";
   } else {
-    verdictLabel = hasRed ? "High risk — do not sign as-is" : hasAmber ? "Negotiate before signing" : "Clean — safe to sign";
+    verdictLabel = hasRed ? "High risk, do not sign as-is" : hasAmber ? "Negotiate before signing" : "Clean, safe to sign";
   }
   verdictColor = hasRed ? "#B91C1C" : hasAmber ? "#B45309" : "#15803D";
 
@@ -194,7 +194,7 @@ export function buildResultHtml(opts: {
 
 export function buildResultText(opts: { filename: string; verdict: ResultSummary; founder: boolean; reviewUrl: string; counterpartyNote?: string }): string {
   const { filename, verdict, founder, reviewUrl, counterpartyNote } = opts;
-  const lines = [`Zane — contract review: ${filename}`, "", `Verdict: ${verdict.verdictLabel}`, ""];
+  const lines = [`Zane, contract review: ${filename}`, "", `Verdict: ${verdict.verdictLabel}`, ""];
   if (verdict.issues.length > 0) {
     lines.push(founder ? "What to watch:" : "Top issues:");
     for (const r of verdict.issues) {
@@ -214,7 +214,7 @@ export function buildResultText(opts: { filename: string; verdict: ResultSummary
   if (counterpartyNote) {
     lines.push(counterpartyNote, "");
   }
-  lines.push(`View full review: ${reviewUrl}`, "", "— Zane");
+  lines.push(`View full review: ${reviewUrl}`, "", "Zane");
   return lines.join("\n");
 }
 
@@ -241,7 +241,7 @@ export async function processReviewByEmail(input: {
   if (!contract) {
     await threadReplyText(ctx(), {
       to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
-      text: "Thanks — but I didn't find a contract attached. Forward the PDF or Word file and I'll review it against your playbook.\n\n— Zane",
+      text: "Thanks, but I didn't find a contract attached. Forward the PDF or Word file and I'll review it against your playbook.\n\nZane",
     });
     if (inboundRecordId) await pb.collection("inbound_emails").update(inboundRecordId, { status: "NO_ATTACHMENT" }).catch(() => {});
     return;
@@ -267,7 +267,7 @@ export async function processReviewByEmail(input: {
     console.error("[email-review] could not create document:", (err as Error)?.message);
     await threadReplyText(ctx(), {
       to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
-      text: "Sorry — something went wrong setting up the review. Please try again or contact ahmed@zanelegal.ai.\n\n— Zane",
+      text: "Sorry, something went wrong setting up the review. Please try again or contact ahmed@zanelegal.ai.\n\nZane",
     });
     return;
   }
@@ -294,7 +294,7 @@ export async function processReviewByEmail(input: {
   // 3b. Immediate acknowledgement, in-thread.
   await threadReplyText(docCtx, {
     to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
-    text: `On it. Reviewing ${contract.originalName} against your playbook now — you'll have the result shortly.\n\n— Zane`,
+    text: `On it. Reviewing ${contract.originalName} against your playbook now. You'll have the result shortly.\n\nZane`,
   });
 
   // 3a (cont). Run the existing full pipeline; resolves on COMPLETE, throws on failure.
@@ -304,7 +304,7 @@ export async function processReviewByEmail(input: {
     console.error(`[email-review] pipeline failed for ${doc.id}:`, (err as Error)?.message);
     await threadReplyText(docCtx, {
       to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
-      text: `I hit a problem reviewing ${contract.originalName}. You can retry from Zane: ${reviewUrl}\n\n— Zane`,
+      text: `I hit a problem reviewing ${contract.originalName}. You can retry from Zane: ${reviewUrl}\n\nZane`,
     });
     if (inboundRecordId) await pb.collection("inbound_emails").update(inboundRecordId, { status: "FAILED" }).catch(() => {});
     return;

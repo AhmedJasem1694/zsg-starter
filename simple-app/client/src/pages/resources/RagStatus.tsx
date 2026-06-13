@@ -9,14 +9,14 @@ export default function RagStatus() {
     >
       <p>
         When Zane completes a contract review, every clause gets one of four statuses: RED, AMBER,
-        GREEN, or ABSENT. Understanding what each status actually means — and what action it
-        requires — is the difference between a useful review and a piece of paper that goes in a
+        GREEN, or ABSENT. Understanding what each status actually means, and what action it
+        requires, is the difference between a useful review and a piece of paper that goes in a
         drawer.
       </p>
 
       <hr />
 
-      <h2>RED — This clause requires attention before signing</h2>
+      <h2>RED: This clause requires attention before signing</h2>
       <p>
         A RED status means the clause deviates from your playbook position in a material way. It
         either falls below your stated fallback position or breaches your hard red line entirely.
@@ -25,7 +25,7 @@ export default function RagStatus() {
       </p>
       <p>
         <strong>What RED does not mean:</strong> RED does not mean the contract cannot be signed.
-        It means the clause needs to be addressed — either by negotiating it back toward your
+        It means the clause needs to be addressed, either by negotiating it back toward your
         position, by getting explicit sign-off from the right person, or by recording a conscious
         decision to accept it and why.
       </p>
@@ -41,7 +41,7 @@ export default function RagStatus() {
           position.
         </li>
         <li>
-          Supplier-only limitation of liability — the cap applies to them but not to you — combined
+          Supplier-only limitation of liability, where the cap applies to them but not to you, combined
           with an unlimited indemnity obligation on your side.
         </li>
         <li>
@@ -51,16 +51,16 @@ export default function RagStatus() {
       </ul>
       <p>
         RED clauses automatically trigger Zane's escalation routing. The appropriate approver is
-        determined by your approval matrix — clause category, contract value, and any applicable
+        determined by your approval matrix: clause category, contract value, and any applicable
         governance triggers.
       </p>
 
       <hr />
 
-      <h2>AMBER — Negotiate but not a blocker</h2>
+      <h2>AMBER: Negotiate but not a blocker</h2>
       <p>
-        AMBER means the clause is not ideal. It is within your negotiating range — above your
-        fallback but below your preferred position — but it is worth pushing back on if you have
+        AMBER means the clause is not ideal. It is within your negotiating range, above your
+        fallback but below your preferred position, but it is worth pushing back on if you have
         the commercial leverage to do so.
       </p>
       <p>
@@ -91,7 +91,7 @@ export default function RagStatus() {
 
       <hr />
 
-      <h2>GREEN — This clause meets or exceeds your position</h2>
+      <h2>GREEN: This clause meets or exceeds your position</h2>
       <p>
         GREEN means the clause is consistent with or better than your preferred playbook position.
         No action needed. The clause can be accepted as drafted.
@@ -122,10 +122,10 @@ export default function RagStatus() {
 
       <hr />
 
-      <h2>ABSENT — The clause was not found</h2>
+      <h2>ABSENT: The clause was not found</h2>
       <p>
         ABSENT means Zane could not identify this clause category in the contract. This is not
-        necessarily a problem — many clause types are irrelevant to many contracts — but for
+        necessarily a problem. Many clause types are irrelevant to many contracts. But for
         critical categories it can itself be a significant risk.
       </p>
       <p>
@@ -156,8 +156,8 @@ export default function RagStatus() {
         unusual, indirect, or buried in definitions.
       </p>
       <p>
-        When Zane gets it wrong — flags something as RED when you disagree with the analysis,
-        or misses a clause that is clearly present — use the override function. Mark the result
+        When Zane gets it wrong, whether it flags something as RED when you disagree with the analysis,
+        or misses a clause that is clearly present, use the override function. Mark the result
         as a false positive and record your reasoning.
       </p>
       <p>

@@ -792,7 +792,7 @@ export interface ReviewResult {
   founderFundraisingRelevance?: string;
   founderIfIgnored?: string;
   // ── Founder output verification ───────────────────────────────────────────
-  founderConfidenceScore?: number;   // 0–100 from verification call
+  founderConfidenceScore?: number;   // 0 to 100 from verification call
   founderVerificationPassed?: boolean; // false = show fallback
   founderFallbackShown?: boolean;    // logged when fallback is displayed
   iracIssue?: string;
@@ -2686,13 +2686,13 @@ export const PLAYBOOK_DEFAULTS: Record<
       hardRedLine: "No TUPE provisions where transfer is foreseeable.",
     },
     RESTRICTIVE_COVENANTS: {
-      preferredPosition: "Non-compete 6–12 months, specific market only. Non-solicitation of key accounts.",
+      preferredPosition: "Non-compete 6 to 12 months, specific market only. Non-solicitation of key accounts.",
       acceptableFallback: "Non-compete up to 12 months in directly competed area.",
       hardRedLine: "Non-compete exceeding 12 months or covering entire industry.",
     },
     ACCEPTANCE_TESTING: {
       preferredPosition: "Acceptance criteria agreed upfront. Reasonable testing window.",
-      acceptableFallback: "10–15 day testing window. Cure period after failure.",
+      acceptableFallback: "10 to 15 day testing window. Cure period after failure.",
       hardRedLine: "No acceptance testing on bespoke deliverables above £50k.",
     },
     REGULATORY_CHANGE: {

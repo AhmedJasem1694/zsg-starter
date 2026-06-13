@@ -22,8 +22,8 @@ function getTransporter() {
  * reply to a sender. `from` defaults to the company's inbound address when
  * provided (so replies thread naturally and the user can reply again), else
  * SMTP_FROM. `inReplyTo` (the inbound Message-Id) threads the reply.
- * Returns true if sent, false if SMTP isn't configured / send failed —
- * never throws (a failed reply must not break inbound processing).
+ * Returns true if sent, false if SMTP isn't configured / send failed.
+ * Never throws (a failed reply must not break inbound processing).
  */
 export async function sendPlainEmail(p: {
   to: string;

@@ -20,8 +20,8 @@ interface UpgradePromptProps {
  * Locked-preview upgrade prompt.
  *
  * Two modes:
- *   overlay={false} — standalone banner (for whole-page locks)
- *   overlay={true}  — overlays blurred children (shows what the feature looks like)
+ *   overlay={false}, standalone banner (for whole-page locks)
+ *   overlay={true} , overlays blurred children (shows what the feature looks like)
  */
 export default function UpgradePrompt({
   feature,

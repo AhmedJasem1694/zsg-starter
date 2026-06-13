@@ -131,7 +131,7 @@ async function findCachedReview(companyId: string, contentHash: string, excludeD
     });
     return (dupes[0] as PBRecord) ?? null;
   } catch {
-    // contentHash field may not exist on older deployments — treat as cache miss
+    // contentHash field may not exist on older deployments, treat as cache miss
     return null;
   }
 }
@@ -163,7 +163,7 @@ async function serveCachedReview(documentId: string, source: PBRecord, companyId
     reviewCostDetail: JSON.stringify({ cached: true, sourceDocumentId: source.id }),
   });
 
-  console.log(`[review] CACHE HIT ${documentId}: served ${copied} results from ${source.id} (identical content hash) — zero LLM cost`);
+  console.log(`[review] CACHE HIT ${documentId}: served ${copied} results from ${source.id} (identical content hash). Zero LLM cost`);
   void audit({
     action: "review_completed",
     entityType: "uploaded_document",
@@ -203,7 +203,7 @@ async function runWithConcurrencyLimit<T>(
 
 async function _runReview(documentId: string, isTimedOut: () => boolean = () => false): Promise<void> {
   // Make sure cost-logging / caching fields exist on older deployments
-  // (cached after the first call — effectively free on subsequent runs).
+  // (cached after the first call, effectively free on subsequent runs).
   await ensureLegacyFields();
   // Load document and company sequentially (each depends on the previous).
   // Playbook rules, approval thresholds, and governance triggers all depend on
@@ -240,7 +240,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
   // Ensure company name is never empty. Fall back to "Your company" so LLM output is never blank
   const effectiveCompanyName = ((company["name"] as string) ?? "").trim() || "Your company";
 
-  // ── Effective workflow type — auto-detect healthcare by sector ────────────────
+  // ── Effective workflow type, auto-detect healthcare by sector ────────────────
   // Healthcare was removed from the user-facing workflow selector but must still
   // activate automatically when the company sector is healthcare. We derive the
   // effective workflow from the explicit workflowType first, then fall back to
@@ -329,7 +329,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
 
     // ── Stage 1: Document classification via Gemini Flash ───────────────────
     // Fast first pass: determines contract type to guide the rest of the pipeline.
-    // Uses Gemini 2.5 Flash — low latency, cheap, ideal for simple classification.
+    // Uses Gemini 2.5 Flash, low latency, cheap, ideal for simple classification.
     const flashModel = getModelForTask("document_classification");
     let classifiedDocType = (doc["contractType"] as string) ?? "COMMERCIAL_CONTRACT";
     try {
@@ -749,7 +749,7 @@ ${classifySnippet}`,
 
     // ── BATCHED playbook comparison ───────────────────────────────────────────
     // All present clauses go to Sonnet in ONE request with a structured JSON
-    // array output, instead of one request per clause — the single biggest cost
+    // array output, instead of one request per clause. The single biggest cost
     // reduction in the pipeline (system prompt and persona context are paid for
     // once). Clauses missing from the batch response fall back to individual
     // calls in the post-processing tasks below.
@@ -779,7 +779,7 @@ ${classifySnippet}`,
         );
         t.mark(`batched comparison complete: ${batchResults.size}/${presentEntries.length} clauses returned`);
       } catch (err) {
-        console.warn(`[review] Batched comparison failed — falling back to per-clause calls:`, (err as Error)?.message);
+        console.warn(`[review] Batched comparison failed, falling back to per-clause calls:`, (err as Error)?.message);
         t.mark("batched comparison failed: falling back to per-clause calls");
       }
     }
@@ -790,7 +790,7 @@ ${classifySnippet}`,
 
         let comparison = batchResults.get(category);
         if (!comparison) {
-          console.warn(`[review] ${category}: not in batch result — running individual comparison`);
+          console.warn(`[review] ${category}: not in batch result, running individual comparison`);
           comparison = await compareClauseToPlaybook(
             match.rawText,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -873,7 +873,7 @@ Plain English: ${deanonComparison.founderPlainEnglish}
 Email: ${deanonComparison.founderCopyPaste}
 Risk if signed: ${deanonComparison.founderIfIgnored}
 
-Check each item and respond with JSON only — no other text:
+Check each item and respond with JSON only, no other text:
 {
   "verdict_accurate": true or false,
   "email_accurate": true or false,
@@ -903,7 +903,7 @@ Mark safe_to_display false only if invented facts are present or confidence_scor
               founderConfidenceScore = verifyResult.confidence_score ?? null;
               founderVerificationPassed = verifyResult.safe_to_display ?? true;
               if (verifyResult.contains_invented_facts) {
-                console.warn(`[founder-verify] ${category}: invented facts detected — "${verifyResult.invented_facts_detail}"`);
+                console.warn(`[founder-verify] ${category}: invented facts detected, "${verifyResult.invented_facts_detail}"`);
               }
               console.log(`[founder-verify] ${category}: score=${founderConfidenceScore} safe=${founderVerificationPassed}`);
             }
@@ -981,7 +981,7 @@ Mark safe_to_display false only if invented facts are present or confidence_scor
 
     // ── Confidence-tiered Opus escalation ─────────────────────────────────────
     // Opus is only ever called when (a) contradiction detection runs, or
-    // (b) a clause's confidence is below the review threshold (the LOW label —
+    // (b) a clause's confidence is below the review threshold (the LOW label,
     // the <70 band of the confidence scale). Routine clauses never reach Opus.
     // Any clause where Claude Sonnet returned LOW confidence gets a second pass
     // from Claude Opus for deeper reasoning. High-confidence clauses skip Opus.
@@ -1050,7 +1050,7 @@ Mark safe_to_display false only if invented facts are present or confidence_scor
         }
       });
 
-      // Run Opus reanalyses with limited concurrency (max 3 at once — Opus is slow)
+      // Run Opus reanalyses with limited concurrency (max 3 at once, Opus is slow)
       await runWithConcurrencyLimit(reanalysisTasks, 3);
       t.mark(`Opus reanalysis batch complete: ${lowConfidenceResults.length} clauses processed`);
     }

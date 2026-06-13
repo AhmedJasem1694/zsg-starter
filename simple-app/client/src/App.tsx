@@ -23,7 +23,7 @@ import CaseStudy from "./pages/CaseStudy";
 import ForFunds from "./pages/ForFunds";
 import Portfolio from "./pages/Portfolio";
 import ContractTimings from "./pages/ContractTimings";
-// Litigation disabled — commercial contracts focus.
+// Litigation disabled, commercial contracts focus.
 // import LitigationIntake from "./pages/LitigationIntake";
 import BulkReview from "./pages/BulkReview";
 import Patterns from "./pages/Patterns";
@@ -92,7 +92,7 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* ── Public routes — always render, no auth guard ── */}
+      {/* ── Public routes, always render, no auth guard ── */}
       <Route path="/"        element={<Landing />} />
       <Route path="/login"   element={<Login />} />
       <Route path="/signin"  element={<Login />} />
@@ -211,7 +211,7 @@ function AppRoutes() {
         path="/admin/metrics"
         element={!user ? <Navigate to="/login" replace /> : <AdminMetrics />}
       />
-      {/* Litigation disabled — commercial contracts focus.
+      {/* Litigation disabled, commercial contracts focus.
       <Route
         path="/app/legal/litigation-intake/:id"
         element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><LitigationIntake /></RequireAuth>}
@@ -227,7 +227,7 @@ function AppRoutes() {
       <Route path="/portfolio"    element={<Navigate to="/app/legal/portfolio"    replace />} />
       <Route path="/timings"      element={<Navigate to="/app/legal/timings"      replace />} />
       <Route path="/bulk-review"  element={<Navigate to="/app/legal/bulk-review"  replace />} />
-      {/* Litigation disabled — commercial contracts focus.
+      {/* Litigation disabled, commercial contracts focus.
       <Route path="/litigation-intake/:id" element={<RedirectReview base="/app/legal/litigation-intake" />} /> */}
 
       {/* Public info pages */}

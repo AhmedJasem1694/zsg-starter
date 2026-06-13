@@ -97,7 +97,7 @@ export default function Register() {
             <div className="space-y-3">
               {[
                 { value: "solo_gc", label: "Solo GC or first in-house hire" },
-                { value: "small_team", label: "Small legal team of 2–5 lawyers" },
+                { value: "small_team", label: "Small legal team of 2 to 5 lawyers" },
                 { value: "founder", label: "Founder reviewing contracts" },
               ].map((opt) => (
                 <button

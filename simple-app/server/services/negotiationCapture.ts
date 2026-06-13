@@ -2,7 +2,7 @@
  * Full email-thread negotiation capture (Section 3).
  *
  * When an inbound email belongs to a thread already linked to a contract, we
- * parse the ENTIRE thread history available — not just the latest message — and
+ * parse the ENTIRE thread history available, not just the latest message, and
  * turn it into structured, vendor-specific negotiation data:
  *
  *   3a  Reconstruct the negotiation transcript (stored thread bodies + the
@@ -12,7 +12,7 @@
  *       richer `negotiation_events` record linked to the contract AND the
  *       counterparty: clause category, counterparty position, our position, the
  *       movement between rounds, and the final landing point if reached.
- *   3e  Privacy & accuracy — callers must already have verified the sender is a
+ *   3e  Privacy & accuracy. Callers must already have verified the sender is a
  *       company user; all transcript text is run through the existing PII
  *       anonymiser before the model sees it; the model is instructed to NEVER
  *       fabricate a move and to capture only what is explicit.
@@ -134,7 +134,7 @@ export async function gatherThreadTranscript(
   return parts.join("\n\n");
 }
 
-// ─── LLM parse (3a) — strictly grounded, never fabricates (3e) ──────────────────
+// ─── LLM parse (3a), strictly grounded, never fabricates (3e) ──────────────────
 
 async function parseMoves(opts: {
   transcript: string;
@@ -203,7 +203,7 @@ Return ONLY this JSON:
         finalLanding: cap(String(m.finalLanding ?? "").trim(), 2000),
       };
     })
-    // Drop empty husks — a move must say something explicit.
+    // Drop empty husks, a move must say something explicit.
     .filter((m) => m.clauseCategory || m.counterpartyPosition || m.ourPosition || m.movement || m.finalLanding);
 }
 

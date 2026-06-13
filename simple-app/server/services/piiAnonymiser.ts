@@ -53,7 +53,7 @@ const PII_PATTERNS: Array<{ type: string; pattern: RegExp }> = [
   // UK sort code  nn-nn-nn
   {
     type: "SORT_CODE",
-    pattern: /\b\d{2}[-–]\d{2}[-–]\d{2}\b/g,
+    pattern: /\b\d{2}[-\u2013]\d{2}[-\u2013]\d{2}\b/g,
   },
   // UK bank account numbers (exactly 8 digits, not preceded/followed by digits)
   {

@@ -724,7 +724,7 @@ function FounderClauseCard({
   );
 }
 
-// ── Founder fallback card — shown when verification fails ────────────────────
+// ── Founder fallback card, shown when verification fails ────────────────────
 
 function FounderFallbackCard({ result }: { result: ReviewResult }) {
   const label = CLAUSE_LABELS[result.clauseCategory] ?? result.clauseCategory.replace(/_/g, " ");
@@ -840,7 +840,7 @@ function FounderFeedbackButtons({ resultId }: { resultId: string }) {
   );
 }
 
-// ── Founder Solution Card — four collapsible sections ────────────────────────
+// ── Founder Solution Card, four collapsible sections ────────────────────────
 
 function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -896,7 +896,7 @@ function FounderSolutionCard({ result }: { result: ReviewResult }) {
   const badgeColor   = isRed ? "bg-[#450A0A] text-white" : isAmber ? "bg-[#431407] text-white" : "bg-[#14532D] text-white";
   const statusLabel  = isRed ? "Problem" : isAmber ? "Worth negotiating" : "Fine";
 
-  // Section content — use stored founder fields with fallbacks
+  // Section content, use stored founder fields with fallbacks
   const verdict      = result.founderPlainEnglish || result.businessSummary || result.clauseSummary || "No analysis available.";
   const riskIfSigned = result.founderIfIgnored || result.whyItMatters || "";
   const emailText    = result.founderCopyPaste || "";
@@ -905,12 +905,12 @@ function FounderSolutionCard({ result }: { result: ReviewResult }) {
 
   // Parse email into subject + body if it contains subject-like structure
   const emailLines   = emailText.split("\n");
-  const emailSubject = `Re: ${label} clause — amendment request`;
+  const emailSubject = `Re: ${label} clause, amendment request`;
   const emailBody    = emailText.startsWith("Hi ") || emailText.startsWith("Dear ") ? emailText : emailText;
 
   return (
     <div className={`rounded-2xl overflow-hidden border border-white/8 border-l-4 ${borderColor}`}>
-      {/* Header — always visible */}
+      {/* Header, always visible */}
       <div className={`${headerBg} px-4 py-4`}>
         <div className="flex items-center gap-3">
           <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${badgeColor}`}>
@@ -924,7 +924,7 @@ function FounderSolutionCard({ result }: { result: ReviewResult }) {
         )}
       </div>
 
-      {/* Section 2 — Email to send */}
+      {/* Section 2, Email to send */}
       {emailText && (
         <SolutionSection
           title="What to say to them →"
@@ -943,7 +943,7 @@ function FounderSolutionCard({ result }: { result: ReviewResult }) {
         </SolutionSection>
       )}
 
-      {/* Section 3 — Replacement clause */}
+      {/* Section 3, Replacement clause */}
       {replaceClause && (
         <SolutionSection
           title="What to replace it with →"
@@ -964,7 +964,7 @@ function FounderSolutionCard({ result }: { result: ReviewResult }) {
         </SolutionSection>
       )}
 
-      {/* Section 4 — Risk if signed as-is */}
+      {/* Section 4, Risk if signed as-is */}
       {riskIfSigned && (
         <SolutionSection
           title="If you sign this as it stands →"
@@ -1125,7 +1125,7 @@ export default function FounderReview() {
                 );
               })}
             </div>
-            <div className="text-xs text-muted-foreground">Usually takes 1–3 minutes. This page auto-refreshes.</div>
+            <div className="text-xs text-muted-foreground">Usually takes 1 to 3 minutes. This page auto-refreshes.</div>
           </div>
         </div>
       </AppLayout>
@@ -1298,7 +1298,7 @@ export default function FounderReview() {
           </div>
         )}
 
-        {/* Clause cards — solution cards for RED/AMBER, standard for GREEN/GREY */}
+        {/* Clause cards, solution cards for RED/AMBER, standard for GREEN/GREY */}
         <div className="space-y-4">
           {filtered.map((result) => (
             result.ragStatus === "RED" || result.ragStatus === "AMBER" ? (
@@ -1381,7 +1381,7 @@ export default function FounderReview() {
                 );
                 const text = emailResults.map((r) => {
                   const label = CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory.replace(/_/g, " ");
-                  const subject = `Re: ${label} clause — amendment request`;
+                  const subject = `Re: ${label} clause, amendment request`;
                   const body    = r.founderCopyPaste || r.suggestedFallback || "";
                   return `═══════════════════════════════════════\n${label.toUpperCase()}\n═══════════════════════════════════════\nSubject: ${subject}\n\n${body}\n`;
                 }).join("\n\n");

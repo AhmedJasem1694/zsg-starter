@@ -6,7 +6,7 @@ export default {
   theme: {
     extend: {
       borderRadius: {
-        lg: ".5rem", /* 8px — buttons (cards use rounded-xl = 12px) */
+        lg: ".5rem", /* 8px, buttons (cards use rounded-xl = 12px) */
         md: ".375rem", /* 6px */
         sm: ".25rem", /* 4px */
       },
@@ -14,7 +14,7 @@ export default {
         // ── Zane design tokens (design elevation pass) ──────────────────
         // Backgrounds: navy-950 hero near-black, navy-900 deep sections,
         // navy-800 card surfaces. paper/ink for light sections.
-        // cobalt is THE accent — used sparingly, one accent per viewport.
+        // cobalt is THE accent, used sparingly, one accent per viewport.
         navy: {
           950: "#060A14",
           900: "#080E1C",
@@ -106,7 +106,7 @@ export default {
         "navy-elevated": "#111827",
         "navy-surface":  "#1E293B",
         "navy-hover":    "#1A2540",
-        // Cobalt action — hover darkens (calmer than the old lighter hover)
+        // Cobalt action, hover darkens (calmer than the old lighter hover)
         "cobalt":         "#2563EB",
         "cobalt-hover":   "#1D4ED8",
         "cobalt-light":   "#3B82F6",

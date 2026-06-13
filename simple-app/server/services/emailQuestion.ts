@@ -5,7 +5,7 @@
  * their playbook positions, their reviewed contracts, and their counterparty
  * history. One Sonnet call with the relevant context retrieved. If the answer
  * isn't in their data, it says so plainly. It never answers general legal
- * questions — it replies that Zane answers questions about the company's own
+ * questions. It replies that Zane answers questions about the company's own
  * contracts and positions. Replies are short, in-thread, with a link to the
  * relevant contract or the playbook in-app.
  */
@@ -30,7 +30,7 @@ interface IntentParams {
 const clauseLabel = (c: string) => (c ?? "").replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (x) => x.toUpperCase());
 const NOT_IN_RECORDS = "I do not have that in your contract records.";
 const GENERAL_REFUSAL =
-  "I answer questions about your own contracts and positions — what's in your playbook, your reviewed contracts, and your counterparty history. For general legal questions you'll want a lawyer.\n\n— Zane";
+  "I answer questions about your own contracts and positions: what's in your playbook, your reviewed contracts, and your counterparty history. For general legal questions you'll want a lawyer.\n\nZane";
 
 // ─── Retrieval ─────────────────────────────────────────────────────────────────
 
@@ -71,7 +71,7 @@ function summariseResults(results: PBRecord[]): string {
     if (detail) bits.push(detail);
     const action = String(r["recommendedAction"] || "").slice(0, 160);
     if (action) bits.push(`Recommended: ${action}`);
-    return "  - " + bits.join(" — ");
+    return "  - " + bits.join(", ");
   }).join("\n");
 }
 
@@ -110,7 +110,7 @@ export async function processQuestionByEmail(input: {
     findRelevantContracts(company.id as string, questionText, intentParams.counterparty ?? ""),
   ]);
 
-  // A reply in an existing thread resolves against that thread's contract — pull it
+  // A reply in an existing thread resolves against that thread's contract, pull it
   // to the front so a follow-up like "what about the indemnity clause?" is grounded
   // in the contract already under discussion without re-attaching anything.
   let contracts = relevantContracts;
@@ -145,14 +145,15 @@ export async function processQuestionByEmail(input: {
   }
 
   // ── One Sonnet call, hard-grounded ──────────────────────────────────────────
-  const system = `You are Zane, answering a question from a member of ${companyName}'s team about THEIR OWN contracts and positions. You may ONLY use the data provided below — their playbook positions, their reviewed contracts, and their counterparty history. Respond with JSON only.
+  const system = `You are Zane, answering a question from a member of ${companyName}'s team about THEIR OWN contracts and positions. You may ONLY use the data provided below: their playbook positions, their reviewed contracts, and their counterparty history. Respond with JSON only.
 
 HARD RULES:
 1. Answer ONLY from the provided data. Do not use outside legal knowledge.
-2. If the answer is not in the provided data, set scope="none" — do not guess.
+2. If the answer is not in the provided data, set scope="none". Do not guess.
 3. If the question is a general legal question (not about this company's specific contracts or positions), set scope="general".
-4. Keep the answer short and direct — 1 to 4 sentences. No preamble.
-5. If you reference a specific contract, put its id in contractId (must be one of the provided contract ids).`;
+4. Keep the answer short and direct, 1 to 4 sentences. No preamble.
+5. If you reference a specific contract, put its id in contractId (must be one of the provided contract ids).
+6. Never use em dashes or en dashes in any output. Use a comma or a full stop instead.`;
 
   const user = `QUESTION:
 ${questionText}
@@ -187,12 +188,12 @@ Return ONLY this JSON:
   } catch (err) {
     console.error(`[question] answering failed for ${sender}:`, (err as Error)?.message);
     await threadReplyText(ctx(), { to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
-      text: `Sorry — I couldn't answer that just now. Please try again or contact ahmed@zanelegal.ai.\n\n— Zane` });
+      text: `Sorry, I couldn't answer that just now. Please try again or contact ahmed@zanelegal.ai.\n\nZane` });
     await markStatus("FAILED");
     return { scope: "error", answer: "", link: "" };
   }
 
-  // General legal question → refuse with the standard message.
+  // General legal question, refuse with the standard message.
   if (parsed.scope === "general") {
     await threadReplyText(ctx(), { to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId, text: GENERAL_REFUSAL });
     await markStatus("ANSWERED_GENERAL_REFUSED");
@@ -200,16 +201,16 @@ Return ONLY this JSON:
     return { scope: "general", answer: GENERAL_REFUSAL, link: "" };
   }
 
-  // Not in their data → say so plainly.
+  // Not in their data, say so plainly.
   if (parsed.scope === "none" || !parsed.answer) {
     await threadReplyText(ctx(), { to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
-      text: `${NOT_IN_RECORDS}\n\n— Zane` });
+      text: `${NOT_IN_RECORDS}\n\nZane` });
     await markStatus("ANSWERED_NO_DATA");
     console.log(`[question] ${sender}: not in records`);
     return { scope: "none", answer: NOT_IN_RECORDS, link: "" };
   }
 
-  // Grounded answer → reply short + a link to the relevant contract or playbook.
+  // Grounded answer, reply short + a link to the relevant contract or playbook.
   const validContract = contractIndex.find((c) => c.id === parsed.contractId);
   const link = validContract
     ? `${APP_URL}/review/${validContract.id}`
@@ -218,7 +219,7 @@ Return ONLY this JSON:
 
   await threadReplyText(ctx(validContract?.id), {
     to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,
-    text: `${parsed.answer}\n\n${linkLabel}\n\n— Zane`,
+    text: `${parsed.answer}\n\n${linkLabel}\n\nZane`,
   });
   await markStatus("ANSWERED");
   console.log(`[question] ${sender}: answered (scope=${parsed.scope}${validContract ? ", contract " + validContract.id : ""})`);

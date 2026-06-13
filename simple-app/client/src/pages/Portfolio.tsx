@@ -15,7 +15,7 @@ function fmt(n: number) {
   return `£${n.toFixed(0)}`;
 }
 
-// ── Answer card — the main commercial answer format ───────────────────────────
+// ── Answer card, the main commercial answer format ───────────────────────────
 
 function AnswerCard({
   question,

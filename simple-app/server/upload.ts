@@ -58,7 +58,7 @@ export const upload = multer({
 // token, signature, sender, recipient, subject, body-plain, attachment-N...)
 // via .any(). Attachments are saved to ./uploads with nanoid names. Only
 // PDF/DOCX are kept; other attachment types are skipped silently
-// (cb(null, false)) rather than failing the whole request — incidental
+// (cb(null, false)) rather than failing the whole request. Incidental
 // attachments (logos, email signatures) are normal in real mail. Per-file
 // limit is 25MB.
 export const inboundUpload = multer({

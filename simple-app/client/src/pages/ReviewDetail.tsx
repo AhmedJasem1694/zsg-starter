@@ -169,7 +169,7 @@ export default function ReviewDetail() {
     staleTime: 300_000,
   });
 
-  // Contextual regulation layer — prominence derived from company sector and
+  // Contextual regulation layer, prominence derived from company sector and
   // contract type, with the company-level override from Settings.
   const regProminence: RegulationProminence = resolveRegulationProminence(companyData, doc?.contractType);
 
@@ -180,7 +180,7 @@ export default function ReviewDetail() {
     staleTime: 60_000,
   });
 
-  // Section 3c — vendor negotiation profile for this contract's counterparty.
+  // Section 3c: vendor negotiation profile for this contract's counterparty.
   const { data: counterpartyProfileData } = useQuery({
     queryKey: ["counterparty-profile", id],
     queryFn:  () => getContractCounterpartyProfile(id!),
@@ -1211,7 +1211,7 @@ function DocumentAuditPanel({ audit }: { audit: import("../lib/types").DocumentA
           )}
         </div>
         <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
-          <span>Passes 2–5: defined terms · cross-refs · numbers · consistency</span>
+          <span>Passes 2 to 5: defined terms · cross-refs · numbers · consistency</span>
           {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
         </div>
       </button>
@@ -1686,7 +1686,7 @@ function ClauseCard({
             </div>
           )}
 
-          {/* Four-box layout — only render if there is analysis to show */}
+          {/* Four-box layout, only render if there is analysis to show */}
           {(result.ragStatus !== "GREY" || result.clauseSummary || result.recommendedAction) && (
           <div className="grid sm:grid-cols-2 gap-3">
             {/* Issue */}
@@ -1769,7 +1769,7 @@ function ClauseCard({
             </Detail>
           )}
 
-          {/* Regulatory citations — contextual prominence:
+          {/* Regulatory citations, contextual prominence:
               HIGH = all citations inline; MEDIUM = only directly relevant ones;
               LOW = none here (collapsed into page-level accordion) */}
           {regulationProminence !== "LOW" && result.regulatoryCitations && result.regulatoryCitations.length > 0 && (() => {

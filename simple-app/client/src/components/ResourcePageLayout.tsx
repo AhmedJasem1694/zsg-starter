@@ -24,7 +24,7 @@ export default function ResourcePageLayout({
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A]">
 
-      {/* ── Nav — identical to Resources and Landing ── */}
+      {/* ── Nav, identical to Resources and Landing ── */}
       <header
         className="sticky top-0 z-20 border-b border-white/8 backdrop-blur-md"
         style={{ background: "rgba(11,17,24,0.97)" }}
@@ -78,7 +78,7 @@ export default function ResourcePageLayout({
           </div>
         </div>
 
-        {/* Document body — uses @tailwindcss/typography prose */}
+        {/* Document body uses @tailwindcss/typography prose */}
         <div className="prose prose-slate max-w-none
           prose-headings:font-bold prose-headings:text-[#0F172A] prose-headings:tracking-tight
           prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
@@ -105,7 +105,7 @@ export default function ResourcePageLayout({
         </div>
       </main>
 
-      {/* ── Footer — identical to Resources and Landing ── */}
+      {/* ── Footer, identical to Resources and Landing ── */}
       <footer className="border-t border-black/6 mt-auto">
         <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
           <Link to="/" className="hover:opacity-80 transition-opacity">

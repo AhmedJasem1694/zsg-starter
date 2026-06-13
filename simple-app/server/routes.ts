@@ -202,7 +202,7 @@ const DEMO_COMPANY_MAP: Record<string, string> = {
   "founder-demo@zanelegal.ai": "pulse",  // company is "Pulse Health Technologies Ltd"
 };
 
-// We store the owner's email in the `role_in_contracts` field — an existing
+// We store the owner's email in the `role_in_contracts` field, an existing
 // schema text field that PocketBase reliably stores and returns. This avoids
 // issues with custom fields (ownerEmail) that PocketBase silently ignores
 // when not present in the collection schema.
@@ -220,7 +220,7 @@ async function getCompany(ownerEmail?: string): Promise<PBRecord | null> {
   }
 
   if (ownerEmail) {
-    // Step 1: Demo users — find by known company name fragment.
+    // Step 1: Demo users, find by known company name fragment.
     if (ownerEmail in DEMO_COMPANY_MAP) {
       const fragment = DEMO_COMPANY_MAP[ownerEmail].toLowerCase();
       const match = allCompanies.find((c) =>
@@ -229,14 +229,14 @@ async function getCompany(ownerEmail?: string): Promise<PBRecord | null> {
       if (match) return match;
     }
 
-    // Step 2: All real users — find by OWNER_FIELD (role_in_contracts stores the owner email).
+    // Step 2: All real users, find by OWNER_FIELD (role_in_contracts stores the owner email).
     const byOwner = allCompanies.find(
       (c) => String(c[OWNER_FIELD] ?? "") === ownerEmail
     );
     if (byOwner) return byOwner;
   }
 
-  // Step 3: Single-tenant fallback — only when exactly one company exists.
+  // Step 3: Single-tenant fallback, only when exactly one company exists.
   if (allCompanies.length === 1) return allCompanies[0];
   return null;
 }
@@ -300,7 +300,7 @@ async function handleInboundIntent(input: {
 
     // Section 3: when an inbound email belongs to a thread already linked to a
     // contract and carries negotiation history (forwarded or quoted reply chain),
-    // parse the ENTIRE thread — not just this message — into structured
+    // parse the ENTIRE thread, not just this message, into structured
     // per-counterparty negotiation moves (decision_events + negotiation_events).
     // The sender is already verified as a company user (3e). Additive: normal
     // intent handling still runs. Non-fatal.
@@ -389,12 +389,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.warn("[inbound] startup backfill failed:", (e as Error)?.message));
 
   // ── Inbound email webhook (Mailgun) ───────────────────────────────────────────
-  // Public endpoint — Mailgun cannot present our auth cookie, so every request's
+  // Public endpoint. Mailgun cannot present our auth cookie, so every request's
   // Mailgun signature is verified instead. Only emails from a registered user of
   // the recipient company are persisted; everything else (no matching company,
   // unknown sender) is logged silently to inbound_rejections and ignored. We
   // always return 200 on policy rejections so nothing is revealed to a sender
-  // and Mailgun does not retry. No model call happens here — when attachments
+  // and Mailgun does not retry. No model call happens here. When attachments
   // are processed downstream they run through the existing PII anonymisation
   // pipeline, exactly like manual uploads.
   app.post(
@@ -440,7 +440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!company) {
         cleanupFiles();
         await logRejection({ sender, recipient: recipientField, subject, reason: "no_company" });
-        res.status(200).json({ ok: true }); // neutral — reveal nothing
+        res.status(200).json({ ok: true }); // neutral, reveal nothing
         return;
       }
 
@@ -453,7 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
 
-      // 4. Accepted — persist the parsed email + attachment references for the
+      // 4. Accepted, persist the parsed email + attachment references for the
       //    downstream intent/processing section. Attachments are already saved
       //    to ./uploads (nanoid names) by the inbound multer; only PDF/DOCX are
       //    kept.
@@ -626,7 +626,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     await ensureLegacyFields();
     await pb.collection("uploaded_documents").update(documentId, { status: "PROCESSING", legacy: true });
-    // Fire-and-forget — the client polls the report endpoint for status
+    // Fire-and-forget, the client polls the report endpoint for status
     runLegacyReview(documentId).catch((err: unknown) =>
       console.error(`[legacy] review failed for ${documentId}:`, (err as Error)?.message));
     res.json({ ok: true, documentId });
@@ -659,7 +659,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const autoRenewal = !!d["autoRenewal"] || extract?.renewal?.autoRenewal === true;
       const governingLaw = (d["governingLaw"] as string) || extract?.governingLaw || "";
 
-      // Risk flags — computed only for completed extractions
+      // Risk flags, computed only for completed extractions
       const riskFlags: string[] = [];
       if (isComplete && extract) {
         if (extract.liabilityCap?.present === true && extract.liabilityCap?.capped === false) {
@@ -755,7 +755,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
 
   // ── Admin: compounding metrics dashboard ───────────────────────────────────
-  // Internal metrics proving the accumulation story — computed live from
+  // Internal metrics proving the accumulation story, computed live from
   // PocketBase, no external analytics dependency.
   app.get("/api/admin/metrics", requireAuth, ah(async (req: Request, res: Response) => {
     if (!(await isAdminRequest(req))) { sendError(res, 403, "Admin access required"); return; }
@@ -975,7 +975,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/logout", (_req: Request, res: Response) => {
     // clearCookie must use the same options the cookie was SET with, otherwise
     // the browser ignores the clear instruction. In production the cookie was
-    // scoped to domain ".zanelegal.ai" — match that here.
+    // scoped to domain ".zanelegal.ai", match that here.
     const clearOpts: Parameters<typeof res.clearCookie>[1] = {
       path: "/",
       httpOnly: true,
@@ -1039,7 +1039,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (existing) {
           await pb.collection("companies").delete(existing.id);
         }
-      } catch { /* no existing company for this user — fine */ }
+      } catch { /* no existing company for this user, fine */ }
     }
 
     // Generate this company's dedicated inbound email address ({slug}@inbox...).
@@ -1111,7 +1111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       updated = await doUpdate();
     } catch {
-      // companies collection may predate the regulationProminence field —
+      // companies collection may predate the regulationProminence field,
       // add it to the schema and retry once.
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1224,7 +1224,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     // Generate synthesis via LLM
-    const prompt = `You are a specialist legal intelligence analyst. Generate a concise but substantive synthesis (400–600 words) of how the regulation below applies specifically to this company's context.
+    const prompt = `You are a specialist legal intelligence analyst. Generate a concise but substantive synthesis (400 to 600 words) of how the regulation below applies specifically to this company's context.
+
+Never use em dashes or en dashes in any output. Use a comma or a full stop instead.
 
 Regulation: ${reg["frameworkName"] as string} (${reg["jurisdiction"] as string})
 Regulator: ${reg["regulator"] as string}
@@ -1724,7 +1726,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
     res.json({ intelligence, profiles });
   }));
 
-  // Section 3c: the negotiation profile for a single contract's counterparty —
+  // Section 3c: the negotiation profile for a single contract's counterparty,
   // surfaced on the contract review page.
   app.get("/api/contracts/:id/counterparty-profile", requireAuth, ah(async (req: Request, res: Response) => {
     const company = await getCompany(req.user?.email);
@@ -3025,13 +3027,15 @@ Write the negotiation email paragraph.`;
       const ask         = (r["founderAskFor"] as string | undefined) || (r["recommendedAction"] as string | undefined) || "";
       const fallback    = (r["founderCopyPaste"] as string | undefined) || (r["suggestedFallback"] as string | undefined) || "";
       if (isAbsent) {
-        return `Issue ${i + 1} – Add ${clauseLabel}:\n${ask}`;
+        return `Issue ${i + 1}, Add ${clauseLabel}:\n${ask}`;
       }
       const verb = r["ragStatus"] === "RED" ? "needs to change" : "worth discussing";
-      return `Issue ${i + 1} – ${clauseLabel} (${verb}):\n${ask}${fallback ? `\nSuggested wording: "${fallback}"` : ""}`;
+      return `Issue ${i + 1}, ${clauseLabel} (${verb}):\n${ask}${fallback ? `\nSuggested wording: "${fallback}"` : ""}`;
     }).join("\n\n");
 
     const systemPrompt = `You are helping a founder draft a negotiation email to a counterparty about a contract.
+
+Never use em dashes or en dashes in any output. Use a comma or a full stop instead.
 
 Write a ${tonePhrase} email that:
 - Opens by thanking them for sending the agreement and noting you have reviewed it
@@ -3061,12 +3065,12 @@ ${issueList}`;
     let body: string;
 
     if (!apiKey || apiKey === "your-api-key-here") {
-      subject = `Re: ${contractType} – proposed amendments`;
+      subject = `Re: ${contractType}, proposed amendments`;
       body = `Hi,\n\nThanks for sending across the ${contractType}. We've had a chance to review it and have a few points we'd like to raise before we proceed.\n\n${included.map((r) => {
         const label = (r["clauseCategory"] as string).replace(/_/g, " ");
         const ask   = (r["founderAskFor"] as string | undefined) || (r["recommendedAction"] as string | undefined) || "We'd like to discuss this further.";
         return `${label}: ${ask}`;
-      }).join("\n\n")}\n\nHappy to jump on a call to walk through these – let us know what works.\n\nBest,\n${companyName}`;
+      }).join("\n\n")}\n\nHappy to jump on a call to walk through these. Let us know what works.\n\nBest,\n${companyName}`;
     } else {
       const raw = await chatComplete([
         { role: "system", content: systemPrompt },
@@ -3079,7 +3083,7 @@ ${issueList}`;
         subject = lines[subIdx].replace(/^subject:\s*/i, "").trim();
         body    = lines.slice(subIdx + 1).join("\n").trim();
       } else {
-        subject = `Re: ${contractType} – proposed amendments`;
+        subject = `Re: ${contractType}, proposed amendments`;
         body    = raw.trim();
       }
     }
@@ -4729,7 +4733,7 @@ Draft the complete clause.`;
     await pb.collection("review_results").update(resultId, {
       founderFeedbackRating: rating,
       founderFeedbackReason: reason ?? "",
-    }).catch(() => { /* field may not exist in schema — non-fatal */ });
+    }).catch(() => { /* field may not exist in schema, non-fatal */ });
     res.json({ ok: true });
   }));
 

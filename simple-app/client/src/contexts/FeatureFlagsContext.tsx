@@ -34,7 +34,7 @@ export interface FeatureFlagsState {
   isLoading: boolean;
 }
 
-// ── Defaults (most restrictive — used while loading) ──────────────────────────
+// ── Defaults (most restrictive, used while loading) ──────────────────────────
 
 const DEFAULT_FLAGS: FeatureFlags = {
   maxUsers: 1,
@@ -72,7 +72,7 @@ export function FeatureFlagsProvider({ children }: { children: React.ReactNode }
   const { data, isLoading } = useQuery({
     queryKey: ["feature-flags"],
     queryFn: fetchFeatureFlags,
-    staleTime: 5 * 60_000, // 5 minutes — tier rarely changes mid-session
+    staleTime: 5 * 60_000, // 5 minutes, tier rarely changes mid-session
     retry: false,
   });
 

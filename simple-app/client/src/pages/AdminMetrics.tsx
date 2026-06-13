@@ -5,7 +5,7 @@ import { getAdminMetrics, type AdminMetrics } from "../lib/api";
 
 // ─── Internal compounding metrics dashboard (admin-only) ─────────────────────
 // Proves the accumulation story: reviews, clauses, decisions, outcomes,
-// counterparty coverage, hours saved, and unit economics — computed live from
+// counterparty coverage, hours saved, and unit economics, computed live from
 // PocketBase with no external analytics dependency.
 
 function fmtGBP(v: number): string {
@@ -87,7 +87,7 @@ export default function AdminMetrics() {
           <div>
             <h1 className="text-2xl font-semibold">Compounding Metrics</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              Internal accumulation dashboard — computed live from the database. Admin only.
+              Internal accumulation dashboard, computed live from the database. Admin only.
             </p>
           </div>
         </div>

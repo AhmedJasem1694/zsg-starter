@@ -53,12 +53,12 @@ export async function req<T>(
     const err = await res.json().catch(() => ({ error: res.statusText }));
     const message = (err as { error?: string }).error ?? res.statusText;
     // Session expired: redirect to login (only for non-auth, non-background endpoints).
-    // /api/features is intentionally excluded — it is polled by FeatureFlagsProvider
+    // /api/features is intentionally excluded, it is polled by FeatureFlagsProvider
     // on every page including /login. Redirecting on a 401 there creates a reload loop.
     const isBackgroundEndpoint = url.includes("/api/auth/") || url.includes("/api/features");
     if (res.status === 401 && !isBackgroundEndpoint) {
       const returnPath = typeof window !== "undefined" ? window.location.pathname : "/";
-      // Don't redirect if we are already on the login page — that would loop.
+      // Don't redirect if we are already on the login page, that would loop.
       if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
         window.location.href = `/login?return=${encodeURIComponent(returnPath)}`;
       }
@@ -514,7 +514,7 @@ export interface NegotiationDrift {
   driftPct: number;
 }
 
-// Decision events (structured human-judgment capture — the moat layer)
+// Decision events (structured human-judgment capture, the moat layer)
 export interface DecisionSummary {
   total: number;
   byAction: Record<string, number>;

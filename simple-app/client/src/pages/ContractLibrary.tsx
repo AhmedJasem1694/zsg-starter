@@ -27,7 +27,7 @@ const CONTRACT_TYPES = [
   { value: "OTHER",                 label: "Other" },
 ];
 
-// NHS & Healthcare contract types — shown only when company sector is healthcare
+// NHS & Healthcare contract types, shown only when company sector is healthcare
 const NHS_CONTRACT_TYPES = [
   { value: "NHS_STANDARD_CONTRACT",           label: "NHS Standard Contract" },
   { value: "NHS_SUBCONTRACT",                 label: "NHS Subcontract Agreement" },
@@ -49,9 +49,9 @@ const NHS_CONTRACT_TYPES = [
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(iso?: string) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return "—";
+  if (isNaN(d.getTime())) return "-";
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
@@ -102,7 +102,7 @@ function InlineFolderEdit({ documentId, currentFolder, onSave }: {
     return (
       <button className="inline-flex items-center gap-1 text-[10px] text-foreground/40 hover:text-foreground/70 transition-colors max-w-[100px] truncate"
         onClick={(e) => { e.preventDefault(); setEditing(true); }} title="Edit folder">
-        <Edit2 size={9} /><span className="truncate">{currentFolder || "—"}</span>
+        <Edit2 size={9} /><span className="truncate">{currentFolder || "-"}</span>
       </button>
     );
   }
@@ -188,16 +188,16 @@ function TableRow({ doc, allDocs, onFolderChange }: {
         )}
       </td>
       <td className="px-4 py-3 text-xs text-foreground/60 whitespace-nowrap">
-        {doc.counterpartyName || <span className="text-foreground/20">—</span>}
+        {doc.counterpartyName || <span className="text-foreground/20">-</span>}
       </td>
       <td className="px-4 py-3 text-xs text-foreground/60 whitespace-nowrap">
-        {doc.contractType ? doc.contractType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : <span className="text-foreground/20">—</span>}
+        {doc.contractType ? doc.contractType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : <span className="text-foreground/20">-</span>}
       </td>
       <td className="px-4 py-3 text-xs text-foreground/60 whitespace-nowrap text-right">
-        {doc.contractValue != null ? `${doc.currency ?? "£"}${doc.contractValue.toLocaleString()}` : <span className="text-foreground/20">—</span>}
+        {doc.contractValue != null ? `${doc.currency ?? "£"}${doc.contractValue.toLocaleString()}` : <span className="text-foreground/20">-</span>}
       </td>
       <td className="px-4 py-3 text-xs text-foreground/50 whitespace-nowrap">
-        {doc.governingLaw || <span className="text-foreground/20">—</span>}
+        {doc.governingLaw || <span className="text-foreground/20">-</span>}
       </td>
       <td className="px-4 py-3 whitespace-nowrap"><StatusPill status={doc.status} /></td>
       <td className="px-4 py-3 whitespace-nowrap"><OutcomePill outcome={doc.outcome} /></td>
@@ -278,7 +278,7 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
       await queryClient.invalidateQueries({ queryKey: ["documents"] });
       await queryClient.invalidateQueries({ queryKey: ["library"] });
       await reviewMutation.mutateAsync(doc.id);
-      // Litigation disabled — commercial contracts focus.
+      // Litigation disabled, commercial contracts focus.
       // if (workflowType === "INSURANCE_LITIGATION") {
       //   navigate(`/app/legal/litigation-intake/${doc.id}`);
       //   return;
@@ -386,7 +386,7 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
         ) : uploadSuccess ? (
           <>
             <CheckCircle size={28} className="text-green-400" />
-            <div className="text-sm font-medium text-foreground">Upload complete — review started</div>
+            <div className="text-sm font-medium text-foreground">Upload complete, review started</div>
             <div className="text-xs text-foreground/40">The contract will appear in the table below when processing finishes</div>
           </>
         ) : (
@@ -398,7 +398,7 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
               <div className="text-sm font-semibold text-foreground">
                 {dragOver ? "Drop to upload" : "Drag and drop or click to browse"}
               </div>
-              <div className="text-xs text-foreground/40">PDF or DOCX — max 50 MB</div>
+              <div className="text-xs text-foreground/40">PDF or DOCX, max 50 MB</div>
             </div>
           </>
         )}
@@ -513,7 +513,7 @@ export default function ContractLibrary() {
           </div>
         </div>
 
-        {/* Upload zone — collapsible, scrolled-to on button click */}
+        {/* Upload zone, collapsible, scrolled-to on button click */}
         <div ref={uploadRef}>
           <button
             className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-card hover:bg-white/5 transition-colors text-sm font-medium text-foreground/80"

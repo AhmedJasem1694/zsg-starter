@@ -71,7 +71,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 function fmtMoney(v: number | null, currency: string): string {
-  if (v === null || v === undefined) return "—";
+  if (v === null || v === undefined) return "-";
   const sym = currency === "GBP" ? "£" : currency === "USD" ? "$" : currency === "EUR" ? "€" : `${currency} `;
   return `${sym}${v.toLocaleString()}`;
 }
@@ -170,7 +170,7 @@ export default function LegacyReview() {
             <div>
               <h1 className="text-2xl font-semibold">Legacy Review</h1>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Map your historical contract estate — terms, renewals, and risks — with a cost-controlled extraction pipeline.
+                Map your historical contract estate, terms, renewals, and risks, with a cost-controlled extraction pipeline.
               </p>
             </div>
           </div>
@@ -188,7 +188,7 @@ export default function LegacyReview() {
             <div>
               <div className="text-sm font-semibold">Bulk upload</div>
               <p className="text-xs text-muted-foreground mt-1">
-                Up to {MAX_BATCH} files per batch. PDF or DOCX. Each contract runs a lightweight extraction —
+                Up to {MAX_BATCH} files per batch. PDF or DOCX. Each contract runs a lightweight extraction of
                 parties, term, value, renewals, termination, liability cap, governing law, assignment, data protection.
               </p>
             </div>
@@ -263,7 +263,7 @@ export default function LegacyReview() {
         {renewals.length > 0 && (
           <div className="space-y-3">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-              <CalendarClock size={13} /> Renewals &amp; expiries — next 12 months
+              <CalendarClock size={13} /> Renewals &amp; expiries, next 12 months
             </h2>
             <div className="card divide-y divide-card-border/50">
               {renewals.map((r) => {
@@ -277,7 +277,7 @@ export default function LegacyReview() {
                     {r.counterparty && <span className="text-muted-foreground truncate">· {r.counterparty}</span>}
                     <span className="ml-auto text-xs text-muted-foreground shrink-0">
                       {r.kind} in {days} day{days !== 1 ? "s" : ""}
-                      {r.autoRenewal && r.noticePeriodDays ? ` — ${r.noticePeriodDays} days' notice required` : ""}
+                      {r.autoRenewal && r.noticePeriodDays ? `, ${r.noticePeriodDays} days' notice required` : ""}
                     </span>
                   </div>
                 );
@@ -315,20 +315,20 @@ export default function LegacyReview() {
                           {STATUS_LABELS[r.status] ?? r.status}
                         </div>
                       </td>
-                      <td className="px-3 py-3 text-muted-foreground max-w-[160px] truncate">{r.counterparty || "—"}</td>
-                      <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{r.contractType.replace(/_/g, " ") || "—"}</td>
+                      <td className="px-3 py-3 text-muted-foreground max-w-[160px] truncate">{r.counterparty || "-"}</td>
+                      <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{r.contractType.replace(/_/g, " ") || "-"}</td>
                       <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{fmtMoney(r.value, r.currency)}</td>
                       <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">
-                        {r.renewalDate ?? r.endDate ?? "—"}
+                        {r.renewalDate ?? r.endDate ?? "-"}
                         {r.autoRenewal && <span className="block text-[10px] text-[#FCD34D]">auto-renews</span>}
                       </td>
-                      <td className="px-3 py-3 text-muted-foreground max-w-[120px] truncate">{r.governingLaw || "—"}</td>
+                      <td className="px-3 py-3 text-muted-foreground max-w-[120px] truncate">{r.governingLaw || "-"}</td>
                       <td className="px-3 py-3 text-muted-foreground max-w-[200px]">
-                        <span className="line-clamp-2">{r.liabilityCap || "—"}</span>
+                        <span className="line-clamp-2">{r.liabilityCap || "-"}</span>
                       </td>
                       <td className="px-3 py-3">
                         {r.riskFlags.length === 0 ? (
-                          <span className="text-muted-foreground/50 text-xs">{r.status === "COMPLETE" ? "None" : "—"}</span>
+                          <span className="text-muted-foreground/50 text-xs">{r.status === "COMPLETE" ? "None" : "-"}</span>
                         ) : (
                           <div className="space-y-1">
                             {r.riskFlags.map((f) => (

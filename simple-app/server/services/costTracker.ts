@@ -9,7 +9,7 @@
  *
  * Costs are estimates: tokens in/out per call × model list rate (modelRouter).
  * Runs outside a tracking context (e.g. onboarding company search) are
- * silently ignored — recordLlmUsage is a no-op without an active context.
+ * silently ignored. recordLlmUsage is a no-op without an active context.
  */
 
 import { AsyncLocalStorage } from "async_hooks";
@@ -74,7 +74,7 @@ function summarise(ctx: CostContext): CostSummary {
 /**
  * Run fn inside a fresh cost-tracking context. onSettled receives the summary
  * whether fn resolves or rejects (so partial costs of failed runs are still
- * logged). onSettled errors are swallowed — cost logging never breaks a run.
+ * logged). onSettled errors are swallowed. Cost logging never breaks a run.
  */
 export async function withCostTracking<T>(
   fn: () => Promise<T>,

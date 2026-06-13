@@ -554,7 +554,7 @@ export default function Settings() {
                       <td className="px-4 py-3 text-foreground/90">{c.name}</td>
                       {costReport.months.map((m) => (
                         <td key={m} className="px-4 py-3 text-right text-muted-foreground">
-                          {c.monthly[m] != null ? `$${c.monthly[m].toFixed(2)}` : "—"}
+                          {c.monthly[m] != null ? `$${c.monthly[m].toFixed(2)}` : "-"}
                         </td>
                       ))}
                       <td className="px-4 py-3 text-right text-muted-foreground">{c.reviews}</td>
@@ -676,8 +676,8 @@ function EmailZaneSettings() {
         <div>
           <div className="text-sm font-semibold text-foreground">Your company's Zane address</div>
           <p className="text-sm text-muted-foreground/70 mt-1 leading-relaxed">
-            CC or forward any contract to this address and Zane will handle it — review it,
-            summarise it, or draft from your playbook — then reply by email with the result.
+            CC or forward any contract to this address and Zane will handle it, review it,
+            summarise it, or draft from your playbook, then reply by email with the result.
           </p>
         </div>
       </div>
@@ -726,7 +726,7 @@ function RegulatoryAnalysisSettings() {
         How prominently regulatory citations appear in contract reviews. The default
         is derived from your sector
         {company ? <> (<span className="text-foreground/70">{SETTING_LABELS[derivedSetting]}</span> for your profile)</> : null}
-        {" "}— override it here if regulation matters more or less for your work.
+        {". "}Override it here if regulation matters more or less for your work.
       </p>
 
       <div className="space-y-3">

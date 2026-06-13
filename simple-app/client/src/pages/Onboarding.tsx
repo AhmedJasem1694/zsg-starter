@@ -180,10 +180,10 @@ const CARD2 = "#111827";
 export default function Onboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  // Litigation disabled — commercial contracts focus.
+  // Litigation disabled, commercial contracts focus.
   // Workflow selection removed: commercial contract review is the only workflow.
   const workflowType: WorkflowType = "COMMERCIAL_CONTRACT";
-  // Onboarding starts at Persona (step 1) — or Company (step 2) when the persona
+  // Onboarding starts at Persona (step 1), or Company (step 2) when the persona
   // was already chosen in the Register pre-flow. Step 0 (workflow choice + Quick
   // Start) has been removed. Lazy init reads sessionStorage before the clearing
   // effect below runs.
@@ -247,7 +247,7 @@ export default function Onboarding() {
   // Governance thresholds (contract value bands)
   const [thresholds, setThresholds] = useState([
     { minValue: 0, maxValue: 25000, requiredApprover: "NONE", label: "Up to £25,000" },
-    { minValue: 25000, maxValue: 250000, requiredApprover: "CFO", label: "£25,001 – £250,000" },
+    { minValue: 25000, maxValue: 250000, requiredApprover: "CFO", label: "£25,001 to £250,000" },
     { minValue: 250000, maxValue: null as number | null, requiredApprover: "BOARD", label: "Over £250,000" },
   ]);
   // Governance triggers (always-escalate clause categories)
@@ -294,8 +294,8 @@ export default function Onboarding() {
       .map((cat) => ({ clauseCategory: cat, ...defaults[cat], riskWeight: 3 }));
   }
 
-  // Quick Start removed — single configure onboarding path.
-  // Litigation disabled — commercial contracts focus.
+  // Quick Start removed, single configure onboarding path.
+  // Litigation disabled, commercial contracts focus.
 
   function handlePersonaNext(chosen: Persona) {
     setPersona(chosen);
@@ -487,7 +487,7 @@ export default function Onboarding() {
       {/* Content */}
       <main className="flex-1 px-4 sm:px-6 py-10 max-w-2xl mx-auto w-full">
         {/* Step 0 (workflow choice + Quick Start) removed.
-            Litigation disabled — commercial contracts focus. */}
+            Litigation disabled, commercial contracts focus. */}
         {step === 1 && (
           <Step1Persona workflowType={workflowType} onNext={handlePersonaNext} />
         )}
@@ -537,8 +537,8 @@ export default function Onboarding() {
 }
 
 // ─── Step 0 (removed) ─────────────────────────────────────────────────────────
-// Workflow selection and Quick Start removed — single configure onboarding path.
-// Litigation disabled — commercial contracts focus.
+// Workflow selection and Quick Start removed, single configure onboarding path.
+// Litigation disabled, commercial contracts focus.
 
 // ─── Step 1: Persona ──────────────────────────────────────────────────────────
 
@@ -1077,7 +1077,7 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
           )}
         </DarkField>
 
-        {/* Sector — hidden when already answered in the Register pre-flow */}
+        {/* Sector, hidden when already answered in the Register pre-flow */}
         {!sectorWasPreSelected && (
           <DarkField label="Sector" hint="Auto-filled from industry - edit to be more specific (e.g. 'Mobile F2P gaming').">
             <DarkInput
@@ -1120,7 +1120,7 @@ function Step2Company({ form, onChange, persona, workflowType, selectedJurisdict
           </DarkField>
         )}
 
-        {/* Risk appetite slider — hidden when already answered in the Register pre-flow */}
+        {/* Risk appetite slider, hidden when already answered in the Register pre-flow */}
         {!riskWasPreSelected && (
           <DarkField label="Risk appetite" required hint="Sets default clause positions - adjust each one in the playbook step.">
             <RiskAppetiteSlider

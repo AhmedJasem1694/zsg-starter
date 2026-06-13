@@ -14,7 +14,7 @@ export default function FirstPlaybook() {
         document by accident and realise quickly that ignoring it is the norm.
       </p>
       <p>
-        This guide is about building a playbook that reflects reality — and using Zane to keep it
+        This guide is about building a playbook that reflects reality, and using Zane to keep it
         there.
       </p>
 
@@ -23,7 +23,7 @@ export default function FirstPlaybook() {
       <h2>What a playbook actually is</h2>
       <p>
         A playbook is not a policy document. It is not a set of aspirational positions designed to
-        impress auditors. It is a decision guide that tells a lawyer — or an AI — how to assess a
+        impress auditors. It is a decision guide that tells a lawyer, or an AI, how to assess a
         clause and what to do about it.
       </p>
       <p>A well-constructed playbook has three levels for each clause category:</p>
@@ -53,8 +53,8 @@ export default function FirstPlaybook() {
 
       <h2>The ten clause categories that matter most</h2>
       <p>
-        For the majority of commercial contracts — supplier agreements, SaaS agreements, customer
-        MSAs, NDAs — ten clause categories account for roughly ninety percent of negotiation
+        For the majority of commercial contracts, such as supplier agreements, SaaS agreements, customer
+        MSAs, and NDAs, ten clause categories account for roughly ninety percent of negotiation
         disputes. Start here.
       </p>
       <p>
@@ -264,7 +264,7 @@ export default function FirstPlaybook() {
       </p>
       <p>
         <strong>Logistics and supply chain.</strong> Force majeure clauses matter more than in most
-        sectors. Define what constitutes a force majeure event explicitly — do not accept boilerplate.
+        sectors. Define what constitutes a force majeure event explicitly. Do not accept boilerplate.
         Business continuity obligations and step-in rights are important where supply disruption
         has operational consequences.
       </p>
@@ -287,7 +287,7 @@ export default function FirstPlaybook() {
         Zane's outcome tracking fixes this over time automatically. After ten contracts, Zane
         shows you which clause categories you consistently accept below your stated fallback. After
         twenty, it flags which counterparties push hardest on which clauses. After fifty, your
-        playbook reflects reality rather than aspiration — and your red lines are the only ones
+        playbook reflects reality rather than aspiration, and your red lines are the only ones
         that actually matter.
       </p>
     </ResourcePageLayout>

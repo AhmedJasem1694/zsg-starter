@@ -58,7 +58,7 @@ const LANDING_FAQS = [
   { q: "Is there a minimum contract or commitment?", a: "No implementation fee. No setup cost. Pilot terms and pricing are agreed up front before you commit." },
 ];
 
-// ─── Cycling phrases — the hero's rolling text ──────────────────────────────────
+// ─── Cycling phrases: the hero's rolling text ──────────────────────────────────
 const PHRASES = ["always on.", "always current.", "always auditable.", "built for you."];
 
 function CyclingPhrase() {
@@ -157,16 +157,16 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* ─── HERO — near-black, one idea ─────────────────────────────────────── */}
+      {/* ─── HERO: near-black, one idea ─────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-navy-950">
-        {/* Single hero accent — soft cobalt wash, the page's one glow */}
+        {/* Single hero accent: soft cobalt wash, the page's one glow */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{ background: "radial-gradient(ellipse 60% 45% at 50% -10%, rgba(37,99,235,0.14), transparent 65%)" }}
         />
 
         <div className="relative max-w-3xl mx-auto px-6 py-32 sm:py-44 text-center">
-          {/* Headline — carries the rolling text */}
+          {/* Headline: carries the rolling text */}
           <motion.h1
             className="text-4xl sm:text-6xl font-bold tracking-tight leading-[1.08] text-[#F8FAFC]"
             {...(shouldReduce ? {} : fadeUpHero(0.1))}
@@ -190,7 +190,7 @@ export default function Landing() {
             Review contracts against your real positions. Not generic market standard. Yours.
           </motion.p>
 
-          {/* Primary CTA — the hero's one cobalt accent */}
+          {/* Primary CTA: the hero's one cobalt accent */}
           <motion.div
             className="mt-12 flex flex-col items-center gap-3"
             {...(shouldReduce ? {} : fadeUpHero(0.5))}
@@ -204,7 +204,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── PRODUCT PREVIEW — Next actions, lifted out of the hero ───────────── */}
+      {/* ─── PRODUCT PREVIEW: Next actions, lifted out of the hero ───────────── */}
       <section className="bg-navy-900 border-t border-line-dark py-24 sm:py-32">
         <div className="max-w-3xl mx-auto px-6">
           <motion.div className="text-center space-y-3" {...headingReveal}>
@@ -242,7 +242,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── STATS — calm horizontal band ────────────────────────────────────── */}
+      {/* ─── STATS: calm horizontal band ────────────────────────────────────── */}
       <section className="bg-navy-900 border-t border-line-dark/60 py-16 sm:py-20">
         <div className="max-w-3xl mx-auto px-6">
           <motion.div
@@ -281,14 +281,14 @@ export default function Landing() {
             </p>
           </motion.div>
 
-          {/* The cost of the status quo — quiet stat row */}
+          {/* The cost of the status quo: quiet stat row */}
           <motion.div
             className="mt-14 grid grid-cols-1 sm:grid-cols-3 gap-px rounded-xl border border-line-light overflow-hidden bg-line-light"
             variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.3 }}
           >
             {[
-              { value: "2–4 hours",     label: "Manual review time per contract" },
-              { value: "£800–£1,600",   label: "The same review at outside counsel rates" },
+              { value: "2 to 4 hours",     label: "Manual review time per contract" },
+              { value: "£800 to £1,600",   label: "The same review at outside counsel rates" },
               { value: "11 minutes",    label: "Average review time with Zane" },
             ].map(({ value, label }) => (
               <motion.div key={label} className="bg-paper px-6 py-7" variants={staggerItem}>
@@ -300,7 +300,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── HOW ZANE WORKS — 3 steps ────────────────────────────────────────── */}
+      {/* ─── HOW ZANE WORKS: 3 steps ────────────────────────────────────────── */}
       <section id="how-it-works" className="bg-paper border-t border-line-light py-24 sm:py-36">
         <div className="max-w-4xl mx-auto px-6">
           <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
@@ -341,7 +341,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── EMAIL AGENT — works where you already work ──────────────────────── */}
+      {/* ─── EMAIL AGENT: works where you already work ──────────────────────── */}
       <section id="email-agent" className="bg-paper border-t border-line-light py-24 sm:py-36">
         <div className="max-w-4xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
@@ -364,7 +364,7 @@ export default function Landing() {
                   <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
                   <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
                   <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
-                  <span className="ml-2 text-xs text-slate-400 truncate">Re: Acme MSA — for review</span>
+                  <span className="ml-2 text-xs text-slate-400 truncate">Re: Acme MSA, for review</span>
                 </div>
                 <div className="divide-y divide-line-light">
                   <div className="px-5 py-4">
@@ -373,7 +373,7 @@ export default function Landing() {
                       <span className="text-xs text-slate-400">9:02</span>
                     </div>
                     <p className="mt-1 text-sm text-slate-600 leading-relaxed">
-                      Cc’ing zane@ — can you take a look at the attached MSA before I reply?
+                      Cc’ing zane@. Can you take a look at the attached MSA before I reply?
                     </p>
                     <div className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-line-light px-2 py-1 text-xs text-slate-500">
                       📎 Acme_MSA_v2.pdf
@@ -385,7 +385,7 @@ export default function Landing() {
                       <span className="text-xs text-slate-400">9:04</span>
                     </div>
                     <p className="mt-1 text-sm text-slate-600 leading-relaxed">
-                      Reviewed against your playbook — <span className="font-semibold text-ink">2 amber, 1 red</span>.
+                      Reviewed against your playbook: <span className="font-semibold text-ink">2 amber, 1 red</span>.
                       Liability cap is below your 24-month floor; indemnity is one-sided. Suggested
                       fallback language is in the full review. Filed to your library.
                     </p>
@@ -400,7 +400,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── THE MEMORY STORY — dark ─────────────────────────────────────────── */}
+      {/* ─── THE MEMORY STORY: dark ─────────────────────────────────────────── */}
       <section className="bg-navy-900 py-24 sm:py-36">
         <div className="max-w-4xl mx-auto px-6">
           <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
@@ -409,7 +409,7 @@ export default function Landing() {
               Zane does not just review contracts. It builds institutional legal memory.
             </h2>
             <p className="text-base text-slate-400 leading-relaxed">
-              Every contract your team reviews, every position accepted or pushed back on, every exception approved, every override made — it all feeds into Zane's memory. Over time Zane learns how your company actually negotiates. Not how it thinks it does.
+              Every contract your team reviews, every position accepted or pushed back on, every exception approved, every override made, it all feeds into Zane's memory. Over time Zane learns how your company actually negotiates. Not how it thinks it does.
             </p>
           </motion.div>
 
@@ -449,7 +449,7 @@ export default function Landing() {
             {[
               {
                 title: "GC or Head of Legal",
-                body: "The playbook lives in your head. Zane documents every position and decision so risk calls stay consistent — and nothing leaves when someone leaves.",
+                body: "The playbook lives in your head. Zane documents every position and decision so risk calls stay consistent, and nothing leaves when someone leaves.",
               },
               {
                 title: "In-house team of 1 to 5 lawyers",
@@ -476,7 +476,7 @@ export default function Landing() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Legacy contract review</p>
             <h2 className="text-2xl font-bold tracking-tight text-ink">Have hundreds of historical contracts nobody has reviewed?</h2>
             <p className="text-sm text-slate-600 leading-relaxed max-w-lg mx-auto">
-              Zane builds a structured map of your entire contract estate — terms, renewals, risks — in days not months.
+              Zane builds a structured map of your entire contract estate, terms, renewals, risks, in days not months.
             </p>
             <div className="pt-1">
               <a href="https://calendly.com/ahmedljasem/30min"
@@ -489,7 +489,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── PRICING — conversation-led ──────────────────────────────────────── */}
+      {/* ─── PRICING: conversation-led ──────────────────────────────────────── */}
       <section id="pricing" className="bg-navy-900 py-24 sm:py-36">
         <div className="max-w-2xl mx-auto px-6 text-center">
           <motion.div className="space-y-6" {...headingReveal}>
@@ -543,7 +543,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── REQUEST ACCESS — final ──────────────────────────────────────────── */}
+      {/* ─── REQUEST ACCESS: final ──────────────────────────────────────────── */}
       <section className="bg-navy-950 py-24 sm:py-36">
         <div className="max-w-2xl mx-auto px-6 text-center">
           <motion.div className="space-y-6" {...headingReveal}>
@@ -646,7 +646,7 @@ function RequestAccessModal({ onClose }: { onClose: () => void }) {
         {submitted ? (
           <div className="py-10 text-center space-y-4">
             <h3 className="text-lg font-bold text-[#F8FAFC] tracking-tight leading-snug">
-              Thanks — Ahmed will personally onboard you within 24 hours.
+              Thanks. Ahmed will personally onboard you within 24 hours.
             </h3>
             <button onClick={onClose} className="text-xs text-slate-500 hover:text-slate-300 transition-colors underline underline-offset-2">
               Close

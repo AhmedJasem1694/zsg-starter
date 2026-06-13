@@ -13,7 +13,7 @@ export default function SraGuidance() {
         under the SRA Code of Conduct 2019?
       </p>
       <p>
-        The short answer is no — provided Zane is used as it is designed to be used, which is
+        The short answer is no, provided Zane is used as it is designed to be used, which is
         as a decision support tool that informs human judgment rather than replacing it. This
         document explains why, with specific reference to the relevant SRA obligations.
       </p>
@@ -30,7 +30,7 @@ export default function SraGuidance() {
         keep their legal knowledge and skills up to date. The SRA's guidance on this provision
         makes clear that competence includes being aware of developments in the tools and
         technologies available to legal practitioners. Using AI tools to assist with research,
-        document review, and risk analysis is consistent with — not in tension with — this
+        document review, and risk analysis is consistent with, not in tension with, this
         obligation, provided the solicitor retains personal responsibility for the output and
         does not blindly adopt AI recommendations without applying their own judgment.
       </p>
@@ -38,15 +38,15 @@ export default function SraGuidance() {
         <strong>Paragraph 4.3</strong> requires solicitors to act within the limits of their
         competence and refer matters to others where they lack the necessary competence to deal
         with them adequately. Using Zane to identify clause-level risks outside a solicitor's
-        usual area of expertise — and then seeking advice from a specialist before making a
-        decision — is entirely consistent with this obligation. The tool extends competence;
+        usual area of expertise, and then seeking advice from a specialist before making a
+        decision, is entirely consistent with this obligation. The tool extends competence;
         it does not substitute for it.
       </p>
       <p>
         <strong>Paragraph 1.4</strong> requires solicitors to only make referrals or recommend
         third-party services when it is in the client's best interests. For in-house solicitors,
         the "client" is the business. Using Zane to process contracts more efficiently and
-        consistently — and to surface risks that might otherwise be missed in a manual review —
+        consistently, and to surface risks that might otherwise be missed in a manual review,
         is plainly in the client's best interests when the output is reviewed critically by
         a qualified lawyer.
       </p>
@@ -67,7 +67,7 @@ export default function SraGuidance() {
           <strong>Override functionality.</strong> Every Zane assessment can be overridden by the
           reviewing lawyer. When a lawyer marks a Zane recommendation as incorrect, they record
           their reasoning. This creates a documented trail of professional judgment applied to
-          AI output — exactly what the SRA guidance contemplates. It also trains the system to
+          AI output, exactly what the SRA guidance contemplates. It also trains the system to
           be more accurate for that company's specific context over time.
         </li>
         <li>
@@ -85,7 +85,7 @@ export default function SraGuidance() {
         </li>
         <li>
           <strong>Human-gated escalations.</strong> Escalation requests require human sign-off.
-          Zane identifies who should approve a decision and routes the request — but the approval
+          Zane identifies who should approve a decision and routes the request, but the approval
           is a human act by a named, accountable individual. The system cannot approve its own
           escalation requests.
         </li>
@@ -102,9 +102,9 @@ export default function SraGuidance() {
       </p>
       <p>
         Zane addresses this through PII anonymisation before any contract text reaches an AI model.
-        The anonymisation engine identifies and replaces personally identifiable information
-        — party names, individual names in signature blocks, email addresses, phone numbers,
-        financial account details, and other regulated data categories — with placeholder tokens
+        The anonymisation engine identifies and replaces personally identifiable information,
+        such as party names, individual names in signature blocks, email addresses, phone numbers,
+        financial account details, and other regulated data categories, with placeholder tokens
         before analysis begins. The placeholder tokens are restored in the output after the AI
         analysis is complete.
       </p>
@@ -115,9 +115,9 @@ export default function SraGuidance() {
         structure of the document, not the personal data within it.
       </p>
       <p>
-        This does not eliminate all data protection considerations — your team should still
+        This does not eliminate all data protection considerations. Your team should still
         review Zane's data processing agreement and understand what data is retained and for
-        how long — but it significantly reduces the surface area of personal data exposure
+        how long. But it significantly reduces the surface area of personal data exposure
         in the AI analysis pipeline.
       </p>
 
@@ -165,8 +165,8 @@ export default function SraGuidance() {
 
       <h2>A note on legal professional privilege</h2>
       <p>
-        Contract review outputs generated through Zane — including risk summaries, escalation
-        recommendations, and override reasoning — may be subject to legal professional privilege
+        Contract review outputs generated through Zane, including risk summaries, escalation
+        recommendations, and override reasoning, may be subject to legal professional privilege
         where they are created for the dominant purpose of anticipated litigation or in
         connection with legal advice from a qualified lawyer to their client.
       </p>
@@ -174,7 +174,7 @@ export default function SraGuidance() {
         In-house solicitors should apply the same privilege analysis they would apply to any
         internal legal document. A risk memo generated with Zane's assistance and reviewed and
         approved by a qualified solicitor may attract privilege in appropriate circumstances.
-        A purely administrative output — a contract value record or a renewal date alert —
+        A purely administrative output, such as a contract value record or a renewal date alert,
         is unlikely to.
       </p>
       <p>
