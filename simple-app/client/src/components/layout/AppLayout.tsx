@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { ZaneLogo } from "../ZaneLogo";
 import {
   LayoutDashboard, BookOpen, Settings, LogOut, Menu, Shield,
-  Lock, PieChart, CalendarClock, LayoutGrid, Activity, ClipboardList, Library, Users,
+  PieChart, CalendarClock, LayoutGrid, Activity, ClipboardList, Library, Users,
   AlertTriangle, Archive,
 } from "lucide-react";
 import { useAuth, useLogout } from "../../hooks/useAuth";
@@ -33,7 +33,6 @@ const LEGAL_NAV_SECONDARY = [
   { to: "/app/legal/team",        icon: Users,         label: "Team" },
   { to: "/app/legal/audit",       icon: ClipboardList, label: "Audit Trail" },
   { to: "/app/legal/regulations", icon: Shield,        label: "Regulatory Profile" },
-  { to: "/security",              icon: Lock,          label: "Security" },
 ];
 
 // ── Founder nav ───────────────────────────────────────────────────────────────
@@ -46,9 +45,7 @@ const FOUNDER_NAV = [
   { to: "/app/legal/bulk-review",  icon: LayoutGrid,      label: "Bulk Review" },
 ];
 
-const FOUNDER_NAV_SECONDARY = [
-  { to: "/security", icon: Lock, label: "Security" },
-];
+const FOUNDER_NAV_SECONDARY: typeof LEGAL_NAV_SECONDARY = [];
 
 // ── Trial countdown banner ────────────────────────────────────────────────────
 
@@ -167,6 +164,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Secondary nav */}
+        {navSecondary.length > 0 && (
         <div className="px-3 pb-2 space-y-0.5 border-t border-sidebar-border pt-3">
           <div className="px-3 pb-1 text-[10px] uppercase tracking-widest text-sidebar-foreground/20 font-medium">System</div>
           {navSecondary.map(({ to, icon: Icon, label }) => {
@@ -184,6 +182,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             );
           })}
         </div>
+        )}
 
         {/* Footer */}
         <div className="px-3 py-4 border-t border-sidebar-border space-y-0.5">
