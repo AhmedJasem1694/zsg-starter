@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Upload, FileText, AlertTriangle, CheckCircle, Clock,
   RotateCcw, Shield, ChevronRight, AlertCircle, LayoutGrid, ArrowRight,
-  CalendarClock, Bell, Lock, Activity, X, Trash2, Mail,
+  CalendarClock, Bell, Lock, Activity, X, Trash2, Mail, Copy, Archive,
 } from "lucide-react";
 import { getDocuments, uploadDocument, startReview, getCompany, getDocumentStats, deleteDocument, deleteDocuments } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
@@ -642,6 +642,88 @@ function MiniRagBar({ results }: { results: { ragStatus: string }[] }) {
         {grey  > 0 && <div className="bg-[#475569]"   style={{ width: `${(grey / total) * 100}%` }} />}
       </div>
       <span className="text-[10px] text-muted-foreground">{total} clauses</span>
+    </div>
+  );
+}
+
+// ─── Capabilities: surface the newer ways to work with Zane ─────────────────────
+// Calm, additive, consistent with the lightened dashboard: hairline borders,
+// generous spacing, one accent. Email Zane is the prominent, central capability.
+
+function DashboardCapabilities({ inboundEmail }: { inboundEmail?: string }) {
+  const [copied, setCopied] = useState(false);
+  const address = inboundEmail ?? "";
+
+  function copyAddress() {
+    if (!address) return;
+    void navigator.clipboard?.writeText(address).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">What Zane can do</h2>
+
+      {/* Email Zane: the prominent, central new capability */}
+      <div className="card shadow-sm p-5 sm:p-6 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+            <Mail size={18} className="text-blue-400" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-foreground">Email Zane</div>
+            <p className="text-xs text-muted-foreground/80 mt-1 leading-relaxed max-w-xl">
+              CC or forward any contract to this address and Zane reviews it against your playbook and replies in the thread.
+            </p>
+          </div>
+        </div>
+        {address ? (
+          <div className="flex items-center gap-2 rounded-lg border border-card-border bg-background/40 px-4 py-3 max-w-xl">
+            <code className="flex-1 text-sm text-foreground font-mono truncate">{address}</code>
+            <button
+              onClick={copyAddress}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-card-border hover:bg-white/5 transition-colors"
+            >
+              {copied ? <CheckCircle size={13} className="text-[#86EFAC]" /> : <Copy size={13} />}
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground/60 max-w-xl">
+            Your dedicated Zane address is being set up. You can also find it in Settings, Email Zane.
+          </p>
+        )}
+      </div>
+
+      {/* Secondary capabilities: quiet cards */}
+      <div className="grid sm:grid-cols-2 gap-4">
+        <Link to="/app/legal/legacy-review"
+          className="card shadow-sm p-5 flex items-start gap-3 hover:border-foreground/20 transition-colors">
+          <div className="mt-0.5 w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+            <Archive size={16} className="text-muted-foreground" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-foreground">Legacy review</div>
+            <p className="text-xs text-muted-foreground/80 mt-1 leading-relaxed">
+              Review your existing contract estate in bulk and get a structured map of terms, renewals, and risks.
+            </p>
+          </div>
+        </Link>
+        <Link to="/app/legal/playbook"
+          className="card shadow-sm p-5 flex items-start gap-3 hover:border-foreground/20 transition-colors">
+          <div className="mt-0.5 w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
+            <Activity size={16} className="text-muted-foreground" />
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-foreground">Counterparty intelligence</div>
+            <p className="text-xs text-muted-foreground/80 mt-1 leading-relaxed">
+              Zane now tracks how each counterparty negotiates over time. See it on each clause in your playbook.
+            </p>
+          </div>
+        </Link>
+      </div>
     </div>
   );
 }
@@ -1298,6 +1380,9 @@ export default function Dashboard() {
 
         </>
         )}
+
+        {/* New capabilities, surfaced calmly in both populated and empty states */}
+        <DashboardCapabilities inboundEmail={company?.inbound_email} />
 
       </div>
     </AppLayout>
