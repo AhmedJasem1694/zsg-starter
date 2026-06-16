@@ -46,6 +46,59 @@ const NHS_CONTRACT_TYPES = [
   { value: "RESEARCH_COLLABORATION",          label: "Research Collaboration Agreement" },
 ];
 
+// ── Library grouping (by document type / by vendor) ────────────────────────────
+
+type GroupView = "type" | "vendor" | "all";
+
+// value -> friendly label, from the types the pipeline already classifies into.
+const TYPE_LABELS: Record<string, string> = Object.fromEntries(
+  [...CONTRACT_TYPES, ...NHS_CONTRACT_TYPES].map((t) => [t.value, t.label]),
+);
+
+function typeLabel(contractType?: string): string {
+  const t = (contractType ?? "").trim();
+  if (!t) return "Uncategorised";
+  return TYPE_LABELS[t] ?? TYPE_LABELS[t.toUpperCase()] ?? t.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// Pluralise common contract-type labels for group headings ("...Agreement" -> "...Agreements").
+function pluralLabel(label: string): string {
+  if (label === "Uncategorised") return label;
+  if (/agreement$/i.test(label)) return label + "s";
+  if (/contract$/i.test(label))  return label + "s";
+  return label;
+}
+
+interface DocGroup { key: string; label: string; docs: UploadedDocument[] }
+
+// Group an already-sorted document list by document type or by vendor. Groups are
+// ordered by size (largest first), with the "Other"/"Unknown" bucket pinned last.
+function groupDocuments(docs: UploadedDocument[], view: GroupView): DocGroup[] {
+  const map = new Map<string, DocGroup>();
+  for (const doc of docs) {
+    let key: string, label: string;
+    if (view === "vendor") {
+      const v = (doc.counterpartyName ?? "").trim();
+      key = v || "__none";
+      label = v || "Unknown vendor";
+    } else {
+      const t = (doc.contractType ?? "").trim();
+      key = t || "__none";
+      label = pluralLabel(typeLabel(t));
+    }
+    if (!map.has(key)) map.set(key, { key, label, docs: [] });
+    map.get(key)!.docs.push(doc);
+  }
+  const groups = Array.from(map.values());
+  const isOther = (g: DocGroup) => g.key === "__none";
+  groups.sort((a, b) => {
+    if (isOther(a) !== isOther(b)) return isOther(a) ? 1 : -1;
+    if (b.docs.length !== a.docs.length) return b.docs.length - a.docs.length;
+    return a.label.localeCompare(b.label);
+  });
+  return groups;
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDate(iso?: string) {
@@ -422,6 +475,7 @@ export default function ContractLibrary() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sortKey, setSortKey]                 = useState<SortKey>("uploadedAt");
   const [sortDir, setSortDir]                 = useState<"asc" | "desc">("desc");
+  const [view, setView]                       = useState<GroupView>("type");
   const [uploadOpen, setUploadOpen]           = useState(false);
   const uploadRef                             = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -471,6 +525,9 @@ export default function ContractLibrary() {
 
   const completeCount = allDocs.filter((d) => d.status === "COMPLETE").length;
   const signedCount   = allDocs.filter((d) => d.outcome === "SIGNED" || d.outcome === "EXECUTED").length;
+
+  // Grouped views reuse the same sorted rows, split into labelled sections.
+  const groups: DocGroup[] = view === "all" ? [{ key: "all", label: "", docs: sorted }] : groupDocuments(sorted, view);
 
   return (
     <AppLayout>
@@ -545,6 +602,27 @@ export default function ContractLibrary() {
           />
         </div>
 
+        {/* View toggle: group by document type / by vendor / flat list */}
+        {!isLoading && allDocs.length > 0 && (
+          <div className="inline-flex items-center rounded-lg border border-border bg-card p-0.5 text-xs">
+            {([
+              { v: "type",   label: "By document type" },
+              { v: "vendor", label: "By vendor" },
+              { v: "all",    label: "All" },
+            ] as { v: GroupView; label: string }[]).map(({ v, label }) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
+                  view === v ? "bg-blue-500/15 text-blue-300" : "text-foreground/50 hover:text-foreground/80"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Loading */}
         {isLoading && (
           <div className="text-center py-16 text-foreground/40 text-sm">Loading library…</div>
@@ -589,14 +667,24 @@ export default function ContractLibrary() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
-                  {sorted.map((doc) => (
-                    <TableRow
-                      key={doc.id}
-                      doc={doc}
-                      allDocs={allDocs}
-                      onFolderChange={(id, folder) => folderMutation.mutate({ id, folder })}
-                    />
-                  ))}
+                  {groups.flatMap((g) => [
+                    view !== "all" ? (
+                      <tr key={`group-${g.key}`} className="bg-card/40">
+                        <td colSpan={10} className="px-4 py-2.5 text-xs font-semibold text-foreground/70 border-y border-border">
+                          {g.label}
+                          <span className="ml-1.5 font-normal text-foreground/40">({g.docs.length})</span>
+                        </td>
+                      </tr>
+                    ) : null,
+                    ...g.docs.map((doc) => (
+                      <TableRow
+                        key={doc.id}
+                        doc={doc}
+                        allDocs={allDocs}
+                        onFolderChange={(id, folder) => folderMutation.mutate({ id, folder })}
+                      />
+                    )),
+                  ])}
                 </tbody>
               </table>
             </div>
