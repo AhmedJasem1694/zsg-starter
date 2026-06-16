@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp, Save, BarChart2, BookOpen, Sparkles, Loader2, Plus, X, Star, TrendingUp, AlertOctagon, CheckCircle, Shield, AlertTriangle, FileText } from "lucide-react";
 import { getPlaybookRules, updatePlaybookRule, getFeedbackPatterns, generatePlaybookSuggestion, createPlaybookRule, getPlaybookDriftSuggestions, getCompanyRules, approveCompanyRule, rejectCompanyRule, updateCompanyRuleText, getClauseOutcomesExtended, getCompany, getCounterpartyIntelligence, generateBriefing } from "../lib/api";
@@ -273,7 +274,7 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
                   <p className="text-xs text-muted-foreground/50">No counterparty data yet. This builds automatically as contracts are reviewed and outcomes logged.</p>
                 ) : counterpartyEntries.map((entry) => (
                   <div key={entry.counterpartyName} className="space-y-0.5">
-                    <div className="text-xs font-semibold text-white">{entry.counterpartyName}</div>
+                    <Link to={`/app/legal/vendor/${encodeURIComponent(entry.counterpartyName)}`} className="text-xs font-semibold text-white hover:text-blue-300 hover:underline transition-colors">{entry.counterpartyName}</Link>
                     <div className="text-xs text-muted-foreground leading-relaxed">
                       Accepted our preferred position in {entry.accepted} of {entry.total} contracts.{" "}
                       Pushed back in {entry.pushedBack} of {entry.total}.{" "}
@@ -1268,7 +1269,7 @@ export default function Playbook() {
                       .map((p) => (
                         <div key={p.counterparty} className="rounded-md border border-card-border/60 bg-background/40 p-3 space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
-                            <div className="text-xs font-semibold text-white truncate">{p.counterparty}</div>
+                            <Link to={`/app/legal/vendor/${encodeURIComponent(p.counterparty)}`} className="text-xs font-semibold text-white truncate hover:text-blue-300 hover:underline transition-colors">{p.counterparty}</Link>
                             <div className="text-[10px] text-muted-foreground/50 shrink-0">{p.contracts} contract(s) · {p.totalMoves} move(s)</div>
                           </div>
                           <ul className="space-y-0.5">

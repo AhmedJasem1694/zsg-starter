@@ -32,6 +32,7 @@ import AuditTrail from "./pages/AuditTrail";
 import FounderDashboard from "./pages/founder/FounderDashboard";
 import FounderReview from "./pages/founder/FounderReview";
 import ContractLibrary from "./pages/ContractLibrary";
+import VendorIntelligence from "./pages/VendorIntelligence";
 import LegacyReview from "./pages/LegacyReview";
 import AdminMetrics from "./pages/AdminMetrics";
 import TeamManagement from "./pages/TeamManagement";
@@ -194,6 +195,10 @@ function AppRoutes() {
       <Route
         path="/app/legal/library"
         element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><ContractLibrary /></RequireAuth>}
+      />
+      <Route
+        path="/app/legal/vendor/:name"
+        element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><VendorIntelligence /></RequireAuth>}
       />
       <Route
         path="/app/legal/legacy-review"

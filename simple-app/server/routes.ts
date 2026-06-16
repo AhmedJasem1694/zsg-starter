@@ -30,7 +30,7 @@ import { searchCompanies, enrichCompany } from "./services/companySearch.js";
 import { audit } from "./services/auditLogger.js";
 import { recordDecisionEvent, recordDecisionEventForResult, deriveZaneRecommendation } from "./services/decisionEvents.js";
 import { captureThreadNegotiation, carriesThreadHistory } from "./services/negotiationCapture.js";
-import { buildCounterpartyProfile } from "./services/counterpartyProfile.js";
+import { buildCounterpartyProfile, profileDraftToConfirm } from "./services/counterpartyProfile.js";
 import { getFeatureFlags, resolveTier, trialDaysRemaining } from "./services/featureFlags.js";
 import { runDeltaComparison } from "./services/deltaComparison.js";
 import { runPatternDetection } from "./services/patternDetector.js";
@@ -1761,6 +1761,55 @@ Each field should be 1-3 sentences of clear, practical legal language.
     if (!counterparty) { res.json({ profile: null }); return; }
     const profile = await buildCounterpartyProfile(company.id as string, counterparty).catch(() => null);
     res.json({ profile });
+  }));
+
+  // Section 3: consolidated per-vendor intelligence, everything Zane knows about
+  // one counterparty: their documents, negotiation profile, captured decision
+  // reasoning, and worth-considering notes. Reuses existing data only.
+  app.get("/api/counterparty/vendor-intelligence", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
+    const name = String(req.query.name ?? "").trim();
+    if (!company || !name) {
+      res.json({ counterparty: name, documents: [], profile: null, decisions: [], notes: [] });
+      return;
+    }
+
+    const docs = await pb.collection("uploaded_documents").getFullList({
+      filter: `company = "${company.id}" && counterpartyName = "${name.replace(/"/g, "")}"`,
+      sort: "-created",
+    }).catch(() => [] as PBRecord[]);
+    const documents = docs.map((d) => ({
+      id: d.id as string,
+      originalName: (d["originalName"] as string) ?? "",
+      contractType: (d["contractType"] as string) ?? "",
+      status: (d["status"] as string) ?? "",
+      outcome: (d["outcome"] as string) ?? "",
+      contractValue: (d["contractValue"] as number) ?? null,
+      currency: (d["currency"] as string) ?? "",
+      uploadedAt: d["created"] as string,
+    }));
+    const docNames = new Map<string, string>(docs.map((d) => [d.id as string, (d["originalName"] as string) ?? ""]));
+    const docIds = new Set(docs.map((d) => d.id as string));
+
+    const profile = await buildCounterpartyProfile(company.id as string, name).catch(() => null);
+
+    // Significant decisions + captured reasoning, scoped to this vendor's contracts.
+    const allDecisions = await pb.collection("decision_events").getFullList({
+      filter: `company = "${company.id}"`, sort: "-created",
+    }).catch(() => [] as PBRecord[]);
+    const decisions = allDecisions
+      .filter((e) => docIds.has(String(e["contract"] ?? "")))
+      .map((e) => ({
+        clauseCategory: (e["clause_category"] as string) ?? "",
+        humanAction: (e["human_action"] as string) ?? "",
+        finalPosition: (e["human_final_position"] as string) ?? "",
+        reason: (e["override_reason"] as string) ?? "",
+        zaneRecommendation: (e["zane_recommendation"] as string) ?? "",
+        contractName: docNames.get(String(e["contract"] ?? "")) ?? "",
+        created: e["created"] as string,
+      }));
+
+    res.json({ counterparty: name, documents, profile, decisions, notes: profileDraftToConfirm(profile) });
   }));
 
   // ── New hire briefing ────────────────────────────────────────────────────────

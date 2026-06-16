@@ -879,6 +879,25 @@ export const getContractCounterpartyProfile = (contractId: string) =>
     `/api/contracts/${contractId}/counterparty-profile`
   );
 
+// Section 3: consolidated per-vendor intelligence (documents + profile + captured reasoning).
+export interface VendorDocument {
+  id: string; originalName: string; contractType: string; status: string;
+  outcome: string; contractValue: number | null; currency: string; uploadedAt: string;
+}
+export interface VendorDecision {
+  clauseCategory: string; humanAction: string; finalPosition: string;
+  reason: string; zaneRecommendation: string; contractName: string; created: string;
+}
+export interface VendorIntelligence {
+  counterparty: string;
+  documents: VendorDocument[];
+  profile: CounterpartyProfile | null;
+  decisions: VendorDecision[];
+  notes: string[];
+}
+export const getVendorIntelligence = (name: string) =>
+  req<VendorIntelligence>("GET", `/api/counterparty/vendor-intelligence?name=${encodeURIComponent(name)}`);
+
 // New hire briefing
 export async function generateBriefing(): Promise<{ briefing: string }> {
   return req<{ briefing: string }>("POST", "/api/playbook/briefing");

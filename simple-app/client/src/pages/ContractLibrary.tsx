@@ -681,7 +681,16 @@ export default function ContractLibrary() {
                     view !== "all" ? (
                       <tr key={`group-${g.key}`} className="bg-card/40">
                         <td colSpan={10} className="px-4 py-2.5 text-xs font-semibold text-foreground/70 border-y border-border">
-                          {g.label}
+                          {view === "vendor" && g.key !== "__none" ? (
+                            <Link
+                              to={`/app/legal/vendor/${encodeURIComponent(g.label)}`}
+                              className="text-blue-300 hover:text-blue-200 hover:underline transition-colors"
+                            >
+                              {g.label}
+                            </Link>
+                          ) : (
+                            g.label
+                          )}
                           <span className="ml-1.5 font-normal text-foreground/40">({g.docs.length})</span>
                         </td>
                       </tr>
