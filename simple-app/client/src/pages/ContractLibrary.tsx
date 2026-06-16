@@ -96,6 +96,16 @@ function groupDocuments(docs: UploadedDocument[], view: GroupView): DocGroup[] {
     if (b.docs.length !== a.docs.length) return b.docs.length - a.docs.length;
     return a.label.localeCompare(b.label);
   });
+  // In the vendor view, sub-order each vendor's documents by document type so a
+  // vendor's MSA, NDA, SLA, etc. sit together within their group.
+  if (view === "vendor") {
+    for (const g of groups) {
+      g.docs.sort((a, b) => {
+        const cmp = typeLabel(a.contractType).localeCompare(typeLabel(b.contractType));
+        return cmp !== 0 ? cmp : (a.originalName ?? "").localeCompare(b.originalName ?? "");
+      });
+    }
+  }
   return groups;
 }
 
