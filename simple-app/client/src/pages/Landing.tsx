@@ -289,10 +289,10 @@ export default function Landing() {
           </motion.div>
           <motion.div className="mt-8 space-y-5 text-base text-slate-600 leading-relaxed" {...fadeUp(0.1)}>
             <p>
-              They review the same clauses repeatedly because nobody documented the last decision. They make inconsistent risk calls because the playbook lives in one person's head. They miss approval thresholds because there is no system enforcing them. And when someone leaves the team, everything they knew leaves with them.
+              The same clauses get negotiated again and again from scratch, because nobody captured the last decision. Contracts often reach the business before they reach a lawyer, so people either sign what they should not, or bury the legal team in routine work. And when a lawyer leaves, the knowledge leaves with them, and the next person spends hours reconstructing what was already known.
             </p>
             <p className="text-ink font-medium">
-              The problem is not speed. It is that legal knowledge was never captured in the first place.
+              Nine in ten contracts are signed with no edits, not because the terms are fair, but because there is no infrastructure to do otherwise.
             </p>
           </motion.div>
 
