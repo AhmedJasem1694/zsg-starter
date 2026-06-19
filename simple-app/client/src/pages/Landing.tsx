@@ -71,7 +71,7 @@ const LANDING_FAQS = [
 ];
 
 // ─── Cycling phrases: the hero's rolling text ──────────────────────────────────
-const PHRASES = ["always on.", "always current.", "always auditable.", "built for you."];
+const PHRASES = ["remembers.", "compounds.", "inherits.", "never forgets."];
 
 function CyclingPhrase() {
   const [index, setIndex] = useState(0);
@@ -187,7 +187,7 @@ export default function Landing() {
             className="text-4xl sm:text-6xl font-bold tracking-tight leading-[1.08] text-[#F8FAFC]"
             {...(shouldReduce ? {} : fadeUpHero(0.1))}
           >
-            Legal intelligence that's{" "}<CyclingPhrase />
+            Legal intelligence that{" "}<CyclingPhrase />
           </motion.h1>
 
           {/* Subline */}
@@ -195,7 +195,7 @@ export default function Landing() {
             className="mt-8 text-lg sm:text-xl text-slate-300 leading-relaxed max-w-2xl mx-auto"
             {...(shouldReduce ? {} : fadeUpHero(0.25))}
           >
-            Your legal team already has a playbook. Zane makes sure the company actually follows it.
+            Most legal AI reviews the contract in front of it. Zane reviews it using everything your company has already decided, and remembers every decision so the next one is smarter.
           </motion.p>
 
           {/* Supporting line */}
@@ -203,7 +203,7 @@ export default function Landing() {
             className="mt-5 text-base text-slate-400 leading-relaxed max-w-xl mx-auto"
             {...(shouldReduce ? {} : fadeUpHero(0.35))}
           >
-            Review contracts against your real positions. Not generic market standard. Yours.
+            Your positions, your history, your counterparties. The knowledge that usually walks out the door when someone leaves, captured and working for you.
           </motion.p>
 
           {/* Primary CTA: the hero's one cobalt accent */}
