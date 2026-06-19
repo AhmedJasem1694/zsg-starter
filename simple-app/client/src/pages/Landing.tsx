@@ -195,7 +195,7 @@ export default function Landing() {
             className="mt-8 text-lg sm:text-xl text-slate-300 leading-relaxed max-w-2xl mx-auto"
             {...(shouldReduce ? {} : fadeUpHero(0.25))}
           >
-            Most legal AI reviews the contract in front of it. Zane reviews it using everything your company has already decided, and remembers every decision so the next one is smarter.
+            Most legal AI forgets the moment you close the document. Zane remembers what your company decided, and gets smarter with every contract.
           </motion.p>
 
           {/* Supporting line */}
@@ -203,7 +203,7 @@ export default function Landing() {
             className="mt-5 text-base text-slate-400 leading-relaxed max-w-xl mx-auto"
             {...(shouldReduce ? {} : fadeUpHero(0.35))}
           >
-            Your positions, your history, your counterparties. The knowledge that usually walks out the door when someone leaves, captured and working for you.
+            Your positions, your history, your counterparties, captured and working for you.
           </motion.p>
 
           {/* Primary CTA: the hero's one cobalt accent */}
