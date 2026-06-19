@@ -71,7 +71,7 @@ const LANDING_FAQS = [
 ];
 
 // ─── Cycling phrases: the hero's rolling text ──────────────────────────────────
-const PHRASES = ["remembers.", "compounds.", "inherits.", "never forgets."];
+const PHRASES = ["remembers.", "learns.", "compounds.", "inherits."];
 
 function CyclingPhrase() {
   const [index, setIndex] = useState(0);
@@ -89,8 +89,8 @@ function CyclingPhrase() {
   }, []);
 
   return (
-    // Fixed min-width = width of the longest phrase ("always auditable.") at the
-    // headline weight. inline-block + centered text keeps the cycling word from
+    // Fixed min-width = width of the longest cycling phrase at the headline
+    // weight. inline-block + centered text keeps the cycling word from
     // reflowing or shifting the line as it changes.
     <span style={{ display: "inline-block", minWidth: "10.5em", textAlign: "center" }}>
       <span key={index} className={phase === "in" ? "phrase-in" : "phrase-out"}>
