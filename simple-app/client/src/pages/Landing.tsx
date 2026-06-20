@@ -292,7 +292,7 @@ export default function Landing() {
               Every contract a company signs carries decisions that are never recorded. The same positions get renegotiated from scratch because no one captured how they were resolved last time. Paper often reaches the business before it reaches a lawyer, so deals get signed that should not be, or the legal team is buried in work that never needed them. And when a lawyer leaves, their judgment leaves too. Whoever inherits the relationship spends hours reconstructing what was already known.
             </p>
             <p className="text-ink font-medium">
-              Nine in ten contracts are signed with no edits, not because the terms are fair, but because there is no infrastructure to do otherwise.
+              Most contracts are signed exactly as they arrive. Not because the terms are fair, but because there is no infrastructure to do anything else.
             </p>
           </motion.div>
 
