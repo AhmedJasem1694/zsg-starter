@@ -12,6 +12,7 @@
  */
 
 import { pb } from "../pb.js";
+import { notifyDecisionActivity } from "./synthesisScheduler.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PBRecord = Record<string, any>;
@@ -72,6 +73,7 @@ export async function recordDecisionEvent(input: DecisionEventInput): Promise<st
   };
   try {
     const created = await pb.collection("decision_events").create(record);
+    notifyDecisionActivity(input.companyId); // may auto-trigger L3 synthesis regeneration
     return created.id as string;
   } catch (err) {
     const status = (err as { status?: number }).status;
@@ -101,6 +103,7 @@ export async function recordDecisionEvent(input: DecisionEventInput): Promise<st
           ],
         });
         const created = await pb.collection("decision_events").create(record);
+        notifyDecisionActivity(input.companyId);
         return created.id as string;
       } catch (retryErr) {
         console.warn("[decisionEvents] capture failed after collection create (non-fatal):", (retryErr as Error)?.message);
