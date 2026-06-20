@@ -454,7 +454,7 @@ export default function Landing() {
           <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Who it is for</p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
-              Built for the legal function you actually have.
+              Built for the legal function you have. Or the one you do not.
             </h2>
           </motion.div>
 
