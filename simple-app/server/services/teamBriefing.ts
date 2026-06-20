@@ -261,10 +261,19 @@ export async function generateBriefing(companyId: string, generatedForUserId: st
   const sections = await assembleBriefing(companyId);
   const now = new Date();
   const validUntil = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  // The briefing fields are capped at 5000 chars in the collection schema, so a
+  // large playbook would overflow. Keep each section comfortably under the limit.
+  const FIELD_MAX = 4800;
+  const capped = (s: string) => (s.length > FIELD_MAX ? s.slice(0, FIELD_MAX - 1).trimEnd() + "…" : s);
   const created = await pb.collection("team_briefing_documents").create({
     company: companyId,
     generated_for: generatedForUserId,
-    ...sections,
+    playbook_briefing: capped(sections.playbook_briefing),
+    actual_vs_stated: capped(sections.actual_vs_stated),
+    counterparty_intel: capped(sections.counterparty_intel),
+    significant_decisions: capped(sections.significant_decisions),
+    portfolio_snapshot: capped(sections.portfolio_snapshot),
+    approval_matrix: capped(sections.approval_matrix),
     generated_at: now.toISOString(),
     valid_until: validUntil.toISOString(),
   });
