@@ -860,6 +860,8 @@ async function main() {
     // Legacy contract review layer
     boolField("legacy"),
     textField("legacyExtract"),
+    // Cross-document reference checking (JSON: parent references + library matches)
+    textField("crossRefCheck"),
     // PB 0.23+ requires explicit autodate fields (sorts on "created" 400 without them)
     { name: "created", type: "autodate", onCreate: true, onUpdate: false },
     { name: "updated", type: "autodate", onCreate: true, onUpdate: true },

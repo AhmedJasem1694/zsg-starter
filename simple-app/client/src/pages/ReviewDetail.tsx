@@ -7,7 +7,7 @@ import {
   TrendingDown, Layers, CalendarClock, FileCheck, Users, BarChart2, ChevronRight,
   MessageSquare, Shield, Edit2, Flag, Upload, Brain, Dot,
 } from "lucide-react";
-import { getReview, saveFeedback, saveDecisionReasoning, generateReply, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany, getContractCounterpartyProfile, getContractCounterpartyJudgment } from "../lib/api";
+import { getReview, saveFeedback, saveDecisionReasoning, generateReply, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany, getContractCounterpartyProfile, getContractCounterpartyJudgment, getCrossReferences, relinkCrossReferences } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, ConfidenceLabel, RegulatoryCitation, FeedbackResponse, SignificanceResult } from "../lib/types";
 import { REASONING_QUICK_REASONS } from "../lib/types";
@@ -199,6 +199,19 @@ export default function ReviewDetail() {
     staleTime: 300_000,
   });
   const counterpartyJudgment = counterpartyJudgmentData?.judgment ?? null;
+
+  // Cross-document reference checking: parent agreements this contract relies on.
+  const { data: crossRefData } = useQuery({
+    queryKey: ["cross-references", id],
+    queryFn:  () => getCrossReferences(id!),
+    enabled:  !isMock && !!id && !!doc,
+    staleTime: 120_000,
+  });
+  const crossRef = crossRefData?.crossRef ?? null;
+  const relinkMutation = useMutation({
+    mutationFn: () => relinkCrossReferences(id!),
+    onSuccess: (res) => queryClient.setQueryData(["cross-references", id], res),
+  });
 
   const [outcomeDismissed,  setOutcomeDismissed]  = useState(false);
   const [outcomeCaptured,   setOutcomeCaptured]   = useState(false);
@@ -563,6 +576,57 @@ export default function ReviewDetail() {
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {/* ── Cross-document references: parent agreements relied upon ───── */}
+        {crossRef && crossRef.references.length > 0 && (
+          <div className="rounded-xl border border-[#3F2D00] bg-[#161003] px-4 py-3 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Layers size={14} className="text-[#FCD34D] shrink-0" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#FCD34D]">
+                  Relies on other agreements
+                </span>
+              </div>
+              <button
+                onClick={() => relinkMutation.mutate()}
+                disabled={relinkMutation.isPending}
+                className="shrink-0 text-[11px] px-2 py-1 rounded-md border border-[#3F2D00] text-[#FCD34D]/80 hover:text-[#FCD34D] transition-colors disabled:opacity-50"
+              >
+                {relinkMutation.isPending ? "Checking…" : "Re-check library"}
+              </button>
+            </div>
+            <div className="space-y-2.5">
+              {crossRef.references.map((ref, i) => (
+                <div key={i} className="text-xs space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-foreground">{ref.parentName}</span>
+                    {ref.date && <span className="text-muted-foreground">({ref.date})</span>}
+                    {ref.found ? (
+                      <Link to={`/app/legal/review/${ref.foundDocumentId}`} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-green-500/30 bg-green-500/10 text-green-400">
+                        <CheckCircle size={10} /> In your library
+                      </Link>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400">
+                        <AlertTriangle size={10} /> Not on file
+                      </span>
+                    )}
+                  </div>
+                  {ref.clauseRefs.length > 0 && (
+                    <div className="text-muted-foreground">Relies on: {ref.clauseRefs.join(", ")}</div>
+                  )}
+                  {ref.definedTerms.length > 0 && (
+                    <div className="text-muted-foreground">Defined terms from it: {ref.definedTerms.slice(0, 8).join(", ")}</div>
+                  )}
+                  {!ref.found && (
+                    <div className="text-[#FCD34D]/70">
+                      Upload this agreement to your library, then re-check so Zane can verify the clause references line up.
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

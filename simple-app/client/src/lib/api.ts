@@ -949,6 +949,26 @@ export const getContractCounterpartyJudgment = (contractId: string) =>
     `/api/contracts/${contractId}/counterparty-judgment`
   );
 
+// Cross-document reference checking.
+export interface CrossRefReference {
+  parentName: string;
+  date: string;
+  counterparty: string;
+  clauseRefs: string[];
+  definedTerms: string[];
+  found: boolean;
+  foundDocumentId: string;
+  foundName: string;
+}
+export interface CrossRefResult {
+  checkedAt: string;
+  references: CrossRefReference[];
+}
+export const getCrossReferences = (contractId: string) =>
+  req<{ crossRef: CrossRefResult | null }>("GET", `/api/contracts/${contractId}/cross-references`);
+export const relinkCrossReferences = (contractId: string) =>
+  req<{ crossRef: CrossRefResult | null }>("POST", `/api/contracts/${contractId}/cross-references/relink`);
+
 // Section 3: consolidated per-vendor intelligence (documents + profile + captured reasoning).
 export interface VendorDocument {
   id: string; originalName: string; contractType: string; status: string;

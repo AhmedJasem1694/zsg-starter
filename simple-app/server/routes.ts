@@ -35,6 +35,7 @@ import { buildCounterpartyProfile, profileDraftToConfirm } from "./services/coun
 import { buildCounterpartyJudgmentMemory } from "./services/counterpartyJudgment.js";
 import { generateBriefing, getLatestBriefing } from "./services/teamBriefing.js";
 import { synthesiseCompany, getPlaybookSynthesis, getCompanyKnowledge, getRegulatorySynthesis } from "./services/synthesisEngine.js";
+import { getCrossRefResult, relinkCrossReferences } from "./services/crossReferenceCheck.js";
 import { getFeatureFlags, resolveTier, trialDaysRemaining } from "./services/featureFlags.js";
 import { runDeltaComparison } from "./services/deltaComparison.js";
 import { runPatternDetection } from "./services/patternDetector.js";
@@ -3942,6 +3943,29 @@ Draft the complete clause.`;
     );
     // Best-effort invite emails - import sendEscalationEmail-like mailer if SMTP configured
     res.json({ invited: created.map((r) => r.id).length });
+  }));
+
+  // ── Cross-document reference checking ─────────────────────────────────────────
+  // The parent-agreement references found in a contract and whether the parent is
+  // on file in the company's library.
+  app.get("/api/contracts/:id/cross-references", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
+    if (!company) { res.json({ crossRef: null }); return; }
+    const doc = await pb.collection("uploaded_documents").getOne(req.params.id).catch(() => null);
+    if (!doc || (doc["company"] as string) !== company.id) { res.json({ crossRef: null }); return; }
+    const crossRef = await getCrossRefResult(req.params.id);
+    res.json({ crossRef });
+  }));
+
+  // Re-check the detected references against the current library, e.g. after the
+  // parent agreement has just been uploaded (Section 4: upload, then verify).
+  app.post("/api/contracts/:id/cross-references/relink", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
+    if (!company) { sendError(res, 400, "Company not found"); return; }
+    const doc = await pb.collection("uploaded_documents").getOne(req.params.id).catch(() => null);
+    if (!doc || (doc["company"] as string) !== company.id) { sendError(res, 404, "Not found"); return; }
+    const crossRef = await relinkCrossReferences(req.params.id, company.id as string);
+    res.json({ crossRef });
   }));
 
   // ── L3 synthesis ──────────────────────────────────────────────────────────────

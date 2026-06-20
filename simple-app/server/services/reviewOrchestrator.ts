@@ -21,6 +21,7 @@ import { sendEscalationEmail } from "./emailService.js";
 import { anonymise, deanonymise, buildKnownEntities } from "./piiAnonymiser.js";
 import { audit } from "./auditLogger.js";
 import { persistOutcomePatterns } from "./outcomeCapture.js";
+import { checkParentReferences } from "./crossReferenceCheck.js";
 import { runDocumentAudit } from "./documentAudit.js";
 import { getModelForTask, getModelLabel } from "./modelRouter.js";
 
@@ -1222,6 +1223,12 @@ ${snippet}`;
     // Persist outcome patterns - fire-and-forget
     persistOutcomePatterns(company.id).catch((err: unknown) => {
       console.error("[Zane] Outcome pattern persistence failed:", err);
+    });
+
+    // Cross-document reference checking - fire-and-forget. Detects references to a
+    // parent agreement (MSA, framework) and locates it in the company's library.
+    checkParentReferences(documentId, company.id as string, rawText).catch((err: unknown) => {
+      console.error("[Zane] Cross-reference check failed:", err);
     });
 
     // Send escalation emails - fire-and-forget, never block or fail the review
