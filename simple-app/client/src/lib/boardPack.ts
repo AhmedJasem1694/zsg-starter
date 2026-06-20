@@ -79,7 +79,7 @@ export function exportBoardPack(opts: {
     : "";
 
   const html = `<!doctype html>
-<html><head><meta charset="utf-8"><title>${esc(companyName)} — Board Risk Pack</title>
+<html><head><meta charset="utf-8"><title>${esc(companyName)} Board Risk Pack</title>
 <style>
   @page { margin: 18mm; }
   * { box-sizing: border-box; }
