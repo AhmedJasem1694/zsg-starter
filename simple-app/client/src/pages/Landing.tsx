@@ -419,12 +419,12 @@ export default function Landing() {
       <section className="bg-navy-900 py-24 sm:py-36">
         <div className="max-w-4xl mx-auto px-6">
           <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Institutional memory</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">The intelligence that compounds</p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F8FAFC]">
-              Zane does not just review contracts. It builds institutional legal memory.
+              Far more than a playbook.
             </h2>
             <p className="text-base text-slate-400 leading-relaxed">
-              Most legal AI reviews the contract in front of it. Zane remembers what your company decided and gets smarter with every contract. The review is becoming a commodity. The memory is the moat.
+              Most legal AI reviews the contract in front of it. Zane remembers what your company decided and gets smarter with every contract. The review is becoming a commodity. The memory is the moat. It also captures the reasoning behind your unusual calls, and checks that a schedule's clause references actually line up against the master agreement on file.
             </p>
           </motion.div>
 
@@ -433,9 +433,9 @@ export default function Landing() {
             variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.25 }}
           >
             {[
-              { count: "10",  title: "After 10 contracts",  body: "Zane knows your common risk patterns." },
-              { count: "50",  title: "After 50 contracts",  body: "Zane knows which counterparties push back hardest and where." },
-              { count: "100", title: "After 100 contracts", body: "Zane knows the gap between your written playbook and your real risk tolerance." },
+              { count: "01", title: "Inheritance",            body: "When someone leaves, the knowledge stays. A new joiner inherits the playbook, the decision history, and the counterparty patterns, instead of starting from zero." },
+              { count: "02", title: "Per vendor intelligence", body: "Zane aligns what it learns to each counterparty. The next contract from a known vendor surfaces how they negotiate, what they push on, and what you accepted before and why." },
+              { count: "03", title: "Portfolio risk",          body: "Across your whole contract estate, Zane shows your exposure, your open escalations, and your upcoming renewals. The view a head of legal needs for the board." },
             ].map(({ count, title, body }) => (
               <motion.div key={count} className="rounded-xl border border-line-dark bg-navy-800 px-6 py-7 transition-shadow duration-300 hover:shadow-lg" variants={staggerItem} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
                 <div className="text-2xl font-bold tracking-tight text-[#F8FAFC]">{count}</div>
