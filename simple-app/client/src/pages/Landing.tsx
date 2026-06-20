@@ -564,10 +564,10 @@ export default function Landing() {
         <div className="max-w-2xl mx-auto px-6 text-center">
           <motion.div className="space-y-6" {...headingReveal}>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F8FAFC]">
-              The first contract you review will show you exactly what it can do.
+              The first contract shows you what Zane does. Every one after shows you why it is different.
             </h2>
             <p className="text-base text-slate-400 leading-relaxed max-w-lg mx-auto">
-              Most tools ask you to trust them before showing you anything. Zane asks for 20 minutes and a contract.
+              Most tools ask you to trust them first. Zane asks for twenty minutes and a contract.
             </p>
             <div className="pt-2">
               <button onClick={() => setShowRequestAccess(true)}
