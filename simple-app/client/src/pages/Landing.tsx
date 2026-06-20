@@ -332,18 +332,18 @@ export default function Landing() {
             {[
               {
                 step: "01",
-                title: "Upload the contract",
-                body: "PDF or DOCX. Zane extracts and classifies the key clauses automatically.",
+                title: "Give Zane a contract",
+                body: "PDF or DOCX. Zane extracts and classifies every key clause automatically.",
               },
               {
                 step: "02",
-                title: "Reviewed against your playbook",
-                body: "Each clause is checked against your playbook positions, with relevant regulatory references surfaced where they matter for your sector. You get a clear Red, Amber, Green report with suggested fallback language.",
+                title: "Reviewed against your own positions",
+                body: "Every clause is checked against your company's own positions, not generic market standard. For each one you get a Red, Amber, or Green status, the risk in plain English, and the exact fallback wording to send back.",
               },
               {
                 step: "03",
-                title: "You decide",
-                body: "Zane tells you exactly what to push back on and who needs to approve. Every recommendation requires a human decision.",
+                title: "You decide, and Zane remembers",
+                body: "Zane tells you what to push back on and who should approve it. Every recommendation requires a human decision, and every decision is captured, so the next contract is reviewed using everything you have already decided.",
               },
             ].map(({ step, title, body }) => (
               <motion.div key={step} className="rounded-xl border border-line-light bg-white px-6 py-7 transition-shadow duration-300 hover:shadow-xl" variants={staggerItem} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
