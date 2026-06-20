@@ -8,6 +8,7 @@ import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initPocketBase } from "./pb";
+import { startIntegrationRenewalLoop } from "./services/integrationRenewal";
 
 // Prevent unhandled promise rejections from crashing the server.
 // In Node 20, the default behaviour is to exit(1) on unhandled rejections,
@@ -121,6 +122,9 @@ async function recoverStuckDocuments() {
   recoverStuckDocuments().catch(console.error);
   // Also run every 30 minutes to catch any newly-stuck documents
   setInterval(() => { recoverStuckDocuments().catch(console.error); }, 30 * 60 * 1000);
+
+  // Keep watch-folder webhooks (Google Drive / SharePoint) alive past their TTL.
+  startIntegrationRenewalLoop();
 
   const server = await registerRoutes(app);
 
