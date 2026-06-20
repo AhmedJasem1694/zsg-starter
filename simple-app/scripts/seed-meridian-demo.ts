@@ -102,7 +102,7 @@ const PLAYBOOK: Array<{
 // ─── Counterparty contracts + reviews + decision events ────────────────────────
 // rag drives the review card colour; action drives the counterparty intelligence
 // (accepted -> got our position; modified/overridden -> they pushed back).
-type Decision = { cat: string; rag: "GREEN" | "AMBER" | "RED"; action: "accepted" | "modified" | "overridden"; final: string; reason: string; summary: string };
+type Decision = { cat: string; rag: "GREEN" | "AMBER" | "RED"; action: "accepted" | "modified" | "overridden"; final: string; reason: string; summary: string; reasonCategory?: string; reasonText?: string };
 type Contract = { counterparty: string; name: string; type: string; value: number; decisions: Decision[] };
 
 const CONTRACTS: Contract[] = [
@@ -123,15 +123,15 @@ const CONTRACTS: Contract[] = [
 
   // Nexus Solutions Ltd, consistently pushes back on liability, typical counter 12 months.
   { counterparty: "Nexus Solutions Ltd", name: "Nexus Solutions, Master Services Agreement", type: "MSA", value: 240_000, decisions: [
-    { cat: "LIABILITY_CAP", rag: "AMBER", action: "modified", final: "12 months of fees, carve-outs retained", reason: "Counterparty countered to a 12 month cap", summary: "Cap negotiated down to 12 months of fees, the counterparty's standard counter." },
+    { cat: "LIABILITY_CAP", rag: "AMBER", action: "accepted", final: "12 months of fees, carve-outs retained", reason: "Counterparty countered to a 12 month cap", summary: "Cap negotiated down to 12 months of fees, the counterparty's standard counter.", reasonCategory: "Strategic relationship", reasonText: "Multi-year strategic account; accepted their 12 month counter to keep the relationship moving." },
     { cat: "PAYMENT_TERMS", rag: "GREEN", action: "accepted", final: "30 days, CPI-capped increases", reason: "Accepted our payment terms", summary: "30 day terms with CPI-capped annual increases." },
   ] },
   { counterparty: "Nexus Solutions Ltd", name: "Nexus Solutions, Software Licence Agreement", type: "MSA", value: 130_000, decisions: [
-    { cat: "LIABILITY_CAP", rag: "AMBER", action: "modified", final: "12 months of fees, carve-outs retained", reason: "Counterparty countered to a 12 month cap again", summary: "Cap settled at 12 months of fees, consistent with their prior position." },
+    { cat: "LIABILITY_CAP", rag: "AMBER", action: "accepted", final: "12 months of fees, carve-outs retained", reason: "Counterparty countered to a 12 month cap again", summary: "Cap settled at 12 months of fees, consistent with their prior position." },
     { cat: "PAYMENT_TERMS", rag: "GREEN", action: "accepted", final: "30 days from valid invoice", reason: "Accepted payment terms", summary: "30 day payment terms accepted." },
   ] },
   { counterparty: "Nexus Solutions Ltd", name: "Nexus Solutions, Statement of Work Q1 2025", type: "MSA", value: 70_000, decisions: [
-    { cat: "LIABILITY_CAP", rag: "RED", action: "overridden", final: "12 months of fees, data breach NOT carved out (escalated to GC)", reason: "Counterparty refused to carve out data breach; escalated and accepted under protest for this low-value SOW", summary: "Counterparty refused the data breach carve-out, breaching a red line. Escalated to GC." },
+    { cat: "LIABILITY_CAP", rag: "RED", action: "accepted", final: "12 months of fees, data breach NOT carved out (escalated to GC)", reason: "Counterparty refused to carve out data breach; escalated and accepted under protest for this low-value SOW", summary: "Counterparty refused the data breach carve-out, breaching a red line. Escalated to GC.", reasonCategory: "One off exception", reasonText: "Low-value SOW; accepted the data breach exposure under protest this once, not a precedent for Nexus." },
     { cat: "INDEMNITY", rag: "AMBER", action: "modified", final: "Mutual indemnity with caps", reason: "Negotiated to mutual", summary: "Indemnity negotiated to mutual with caps." },
   ] },
 
@@ -246,12 +246,16 @@ async function main() {
         company: cid,
         user: DEMO_USER,
         contract: doc.id,
+        counterparty: c.counterparty,
         clause_category: d.cat,
-        zane_recommendation: d.action === "accepted" ? "accept" : "negotiate",
+        // What Zane recommended, derived from the RAG it produced.
+        zane_recommendation: d.rag === "GREEN" ? "accept" : d.rag === "RED" ? "reject" : "negotiate",
         zane_suggested_text: "",
         human_action: d.action,
         human_final_position: d.final,
         override_reason: d.reason,
+        reasoning_category: d.reasonCategory ?? "",
+        reasoning_text: d.reasonText ?? "",
       });
       deCount++;
     }

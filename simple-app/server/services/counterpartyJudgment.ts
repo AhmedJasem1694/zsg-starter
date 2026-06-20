@@ -112,6 +112,17 @@ export async function buildCounterpartyJudgmentMemory(
   counterparty: string,
 ): Promise<CounterpartyJudgmentMemory | null> {
   const decisions = await loadDecisions(companyId, counterparty);
+  return aggregateJudgmentMemory(counterparty, decisions);
+}
+
+/**
+ * Pure aggregation of a counterparty's decision_events into judgment memory.
+ * Separated from the data load so it can be tested without a live database.
+ */
+export function aggregateJudgmentMemory(
+  counterparty: string,
+  decisions: PBRecord[],
+): CounterpartyJudgmentMemory | null {
   if (decisions.length === 0) return null;
 
   const cpName = counterparty.trim();
