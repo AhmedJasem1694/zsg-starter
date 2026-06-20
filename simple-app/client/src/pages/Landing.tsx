@@ -424,7 +424,7 @@ export default function Landing() {
               Zane does not just review contracts. It builds institutional legal memory.
             </h2>
             <p className="text-base text-slate-400 leading-relaxed">
-              Every contract your team reviews, every position accepted or pushed back on, every exception approved, every override made, it all feeds into Zane's memory. Over time Zane learns how your company actually negotiates. Not how it thinks it does.
+              Most legal AI reviews the contract in front of it. Zane remembers what your company decided and gets smarter with every contract. The review is becoming a commodity. The memory is the moat.
             </p>
           </motion.div>
 
