@@ -1,7 +1,8 @@
-import { PieChart, Upload, AlertTriangle, CheckCircle, DollarSign, Users, Shield, ArrowRight, Zap } from "lucide-react";
+import { PieChart, Upload, AlertTriangle, CheckCircle, DollarSign, Users, Shield, ArrowRight, Zap, Download } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { getPortfolio, getCompany } from "../lib/api";
+import { getPortfolio, getCompany, getTimings } from "../lib/api";
+import { exportBoardPack } from "../lib/boardPack";
 import AppLayout from "../components/layout/AppLayout";
 import { CLAUSE_LABELS, type ClauseCategory } from "../lib/types";
 import { useFeatureFlags } from "../contexts/FeatureFlagsContext";
@@ -100,6 +101,19 @@ export default function Portfolio() {
               Commercial answers about your contract portfolio. Not analytics, not percentages.
             </p>
           </div>
+          {data && (
+            <button
+              onClick={async () => {
+                const timings = await getTimings().catch(() => null);
+                const companyName = (company as { name?: string } | undefined)?.name || "Your company";
+                const dateLabel = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+                exportBoardPack({ companyName, data, timings, dateLabel });
+              }}
+              className="btn-secondary flex items-center gap-1.5 text-sm shrink-0"
+            >
+              <Download size={14} /> Export board pack
+            </button>
+          )}
         </div>
 
         {!flags.portfolioDashboard && (
