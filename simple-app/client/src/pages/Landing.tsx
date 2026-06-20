@@ -492,7 +492,7 @@ export default function Landing() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Legacy contract review</p>
             <h2 className="text-2xl font-bold tracking-tight text-ink">Have hundreds of historical contracts nobody has reviewed?</h2>
             <p className="text-sm text-slate-600 leading-relaxed max-w-lg mx-auto">
-              Most companies have hundreds of signed contracts no one has read since. Zane maps the whole estate, the terms, the renewal dates, the risks, so you know what you are sitting on. Days, not months.
+              Most companies are sitting on hundreds of signed contracts no one has looked at in years. Zane maps the whole estate, the terms, the renewal dates, the risks, so you know exactly what you are holding. Days, not months.
             </p>
             <div className="pt-1">
               <a href="https://calendly.com/ahmedljasem/30min"
