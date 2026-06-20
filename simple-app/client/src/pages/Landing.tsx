@@ -321,7 +321,7 @@ export default function Landing() {
           <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">How Zane works</p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
-              From counterparty paper to a decision in three steps.
+              From counterparty paper to a decision that compounds.
             </h2>
           </motion.div>
 
@@ -333,17 +333,17 @@ export default function Landing() {
               {
                 step: "01",
                 title: "Give Zane a contract",
-                body: "PDF or DOCX. Zane extracts and classifies every key clause automatically.",
+                body: "PDF or DOCX. Zane reads it and identifies every clause that matters.",
               },
               {
                 step: "02",
-                title: "Reviewed against your own positions",
-                body: "Every clause is checked against your company's own positions, not generic market standard. For each one you get a Red, Amber, or Green status, the risk in plain English, and the exact fallback wording to send back.",
+                title: "See it against everything you know",
+                body: "Each clause is checked against your company's own positions and your history with this counterparty, not generic market standard. You get a Red, Amber, or Green verdict, the risk in plain English, and the exact wording to send back.",
               },
               {
                 step: "03",
-                title: "You decide, and Zane remembers",
-                body: "Zane tells you what to push back on and who should approve it. Every recommendation requires a human decision, and every decision is captured, so the next contract is reviewed using everything you have already decided.",
+                title: "Decide once. Zane remembers",
+                body: "You make the call and Zane records it, with the reasoning behind it. Every decision sharpens the next review, and stays with the company when people move on.",
               },
             ].map(({ step, title, body }) => (
               <motion.div key={step} className="rounded-xl border border-line-light bg-white px-6 py-7 transition-shadow duration-300 hover:shadow-xl" variants={staggerItem} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
