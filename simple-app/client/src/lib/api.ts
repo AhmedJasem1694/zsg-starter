@@ -466,7 +466,16 @@ export const saveFeedback = (
     finalClauseText?: string;
     notes?: string;
   }
-) => req("POST", `/api/feedback/${resultId}`, data);
+): Promise<import("./types").FeedbackResponse> => req("POST", `/api/feedback/${resultId}`, data);
+
+/**
+ * Attach the lawyer's reasoning to a significant decision they just made
+ * (reasoning capture, Section 2). Non-blocking: the decision is already recorded.
+ */
+export const saveDecisionReasoning = (
+  decisionEventId: string,
+  data: { category?: string; text?: string }
+): Promise<{ ok: boolean }> => req("POST", `/api/decisions/${decisionEventId}/reasoning`, data);
 
 /**
  * Teach Zane - lawyer provides what Zane got wrong and the correct analysis.

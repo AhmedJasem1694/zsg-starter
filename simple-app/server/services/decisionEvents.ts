@@ -30,6 +30,11 @@ export interface DecisionEventInput {
   humanAction: HumanAction;
   humanFinalPosition: string;
   overrideReason?: string;
+  /** denormalised counterparty name, so per-counterparty memory can be aggregated without a join */
+  counterparty?: string;
+  /** structured reasoning captured at the moment of a significant decision (Section 2) */
+  reasoningCategory?: string;
+  reasoningText?: string;
 }
 
 /** Map a review result's RAG output onto the recommendation enum. */
@@ -45,8 +50,12 @@ export function deriveZaneRecommendation(result: PBRecord): ZaneRecommendation {
 
 const cap = (s: unknown, n: number): string => String(s ?? "").slice(0, n);
 
-/** Write one decision event. Silent: never throws; self-heals a missing collection. */
-export async function recordDecisionEvent(input: DecisionEventInput): Promise<void> {
+/**
+ * Write one decision event. Silent: never throws; self-heals a missing collection.
+ * Returns the created record id (so a caller can later attach reasoning to it),
+ * or null if the write could not be made.
+ */
+export async function recordDecisionEvent(input: DecisionEventInput): Promise<string | null> {
   const record = {
     company:              input.companyId,
     user:                 input.userId ?? "",
@@ -57,9 +66,13 @@ export async function recordDecisionEvent(input: DecisionEventInput): Promise<vo
     human_action:         input.humanAction,
     human_final_position: cap(input.humanFinalPosition, 4000),
     override_reason:      cap(input.overrideReason, 2000),
+    counterparty:         cap(input.counterparty, 300),
+    reasoning_category:   cap(input.reasoningCategory, 60),
+    reasoning_text:       cap(input.reasoningText, 2000),
   };
   try {
-    await pb.collection("decision_events").create(record);
+    const created = await pb.collection("decision_events").create(record);
+    return created.id as string;
   } catch (err) {
     const status = (err as { status?: number }).status;
     if (status === 404) {
@@ -79,19 +92,43 @@ export async function recordDecisionEvent(input: DecisionEventInput): Promise<vo
             { name: "human_action", type: "text", required: false },
             { name: "human_final_position", type: "text", required: false },
             { name: "override_reason", type: "text", required: false },
+            { name: "counterparty", type: "text", required: false },
+            { name: "reasoning_category", type: "text", required: false },
+            { name: "reasoning_text", type: "text", required: false },
             // PB 0.23+ needs explicit autodate fields for created/updated
             { name: "created", type: "autodate", onCreate: true, onUpdate: false },
             { name: "updated", type: "autodate", onCreate: true, onUpdate: true },
           ],
         });
-        await pb.collection("decision_events").create(record);
-        return;
+        const created = await pb.collection("decision_events").create(record);
+        return created.id as string;
       } catch (retryErr) {
         console.warn("[decisionEvents] capture failed after collection create (non-fatal):", (retryErr as Error)?.message);
-        return;
+        return null;
       }
     }
     console.warn("[decisionEvents] capture failed (non-fatal):", (err as Error)?.message);
+    return null;
+  }
+}
+
+/**
+ * Attach structured reasoning to a previously recorded decision event (Section 2).
+ * Used when a lawyer answers the "why is this unusual" prompt. Silent and
+ * non-blocking: a failure here never affects the lawyer's workflow.
+ */
+export async function updateDecisionReasoning(
+  decisionEventId: string,
+  reasoningCategory: string,
+  reasoningText: string,
+): Promise<void> {
+  try {
+    await pb.collection("decision_events").update(decisionEventId, {
+      reasoning_category: cap(reasoningCategory, 60),
+      reasoning_text:     cap(reasoningText, 2000),
+    });
+  } catch (err) {
+    console.warn(`[decisionEvents] reasoning update for ${decisionEventId} failed (non-fatal):`, (err as Error)?.message);
   }
 }
 
@@ -106,11 +143,11 @@ export async function recordDecisionEventForResult(
   humanAction: HumanAction,
   humanFinalPosition: string,
   overrideReason?: string,
-): Promise<void> {
+): Promise<string | null> {
   try {
     const result = await pb.collection("review_results").getOne(resultId);
     const doc = await pb.collection("uploaded_documents").getOne(result["document"] as string);
-    await recordDecisionEvent({
+    return await recordDecisionEvent({
       companyId: doc["company"] as string,
       userId,
       documentId: doc.id as string,
@@ -120,8 +157,10 @@ export async function recordDecisionEventForResult(
       humanAction,
       humanFinalPosition,
       overrideReason,
+      counterparty: (doc["counterpartyName"] as string) ?? "",
     });
   } catch (err) {
     console.warn(`[decisionEvents] capture for result ${resultId} failed (non-fatal):`, (err as Error)?.message);
+    return null;
   }
 }

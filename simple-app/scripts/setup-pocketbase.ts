@@ -1052,6 +1052,9 @@ async function main() {
     textField("human_action"),          // accepted | overridden | modified | ignored
     textField("human_final_position"),
     textField("override_reason"),
+    textField("counterparty"),          // denormalised counterparty name (per-counterparty judgment memory)
+    textField("reasoning_category"),    // captured reasoning category for a significant decision
+    textField("reasoning_text"),        // free-text reasoning for a significant decision
     { name: "created", type: "autodate", onCreate: true, onUpdate: false },
     { name: "updated", type: "autodate", onCreate: true, onUpdate: true },
   ]);

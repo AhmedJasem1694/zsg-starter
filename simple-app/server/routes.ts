@@ -28,7 +28,8 @@ import { transcribeAudioFile } from "./services/transcription.js";
 import { chatComplete } from "./services/openrouter.js";
 import { searchCompanies, enrichCompany } from "./services/companySearch.js";
 import { audit } from "./services/auditLogger.js";
-import { recordDecisionEvent, recordDecisionEventForResult, deriveZaneRecommendation } from "./services/decisionEvents.js";
+import { recordDecisionEvent, recordDecisionEventForResult, deriveZaneRecommendation, updateDecisionReasoning } from "./services/decisionEvents.js";
+import { assessResultDecision, type SignificanceResult } from "./services/decisionSignificance.js";
 import { captureThreadNegotiation, carriesThreadHistory } from "./services/negotiationCapture.js";
 import { buildCounterpartyProfile, profileDraftToConfirm } from "./services/counterpartyProfile.js";
 import { getFeatureFlags, resolveTier, trialDaysRemaining } from "./services/featureFlags.js";
@@ -2626,11 +2627,18 @@ ${rawText}`,
       userId: req.user?.userId,
     });
 
-    // Decision data capture (silent, fire-and-forget):
+    // Decision data capture + significance assessment (reasoning capture, Section 1/2):
     // ACCEPTED  → accepted Zane's recommendation as-is
     // EDITED    → modified the suggested fallback language before using it
     // DISMISSED → ignored the flag
     // ESCALATED → acted at the escalation step per Zane's recommendation
+    //
+    // Capture itself is silent. We additionally assess whether the decision is
+    // unusual or material enough to be worth asking the lawyer for the reasoning,
+    // and hand the verdict + the decision_event id back so the client can prompt
+    // inline. Best-effort: any failure here must not affect the feedback response.
+    let significance: SignificanceResult | null = null;
+    let decisionEventId: string | null = null;
     {
       const decisionMap: Record<string, { action: import("./services/decisionEvents.js").HumanAction; position: string }> = {
         ACCEPTED:  { action: "accepted",  position: "Accepted Zane's recommendation as-is" },
@@ -2640,11 +2648,41 @@ ${rawText}`,
       };
       const d = decisionMap[parsed.data.userAction];
       if (d) {
-        void recordDecisionEventForResult(req.params.resultId, req.user?.userId, d.action, d.position, parsed.data.notes);
+        try {
+          decisionEventId = await recordDecisionEventForResult(req.params.resultId, req.user?.userId, d.action, d.position, parsed.data.notes);
+          // Escalating is the compliant path, never an unusual override, so we
+          // never prompt on it. Assess everything else.
+          if (parsed.data.userAction !== "ESCALATED") {
+            significance = await assessResultDecision({
+              resultId: req.params.resultId,
+              userId: req.user?.userId,
+              humanAction: d.action,
+              humanFinalPosition: d.position,
+            });
+          }
+        } catch (err) {
+          console.warn("[feedback] decision capture/significance failed (non-fatal):", (err as Error)?.message);
+        }
       }
     }
 
-    res.json(mapFeedback(feedback));
+    res.json({ ...mapFeedback(feedback), significance, decisionEventId });
+  }));
+
+  // ── Reasoning capture (Section 2) ─────────────────────────────────────────────
+  // Attach the lawyer's reasoning to a significant decision they just made. The
+  // decision itself is already captured; this only enriches it, so a missing or
+  // dismissed reasoning never blocks anything.
+  app.post("/api/decisions/:decisionEventId/reasoning", requireAuth, ah(async (req: Request, res: Response) => {
+    const schema = z.object({
+      category: z.string().max(60).optional().default(""),
+      text: z.string().max(2000).optional().default(""),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) { sendError(res, 400, parsed.error.message); return; }
+    if (!parsed.data.category && !parsed.data.text.trim()) { res.json({ ok: true }); return; }
+    await updateDecisionReasoning(req.params.decisionEventId, parsed.data.category, parsed.data.text.trim());
+    res.json({ ok: true });
   }));
 
   // ── Teach Zane ────────────────────────────────────────────────────────────────

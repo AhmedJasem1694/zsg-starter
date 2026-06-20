@@ -7,9 +7,10 @@ import {
   TrendingDown, Layers, CalendarClock, FileCheck, Users, BarChart2, ChevronRight,
   MessageSquare, Shield, Edit2, Flag, Upload, Brain, Dot,
 } from "lucide-react";
-import { getReview, saveFeedback, generateReply, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany, getContractCounterpartyProfile } from "../lib/api";
+import { getReview, saveFeedback, saveDecisionReasoning, generateReply, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany, getContractCounterpartyProfile } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
-import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, ConfidenceLabel, RegulatoryCitation } from "../lib/types";
+import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, ConfidenceLabel, RegulatoryCitation, FeedbackResponse, SignificanceResult } from "../lib/types";
+import { REASONING_QUICK_REASONS } from "../lib/types";
 import { CLAUSE_LABELS } from "../lib/types";
 import { resolveRegulationProminence, isCitationDirectlyRelevant, type RegulationProminence } from "../lib/regulationProminence";
 import { MOCK_REVIEW_DETAIL } from "../lib/mockData";
@@ -211,10 +212,11 @@ export default function ReviewDetail() {
     // avoided; outcomeCaptured just defaults to false and updates via query invalidation.
   }
 
-  async function handleFeedback(resultId: string, action: FeedbackAction, finalClauseText?: string) {
+  async function handleFeedback(resultId: string, action: FeedbackAction, finalClauseText?: string): Promise<FeedbackResponse | void> {
     if (isMock) return; // no-op in demo
-    await saveFeedback(resultId, { userAction: action, finalClauseText });
+    const res = await saveFeedback(resultId, { userAction: action, finalClauseText });
     await queryClient.invalidateQueries({ queryKey: ["review", id] });
+    return res;
   }
 
   async function handleUploadFinalVersion(file: File) {
@@ -1538,7 +1540,7 @@ function ClauseCard({
   index: number;
   expanded: boolean;
   onToggle: () => void;
-  onFeedback: (action: FeedbackAction, finalClauseText?: string) => Promise<void>;
+  onFeedback: (action: FeedbackAction, finalClauseText?: string) => Promise<FeedbackResponse | void>;
   isMock: boolean;
   regulationProminence: RegulationProminence;
   companyIndustry?: string;
@@ -1561,6 +1563,10 @@ function ClauseCard({
   const [showFpSignalPanel, setShowFpSignalPanel] = useState(false);
   const [overrideDone, setOverrideDone] = useState(false);
   const [fpSignalDone, setFpSignalDone] = useState(false);
+  // Reasoning capture (Section 2): inline prompt shown only when the decision the
+  // lawyer just made is flagged significant. Never blocks; dismissing keeps the
+  // decision captured without reasoning.
+  const [reasoningPrompt, setReasoningPrompt] = useState<{ decisionEventId: string; significance: SignificanceResult } | null>(null);
 
   const feedback = result.feedback;
   const label = CLAUSE_LABELS[result.clauseCategory] ?? result.clauseCategory;
@@ -1581,7 +1587,13 @@ function ClauseCard({
   async function handle(action: FeedbackAction, finalClauseText?: string) {
     if (isMock) return;
     setSubmitting(action);
-    try { await onFeedback(action, finalClauseText); } finally { setSubmitting(null); }
+    try {
+      const res = await onFeedback(action, finalClauseText);
+      // Prompt for reasoning only when this decision was flagged significant.
+      if (res && res.significance?.significant && res.decisionEventId) {
+        setReasoningPrompt({ decisionEventId: res.decisionEventId, significance: res.significance });
+      }
+    } finally { setSubmitting(null); }
   }
 
   async function handleTeachZane() {
@@ -1906,6 +1918,15 @@ function ClauseCard({
             )}
           </div>
 
+          {/* Reasoning capture prompt: only on a significant decision (Section 2) */}
+          {reasoningPrompt && (
+            <ReasoningPrompt
+              significance={reasoningPrompt.significance}
+              decisionEventId={reasoningPrompt.decisionEventId}
+              onClose={() => setReasoningPrompt(null)}
+            />
+          )}
+
           {/* Accept + capture clause text */}
           {showWhatAgreed && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)" }}>
@@ -2017,6 +2038,102 @@ function ClauseCard({
             </div>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Reasoning capture prompt (Section 2) ────────────────────────────────────
+// Shown inline only when the decision the lawyer just made was flagged
+// significant. It states what is specifically unusual and asks why, with quick
+// reasons plus free text. It never blocks: the decision is already captured, and
+// skipping simply leaves it without a reason.
+function ReasoningPrompt({
+  significance,
+  decisionEventId,
+  onClose,
+}: {
+  significance: SignificanceResult;
+  decisionEventId: string;
+  onClose: () => void;
+}) {
+  const [category, setCategory] = useState<string>("");
+  const [text, setText] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function save() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await saveDecisionReasoning(decisionEventId, { category, text: text.trim() });
+      setSaved(true);
+      setTimeout(onClose, 900);
+    } catch {
+      onClose(); // non-blocking: closing is fine even if the note did not persist
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="mt-3 rounded-xl border border-[#1E3A8A]/50 bg-[#0B1220] p-4 space-y-3">
+      <div className="flex items-start gap-2">
+        <Brain size={15} className="text-[#60A5FA] mt-0.5 shrink-0" />
+        <div className="space-y-1 flex-1 min-w-0">
+          <div className="text-sm font-semibold text-white leading-snug">{significance.headline}</div>
+          {significance.description && (
+            <div className="text-xs text-white/55 leading-relaxed">{significance.description}</div>
+          )}
+          <div className="text-xs text-white/70 pt-0.5">
+            What is the reason? This helps Zane apply the right judgment next time.
+          </div>
+        </div>
+        <button onClick={onClose} aria-label="Dismiss" className="text-white/30 hover:text-white/70 transition-colors text-xs shrink-0">
+          Skip
+        </button>
+      </div>
+
+      {saved ? (
+        <div className="text-xs text-[#86EFAC] flex items-center gap-1.5">
+          <CheckCircle size={13} /> Saved. Zane will remember this.
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-1.5">
+            {REASONING_QUICK_REASONS.map((r) => (
+              <button
+                key={r}
+                onClick={() => setCategory(category === r ? "" : r)}
+                className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${
+                  category === r
+                    ? "bg-[#2563EB] text-white border-[#2563EB]"
+                    : "border-[#1E293B] text-white/60 hover:border-[#334155]"
+                }`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+          <textarea
+            className="w-full rounded-lg border border-[#1E293B] bg-[#020617] px-3 py-2 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-[#2563EB] min-h-[60px] resize-y"
+            placeholder="Add any detail (optional)…"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => void save()}
+              disabled={saving || (!category && !text.trim())}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium transition-colors disabled:opacity-40"
+            >
+              {saving ? "Saving…" : <><CheckCircle size={12} /> Save reason</>}
+            </button>
+            <button onClick={onClose} className="text-xs text-white/40 hover:text-white/70 transition-colors">
+              Not now
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

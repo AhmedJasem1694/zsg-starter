@@ -31,6 +31,42 @@ export type FeedbackAction = "ACCEPTED" | "EDITED" | "ESCALATED" | "DISMISSED";
 export type FeedbackType = "STANDARD" | "TEACH_ZANE" | "FALSE_POSITIVE";
 export type ConfidenceLabel = "HIGH" | "MEDIUM" | "LOW";
 
+// ─── Reasoning capture (Section 2) ──────────────────────────────────────────────
+export type SignificanceReason =
+  | "worse_than_fallback"
+  | "deviates_from_history"
+  | "above_escalation_threshold"
+  | "contradicts_recent_similar"
+  | "high_importance_clause";
+
+/** Verdict on whether a decision is unusual enough to ask the lawyer why. */
+export interface SignificanceResult {
+  significant: boolean;
+  reasons: SignificanceReason[];
+  description: string;
+  headline: string;
+}
+
+/** Shape returned by POST /api/feedback/:resultId. */
+export interface FeedbackResponse {
+  resultId: string;
+  significance: SignificanceResult | null;
+  decisionEventId: string | null;
+  [key: string]: unknown;
+}
+
+/** Quick-select reasons offered alongside the free-text field on the prompt. */
+export const REASONING_QUICK_REASONS = [
+  "Strategic relationship",
+  "High deal value",
+  "Time pressure",
+  "Low actual risk in practice",
+  "Client is low risk",
+  "One off exception",
+  "Other",
+] as const;
+export type ReasoningQuickReason = (typeof REASONING_QUICK_REASONS)[number];
+
 export interface RegulatoryCitation {
   article: string;
   regulation: string;
