@@ -361,15 +361,15 @@ export default function Landing() {
         <div className="max-w-4xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <motion.div className="space-y-6" {...headingReveal}>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">No portal</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Email native</p>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
                 Zane works where you already work.
               </h2>
               <p className="text-base text-slate-600 leading-relaxed">
-                CC Zane on an email and it reviews the attached contract against your own positions,
-                replies in the thread, and files everything in your library. Every review adds to what
-                Zane knows about your counterparties. First drafts of NDAs and routine agreements on
-                request. No portal. No new system to learn.
+                You do not have to log in to use Zane. Copy it on an email and it reviews the attached
+                contract against your positions, replies in the thread, and files everything in your
+                library. Every review adds to what Zane knows about your counterparties. First drafts
+                of NDAs and routine agreements on request.
               </p>
             </motion.div>
 
@@ -401,7 +401,7 @@ export default function Landing() {
                       <span className="text-xs text-slate-400">9:04</span>
                     </div>
                     <p className="mt-1 text-sm text-slate-600 leading-relaxed">
-                      Reviewed against your playbook: <span className="font-semibold text-ink">2 amber, 1 red</span>.
+                      Reviewed against your positions: <span className="font-semibold text-ink">2 amber, 1 red</span>.
                       Liability cap is below your 24-month floor; indemnity is one-sided. Suggested
                       fallback language is in the full review. Filed to your library.
                     </p>
