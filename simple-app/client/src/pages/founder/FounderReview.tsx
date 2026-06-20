@@ -12,7 +12,8 @@ import {
   generateNegotiationEmail, generateAmendedClause, suggestMissingClause,
 } from "../../lib/api";
 import AppLayout from "../../components/layout/AppLayout";
-import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, FounderStatus } from "../../lib/types";
+import ReasoningPrompt from "../../components/ReasoningPrompt";
+import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, FounderStatus, FeedbackResponse, SignificanceResult } from "../../lib/types";
 import { CLAUSE_LABELS } from "../../lib/types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -346,7 +347,7 @@ function FounderClauseCard({
   result: ReviewResult;
   expanded: boolean;
   onToggle: () => void;
-  onFeedback: (action: FeedbackAction, finalClauseText?: string) => void;
+  onFeedback: (action: FeedbackAction, finalClauseText?: string) => Promise<FeedbackResponse | void>;
   selected: boolean;
   onToggleSelect: () => void;
 }) {
@@ -355,6 +356,16 @@ function FounderClauseCard({
   const [generatedReply, setGeneratedReply] = useState<string | null>(null);
   const [showWhatAgreed, setShowWhatAgreed] = useState(false);
   const [agreedText, setAgreedText]         = useState("");
+  // Reasoning capture: same flow as the corporate review. After a decision, if it
+  // is flagged significant, show the shared ReasoningPrompt. Never blocks.
+  const [reasoningPrompt, setReasoningPrompt] = useState<{ decisionEventId: string; significance: SignificanceResult } | null>(null);
+
+  async function runFeedback(action: FeedbackAction, finalClauseText?: string) {
+    const res = await onFeedback(action, finalClauseText);
+    if (res && res.significance?.significant && res.decisionEventId) {
+      setReasoningPrompt({ decisionEventId: res.decisionEventId, significance: res.significance });
+    }
+  }
 
   // Feature 2: amended clause
   const [amendedData, setAmendedData]         = useState<{ original: string; revised: string; explanation: string } | null>(null);
@@ -672,17 +683,26 @@ function FounderClauseCard({
             </button>
             <button
               className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"
-              onClick={() => onFeedback("ESCALATED")}
+              onClick={() => void runFeedback("ESCALATED")}
             >
               <AlertTriangle size={11} /> Escalate to legal
             </button>
             <button
               className="btn-ghost text-xs px-3 py-1.5"
-              onClick={() => onFeedback("DISMISSED")}
+              onClick={() => void runFeedback("DISMISSED")}
             >
               Dismiss
             </button>
           </div>
+
+          {/* Reasoning capture prompt: only on a significant decision */}
+          {reasoningPrompt && (
+            <ReasoningPrompt
+              significance={reasoningPrompt.significance}
+              decisionEventId={reasoningPrompt.decisionEventId}
+              onClose={() => setReasoningPrompt(null)}
+            />
+          )}
 
           {/* "What was actually agreed" capture */}
           {showWhatAgreed && (
@@ -700,7 +720,7 @@ function FounderClauseCard({
                 <button
                   className="btn-primary text-xs px-3 py-1.5"
                   onClick={() => {
-                    onFeedback("ACCEPTED", agreedText || undefined);
+                    void runFeedback("ACCEPTED", agreedText || undefined);
                     setShowWhatAgreed(false);
                   }}
                 >
@@ -709,7 +729,7 @@ function FounderClauseCard({
                 <button
                   className="btn-ghost text-xs px-3 py-1.5"
                   onClick={() => {
-                    onFeedback("ACCEPTED");
+                    void runFeedback("ACCEPTED");
                     setShowWhatAgreed(false);
                   }}
                 >
@@ -882,7 +902,25 @@ function SolutionSection({
   );
 }
 
-function FounderSolutionCard({ result }: { result: ReviewResult }) {
+function FounderSolutionCard({
+  result,
+  onFeedback,
+}: {
+  result: ReviewResult;
+  onFeedback: (action: FeedbackAction, finalClauseText?: string) => Promise<FeedbackResponse | void>;
+}) {
+  // Reasoning capture: same flow as the corporate review. RED/AMBER clauses are
+  // where a founder makes the unusual call (accepting a problem clause anyway),
+  // so the significance check + prompt belong here too.
+  const [reasoningPrompt, setReasoningPrompt] = useState<{ decisionEventId: string; significance: SignificanceResult } | null>(null);
+
+  async function runFeedback(action: FeedbackAction, finalClauseText?: string) {
+    const res = await onFeedback(action, finalClauseText);
+    if (res && res.significance?.significant && res.decisionEventId) {
+      setReasoningPrompt({ decisionEventId: res.decisionEventId, significance: res.significance });
+    }
+  }
+
   // Show fallback when verification explicitly failed
   if (result.founderVerificationPassed === false) {
     return <FounderFallbackCard result={result} />;
@@ -974,6 +1012,38 @@ function FounderSolutionCard({ result }: { result: ReviewResult }) {
         </SolutionSection>
       )}
 
+      {/* Your decision: records the call and captures reasoning if it is unusual */}
+      <div className="border-t border-white/8 px-4 py-3 space-y-2">
+        <span className="text-[10px] text-white/30 uppercase tracking-widest">Your decision</span>
+        <div className="flex flex-wrap gap-2">
+          <button
+            className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"
+            onClick={() => void runFeedback("ACCEPTED")}
+          >
+            <CheckCircle size={11} /> Accept anyway
+          </button>
+          <button
+            className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"
+            onClick={() => void runFeedback("ESCALATED")}
+          >
+            <AlertTriangle size={11} /> Escalate to legal
+          </button>
+          <button
+            className="btn-ghost text-xs px-3 py-1.5"
+            onClick={() => void runFeedback("DISMISSED")}
+          >
+            Dismiss
+          </button>
+        </div>
+        {reasoningPrompt && (
+          <ReasoningPrompt
+            significance={reasoningPrompt.significance}
+            decisionEventId={reasoningPrompt.decisionEventId}
+            onClose={() => setReasoningPrompt(null)}
+          />
+        )}
+      </div>
+
       {/* Feedback buttons */}
       <FounderFeedbackButtons resultId={result.id} />
     </div>
@@ -1016,9 +1086,10 @@ export default function FounderReview() {
     }
   }, [doc]);
 
-  async function handleFeedback(resultId: string, action: FeedbackAction, finalClauseText?: string) {
-    await saveFeedback(resultId, { userAction: action, finalClauseText });
+  async function handleFeedback(resultId: string, action: FeedbackAction, finalClauseText?: string): Promise<FeedbackResponse | void> {
+    const res = await saveFeedback(resultId, { userAction: action, finalClauseText });
     await queryClient.invalidateQueries({ queryKey: ["review", id] });
+    return res;
   }
 
   function toggleSelected(resultId: string) {
@@ -1302,14 +1373,18 @@ export default function FounderReview() {
         <div className="space-y-4">
           {filtered.map((result) => (
             result.ragStatus === "RED" || result.ragStatus === "AMBER" ? (
-              <FounderSolutionCard key={result.id} result={result} />
+              <FounderSolutionCard
+                key={result.id}
+                result={result}
+                onFeedback={(action, finalClauseText) => handleFeedback(result.id, action, finalClauseText)}
+              />
             ) : (
               <FounderClauseCard
                 key={result.id}
                 result={result}
                 expanded={expandedId === result.id}
                 onToggle={() => setExpandedId(expandedId === result.id ? null : result.id)}
-                onFeedback={(action, finalClauseText) => void handleFeedback(result.id, action, finalClauseText)}
+                onFeedback={(action, finalClauseText) => handleFeedback(result.id, action, finalClauseText)}
                 selected={selectedIds.has(result.id)}
                 onToggleSelect={() => toggleSelected(result.id)}
               />
