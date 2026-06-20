@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, Save, BarChart2, BookOpen, Sparkles, Loader2, Plus, X, Star, TrendingUp, AlertOctagon, CheckCircle, Shield, AlertTriangle, FileText } from "lucide-react";
-import { getPlaybookRules, updatePlaybookRule, getFeedbackPatterns, generatePlaybookSuggestion, createPlaybookRule, getPlaybookDriftSuggestions, getCompanyRules, approveCompanyRule, rejectCompanyRule, updateCompanyRuleText, getClauseOutcomesExtended, getCompany, getCounterpartyIntelligence, generateBriefing } from "../lib/api";
+import { ChevronDown, ChevronUp, Save, BarChart2, BookOpen, Sparkles, Loader2, Plus, X, Star, TrendingUp, AlertOctagon, CheckCircle, Shield, AlertTriangle, FileText, Brain } from "lucide-react";
+import { getPlaybookRules, updatePlaybookRule, getFeedbackPatterns, generatePlaybookSuggestion, createPlaybookRule, getPlaybookDriftSuggestions, getCompanyRules, approveCompanyRule, rejectCompanyRule, updateCompanyRuleText, getClauseOutcomesExtended, getCompany, getCounterpartyIntelligence, generateBriefing, getSynthesis, generateSynthesis } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import { CLAUSE_LABELS, type ClauseCategory, type PlaybookRule, type ApprovalRole } from "../lib/types";
 import type { ClauseOutcome, PlaybookDriftSuggestion, CompanyRule, ExtendedClauseOutcome, CounterpartyIntelligenceEntry } from "../lib/api";
@@ -1023,6 +1023,17 @@ export default function Playbook() {
 
   const { flags } = useFeatureFlags();
 
+  // L3 synthesis: the distilled "what your data actually says" knowledge.
+  const { data: synthesisData } = useQuery({
+    queryKey: ["synthesis"],
+    queryFn: () => getSynthesis(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const synthGen = useMutation({
+    mutationFn: generateSynthesis,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["synthesis"] }),
+  });
+
   // CHANGE 5, Briefing state
   const [showBriefing, setShowBriefing] = useState(false);
   const [briefingText, setBriefingText] = useState("");
@@ -1093,6 +1104,38 @@ export default function Playbook() {
               </button>
             )}
           </div>
+        </div>
+
+        {/* L3 synthesis: what the company's own data actually says */}
+        <div className="card border-[#1E3A8A]/40 bg-[#0B1220] p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Brain size={15} className="text-[#60A5FA]" />
+              <span className="text-sm font-semibold text-foreground">What your data actually says</span>
+            </div>
+            <button
+              onClick={() => synthGen.mutate()}
+              disabled={synthGen.isPending}
+              className="shrink-0 inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-border hover:border-[#334155] text-muted-foreground transition-colors disabled:opacity-50"
+            >
+              {synthGen.isPending ? <Loader2 size={12} className="animate-spin" /> : <Brain size={12} />}
+              {synthGen.isPending ? "Synthesising…" : "Regenerate"}
+            </button>
+          </div>
+          {synthesisData?.companyKnowledge?.content ? (
+            <p className="text-sm text-foreground/85 leading-relaxed">{synthesisData.companyKnowledge.content}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Zane distils your captured decisions and outcomes into a plain-English view of how your company
+              actually negotiates. Regenerate once you have a few reviewed contracts.
+            </p>
+          )}
+          {synthesisData?.regulatory?.content && (
+            <div className="pt-2 border-t border-border/50">
+              <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Applicable frameworks</div>
+              <p className="text-xs text-foreground/70 leading-relaxed whitespace-pre-wrap">{synthesisData.regulatory.content}</p>
+            </div>
+          )}
         </div>
 
         {/* CHANGE 4, Playbook health score (Team+) */}

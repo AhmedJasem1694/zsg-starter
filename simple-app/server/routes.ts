@@ -34,6 +34,7 @@ import { captureThreadNegotiation, carriesThreadHistory } from "./services/negot
 import { buildCounterpartyProfile, profileDraftToConfirm } from "./services/counterpartyProfile.js";
 import { buildCounterpartyJudgmentMemory } from "./services/counterpartyJudgment.js";
 import { generateBriefing, getLatestBriefing } from "./services/teamBriefing.js";
+import { synthesiseCompany, getPlaybookSynthesis, getCompanyKnowledge, getRegulatorySynthesis } from "./services/synthesisEngine.js";
 import { getFeatureFlags, resolveTier, trialDaysRemaining } from "./services/featureFlags.js";
 import { runDeltaComparison } from "./services/deltaComparison.js";
 import { runPatternDetection } from "./services/patternDetector.js";
@@ -3941,6 +3942,31 @@ Draft the complete clause.`;
     );
     // Best-effort invite emails - import sendEscalationEmail-like mailer if SMTP configured
     res.json({ invited: created.map((r) => r.id).length });
+  }));
+
+  // ── L3 synthesis ──────────────────────────────────────────────────────────────
+  // Regenerate the company's synthesis pages (per-clause trends, overall posture,
+  // applicable regulatory frameworks) from everything captured so far.
+  app.post("/api/synthesis/generate", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
+    if (!company) { sendError(res, 400, "Company not found"); return; }
+    const result = await synthesiseCompany(company.id as string);
+    res.json(result);
+  }));
+
+  // Read the latest synthesis: overall company posture + applicable regulatory
+  // frameworks, and (optionally) the per-clause trend for one clause category.
+  app.get("/api/synthesis", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
+    if (!company) { res.json({ companyKnowledge: null, regulatory: null, playbook: null }); return; }
+    const cid = company.id as string;
+    const clause = typeof req.query.clause === "string" ? req.query.clause : "";
+    const [companyKnowledge, regulatory, playbook] = await Promise.all([
+      getCompanyKnowledge(cid).catch(() => null),
+      getRegulatorySynthesis(cid).catch(() => null),
+      clause ? getPlaybookSynthesis(cid, clause).catch(() => null) : Promise.resolve(null),
+    ]);
+    res.json({ companyKnowledge, regulatory, playbook });
   }));
 
   // ── New-joiner briefing (the inheritance layer) ───────────────────────────────

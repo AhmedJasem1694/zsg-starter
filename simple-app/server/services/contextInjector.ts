@@ -1,16 +1,19 @@
 /**
  * Context Injector - Section 18, Step 6
  *
- * Assembles a contextual block from 4 signal sources:
+ * Assembles a contextual block from 5 signal sources:
  * 1. Override signals
  * 2. Outcome deltas
  * 3. Active company rules
  * 4. False positive signals
+ * 5. L3 playbook synthesis (the distilled "real trend" for this clause)
  *
  * Injected into the playbook comparison LLM prompt before each clause analysis.
+ * Source 5 closes the L3 loop: synthesised knowledge feeds the next review.
  */
 
 import { pb } from "../pb.js";
+import { synthesisContextLine } from "./synthesisEngine.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PBRecord = Record<string, any>;
@@ -25,8 +28,8 @@ export async function buildContextBlock(
   const maxChars = maxTokens * 4;
 
   try {
-    // Fetch all 4 sources in parallel
-    const [overrides, outcomes, rules, falsePositives] = await Promise.all([
+    // Fetch all 5 sources in parallel
+    const [overrides, outcomes, rules, falsePositives, synthesisLine] = await Promise.all([
       pb.collection("override_signals").getFullList({
         filter: `company = "${companyId}" && clauseCategory = "${clauseCategory}"`,
         sort: "-id",
@@ -48,18 +51,24 @@ export async function buildContextBlock(
         filter: `company = "${companyId}" && clauseCategory = "${clauseCategory}"`,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any).catch(() => [] as PBRecord[]),
+
+      synthesisContextLine(companyId, clauseCategory).catch(() => ""),
     ]);
 
     if (
       overrides.length === 0 &&
       outcomes.length === 0 &&
       rules.length === 0 &&
-      falsePositives.length === 0
+      falsePositives.length === 0 &&
+      !synthesisLine
     ) {
       return ""; // No signals - don't inject empty context
     }
 
     const parts: string[] = [];
+
+    // 0. L3 playbook synthesis (the distilled real trend for this clause)
+    if (synthesisLine) parts.push(synthesisLine);
 
     // 1. Active company rules (highest priority)
     for (const rule of rules) {

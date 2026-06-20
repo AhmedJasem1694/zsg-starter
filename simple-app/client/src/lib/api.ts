@@ -691,6 +691,24 @@ export const getTeamBriefing = () =>
 export const generateTeamBriefing = () =>
   req<{ briefing: TeamBriefing }>("POST", "/api/team/briefing/generate");
 
+// ── L3 synthesis ────────────────────────────────────────────────────────────────
+export interface SynthesisPage {
+  content?: string;
+  confidenceLabel?: string;
+  version?: number;
+  clauseCategory?: string;
+  topic?: string;
+  jurisdiction?: string;
+  dataPoints?: number;
+}
+export const getSynthesis = (clause?: string) =>
+  req<{ companyKnowledge: SynthesisPage | null; regulatory: SynthesisPage | null; playbook: SynthesisPage | null }>(
+    "GET",
+    `/api/synthesis${clause ? `?clause=${encodeURIComponent(clause)}` : ""}`,
+  );
+export const generateSynthesis = () =>
+  req<{ playbookPages: number; companyKnowledge: boolean; regulatory: boolean }>("POST", "/api/synthesis/generate");
+
 // ── Outcome capture ────────────────────────────────────────────────────────────
 
 export const captureOutcome = (documentId: string, outcome: "SIGNED" | "EXECUTED", outcomeNotes?: string) =>
