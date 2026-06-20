@@ -32,6 +32,7 @@ import { recordDecisionEvent, recordDecisionEventForResult, deriveZaneRecommenda
 import { assessResultDecision, type SignificanceResult } from "./services/decisionSignificance.js";
 import { captureThreadNegotiation, carriesThreadHistory } from "./services/negotiationCapture.js";
 import { buildCounterpartyProfile, profileDraftToConfirm } from "./services/counterpartyProfile.js";
+import { buildCounterpartyJudgmentMemory } from "./services/counterpartyJudgment.js";
 import { getFeatureFlags, resolveTier, trialDaysRemaining } from "./services/featureFlags.js";
 import { runDeltaComparison } from "./services/deltaComparison.js";
 import { runPatternDetection } from "./services/patternDetector.js";
@@ -1762,6 +1763,20 @@ Each field should be 1-3 sentences of clear, practical legal language.
     if (!counterparty) { res.json({ profile: null }); return; }
     const profile = await buildCounterpartyProfile(company.id as string, counterparty).catch(() => null);
     res.json({ profile });
+  }));
+
+  // Reasoning capture, Section 4: the per-counterparty judgment memory for this
+  // contract's counterparty (the unusual positions previously accepted and why),
+  // surfaced at the top of the review when the counterparty is already known.
+  app.get("/api/contracts/:id/counterparty-judgment", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
+    if (!company) { res.json({ judgment: null }); return; }
+    const doc = await pb.collection("uploaded_documents").getOne(req.params.id).catch(() => null);
+    if (!doc || (doc["company"] as string) !== company.id) { res.json({ judgment: null }); return; }
+    const counterparty = String(doc["counterpartyName"] ?? "").trim();
+    if (!counterparty) { res.json({ judgment: null }); return; }
+    const judgment = await buildCounterpartyJudgmentMemory(company.id as string, counterparty).catch(() => null);
+    res.json({ judgment });
   }));
 
   // Section 3: consolidated per-vendor intelligence, everything Zane knows about

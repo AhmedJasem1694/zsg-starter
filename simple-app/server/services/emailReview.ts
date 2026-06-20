@@ -22,6 +22,7 @@ import { ensureInboundSchema } from "./inboundEmail.js";
 import { audit } from "./auditLogger.js";
 import { threadReplyText, threadReplyHtml, linkThreadContract, type ThreadContext } from "./emailThreads.js";
 import { buildCounterpartyProfile, profileReviewNote } from "./counterpartyProfile.js";
+import { buildCounterpartyJudgmentMemory, judgmentReviewNote } from "./counterpartyJudgment.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PBRecord = Record<string, any>;
@@ -316,11 +317,19 @@ export async function processReviewByEmail(input: {
 
   // 3d: if this contract is with a known counterparty, note their negotiation
   // patterns (built from prior captured threads/contracts) on the review.
+  // Reasoning capture, Section 4: also surface the judgment memory, the unusual
+  // positions previously accepted with this counterparty and why, as advisory
+  // "worth considering" notes in the reply.
   const counterpartyName = String(doc["counterpartyName"] ?? "").trim();
-  const profile = counterpartyName
-    ? await buildCounterpartyProfile(company.id as string, counterpartyName).catch(() => null)
-    : null;
-  const counterpartyNote = profileReviewNote(profile);
+  const [profile, judgment] = counterpartyName
+    ? await Promise.all([
+        buildCounterpartyProfile(company.id as string, counterpartyName).catch(() => null),
+        buildCounterpartyJudgmentMemory(company.id as string, counterpartyName).catch(() => null),
+      ])
+    : [null, null];
+  const counterpartyNote = [profileReviewNote(profile), judgmentReviewNote(judgment)]
+    .filter((s) => s.trim())
+    .join("\n\n");
 
   const html = buildResultHtml({ filename: contract.originalName, verdict, founder, reviewUrl, counterpartyNote });
   const text = buildResultText({ filename: contract.originalName, verdict, founder, reviewUrl, counterpartyNote });

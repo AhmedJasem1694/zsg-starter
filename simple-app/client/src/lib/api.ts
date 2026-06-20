@@ -888,6 +888,30 @@ export const getContractCounterpartyProfile = (contractId: string) =>
     `/api/contracts/${contractId}/counterparty-profile`
   );
 
+// Reasoning capture, Section 4: per-counterparty judgment memory for a contract.
+export interface CounterpartyJudgmentItem {
+  clauseCategory: string;
+  label: string;
+  what: string;
+  reasonCategory: string;
+  reasonText: string;
+  contractLabel: string;
+  when: string;
+  oneOff: boolean;
+}
+export interface CounterpartyJudgmentMemory {
+  counterparty: string;
+  items: CounterpartyJudgmentItem[];
+  considerations: string[];
+  patterns: string[];
+  oneOffExceptions: string[];
+}
+export const getContractCounterpartyJudgment = (contractId: string) =>
+  req<{ judgment: CounterpartyJudgmentMemory | null }>(
+    "GET",
+    `/api/contracts/${contractId}/counterparty-judgment`
+  );
+
 // Section 3: consolidated per-vendor intelligence (documents + profile + captured reasoning).
 export interface VendorDocument {
   id: string; originalName: string; contractType: string; status: string;

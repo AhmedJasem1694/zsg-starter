@@ -7,7 +7,7 @@ import {
   TrendingDown, Layers, CalendarClock, FileCheck, Users, BarChart2, ChevronRight,
   MessageSquare, Shield, Edit2, Flag, Upload, Brain, Dot,
 } from "lucide-react";
-import { getReview, saveFeedback, saveDecisionReasoning, generateReply, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany, getContractCounterpartyProfile } from "../lib/api";
+import { getReview, saveFeedback, saveDecisionReasoning, generateReply, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany, getContractCounterpartyProfile, getContractCounterpartyJudgment } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, ConfidenceLabel, RegulatoryCitation, FeedbackResponse, SignificanceResult } from "../lib/types";
 import { REASONING_QUICK_REASONS } from "../lib/types";
@@ -189,6 +189,16 @@ export default function ReviewDetail() {
     staleTime: 300_000,
   });
   const counterpartyProfile = counterpartyProfileData?.profile ?? null;
+
+  // Reasoning capture, Section 4: judgment memory (prior unusual decisions + why)
+  // for this contract's counterparty, surfaced advisorily at the top of the review.
+  const { data: counterpartyJudgmentData } = useQuery({
+    queryKey: ["counterparty-judgment", id],
+    queryFn:  () => getContractCounterpartyJudgment(id!),
+    enabled:  !isMock && !!id && !!doc && !!doc.counterpartyName,
+    staleTime: 300_000,
+  });
+  const counterpartyJudgment = counterpartyJudgmentData?.judgment ?? null;
 
   const [outcomeDismissed,  setOutcomeDismissed]  = useState(false);
   const [outcomeCaptured,   setOutcomeCaptured]   = useState(false);
@@ -528,6 +538,29 @@ export default function ReviewDetail() {
             <ul className="space-y-0.5">
               {counterpartyProfile.summaryLines.map((line, i) => (
                 <li key={i} className="text-xs text-foreground/80 leading-snug">• {line}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* ── Section 4: Worth considering with this counterparty ──────────
+            Advisory institutional memory: the unusual positions previously
+            accepted with this counterparty and why. Raises what to consider,
+            never prescribes. */}
+        {counterpartyJudgment && counterpartyJudgment.considerations.length > 0 && (
+          <div className="rounded-xl border border-[#1E3A8A]/50 bg-[#0B1220] px-4 py-3 space-y-2">
+            <div className="flex items-center gap-2">
+              <Brain size={14} className="text-[#60A5FA] shrink-0" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#93C5FD]">
+                Worth considering with {counterpartyJudgment.counterparty}
+              </span>
+            </div>
+            <ul className="space-y-1">
+              {counterpartyJudgment.considerations.map((line, i) => (
+                <li key={i} className="text-xs text-foreground/80 leading-snug flex gap-1.5">
+                  <span className="text-[#60A5FA]/60 shrink-0">•</span>
+                  <span>{line}</span>
+                </li>
               ))}
             </ul>
           </div>
