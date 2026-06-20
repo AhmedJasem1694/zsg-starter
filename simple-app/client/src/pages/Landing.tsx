@@ -422,10 +422,10 @@ export default function Landing() {
           <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">The intelligence that compounds</p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F8FAFC]">
-              Far more than a playbook.
+              Most legal AI starts from zero every time. Zane never forgets.
             </h2>
             <p className="text-base text-slate-400 leading-relaxed">
-              Most legal AI reviews the contract in front of it. Zane remembers what your company decided and gets smarter with every contract. The review is becoming a commodity. The memory is the moat. It also captures the reasoning behind your unusual calls, and checks that a schedule's clause references actually line up against the master agreement on file.
+              It reviews every contract against everything your company has already decided, remembers the reasoning behind your toughest calls, and even catches when a schedule points to the wrong clause in the master agreement. The review itself is becoming a commodity. The memory is what cannot be copied.
             </p>
           </motion.div>
 
