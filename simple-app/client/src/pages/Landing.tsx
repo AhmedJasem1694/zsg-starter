@@ -463,16 +463,16 @@ export default function Landing() {
           >
             {[
               {
-                title: "GC or Head of Legal",
-                body: "The playbook lives in your head. Zane documents every position and decision so risk calls stay consistent, and nothing leaves when someone leaves.",
-              },
-              {
                 title: "In-house team of 1 to 5 lawyers",
-                body: "The team size Zane is built for. One shared playbook, approval thresholds enforced automatically, every review remembered and applied.",
+                body: "The team size Zane is built for. One shared playbook, approval thresholds enforced automatically, every review remembered and applied, and nothing lost when someone leaves.",
               },
               {
-                title: "Founder or startup operator",
+                title: "Founder with contracts and no lawyer",
                 body: "A supplier sends you an MSA. You are not a lawyer, and £400 an hour is the alternative. Upload the contract and know what to do in minutes.",
+              },
+              {
+                title: "Business team, before legal",
+                body: "Sales and procurement often touch contracts before legal does. Zane gives them guardrails, so routine paper keeps moving and only the real risks reach a lawyer. It is bowling with the bumpers up.",
               },
             ].map(({ title, body }) => (
               <motion.div key={title} className="rounded-xl border border-line-light bg-white px-6 py-7 transition-shadow duration-300 hover:shadow-xl" variants={staggerItem} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
