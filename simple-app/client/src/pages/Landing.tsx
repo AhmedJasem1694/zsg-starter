@@ -66,7 +66,7 @@ const LANDING_FAQS = [
   { q: "Does Zane cover regulatory requirements?", a: "Zane surfaces relevant regulatory references where they matter for your sector, for example healthcare or financial services, and keeps them out of the way for straightforward commercial work." },
   { q: "What happens to my data if I cancel?", a: "Your data is yours. You can export everything before you cancel. We do not hold your data hostage." },
   { q: "Does Zane replace my lawyer?", a: "No. Zane handles the objective layer so your lawyer can focus on the judgment calls that actually require a lawyer. Every recommendation Zane makes requires a human decision before anything happens." },
-  { q: "What contract types does Zane support?", a: "Commercial contracts, supplier agreements, customer MSAs, NDAs, technology agreements, employment contracts, and more. The playbook engine works for any contract type you configure it for." },
+  { q: "What contract types does Zane support?", a: "Commercial contracts, supplier agreements, customer MSAs, NDAs, technology agreements, employment contracts, and more. Zane works for any contract type you configure it for, and remembers your decisions across all of them." },
   { q: "Is there a minimum contract or commitment?", a: "No implementation fee. No setup cost. Pilot terms are agreed up front in conversation before you commit." },
 ];
 
@@ -366,9 +366,10 @@ export default function Landing() {
                 Zane works where you already work.
               </h2>
               <p className="text-base text-slate-600 leading-relaxed">
-                CC Zane on an email and it reviews the attached contract against your playbook,
-                replies in the thread, and files everything in your library. First drafts of NDAs
-                and routine agreements on request. No portal. No new system to learn.
+                CC Zane on an email and it reviews the attached contract against your own positions,
+                replies in the thread, and files everything in your library. Every review adds to what
+                Zane knows about your counterparties. First drafts of NDAs and routine agreements on
+                request. No portal. No new system to learn.
               </p>
             </motion.div>
 
