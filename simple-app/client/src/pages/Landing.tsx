@@ -288,8 +288,8 @@ export default function Landing() {
             </h2>
           </motion.div>
           <motion.div className="mt-8 space-y-5 text-base text-slate-600 leading-relaxed" {...fadeUp(0.1)}>
-            <p>
-              The same clauses get negotiated again and again from scratch, because nobody captured the last decision. Contracts often reach the business before they reach a lawyer, so people either sign what they should not, or bury the legal team in routine work. And when a lawyer leaves, the knowledge leaves with them, and the next person spends hours reconstructing what was already known.
+            <p className="text-justify">
+              Every contract a company signs carries decisions that are never recorded. The same positions get renegotiated from scratch because no one captured how they were resolved last time. Paper often reaches the business before it reaches a lawyer, so deals get signed that should not be, or the legal team is buried in work that never needed them. And when a lawyer leaves, their judgment leaves too. Whoever inherits the relationship spends hours reconstructing what was already known.
             </p>
             <p className="text-ink font-medium">
               Nine in ten contracts are signed with no edits, not because the terms are fair, but because there is no infrastructure to do otherwise.
