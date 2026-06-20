@@ -469,7 +469,7 @@ export default function Landing() {
               },
               {
                 title: "Founder with contracts and no lawyer",
-                body: "A supplier sends you an MSA. You are not a lawyer, and £400 an hour is the alternative. Upload the contract and know what to do in minutes.",
+                body: "A supplier sends you an MSA. You are not a lawyer, and outside counsel is not cheap. Upload it and know what to do in minutes.",
               },
               {
                 title: "Business team, before legal",
