@@ -672,6 +672,25 @@ export const cancelTeamInvite = (id: string) =>
 export const updateTeamInviteStatus = (id: string, status: string) =>
   req<{ id: string; status: string }>("PATCH", `/api/team/invites/${id}`, { status });
 
+// ── New-joiner briefing (the inheritance layer) ─────────────────────────────────
+export interface TeamBriefing {
+  id: string;
+  companyId: string;
+  generatedFor: string;
+  generatedAt: string;
+  validUntil: string;
+  playbook_briefing: string;
+  actual_vs_stated: string;
+  counterparty_intel: string;
+  significant_decisions: string;
+  portfolio_snapshot: string;
+  approval_matrix: string;
+}
+export const getTeamBriefing = () =>
+  req<{ briefing: TeamBriefing | null }>("GET", "/api/team/briefing");
+export const generateTeamBriefing = () =>
+  req<{ briefing: TeamBriefing }>("POST", "/api/team/briefing/generate");
+
 // ── Outcome capture ────────────────────────────────────────────────────────────
 
 export const captureOutcome = (documentId: string, outcome: "SIGNED" | "EXECUTED", outcomeNotes?: string) =>

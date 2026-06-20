@@ -4,7 +4,7 @@ import { ZaneLogo } from "../ZaneLogo";
 import {
   LayoutDashboard, BookOpen, Settings, LogOut, Menu, Shield,
   PieChart, CalendarClock, LayoutGrid, Activity, ClipboardList, Library, Users,
-  AlertTriangle, Archive,
+  AlertTriangle, Archive, Brain,
 } from "lucide-react";
 import { useAuth, useLogout } from "../../hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -31,6 +31,7 @@ const LEGAL_NAV_DATA_DEPENDENT = [
 
 const LEGAL_NAV_SECONDARY = [
   { to: "/app/legal/team",        icon: Users,         label: "Team" },
+  { to: "/app/legal/briefing",    icon: Brain,         label: "Joiner Briefing" },
   { to: "/app/legal/audit",       icon: ClipboardList, label: "Audit Trail" },
   { to: "/app/legal/regulations", icon: Shield,        label: "Regulatory Profile" },
 ];

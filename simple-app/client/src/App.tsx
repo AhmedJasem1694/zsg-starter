@@ -36,6 +36,7 @@ import VendorIntelligence from "./pages/VendorIntelligence";
 import LegacyReview from "./pages/LegacyReview";
 import AdminMetrics from "./pages/AdminMetrics";
 import TeamManagement from "./pages/TeamManagement";
+import JoinerBriefing from "./pages/JoinerBriefing";
 import OutcomeConfirmation from "./pages/OutcomeConfirmation";
 import Settings from "./pages/Settings";
 import type { Persona } from "./lib/types";
@@ -207,6 +208,10 @@ function AppRoutes() {
       <Route
         path="/app/legal/team"
         element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><TeamManagement /></RequireAuth>}
+      />
+      <Route
+        path="/app/legal/briefing"
+        element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><JoinerBriefing /></RequireAuth>}
       />
       <Route
         path="/settings"

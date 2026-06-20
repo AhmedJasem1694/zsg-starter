@@ -33,6 +33,7 @@ import { assessResultDecision, type SignificanceResult } from "./services/decisi
 import { captureThreadNegotiation, carriesThreadHistory } from "./services/negotiationCapture.js";
 import { buildCounterpartyProfile, profileDraftToConfirm } from "./services/counterpartyProfile.js";
 import { buildCounterpartyJudgmentMemory } from "./services/counterpartyJudgment.js";
+import { generateBriefing, getLatestBriefing } from "./services/teamBriefing.js";
 import { getFeatureFlags, resolveTier, trialDaysRemaining } from "./services/featureFlags.js";
 import { runDeltaComparison } from "./services/deltaComparison.js";
 import { runPatternDetection } from "./services/patternDetector.js";
@@ -3940,6 +3941,25 @@ Draft the complete clause.`;
     );
     // Best-effort invite emails - import sendEscalationEmail-like mailer if SMTP configured
     res.json({ invited: created.map((r) => r.id).length });
+  }));
+
+  // ── New-joiner briefing (the inheritance layer) ───────────────────────────────
+  // The latest assembled briefing for the company (and optionally a joiner).
+  app.get("/api/team/briefing", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
+    if (!company) { res.json({ briefing: null }); return; }
+    const briefing = await getLatestBriefing(company.id as string, req.user?.userId).catch(() => null)
+      ?? await getLatestBriefing(company.id as string).catch(() => null);
+    res.json({ briefing });
+  }));
+
+  // Generate a fresh briefing from everything Zane has captured for the company.
+  app.post("/api/team/briefing/generate", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
+    if (!company) { sendError(res, 400, "Company not found"); return; }
+    const forUser = (req.body as { forUserId?: string })?.forUserId || req.user?.userId || "";
+    const briefing = await generateBriefing(company.id as string, forUser);
+    res.json({ briefing });
   }));
 
   app.get("/api/team/invites", requireAuth, ah(async (req: Request, res: Response) => {
