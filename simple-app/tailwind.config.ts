@@ -10,6 +10,10 @@ export default {
         md: ".375rem", /* 6px */
         sm: ".25rem", /* 4px */
       },
+      boxShadow: {
+        /* One soft elevation level for the light canvas */
+        soft: "0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06)",
+      },
       colors: {
         // ── Zane design tokens (design elevation pass) ──────────────────
         // Backgrounds: navy-950 hero near-black, navy-900 deep sections,

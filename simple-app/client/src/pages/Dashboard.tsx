@@ -47,14 +47,14 @@ function PilotNoticeBanner() {
   if (dismissed) return null;
   return (
     <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 flex items-start gap-3">
-      <AlertTriangle size={15} className="text-amber-400 shrink-0 mt-0.5" />
+      <AlertTriangle size={15} className="text-[#854F0B] shrink-0 mt-0.5" />
       <p className="text-xs text-amber-200/80 leading-relaxed flex-1">
         <span className="font-semibold text-amber-300">Pilot use only.</span>{" "}
         Do not upload highly sensitive, privileged, or production-critical documents without prior agreement with Zane.
       </p>
       <button
         onClick={() => { localStorage.setItem("zane_pilot_notice_dismissed", "true"); setDismissed(true); }}
-        className="text-amber-400/50 hover:text-amber-400 transition-colors shrink-0"
+        className="text-[#854F0B]/50 hover:text-[#854F0B] transition-colors shrink-0"
       >
         <X size={14} />
       </button>
@@ -76,7 +76,7 @@ function DeleteConfirmModal({ count, name, onConfirm, onCancel, loading }: Delet
   const isBulk = count > 1;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-      <div className="bg-[#0D1521] border border-[#1E293B] rounded-xl p-6 max-w-sm w-full space-y-4 shadow-2xl">
+      <div className="theme-light bg-[#FFFFFF] border border-[#E2E8F0] rounded-xl p-6 max-w-sm w-full space-y-4 shadow-soft">
         <div className="space-y-1">
           <div className="text-base font-semibold text-foreground">
             {isBulk ? `Delete ${count} contracts?` : "Delete this contract?"}
@@ -104,7 +104,7 @@ function DeleteConfirmModal({ count, name, onConfirm, onCancel, loading }: Delet
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#450A0A] hover:bg-[#5A0E0E] text-[#FCA5A5] text-sm font-semibold transition-colors disabled:opacity-50"
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#FCEBEB] hover:bg-[#F8D4D4] text-[#A32D2D] text-sm font-semibold transition-colors disabled:opacity-50"
           >
             {loading ? "Deleting…" : isBulk ? `Delete ${count} contracts` : "Delete permanently"}
           </button>
@@ -305,17 +305,17 @@ function UrgencyPanel({ signals }: { signals: UrgencySignal[] }) {
   if (signals.length === 0) return null;
 
   const SIGNAL_CONFIG = {
-    escalation: { icon: AlertTriangle,  color: "#FCA5A5", border: "#450A0A", bg: "#120303" },
-    threshold:  { icon: AlertTriangle,  color: "#FCA5A5", border: "#450A0A", bg: "#120303" },
-    renewal:    { icon: CalendarClock,  color: "#FCD34D", border: "#431407", bg: "#0D0800" },
-    pattern:    { icon: Activity,       color: "#A5B4FC", border: "#312E81", bg: "#0A0915" },
+    escalation: { icon: AlertTriangle,  color: "#A32D2D", border: "#F8D4D4", bg: "#FCEBEB" },
+    threshold:  { icon: AlertTriangle,  color: "#A32D2D", border: "#F8D4D4", bg: "#FCEBEB" },
+    renewal:    { icon: CalendarClock,  color: "#854F0B", border: "#F5D9AE", bg: "#FAEEDA" },
+    pattern:    { icon: Activity,       color: "#185FA5", border: "#CBE2F7", bg: "#E6F1FB" },
   } as const;
 
   return (
-    <div className="rounded-xl border border-[#2A1A0A] bg-[#0D0906] divide-y divide-[#1E1309]">
+    <div className="rounded-xl border border-[#F5D9AE] bg-[#FFFFFF] divide-y divide-[#F5E9D6]">
       <div className="flex items-center gap-2.5 px-4 py-2.5">
-        <div className="w-1.5 h-1.5 rounded-full bg-[#FCA5A5] animate-pulse" />
-        <span className="text-xs font-semibold text-[#FCA5A5]/80 uppercase tracking-wider">
+        <div className="w-1.5 h-1.5 rounded-full bg-[#A32D2D] animate-pulse" />
+        <span className="text-xs font-semibold text-[#A32D2D]/80 uppercase tracking-wider">
           {signals.filter(s => s.severity === "red").length > 0 ? "Requires attention" : "Operational notice"}
         </span>
         <span className="ml-auto text-[10px] text-muted-foreground/40">{signals.length} active</span>
@@ -354,19 +354,19 @@ function NextBestAction({ documents, isMock }: { documents: DocWithRag[]; isMock
     return (
       <a
         href="/app/legal/review/mock-1"
-        className="flex items-center gap-4 px-5 py-3.5 rounded-xl border border-[#1B2D4A] hover:border-[#2A4570] transition-colors group"
-        style={{ background: "#0C1929" }}
+        className="flex items-center gap-4 px-5 py-3.5 rounded-xl border border-[#E6F1FB] hover:border-[#CBD5E1] transition-colors group"
+        style={{ background: "#FFFFFF" }}
       >
-        <div className="w-8 h-8 rounded-lg bg-[#1B2D4A] flex items-center justify-center shrink-0">
-          <ArrowRight size={14} className="text-[#60A5FA]" />
+        <div className="w-8 h-8 rounded-lg bg-[#E6F1FB] flex items-center justify-center shrink-0">
+          <ArrowRight size={14} className="text-[#2563EB]" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] uppercase tracking-widest text-[#60A5FA]/60 font-semibold mb-0.5">Next action</div>
+          <div className="text-[10px] uppercase tracking-widest text-[#2563EB]/60 font-semibold mb-0.5">Next action</div>
           <div className="text-sm font-semibold text-foreground truncate">
             Acme Corp MSA - 3 unresolved red clauses, GC sign-off required
           </div>
         </div>
-        <div className="text-xs font-semibold text-[#60A5FA] shrink-0 group-hover:translate-x-0.5 transition-transform">
+        <div className="text-xs font-semibold text-[#2563EB] shrink-0 group-hover:translate-x-0.5 transition-transform">
           Review now →
         </div>
       </a>
@@ -398,17 +398,17 @@ function NextBestAction({ documents, isMock }: { documents: DocWithRag[]; isMock
   return (
     <a
       href={`/app/legal/review/${priority.id}`}
-      className="flex items-center gap-4 px-5 py-3.5 rounded-xl border border-[#1B2D4A] hover:border-[#2A4570] transition-colors group"
-      style={{ background: "#0C1929" }}
+      className="flex items-center gap-4 px-5 py-3.5 rounded-xl border border-[#E6F1FB] hover:border-[#CBD5E1] transition-colors group"
+      style={{ background: "#FFFFFF" }}
     >
-      <div className="w-8 h-8 rounded-lg bg-[#1B2D4A] flex items-center justify-center shrink-0">
-        <ArrowRight size={14} className="text-[#60A5FA]" />
+      <div className="w-8 h-8 rounded-lg bg-[#E6F1FB] flex items-center justify-center shrink-0">
+        <ArrowRight size={14} className="text-[#2563EB]" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[10px] uppercase tracking-widest text-[#60A5FA]/60 font-semibold mb-0.5">Next action</div>
+        <div className="text-[10px] uppercase tracking-widest text-[#2563EB]/60 font-semibold mb-0.5">Next action</div>
         <div className="text-sm font-semibold text-foreground truncate">{name}</div>
       </div>
-      <div className="text-xs font-semibold text-[#60A5FA] shrink-0 group-hover:translate-x-0.5 transition-transform">
+      <div className="text-xs font-semibold text-[#2563EB] shrink-0 group-hover:translate-x-0.5 transition-transform">
         Review now →
       </div>
     </a>
@@ -445,12 +445,12 @@ function ReviewProcessingCard({ doc }: { doc: UploadedDocument }) {
   const stageIdx = Math.max(statusStage, timeStage);
 
   return (
-    <div className="card border-[#1C2A3A] shimmer relative overflow-hidden" style={{ background: "#0D1B2A" }}>
+    <div className="card border-[#E2E8F0] shimmer relative overflow-hidden" style={{ background: "#FFFFFF" }}>
       <div className="card-body space-y-3 relative z-10">
         <div className="flex items-center justify-between gap-2">
-          <div className="text-xs font-semibold text-[#93C5FD] truncate">{doc.originalName}</div>
-          <span className="flex items-center gap-1 text-[10px] text-[#FCD34D] shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D] animate-pulse" /> Reviewing
+          <div className="text-xs font-semibold text-[#2563EB] truncate">{doc.originalName}</div>
+          <span className="flex items-center gap-1 text-[10px] text-[#854F0B] shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#854F0B] animate-pulse" /> Reviewing
           </span>
         </div>
         <div className="space-y-1.5">
@@ -461,15 +461,15 @@ function ReviewProcessingCard({ doc }: { doc: UploadedDocument }) {
             return (
               <div key={stage.label} className="flex items-center gap-2.5">
                 <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-all
-                  ${done    ? "bg-[#14532D] border-[#166534]" : ""}
-                  ${active  ? "bg-[#1C0F00] border-[#92400E] animate-pulse" : ""}
-                  ${pending ? "bg-transparent border-[#1E293B]" : ""}`}>
-                  {done && <CheckCircle size={9} className="text-[#86EFAC]" />}
-                  {active && <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D]" />}
+                  ${done    ? "bg-[#E7F6EE] border-[#BBE6CC]" : ""}
+                  ${active  ? "bg-[#FAEEDA] border-[#F5D9AE] animate-pulse" : ""}
+                  ${pending ? "bg-transparent border-[#E2E8F0]" : ""}`}>
+                  {done && <CheckCircle size={9} className="text-[#1B7A4B]" />}
+                  {active && <span className="w-1.5 h-1.5 rounded-full bg-[#854F0B]" />}
                 </div>
                 <span className={`text-xs leading-none transition-all
                   ${done    ? "text-muted-foreground line-through" : ""}
-                  ${active  ? "text-[#FCD34D] font-medium" : ""}
+                  ${active  ? "text-[#854F0B] font-medium" : ""}
                   ${pending ? "text-muted-foreground/40" : ""}`}>
                   {stage.label}
                 </span>
@@ -509,11 +509,11 @@ function RiskInbox({ documents }: RiskInboxProps) {
   if (!hasItems) return null;
 
   return (
-    <div className="card border-[#1E1B4B]" style={{ background: "#0F0E1A" }}>
+    <div className="card border-[#EEF2FF]" style={{ background: "#FFFFFF" }}>
       <div className="card-body space-y-3">
         <div className="flex items-center gap-2">
-          <Bell size={14} className="text-[#A5B4FC]" />
-          <span className="text-sm font-semibold text-[#C4B5FD]">Risk inbox</span>
+          <Bell size={14} className="text-[#185FA5]" />
+          <span className="text-sm font-semibold text-[#185FA5]">Risk inbox</span>
         </div>
 
         {redDocs.length > 0 && (
@@ -540,7 +540,7 @@ function RiskInbox({ documents }: RiskInboxProps) {
               return (
                 <div key={d.id} className="flex items-center justify-between gap-2 text-xs py-1">
                   <span className="truncate text-foreground/80">{d.originalName}</span>
-                  <span className="flex items-center gap-1 text-[#FCD34D] shrink-0">
+                  <span className="flex items-center gap-1 text-[#854F0B] shrink-0">
                     <CalendarClock size={10} /> {daysLeft}d
                   </span>
                 </div>
@@ -567,14 +567,14 @@ function ApprovalQueue({ documents }: { documents: DocWithRag[] }) {
   if (pending.length === 0) return null;
 
   return (
-    <div className="card border-[#2D1F00]" style={{ background: "#1A1200" }}>
+    <div className="card border-[#F5D9AE]" style={{ background: "#FAEEDA" }}>
       <div className="card-body space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <AlertTriangle size={14} className="text-[#FCD34D]" />
-            <span className="text-sm font-semibold text-[#FCD34D]">Pending approvals</span>
+            <AlertTriangle size={14} className="text-[#854F0B]" />
+            <span className="text-sm font-semibold text-[#854F0B]">Pending approvals</span>
           </div>
-          <span className="text-[10px] bg-[#FCD34D]/15 text-[#FCD34D] border border-[#FCD34D]/25 rounded-full px-2 py-0.5 font-semibold">
+          <span className="text-[10px] bg-[#854F0B]/15 text-[#854F0B] border border-[#854F0B]/25 rounded-full px-2 py-0.5 font-semibold">
             {pending.length}
           </span>
         </div>
@@ -590,7 +590,7 @@ function ApprovalQueue({ documents }: { documents: DocWithRag[] }) {
                 className="flex items-center justify-between gap-2 text-xs py-1.5 hover:opacity-80 transition-opacity"
               >
                 <span className="truncate text-foreground/80">{d.originalName}</span>
-                <span className="text-[#FCD34D] shrink-0 font-medium">{count} clause{count !== 1 ? "s" : ""}</span>
+                <span className="text-[#854F0B] shrink-0 font-medium">{count} clause{count !== 1 ? "s" : ""}</span>
               </a>
             );
           })}
@@ -616,10 +616,10 @@ function getSignReadiness(results: { ragStatus: string }[]): SignReadiness {
 }
 
 const READINESS_CONFIG: Record<SignReadiness, { label: string; color: string; bg: string; icon: React.ElementType }> = {
-  "ready":     { label: "Ready to sign",   color: "text-white",            bg: "bg-[#052E16] border-[#14532D]",  icon: CheckCircle },
-  "negotiate": { label: "Negotiate first", color: "text-white",            bg: "bg-[#1C0F00] border-[#431407]",  icon: AlertTriangle },
-  "review":    { label: "Review needed",   color: "text-white",            bg: "bg-[#1C0F00] border-[#431407]",  icon: AlertCircle },
-  "not-ready": { label: "Do not sign yet", color: "text-white",            bg: "bg-[#1F0A0A] border-[#450A0A]",  icon: AlertTriangle },
+  "ready":     { label: "Ready to sign",   color: "text-[#1B7A4B]", bg: "bg-[#E7F6EE] border-[#BBE6CC]",  icon: CheckCircle },
+  "negotiate": { label: "Negotiate first", color: "text-[#854F0B]", bg: "bg-[#FAEEDA] border-[#F5D9AE]",  icon: AlertTriangle },
+  "review":    { label: "Review needed",   color: "text-[#854F0B]", bg: "bg-[#FAEEDA] border-[#F5D9AE]",  icon: AlertCircle },
+  "not-ready": { label: "Do not sign yet", color: "text-[#A32D2D]", bg: "bg-[#FCEBEB] border-[#F8D4D4]",  icon: AlertTriangle },
   "pending":   { label: "Reviewing…",      color: "text-muted-foreground", bg: "bg-muted border-border",          icon: Clock },
 };
 
@@ -636,9 +636,9 @@ function MiniRagBar({ results }: { results: { ragStatus: string }[] }) {
   return (
     <div className="flex items-center gap-1.5">
       <div className="flex h-1.5 w-20 rounded-full overflow-hidden gap-px">
-        {red   > 0 && <div className="bg-[#FCA5A5]" style={{ width: `${(red / total) * 100}%` }} />}
-        {amber > 0 && <div className="bg-[#FCD34D]" style={{ width: `${(amber / total) * 100}%` }} />}
-        {green > 0 && <div className="bg-[#86EFAC]" style={{ width: `${(green / total) * 100}%` }} />}
+        {red   > 0 && <div className="bg-[#A32D2D]" style={{ width: `${(red / total) * 100}%` }} />}
+        {amber > 0 && <div className="bg-[#854F0B]" style={{ width: `${(amber / total) * 100}%` }} />}
+        {green > 0 && <div className="bg-[#1B7A4B]" style={{ width: `${(green / total) * 100}%` }} />}
         {grey  > 0 && <div className="bg-[#475569]"   style={{ width: `${(grey / total) * 100}%` }} />}
       </div>
       <span className="text-[10px] text-muted-foreground">{total} clauses</span>
@@ -669,8 +669,8 @@ function DashboardCapabilities({ inboundEmail }: { inboundEmail?: string }) {
       {/* Email Zane: the prominent, central new capability */}
       <div className="card shadow-sm p-5 sm:p-6 space-y-4">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-            <Mail size={18} className="text-blue-400" />
+          <div className="mt-0.5 w-9 h-9 rounded-lg bg-[#E6F1FB] flex items-center justify-center shrink-0">
+            <Mail size={18} className="text-[#185FA5]" />
           </div>
           <div className="min-w-0">
             <div className="text-sm font-semibold text-foreground">Email Zane</div>
@@ -684,9 +684,9 @@ function DashboardCapabilities({ inboundEmail }: { inboundEmail?: string }) {
             <code className="flex-1 text-sm text-foreground font-mono truncate">{address}</code>
             <button
               onClick={copyAddress}
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-card-border hover:bg-white/5 transition-colors"
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-card-border hover:bg-[#F1F5F9] transition-colors"
             >
-              {copied ? <CheckCircle size={13} className="text-[#86EFAC]" /> : <Copy size={13} />}
+              {copied ? <CheckCircle size={13} className="text-[#1B7A4B]" /> : <Copy size={13} />}
               {copied ? "Copied" : "Copy"}
             </button>
           </div>
@@ -978,6 +978,8 @@ export default function Dashboard() {
   return (
     <>
     <AppLayout>
+      {/* Light theme scope: staged rollout, dashboard only for now */}
+      <div className="theme-light min-h-full bg-background">
       <div className="px-6 py-10 max-w-4xl mx-auto space-y-12">
 
         {/* Page header */}
@@ -990,8 +992,8 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-3 shrink-0">
             {processing && (
-              <span className="text-xs text-white flex items-center gap-1.5 bg-[#1C0F00] border border-[#431407] rounded-full px-3 py-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              <span className="text-xs text-[#185FA5] flex items-center gap-1.5 bg-[#E6F1FB] border border-[#CBE2F7] rounded-full px-3 py-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#185FA5] animate-pulse" />
                 Review in progress
               </span>
             )}
@@ -1018,7 +1020,7 @@ export default function Dashboard() {
           /* ── Empty account: one calm state that guides the first action ─── */
           <div className="card px-6 py-14 text-center space-y-6 max-w-xl mx-auto shadow-sm">
             <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center mx-auto">
-              <FileText size={22} className="text-[#60A5FA]" />
+              <FileText size={22} className="text-[#2563EB]" />
             </div>
             <div className="space-y-1.5">
               <h2 className="text-lg font-semibold">Review your first contract</h2>
@@ -1033,8 +1035,8 @@ export default function Dashboard() {
             </div>
             {company?.inbound_email && (
               <div className="mx-auto max-w-md rounded-lg border border-card-border bg-card/60 px-4 py-3 flex items-start gap-3 text-left">
-                <div className="mt-0.5 w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-                  <Mail size={16} className="text-blue-400" />
+                <div className="mt-0.5 w-8 h-8 rounded-lg bg-[#E6F1FB] flex items-center justify-center shrink-0">
+                  <Mail size={16} className="text-[#185FA5]" />
                 </div>
                 <div className="min-w-0">
                   <div className="text-xs font-medium text-foreground">Prefer email?</div>
@@ -1049,10 +1051,10 @@ export default function Dashboard() {
               <div className="grid sm:grid-cols-2 gap-3">
                 <a href="/app/settings?tab=integrations&connect=google-drive"
                   className="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3 hover:border-primary/40 transition-colors">
-                  <div className="w-8 h-8 rounded-md bg-[#1E3A5F] flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-md bg-[#E6F1FB] flex items-center justify-center shrink-0">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M6.5 20L1 11l4-7h14l4 7-5.5 9H6.5z" stroke="#60A5FA" strokeWidth="1.5" strokeLinejoin="round"/>
-                      <path d="M1 11h22M9 4l3 7m3-7l-3 7" stroke="#60A5FA" strokeWidth="1.5"/>
+                      <path d="M6.5 20L1 11l4-7h14l4 7-5.5 9H6.5z" stroke="#2563EB" strokeWidth="1.5" strokeLinejoin="round"/>
+                      <path d="M1 11h22M9 4l3 7m3-7l-3 7" stroke="#2563EB" strokeWidth="1.5"/>
                     </svg>
                   </div>
                   <div>
@@ -1062,12 +1064,12 @@ export default function Dashboard() {
                 </a>
                 <a href="/app/settings?tab=integrations&connect=sharepoint"
                   className="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3 hover:border-primary/40 transition-colors">
-                  <div className="w-8 h-8 rounded-md bg-[#1E1B4B] flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-md bg-[#EEF2FF] flex items-center justify-center shrink-0">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <rect x="2" y="2" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.8"/>
-                      <rect x="13" y="2" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.5"/>
-                      <rect x="2" y="13" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.5"/>
-                      <rect x="13" y="13" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.3"/>
+                      <rect x="2" y="2" width="9" height="9" rx="1" fill="#185FA5" fillOpacity="0.8"/>
+                      <rect x="13" y="2" width="9" height="9" rx="1" fill="#185FA5" fillOpacity="0.5"/>
+                      <rect x="2" y="13" width="9" height="9" rx="1" fill="#185FA5" fillOpacity="0.5"/>
+                      <rect x="13" y="13" width="9" height="9" rx="1" fill="#185FA5" fillOpacity="0.3"/>
                     </svg>
                   </div>
                   <div>
@@ -1087,7 +1089,7 @@ export default function Dashboard() {
 
           {!hasActions && !useMock && (
             <div className="card px-5 py-10 text-center space-y-2 shadow-sm">
-              <CheckCircle size={22} className="text-[#86EFAC] mx-auto" />
+              <CheckCircle size={22} className="text-[#1B7A4B] mx-auto" />
               <div className="text-sm font-medium">No actions required today.</div>
               <div className="text-xs text-muted-foreground">All contracts are up to date.</div>
             </div>
@@ -1097,14 +1099,14 @@ export default function Dashboard() {
             <a href="/app/legal/review/mock-1"
               className="flex items-start gap-4 px-5 py-5 rounded-xl border border-red-500/15 bg-red-500/[0.035] hover:bg-red-500/[0.06] transition-colors group shadow-sm">
               <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
-                <AlertTriangle size={14} className="text-[#FCA5A5]" />
+                <AlertTriangle size={14} className="text-[#A32D2D]" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-bold uppercase tracking-widest text-[#FCA5A5]/60 mb-0.5">Red clauses, do not sign yet</div>
+                <div className="text-xs font-bold uppercase tracking-widest text-[#A32D2D]/60 mb-0.5">Red clauses, do not sign yet</div>
                 <div className="text-sm font-semibold text-foreground">Acme Corp MSA</div>
                 <div className="text-xs text-muted-foreground mt-0.5">3 red clauses · GC sign-off required</div>
               </div>
-              <span className="text-xs font-semibold text-[#FCA5A5] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
+              <span className="text-xs font-semibold text-[#A32D2D] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
             </a>
           )}
 
@@ -1115,14 +1117,14 @@ export default function Dashboard() {
               <a key={d.id} href={`/app/legal/review/${d.id}`}
                 className="flex items-start gap-4 px-5 py-5 rounded-xl border border-red-500/15 bg-red-500/[0.035] hover:bg-red-500/[0.06] transition-colors group shadow-sm">
                 <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
-                  <AlertTriangle size={14} className="text-[#FCA5A5]" />
+                  <AlertTriangle size={14} className="text-[#A32D2D]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold uppercase tracking-widest text-[#FCA5A5]/60 mb-0.5">Red clauses, do not sign yet</div>
+                  <div className="text-xs font-bold uppercase tracking-widest text-[#A32D2D]/60 mb-0.5">Red clauses, do not sign yet</div>
                   <div className="text-sm font-semibold text-foreground truncate">{cp ?? d.originalName}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">{redCount} red clause{redCount !== 1 ? "s" : ""}</div>
                 </div>
-                <span className="text-xs font-semibold text-[#FCA5A5] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
+                <span className="text-xs font-semibold text-[#A32D2D] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
               </a>
             );
           })}
@@ -1135,14 +1137,14 @@ export default function Dashboard() {
               <a key={`esc-${d.id}`} href={`/app/legal/review/${d.id}`}
                 className="flex items-start gap-4 px-5 py-5 rounded-xl border border-amber-500/15 bg-amber-500/[0.035] hover:bg-amber-500/[0.06] transition-colors group shadow-sm">
                 <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
-                  <Bell size={14} className="text-[#FCD34D]" />
+                  <Bell size={14} className="text-[#854F0B]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold uppercase tracking-widest text-[#FCD34D]/60 mb-0.5">Pending escalation</div>
+                  <div className="text-xs font-bold uppercase tracking-widest text-[#854F0B]/60 mb-0.5">Pending escalation</div>
                   <div className="text-sm font-semibold text-foreground truncate">{cp ?? d.originalName}</div>
                   <div className="text-xs text-muted-foreground mt-0.5 truncate">{trigger}</div>
                 </div>
-                <span className="text-xs font-semibold text-[#FCD34D] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
+                <span className="text-xs font-semibold text-[#854F0B] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
               </a>
             );
           })}
@@ -1151,16 +1153,16 @@ export default function Dashboard() {
             const daysLeft = Math.ceil((new Date(d.renewalDate!).getTime() - now30) / (1000 * 60 * 60 * 24));
             return (
               <a key={`ren-${d.id}`} href={`/app/legal/review/${d.id}`}
-                className="flex items-start gap-4 px-5 py-5 rounded-xl border border-blue-500/15 bg-blue-500/[0.035] hover:bg-blue-500/[0.06] transition-colors group shadow-sm">
-                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-                  <CalendarClock size={14} className="text-[#60A5FA]" />
+                className="flex items-start gap-4 px-5 py-5 rounded-xl border border-[#E2E8F0] bg-[#F5F9FE] hover:bg-[#EAF3FD] transition-colors group shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-[#E6F1FB] flex items-center justify-center shrink-0">
+                  <CalendarClock size={14} className="text-[#2563EB]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold uppercase tracking-widest text-[#60A5FA]/60 mb-0.5">Renewal window closing</div>
+                  <div className="text-xs font-bold uppercase tracking-widest text-[#2563EB]/60 mb-0.5">Renewal window closing</div>
                   <div className="text-sm font-semibold text-foreground truncate">{d.counterpartyName ?? d.originalName}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">{daysLeft} days remaining</div>
                 </div>
-                <span className="text-xs font-semibold text-[#60A5FA] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
+                <span className="text-xs font-semibold text-[#2563EB] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
               </a>
             );
           })}
@@ -1213,7 +1215,7 @@ export default function Dashboard() {
               },
             ].map((s) => (
               <div key={s.label} className="px-5 py-6">
-                <div className={`text-xl font-semibold tracking-tight ${s.highlight ? "text-[#FCA5A5]" : "text-foreground"}`}>{s.value}</div>
+                <div className={`text-xl font-semibold tracking-tight ${s.highlight ? "text-[#A32D2D]" : "text-foreground"}`}>{s.value}</div>
                 <div className="text-[11px] text-muted-foreground/80 leading-snug mt-1.5">{s.label}</div>
               </div>
             ))}
@@ -1230,9 +1232,9 @@ export default function Dashboard() {
           <div className="card shadow-sm">
             {docsError ? (
               <div className="card-body text-center py-8">
-                <AlertCircle size={24} className="text-[#FCA5A5] mx-auto mb-2" />
-                <p className="text-sm text-[#FCA5A5]">Contracts could not be loaded.</p>
-                <button className="text-xs text-[#FCA5A5]/70 underline mt-1" onClick={() => void refetchDocs()}>Retry</button>
+                <AlertCircle size={24} className="text-[#A32D2D] mx-auto mb-2" />
+                <p className="text-sm text-[#A32D2D]">Contracts could not be loaded.</p>
+                <button className="text-xs text-[#A32D2D]/70 underline mt-1" onClick={() => void refetchDocs()}>Retry</button>
               </div>
             ) : recentDocs.length === 0 && !useMock ? (
               <div className="card-body text-center py-12">
@@ -1245,8 +1247,8 @@ export default function Dashboard() {
                 {/* Prefer email? CC the company's Zane address (Section 7a) */}
                 {company?.inbound_email && (
                   <div className="mt-6 mx-auto max-w-md rounded-lg border border-card-border bg-card px-4 py-3 flex items-start gap-3 text-left">
-                    <div className="mt-0.5 w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-                      <Mail size={16} className="text-blue-400" />
+                    <div className="mt-0.5 w-8 h-8 rounded-lg bg-[#E6F1FB] flex items-center justify-center shrink-0">
+                      <Mail size={16} className="text-[#185FA5]" />
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs font-medium text-foreground">Prefer email?</div>
@@ -1307,13 +1309,13 @@ export default function Dashboard() {
                           {readinessLabel}
                         </div>
                         {isStuck ? (
-                          <div className="text-xs text-[#FCA5A5] text-right shrink-0">
+                          <div className="text-xs text-[#A32D2D] text-right shrink-0">
                             <div>Stuck</div>
                             <button className="text-[10px] underline" onClick={(e) => { e.stopPropagation(); reviewMutation.mutate(doc.id); }}>Retry</button>
                           </div>
                         ) : ACTIVE_STATUSES.includes(doc.status as DocumentStatus) ? (
-                          <span className="flex items-center gap-1 text-xs text-[#FCD34D] shrink-0">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D] animate-pulse" /> Reviewing
+                          <span className="flex items-center gap-1 text-xs text-[#854F0B] shrink-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#854F0B] animate-pulse" /> Reviewing
                           </span>
                         ) : null}
                         {doc.status === "FAILED" && (
@@ -1325,7 +1327,7 @@ export default function Dashboard() {
                         {isClickable && <ChevronRight size={15} className="text-muted-foreground shrink-0" />}
                         {!useMock && (
                           <button onClick={(e) => { e.stopPropagation(); setDeleteModal({ ids: [doc.id], name: doc.originalName }); }}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-[#450A0A]/60 text-muted-foreground hover:text-[#FCA5A5] shrink-0"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-[#FCEBEB]/60 text-muted-foreground hover:text-[#A32D2D] shrink-0"
                             title="Delete">
                             <Trash2 size={14} />
                           </button>
@@ -1333,7 +1335,7 @@ export default function Dashboard() {
                       </div>
                       {doc.status === "FAILED" && (
                         <div className="px-5 pb-3">
-                          <p className="text-[11px] text-[#FCA5A5]/70 leading-relaxed">
+                          <p className="text-[11px] text-[#A32D2D]/70 leading-relaxed">
                             {docWithMeta.lastError ? formatLastError(docWithMeta.lastError) : "Review failed. Please retry."}
                           </p>
                         </div>
@@ -1354,10 +1356,10 @@ export default function Dashboard() {
               <div className="grid sm:grid-cols-2 gap-3">
                 <a href="/app/settings?tab=integrations&connect=google-drive"
                   className="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3 hover:border-primary/40 transition-colors">
-                  <div className="w-8 h-8 rounded-md bg-[#1E3A5F] flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-md bg-[#E6F1FB] flex items-center justify-center shrink-0">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <path d="M6.5 20L1 11l4-7h14l4 7-5.5 9H6.5z" stroke="#60A5FA" strokeWidth="1.5" strokeLinejoin="round"/>
-                      <path d="M1 11h22M9 4l3 7m3-7l-3 7" stroke="#60A5FA" strokeWidth="1.5"/>
+                      <path d="M6.5 20L1 11l4-7h14l4 7-5.5 9H6.5z" stroke="#2563EB" strokeWidth="1.5" strokeLinejoin="round"/>
+                      <path d="M1 11h22M9 4l3 7m3-7l-3 7" stroke="#2563EB" strokeWidth="1.5"/>
                     </svg>
                   </div>
                   <div>
@@ -1367,12 +1369,12 @@ export default function Dashboard() {
                 </a>
                 <a href="/app/settings?tab=integrations&connect=sharepoint"
                   className="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3 hover:border-primary/40 transition-colors">
-                  <div className="w-8 h-8 rounded-md bg-[#1E1B4B] flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-md bg-[#EEF2FF] flex items-center justify-center shrink-0">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                      <rect x="2" y="2" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.8"/>
-                      <rect x="13" y="2" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.5"/>
-                      <rect x="2" y="13" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.5"/>
-                      <rect x="13" y="13" width="9" height="9" rx="1" fill="#A5B4FC" fillOpacity="0.3"/>
+                      <rect x="2" y="2" width="9" height="9" rx="1" fill="#185FA5" fillOpacity="0.8"/>
+                      <rect x="13" y="2" width="9" height="9" rx="1" fill="#185FA5" fillOpacity="0.5"/>
+                      <rect x="2" y="13" width="9" height="9" rx="1" fill="#185FA5" fillOpacity="0.5"/>
+                      <rect x="13" y="13" width="9" height="9" rx="1" fill="#185FA5" fillOpacity="0.3"/>
                     </svg>
                   </div>
                   <div>
@@ -1391,6 +1393,7 @@ export default function Dashboard() {
         {/* New capabilities, surfaced calmly in both populated and empty states */}
         <DashboardCapabilities inboundEmail={company?.inbound_email} />
 
+      </div>
       </div>
     </AppLayout>
 

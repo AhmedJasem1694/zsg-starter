@@ -22,7 +22,7 @@
   --card-border:   217 33% 17%;        /* #1E293B — hairline border          */
 
   /* ── Sidebar ─────────────────────────────────────────────────────────── */
-  --sidebar:              224 54% 5%;  /* #060A14 — near-black               */
+  --sidebar:              225 49% 8%;  /* #0B1020 deep navy nav rail         */
   --sidebar-foreground:   215 20% 65%; /* #94A3B8 — muted text               */
   --sidebar-border:       217 33% 14%; /* subtle divider                     */
   --sidebar-primary:      221 83% 53%; /* #2563EB cobalt                     */
@@ -84,6 +84,46 @@
   --shadow-lg: 0 4px 16px rgb(0 0 0 / 0.25);
 }
 
+/* ── Light theme scope (staged rollout) ──────────────────────────────────────
+   Premium light canvas for legal readability, keeping the navy + cobalt
+   identity. Applied per-screen via the `.theme-light` wrapper so screens convert
+   one at a time; anything inside using semantic classes (bg-card, text-foreground,
+   text-muted-foreground, border-border, …) flips to light automatically. The navy
+   navigation rail lives OUTSIDE this scope and is unaffected.
+   Tokens: canvas #F8FAFC · card #FFFFFF · hairline #E2E8F0 · ink #0B1020 ·
+   muted #64748B · accent cobalt #2563EB (used sparingly). */
+.theme-light {
+  --background:      210 40% 98%;   /* #F8FAFC canvas */
+  --foreground:      225 49% 8%;    /* #0B1020 ink (primary + long-form text) */
+  --card:            0 0% 100%;     /* #FFFFFF */
+  --card-foreground: 225 49% 8%;
+  --card-border:     214 32% 91%;   /* #E2E8F0 hairline */
+  --border:          214 32% 91%;
+  --input:           214 32% 91%;
+  --muted:           210 40% 96%;   /* #F1F5F9 */
+  --muted-foreground:215 16% 47%;   /* #64748B slate */
+  --secondary:       210 40% 96%;
+  --secondary-foreground: 225 49% 8%;
+  --accent:          209 78% 94%;   /* #E6F1FB pale blue */
+  --accent-foreground: 206 75% 37%; /* #185FA5 */
+  --popover:         0 0% 100%;
+  --popover-foreground: 225 49% 8%;
+  --popover-border:  214 32% 91%;
+  --destructive:     0 57% 41%;     /* #A32D2D */
+  --destructive-foreground: 0 0% 100%;
+  --primary:         221 83% 53%;   /* #2563EB cobalt, the single accent */
+  --primary-foreground: 0 0% 100%;
+  --ring:            221 83% 53%;
+  /* One soft shadow level for the light canvas */
+  --shadow-xs: 0 1px 2px rgb(16 24 40 / 0.04);
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+  --shadow:    0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+  --shadow-md: 0 4px 12px rgb(16 24 40 / 0.06);
+  --shadow-lg: 0 8px 24px rgb(16 24 40 / 0.08);
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--background));
+}
+
 @layer base {
   * { @apply border-border; }
   body { @apply font-sans antialiased bg-background text-foreground; }
@@ -93,6 +133,19 @@
 }
 
 @layer components {
+
+  /* ── Light theme building blocks (used as screens migrate) ──────────────── */
+  .card-light {
+    @apply bg-white rounded-xl border shadow-soft;
+    border-color: #E2E8F0;
+  }
+  /* RAG statuses as soft tinted pills, not harsh blocks */
+  .rag-pill       { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold; }
+  .rag-pill-red   { color: #A32D2D; background: #FCEBEB; }
+  .rag-pill-amber { color: #854F0B; background: #FAEEDA; }
+  .rag-pill-blue  { color: #185FA5; background: #E6F1FB; }
+  .rag-pill-green { color: #1B7A4B; background: #E7F6EE; }
+  .rag-pill-grey  { color: #475569; background: #F1F5F9; }
 
   /* ── Inputs ─────────────────────────────────────────────────────────── */
   .input {
