@@ -179,6 +179,9 @@ async function main() {
   const cid = company.id as string;
   console.log(`Meridian company: ${company.name} (${cid})`);
 
+  // Demo account must never hit the trial monthly-review cap: give it an unlimited tier.
+  await pb.collection("companies").update(cid, { subscription_tier: "team" }).catch(() => {});
+
   // ── Cleanup prior seed (only records this script created) ──────────────────
   const priorDocs = await pb.collection("uploaded_documents").getFullList({ filter: `company = "${cid}" && source = "${SEED_TAG}"` }).catch(() => [] as PB[]);
   for (const d of priorDocs) {

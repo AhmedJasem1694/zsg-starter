@@ -205,6 +205,10 @@ async function main() {
     textField("regulationProminence"),
     // Inbound email: dedicated {slug}@inbox.zanelegal.ai address
     textField("inbound_email"),
+    // Subscription tier: "" (trial default) | trial | starter | team | growth.
+    // Gates the monthly review limit; without this field every company was stuck
+    // on the trial cap because the value could never be persisted.
+    textField("subscription_tier"),
   ]);
 
   // ── 2. panel_firms ────────────────────────────────────────────────────────

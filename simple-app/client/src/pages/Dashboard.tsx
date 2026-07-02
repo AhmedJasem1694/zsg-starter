@@ -872,15 +872,22 @@ export default function Dashboard() {
       setGoverningLaw(""); setJurisdiction("");
     } catch (e) {
       console.error(e);
-      const msg = e instanceof Error ? e.message : "Upload failed";
-      const status = e instanceof Error && (e as { status?: number }).status;
+      const msg = e instanceof Error ? e.message : "";
+      const status = e instanceof Error ? (e as { status?: number }).status : undefined;
 
-      if (msg.includes("413") || status === 413 || msg.toLowerCase().includes("too large") || msg.toLowerCase().includes("50mb") || msg.toLowerCase().includes("20mb")) {
+      if (status === 413 || msg.includes("413") || msg.toLowerCase().includes("too large") || msg.toLowerCase().includes("50mb") || msg.toLowerCase().includes("20mb")) {
         setUploadError("This file exceeds the 50MB limit. Very large documents like litigation bundles can be split into sections before uploading. Contact ahmed@zanelegal.ai if you need help.");
-      } else if (msg.includes("415") || status === 415 || msg.toLowerCase().includes("not supported") || msg.toLowerCase().includes("unsupported")) {
+      } else if (status === 415 || msg.includes("415") || msg.toLowerCase().includes("not supported") || msg.toLowerCase().includes("unsupported")) {
         setUploadError("Zane only accepts PDF and Word documents (.pdf, .docx).\nPlease upload one of these formats.");
-      } else if (msg.includes("401")) {
+      } else if (status === 402 || msg.toLowerCase().includes("reviews this month")) {
+        // Monthly review limit reached: surface the server's specific quota message.
+        setUploadError(msg || "You have reached your monthly review limit. Upgrade for more reviews, or contact ahmed@zanelegal.ai.");
+      } else if (status === 401 || msg.includes("401")) {
         setUploadError("Your session has expired. Please log in again.");
+      } else if (msg) {
+        // Surface the server's specific error rather than a generic failure, so any
+        // future failure tells the user exactly why it failed.
+        setUploadError(msg);
       } else {
         setUploadError("Upload failed. Please check your connection and try again.");
       }

@@ -1967,7 +1967,16 @@ Write as a professional onboarding document. No legal jargon. Practical and read
           if (err.code === "LIMIT_FILE_SIZE") return sendError(res, 413, "This file exceeds the 50MB limit. Very large documents like litigation bundles can be split into sections before uploading. Contact support if you need help with this.");
           return sendError(res, 400, `Upload error: ${err.message}`);
         }
-        if (err) return sendError(res, 415, "Only PDF and DOCX files are supported.");
+        if (err) {
+          // The fileFilter rejects unsupported types with this exact message. Any
+          // other error here is a server-side failure (e.g. the uploads directory
+          // could not be written), not a bad file, so report it honestly instead
+          // of blaming the file type.
+          const m = (err as Error).message || "";
+          if (/PDF and DOCX/i.test(m)) return sendError(res, 415, "Only PDF and DOCX files are supported.");
+          console.error("[upload] storage/other error (not a file-type rejection):", m);
+          return sendError(res, 500, "The file could not be saved on the server. Please try again, and contact ahmed@zanelegal.ai if it keeps happening.");
+        }
         next();
       });
     },

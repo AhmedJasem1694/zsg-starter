@@ -44,6 +44,8 @@ async function run() {
     interface_type: "founder",
     role: "BUYER",
     industry: "Digital Health",
+    // Demo account must never hit the trial monthly-review cap.
+    subscription_tier: "team",
   };
 
   if (existingPulse) {
