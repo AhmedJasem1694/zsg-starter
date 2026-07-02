@@ -53,8 +53,8 @@ export default function AccumulationCard() {
         {overrideRate !== undefined && (
           <div className={`flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded border ${
             overrideImproving
-              ? "bg-[#E7F6EE] border-[#E7F6EE] text-foreground"
-              : "bg-[#FAEEDA] border-[#FAEEDA] text-foreground"
+              ? "bg-[#E7F6EE] border-[#BBE6CC] text-[#1B7A4B]"
+              : "bg-[#FAEEDA] border-[#F5D9AE] text-[#854F0B]"
           }`}>
             {overrideImproving
               ? <><TrendingDown size={11} /> {overrideRate}% override rate</>
