@@ -20,11 +20,11 @@ import type { ClauseCategory, RagStatus } from "../lib/types";
 // ── Outcome badge config ──────────────────────────────────────────────────────
 
 const OUTCOME_CONFIG: Record<DeltaOutcome, { label: string; bg: string; border: string; text: string }> = {
-  PREFERRED:      { label: "Preferred",      bg: "#052E16", border: "#14532D", text: "#86EFAC" },
-  FALLBACK:       { label: "Fallback",        bg: "#1C0F00", border: "#431407", text: "#FCD34D" },
-  BELOW_FALLBACK: { label: "Below fallback",  bg: "#1F0A0A", border: "#450A0A", text: "#FCA5A5" },
-  NO_CHANGE:      { label: "No change",       bg: "#1a1f2e", border: "#2d3a4a", text: "#94A3B8" },
-  REMOVED:        { label: "Removed",         bg: "#1e0b3b", border: "#3b0764", text: "#C4B5FD" },
+  PREFERRED:      { label: "Preferred",      bg: "#E7F6EE", border: "#E7F6EE", text: "#1B7A4B" },
+  FALLBACK:       { label: "Fallback",        bg: "#FAEEDA", border: "#FAEEDA", text: "#854F0B" },
+  BELOW_FALLBACK: { label: "Below fallback",  bg: "#FCEBEB", border: "#FCEBEB", text: "#A32D2D" },
+  NO_CHANGE:      { label: "No change",       bg: "#FFFFFF", border: "#E2E8F0", text: "#64748B" },
+  REMOVED:        { label: "Removed",         bg: "#EDE9FE", border: "#EDE9FE", text: "#6D28D9" },
 };
 
 const RAG_BADGE: Record<RagStatus, string> = {
@@ -54,8 +54,8 @@ function DeltaCard({
 
   return (
     <div
-      className="card overflow-hidden border border-[#1E293B]"
-      style={{ borderLeftWidth: 4, borderLeftColor: isConfirmed ? "#22c55e" : "#1E293B" }}
+      className="card overflow-hidden border border-[#E2E8F0]"
+      style={{ borderLeftWidth: 4, borderLeftColor: isConfirmed ? "#1B7A4B" : "#E2E8F0" }}
     >
       {/* Header */}
       <div className="px-5 py-4">
@@ -90,7 +90,7 @@ function DeltaCard({
                 className="rounded-md px-3 py-1.5 text-xs font-medium border transition-all"
                 style={{
                   background: isSelected ? cfg.bg : "transparent",
-                  borderColor: isSelected ? cfg.border : "#1E293B",
+                  borderColor: isSelected ? cfg.border : "#E2E8F0",
                   color: isSelected ? cfg.text : "#64748B",
                   fontWeight: isSelected ? 600 : 400,
                 }}
@@ -112,7 +112,7 @@ function DeltaCard({
       </div>
 
       {expanded && (
-        <div className="border-t border-[#1E293B] px-5 py-4 space-y-3 bg-[#0B1118]/60">
+        <div className="border-t border-[#E2E8F0] px-5 py-4 space-y-3 bg-[#FFFFFF]/60">
           {delta.notes && (
             <div>
               <div className="text-[10px] uppercase tracking-wide text-foreground/40 mb-1">LLM reasoning</div>
@@ -217,12 +217,12 @@ export default function OutcomeConfirmation() {
             <ArrowLeft size={14} /> Back to review
           </Link>
           <div className="card p-8 text-center space-y-3">
-            <CheckCircle size={32} className="text-[#86EFAC] mx-auto" />
-            <div className="font-semibold text-[#86EFAC]">All outcomes confirmed</div>
+            <CheckCircle size={32} className="text-[#1B7A4B] mx-auto" />
+            <div className="font-semibold text-[#1B7A4B]">All outcomes confirmed</div>
             <div className="text-sm text-muted-foreground">
               Zane has recorded how this contract was negotiated. These signals will inform future analysis.
             </div>
-            <Link to={`/app/legal/review/${id}`} className="inline-block text-xs text-[#60A5FA] hover:underline">
+            <Link to={`/app/legal/review/${id}`} className="inline-block text-xs text-[#2563EB] hover:underline">
               Return to review →
             </Link>
           </div>
@@ -257,9 +257,9 @@ export default function OutcomeConfirmation() {
             <span>{confirmedCount} of {deltas.length} confirmed</span>
             <span>{Math.round(progress)}%</span>
           </div>
-          <div className="h-1.5 bg-[#1E293B] rounded-full overflow-hidden">
+          <div className="h-1.5 bg-[#E2E8F0] rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#22c55e] rounded-full transition-all duration-300"
+              className="h-full bg-[#1B7A4B] rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>

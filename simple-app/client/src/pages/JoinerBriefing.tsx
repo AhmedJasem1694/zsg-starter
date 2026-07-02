@@ -38,7 +38,7 @@ export default function JoinerBriefing() {
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2">
-              <Brain size={18} className="text-[#60A5FA]" />
+              <Brain size={18} className="text-[#2563EB]" />
               <h1 className="text-xl font-bold tracking-tight text-foreground">New joiner briefing</h1>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
@@ -68,7 +68,7 @@ export default function JoinerBriefing() {
           </div>
         ) : !briefing ? (
           <div className="rounded-xl border border-border bg-card px-6 py-12 text-center space-y-3">
-            <Brain size={28} className="text-[#60A5FA] mx-auto" />
+            <Brain size={28} className="text-[#2563EB] mx-auto" />
             <p className="text-sm text-foreground font-medium">No briefing generated yet.</p>
             <p className="text-xs text-muted-foreground max-w-md mx-auto">
               Generate one to pull together the playbook, the decision history, the counterparty patterns,
@@ -86,7 +86,7 @@ export default function JoinerBriefing() {
                     onClick={() => setOpen(isOpen ? null : key)}
                     className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-foreground/[0.02] transition-colors"
                   >
-                    <Icon size={16} className="text-[#60A5FA] shrink-0" />
+                    <Icon size={16} className="text-[#2563EB] shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-semibold text-foreground">{title}</div>
                       <div className="text-xs text-muted-foreground truncate">{blurb}</div>

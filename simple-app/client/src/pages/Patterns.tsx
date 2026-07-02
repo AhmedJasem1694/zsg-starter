@@ -154,19 +154,19 @@ const SEVERITY_CONFIG: Record<ZanePattern["severity"], {
   bg: string; border: string; badge: string; badgeText: string; icon: React.ReactNode;
 }> = {
   good: {
-    bg: "#052E16", border: "#14532D",
-    badge: "bg-[#14532D] text-white", badgeText: "Positive pattern",
-    icon: <CheckCircle size={14} className="text-white shrink-0" />,
+    bg: "#E7F6EE", border: "#E7F6EE",
+    badge: "bg-[#E7F6EE] text-foreground", badgeText: "Positive pattern",
+    icon: <CheckCircle size={14} className="text-foreground shrink-0" />,
   },
   warn: {
-    bg: "#1C0F00", border: "#431407",
-    badge: "bg-[#431407] text-white", badgeText: "Action recommended",
-    icon: <AlertTriangle size={14} className="text-white shrink-0" />,
+    bg: "#FAEEDA", border: "#FAEEDA",
+    badge: "bg-[#FAEEDA] text-foreground", badgeText: "Action recommended",
+    icon: <AlertTriangle size={14} className="text-foreground shrink-0" />,
   },
   info: {
-    bg: "#172B4D", border: "#1E3A5F",
-    badge: "bg-[#1E3A5F] text-white", badgeText: "Monitor",
-    icon: <Info size={14} className="text-white shrink-0" />,
+    bg: "#E6F1FB", border: "#E6F1FB",
+    badge: "bg-[#E6F1FB] text-foreground", badgeText: "Monitor",
+    icon: <Info size={14} className="text-foreground shrink-0" />,
   },
 };
 
@@ -240,7 +240,7 @@ function PatternCard({ pattern }: { pattern: EnrichedPattern }) {
             ? `/app/legal/playbook?clause=${pattern.clauseCategory}`
             : "/app/legal/playbook"
           }
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#60A5FA] hover:text-[#93C5FD] transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#2563EB] hover:text-[#2563EB] transition-colors"
         >
           <BookOpen size={11} />
           Update playbook position
@@ -331,8 +331,8 @@ function OverrideTrendSection() {
         </h2>
         <div className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg border ${
           declining
-            ? "bg-[#052E16] border-[#14532D] text-white"
-            : "bg-[#1C0F00] border-[#431407] text-white"
+            ? "bg-[#E7F6EE] border-[#E7F6EE] text-foreground"
+            : "bg-[#FAEEDA] border-[#FAEEDA] text-foreground"
         }`}>
           {declining ? <><TrendingDown size={11} /> Zane is learning</> : <><TrendingUp size={11} /> Calibration needed</>}
         </div>
@@ -542,9 +542,9 @@ export default function Patterns() {
                 <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">
                   <span>Clause</span>
                   <span className="text-center">Reviews</span>
-                  <span className="text-center text-[#FCA5A5]">Red</span>
-                  <span className="text-center text-[#86EFAC]">Accepted</span>
-                  <span className="text-center text-[#60A5FA]">Escalated</span>
+                  <span className="text-center text-[#A32D2D]">Red</span>
+                  <span className="text-center text-[#1B7A4B]">Accepted</span>
+                  <span className="text-center text-[#2563EB]">Escalated</span>
                 </div>
               </div>
               <div className="divide-y divide-card-border">
@@ -552,17 +552,17 @@ export default function Patterns() {
                   <div
                     key={o.clauseCategory}
                     className={`grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center px-5 py-3 text-sm
-                      ${o.accepted > 0 && o.redCount > 0 ? "bg-[#1C0F00]/60" : ""}`}
+                      ${o.accepted > 0 && o.redCount > 0 ? "bg-[#FAEEDA]/60" : ""}`}
                   >
                     <span className="font-medium truncate">{label(o.clauseCategory)}</span>
                     <span className="text-center text-muted-foreground text-xs w-12">{o.total}</span>
-                    <span className={`text-center text-xs w-12 ${o.redCount > 0 ? "text-[#FCA5A5] font-semibold" : "text-muted-foreground"}`}>
+                    <span className={`text-center text-xs w-12 ${o.redCount > 0 ? "text-[#A32D2D] font-semibold" : "text-muted-foreground"}`}>
                       {o.redCount || "-"}
                     </span>
                     <span className={`text-center text-xs w-16 ${o.accepted > 0 ? "font-medium" : "text-muted-foreground"}`}>
                       {o.accepted || "-"}
                     </span>
-                    <span className={`text-center text-xs w-16 ${o.escalated > 0 ? "text-[#60A5FA] font-medium" : "text-muted-foreground"}`}>
+                    <span className={`text-center text-xs w-16 ${o.escalated > 0 ? "text-[#2563EB] font-medium" : "text-muted-foreground"}`}>
                       {o.escalated || "-"}
                     </span>
                   </div>
@@ -570,9 +570,9 @@ export default function Patterns() {
               </div>
             </div>
             {outcomes.some((o) => o.accepted > 0 && o.redCount > 0) && (
-              <div className="card border-[#431407] bg-[#1C0F00] p-4">
-                <div className="text-sm font-semibold text-[#FCD34D] mb-1">Negotiation drift detected</div>
-                <p className="text-xs text-[#FCD34D]/80 leading-relaxed">
+              <div className="card border-[#FAEEDA] bg-[#FAEEDA] p-4">
+                <div className="text-sm font-semibold text-[#854F0B] mb-1">Negotiation drift detected</div>
+                <p className="text-xs text-[#854F0B]/80 leading-relaxed">
                   Some clause types have been accepted even when Zane flagged them RED.
                   Consider reviewing your playbook positions or updating your hard red lines.
                 </p>

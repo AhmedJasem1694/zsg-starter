@@ -107,7 +107,7 @@ function AdminLegacyQuote() {
       <div className="flex items-center gap-2 flex-wrap">
         <Calculator size={16} className="text-primary" />
         <div className="text-sm font-semibold">Internal indicative pricing</div>
-        <span className="text-[10px] uppercase tracking-widest text-[#FCD34D] border border-[#FCD34D]/30 rounded px-1.5 py-0.5">Admin only</span>
+        <span className="text-[10px] uppercase tracking-widest text-[#854F0B] border border-[#854F0B]/30 rounded px-1.5 py-0.5">Admin only</span>
       </div>
       <p className="text-xs text-muted-foreground leading-relaxed max-w-xl">
         Sales helper for quoting legacy review. Not a customer-facing price list and not shown publicly. Pricing stays conversation-led.
@@ -127,7 +127,7 @@ function AdminLegacyQuote() {
           {loading ? <Loader2 size={14} className="animate-spin" /> : null} Calculate
         </button>
       </div>
-      {error && <p className="text-xs text-[#FCA5A5]">{error}</p>}
+      {error && <p className="text-xs text-[#A32D2D]">{error}</p>}
       {quote && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="rounded-lg border border-card-border px-4 py-3">
@@ -294,8 +294,8 @@ export default function LegacyReview() {
                 <div key={`${q.name}-${i}`} className="flex items-center gap-2 text-xs">
                   {q.state === "queued"    && <span className="w-3.5 h-3.5 rounded-full border border-muted-foreground/30 shrink-0" />}
                   {q.state === "uploading" && <Loader2 size={14} className="animate-spin text-primary shrink-0" />}
-                  {q.state === "submitted" && <CheckCircle size={14} className="text-[#86EFAC] shrink-0" />}
-                  {q.state === "failed"    && <XCircle size={14} className="text-[#FCA5A5] shrink-0" />}
+                  {q.state === "submitted" && <CheckCircle size={14} className="text-[#1B7A4B] shrink-0" />}
+                  {q.state === "failed"    && <XCircle size={14} className="text-[#A32D2D] shrink-0" />}
                   <span className="truncate text-foreground/80">{q.name}</span>
                   <span className="text-muted-foreground/60 shrink-0 ml-auto">
                     {q.state === "submitted" ? "processing" : q.state === "failed" ? (q.error ?? "failed") : q.state}
@@ -318,7 +318,7 @@ export default function LegacyReview() {
               <div className="text-xs text-muted-foreground mt-1">Total stated value</div>
             </div>
             <div className="card p-4">
-              <div className="text-xl font-bold text-[#FCA5A5]">{fmtMoney(summary.flaggedValue, "GBP")}</div>
+              <div className="text-xl font-bold text-[#A32D2D]">{fmtMoney(summary.flaggedValue, "GBP")}</div>
               <div className="text-xs text-muted-foreground mt-1">Value carrying risk flags</div>
             </div>
             <div className="card p-4">
@@ -397,7 +397,7 @@ export default function LegacyReview() {
                       <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">{fmtMoney(r.value, r.currency)}</td>
                       <td className="px-3 py-3 text-muted-foreground whitespace-nowrap">
                         {r.renewalDate ?? r.endDate ?? "-"}
-                        {r.autoRenewal && <span className="block text-[10px] text-[#FCD34D]">auto-renews</span>}
+                        {r.autoRenewal && <span className="block text-[10px] text-[#854F0B]">auto-renews</span>}
                       </td>
                       <td className="px-3 py-3 text-muted-foreground max-w-[120px] truncate">{r.governingLaw || "-"}</td>
                       <td className="px-3 py-3 text-muted-foreground max-w-[200px]">
@@ -409,7 +409,7 @@ export default function LegacyReview() {
                         ) : (
                           <div className="space-y-1">
                             {r.riskFlags.map((f) => (
-                              <span key={f} className="flex items-center gap-1 text-xs text-[#FCA5A5]">
+                              <span key={f} className="flex items-center gap-1 text-xs text-[#A32D2D]">
                                 <AlertTriangle size={10} className="shrink-0" /> {f}
                               </span>
                             ))}

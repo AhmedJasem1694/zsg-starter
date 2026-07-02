@@ -45,9 +45,9 @@ const VERDICT_CONFIG: Record<Verdict, {
   label: string; sublabel: string;
   color: string; bg: string; border: string; icon: React.ElementType;
 }> = {
-  safe:    { label: "Looks good",           sublabel: "No major issues found",       color: "text-white",            bg: "bg-[#052E16]",  border: "border-[#14532D]",  icon: CheckCircle   },
-  caution: { label: "Worth a closer look",  sublabel: "A few things to negotiate",   color: "text-white",            bg: "bg-[#1C0F00]",  border: "border-[#431407]",  icon: AlertTriangle },
-  danger:  { label: "Don't sign yet",       sublabel: "Fix these issues first",      color: "text-white",            bg: "bg-[#1F0A0A]",  border: "border-[#450A0A]",  icon: AlertTriangle },
+  safe:    { label: "Looks good",           sublabel: "No major issues found",       color: "text-foreground",            bg: "bg-[#E7F6EE]",  border: "border-[#E7F6EE]",  icon: CheckCircle   },
+  caution: { label: "Worth a closer look",  sublabel: "A few things to negotiate",   color: "text-foreground",            bg: "bg-[#FAEEDA]",  border: "border-[#FAEEDA]",  icon: AlertTriangle },
+  danger:  { label: "Don't sign yet",       sublabel: "Fix these issues first",      color: "text-foreground",            bg: "bg-[#FCEBEB]",  border: "border-[#FCEBEB]",  icon: AlertTriangle },
   pending: { label: "Reviewing…",           sublabel: "Zane is reading your contract", color: "text-muted-foreground", bg: "bg-muted", border: "border-border",      icon: Clock         },
 };
 
@@ -171,7 +171,7 @@ export default function FounderDashboard() {
             </p>
           </div>
           {processing && (
-            <span className="text-xs text-white flex items-center gap-1.5 bg-[#1C0F00] border border-[#431407] rounded-full px-3 py-1.5">
+            <span className="text-xs text-foreground flex items-center gap-1.5 bg-[#FAEEDA] border border-[#FAEEDA] rounded-full px-3 py-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               Reading your contract…
             </span>
@@ -186,13 +186,13 @@ export default function FounderDashboard() {
               <span className="text-muted-foreground ml-1">contract{documents.length !== 1 ? "s" : ""} reviewed</span>
             </div>
             {redCount > 0 && (
-              <div className="px-4 py-2 rounded-lg border bg-[#1F0A0A] border-[#450A0A] text-sm text-white">
+              <div className="px-4 py-2 rounded-lg border bg-[#FCEBEB] border-[#FCEBEB] text-sm text-foreground">
                 <span className="font-semibold">{redCount}</span>
                 <span className="ml-1">need{redCount === 1 ? "s" : ""} attention</span>
               </div>
             )}
             {redCount === 0 && complete.length > 0 && (
-              <div className="px-4 py-2 rounded-lg border bg-[#052E16] border-[#14532D] text-sm text-white">
+              <div className="px-4 py-2 rounded-lg border bg-[#E7F6EE] border-[#E7F6EE] text-sm text-foreground">
                 <span className="font-semibold">All clear</span>
                 <span className="ml-1">No red flags</span>
               </div>
@@ -295,12 +295,12 @@ export default function FounderDashboard() {
                 // If stalled for more than 10 minutes, show a retry card instead of endless progress
                 const isStalled = elapsedSec > 600;
                 return (
-                  <div key={d.id} className="card p-5 space-y-4 border-[#1C2A3A]" style={{ background: "#0D1B2A" }}>
+                  <div key={d.id} className="card p-5 space-y-4 border-[#E2E8F0]" style={{ background: "#FFFFFF" }}>
                     <div className="flex items-center justify-between gap-2.5">
                       <div className="flex items-center gap-2.5">
-                        <Sparkles size={15} className={isStalled ? "text-[#FCA5A5]" : "text-[#60A5FA]"} />
+                        <Sparkles size={15} className={isStalled ? "text-[#A32D2D]" : "text-[#2563EB]"} />
                         <div>
-                          <div className="text-sm font-semibold text-[#93C5FD]">Reviewing: {d.originalName}</div>
+                          <div className="text-sm font-semibold text-[#2563EB]">Reviewing: {d.originalName}</div>
                           <div className="text-xs text-muted-foreground mt-0.5">
                             {isStalled ? "Taking longer than expected" : "Usually takes 1 to 3 minutes"}
                           </div>
@@ -308,7 +308,7 @@ export default function FounderDashboard() {
                       </div>
                       {isStalled && (
                         <button
-                          className="btn-ghost text-xs px-2 py-1 gap-1 shrink-0 text-[#FCA5A5]"
+                          className="btn-ghost text-xs px-2 py-1 gap-1 shrink-0 text-[#A32D2D]"
                           onClick={() => reviewMutation.mutate(d.id)}
                         >
                           <RotateCcw size={12} /> Retry
@@ -324,15 +324,15 @@ export default function FounderDashboard() {
                           return (
                             <div key={stage.label} className="flex items-center gap-2.5">
                               <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0
-                                ${done    ? "bg-[#14532D] border-[#166534]" : ""}
-                                ${active  ? "bg-[#1C0F00] border-[#92400E] animate-pulse" : ""}
-                                ${pending ? "bg-transparent border-[#1E293B]" : ""}`}>
-                                {done   && <CheckCircle size={9} className="text-[#86EFAC]" />}
-                                {active && <span className="w-1 h-1 rounded-full bg-[#FCD34D]" />}
+                                ${done    ? "bg-[#E7F6EE] border-[#BBE6CC]" : ""}
+                                ${active  ? "bg-[#FAEEDA] border-[#92400E] animate-pulse" : ""}
+                                ${pending ? "bg-transparent border-[#E2E8F0]" : ""}`}>
+                                {done   && <CheckCircle size={9} className="text-[#1B7A4B]" />}
+                                {active && <span className="w-1 h-1 rounded-full bg-[#854F0B]" />}
                               </div>
                               <span className={`text-xs leading-none
                                 ${done    ? "text-muted-foreground line-through" : ""}
-                                ${active  ? "text-[#FCD34D] font-medium" : ""}
+                                ${active  ? "text-[#854F0B] font-medium" : ""}
                                 ${pending ? "text-muted-foreground/35" : ""}`}>
                                 {stage.label}
                               </span>
@@ -410,8 +410,8 @@ export default function FounderDashboard() {
                         </div>
 
                         {ACTIVE_STATUSES.includes(doc.status) && (
-                          <span className="flex items-center gap-1 text-xs text-[#FCD34D] shrink-0">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D] animate-pulse" />
+                          <span className="flex items-center gap-1 text-xs text-[#854F0B] shrink-0">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#854F0B] animate-pulse" />
                             Reading…
                           </span>
                         )}
@@ -466,9 +466,9 @@ export default function FounderDashboard() {
                 <div className="text-sm font-semibold">How to read your verdict</div>
                 <div className="space-y-3 text-xs text-muted-foreground">
                   {[
-                    { icon: CheckCircle,   color: "text-[#86EFAC]", label: "Looks good",           desc: "No red flags - you can proceed" },
-                    { icon: AlertCircle,   color: "text-[#FCD34D]", label: "Worth a closer look",  desc: "A few things worth negotiating" },
-                    { icon: AlertTriangle, color: "text-[#FCA5A5]", label: "Don't sign yet",        desc: "Fix these issues before signing" },
+                    { icon: CheckCircle,   color: "text-[#1B7A4B]", label: "Looks good",           desc: "No red flags - you can proceed" },
+                    { icon: AlertCircle,   color: "text-[#854F0B]", label: "Worth a closer look",  desc: "A few things worth negotiating" },
+                    { icon: AlertTriangle, color: "text-[#A32D2D]", label: "Don't sign yet",        desc: "Fix these issues before signing" },
                   ].map(({ icon: Icon, color, label, desc }) => (
                     <div key={label} className="flex items-start gap-2.5">
                       <Icon size={14} className={`${color} mt-0.5 shrink-0`} />

@@ -48,11 +48,11 @@ function actionLabel(action: string) {
 }
 
 function actionColor(action: string): string {
-  if (action.includes("fail") || action.includes("error")) return "text-[#FCA5A5]";
-  if (action.includes("rag_status") || action.includes("review_completed")) return "text-[#86EFAC]";
-  if (action.includes("escalat") || action.includes("feedback")) return "text-[#FCD34D]";
-  if (action.includes("pii")) return "text-[#A5B4FC]";
-  if (action.includes("export") || action.includes("login") || action.includes("logout")) return "text-[#94A3B8]";
+  if (action.includes("fail") || action.includes("error")) return "text-[#A32D2D]";
+  if (action.includes("rag_status") || action.includes("review_completed")) return "text-[#1B7A4B]";
+  if (action.includes("escalat") || action.includes("feedback")) return "text-[#854F0B]";
+  if (action.includes("pii")) return "text-[#185FA5]";
+  if (action.includes("export") || action.includes("login") || action.includes("logout")) return "text-[#64748B]";
   return "text-foreground/70";
 }
 
@@ -86,8 +86,8 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
         )}
       </div>
       {expanded && hasDetail && (
-        <div className="mt-2 ml-32 pl-3 border-l border-[#1E293B]">
-          <pre className="text-[11px] text-[#94A3B8] font-mono whitespace-pre-wrap leading-relaxed">
+        <div className="mt-2 ml-32 pl-3 border-l border-[#E2E8F0]">
+          <pre className="text-[11px] text-[#64748B] font-mono whitespace-pre-wrap leading-relaxed">
             {JSON.stringify(detail, null, 2)}
           </pre>
         </div>
@@ -236,7 +236,7 @@ export default function AuditTrail() {
             {data.totalPages > 1 && (
               <div className="flex items-center justify-center gap-3">
                 <button
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border hover:border-[#475569] disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border hover:border-[#64748B] disabled:opacity-40 disabled:pointer-events-none transition-colors"
                   onClick={() => setPage((p) => p - 1)}
                   disabled={page === 1}
                 >
@@ -246,7 +246,7 @@ export default function AuditTrail() {
                   {page} / {data.totalPages}
                 </span>
                 <button
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border hover:border-[#475569] disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border hover:border-[#64748B] disabled:opacity-40 disabled:pointer-events-none transition-colors"
                   onClick={() => setPage((p) => p + 1)}
                   disabled={page >= data.totalPages}
                 >

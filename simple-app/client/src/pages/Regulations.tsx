@@ -49,9 +49,9 @@ function computeTier(reg: CompanyRegulation, companyJurisdiction?: string): Tier
 }
 
 const TIER_CONFIG: Record<Tier, { label: string; badge: string; borderClass: string; bgClass: string }> = {
-  core:    { label: "Core obligation",  badge: "text-white bg-[#052E16] border-[#14532D]",    borderClass: "border-[#14532D]",  bgClass: "#052E16" },
-  likely:  { label: "Likely relevant",  badge: "text-white bg-[#1C0F00] border-[#431407]",    borderClass: "border-card-border", bgClass: "" },
-  monitor: { label: "Monitor context",  badge: "text-white bg-[#0F172A] border-[#334155]",    borderClass: "border-card-border", bgClass: "" },
+  core:    { label: "Core obligation",  badge: "text-foreground bg-[#E7F6EE] border-[#E7F6EE]",    borderClass: "border-[#E7F6EE]",  bgClass: "#E7F6EE" },
+  likely:  { label: "Likely relevant",  badge: "text-foreground bg-[#FAEEDA] border-[#FAEEDA]",    borderClass: "border-card-border", bgClass: "" },
+  monitor: { label: "Monitor context",  badge: "text-foreground bg-[#FFFFFF] border-[#CBD5E1]",    borderClass: "border-card-border", bgClass: "" },
 };
 
 // ── Synthesis expander ────────────────────────────────────────────────────────
@@ -291,7 +291,7 @@ export default function Regulations() {
                 const cfg = TIER_CONFIG[tier];
                 return (
                   <div key={tier} className="card px-4 py-3 flex items-center gap-3">
-                    <div className={`text-xl font-bold tabular-nums ${tier === "core" ? "text-[#86EFAC]" : tier === "likely" ? "text-[#FCD34D]" : "text-[#94A3B8]"}`}>
+                    <div className={`text-xl font-bold tabular-nums ${tier === "core" ? "text-[#1B7A4B]" : tier === "likely" ? "text-[#854F0B]" : "text-[#64748B]"}`}>
                       {count}
                     </div>
                     <div>

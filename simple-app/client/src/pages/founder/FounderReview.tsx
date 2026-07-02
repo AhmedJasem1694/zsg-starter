@@ -41,28 +41,28 @@ function founderRagLabel(s: RagStatus): string {
 
 function founderRagBg(s: RagStatus): string {
   return {
-    RED:   "bg-[#1F0A0A] border-[#450A0A]",
-    AMBER: "bg-[#1C0F00] border-[#431407]",
-    GREEN: "bg-[#052E16] border-[#14532D]",
-    GREY:  "bg-[#0F172A] border-[#334155]",
+    RED:   "bg-[#FCEBEB] border-[#FCEBEB]",
+    AMBER: "bg-[#FAEEDA] border-[#FAEEDA]",
+    GREEN: "bg-[#E7F6EE] border-[#E7F6EE]",
+    GREY:  "bg-[#FFFFFF] border-[#CBD5E1]",
   }[s];
 }
 
 function founderRagColor(s: RagStatus): string {
   return {
-    RED:   "text-[#FCA5A5]",
-    AMBER: "text-[#FCD34D]",
-    GREEN: "text-[#86EFAC]",
-    GREY:  "text-[#94A3B8]",
+    RED:   "text-[#A32D2D]",
+    AMBER: "text-[#854F0B]",
+    GREEN: "text-[#1B7A4B]",
+    GREY:  "text-[#64748B]",
   }[s];
 }
 
 function founderRagDot(s: RagStatus): string {
   return {
-    RED:   "bg-[#FCA5A5]",
-    AMBER: "bg-[#FCD34D]",
-    GREEN: "bg-[#86EFAC]",
-    GREY:  "bg-[#475569]",
+    RED:   "bg-[#A32D2D]",
+    AMBER: "bg-[#854F0B]",
+    GREEN: "bg-[#1B7A4B]",
+    GREY:  "bg-[#64748B]",
   }[s];
 }
 
@@ -91,9 +91,9 @@ const FUNDRAISING_RELEVANCE: Record<string, FundraisingRelevance> = {
 };
 
 const FUNDRAISING_RELEVANCE_COLOR: Record<FundraisingRelevance, string> = {
-  "High investor concern":   "text-white bg-[#1F0A0A] border-[#450A0A]",
-  "Standard diligence item": "text-white bg-[#1C0F00] border-[#431407]",
-  "Worth noting":            "text-white bg-[#0F172A] border-[#334155]",
+  "High investor concern":   "text-foreground bg-[#FCEBEB] border-[#FCEBEB]",
+  "Standard diligence item": "text-foreground bg-[#FAEEDA] border-[#FAEEDA]",
+  "Worth noting":            "text-foreground bg-[#FFFFFF] border-[#CBD5E1]",
 };
 
 // ── Negotiation Email Modal ───────────────────────────────────────────────────
@@ -137,13 +137,13 @@ function NegotiationEmailModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-8 bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-2xl border border-[#1E293B] bg-[#0B1118] flex flex-col max-h-[90vh] shadow-2xl">
+      <div className="w-full max-w-2xl rounded-2xl border border-[#E2E8F0] bg-[#FFFFFF] flex flex-col max-h-[90vh] shadow-2xl">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#1E293B] shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0] shrink-0">
           <div className="flex items-center gap-2.5">
-            <Mail size={16} className="text-[#60A5FA]" />
-            <span className="font-semibold text-[#93C5FD]">Negotiation email draft</span>
+            <Mail size={16} className="text-[#2563EB]" />
+            <span className="font-semibold text-[#2563EB]">Negotiation email draft</span>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
             <X size={18} />
@@ -158,7 +158,7 @@ function NegotiationEmailModal({
               Subject line
             </label>
             <input
-              className="w-full rounded-lg border border-[#1E293B] bg-[#050A10] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#3B82F6] transition-colors"
+              className="w-full rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#3B82F6] transition-colors"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
             />
@@ -170,7 +170,7 @@ function NegotiationEmailModal({
               Email body
             </label>
             <textarea
-              className="w-full rounded-lg border border-[#1E293B] bg-[#050A10] px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#3B82F6] transition-colors resize-none leading-relaxed"
+              className="w-full rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#3B82F6] transition-colors resize-none leading-relaxed"
               value={body}
               onChange={(e) => setBody(e.target.value)}
               rows={18}
@@ -183,7 +183,7 @@ function NegotiationEmailModal({
         </div>
 
         {/* Footer actions */}
-        <div className="flex flex-wrap items-center gap-2 px-6 py-4 border-t border-[#1E293B] shrink-0">
+        <div className="flex flex-wrap items-center gap-2 px-6 py-4 border-t border-[#E2E8F0] shrink-0">
           <button
             onClick={handleCopy}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1D4ED8] text-white text-sm font-medium hover:bg-[#2563EB] transition-colors"
@@ -193,14 +193,14 @@ function NegotiationEmailModal({
           </button>
           <button
             onClick={handleMailto}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#1E293B] bg-[#0D1521] text-sm text-foreground hover:border-[#334155] transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] text-sm text-foreground hover:border-[#CBD5E1] transition-colors"
           >
             <ExternalLink size={13} className="text-muted-foreground" />
             Open in email client
           </button>
           <button
             onClick={handleDownload}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#1E293B] bg-[#0D1521] text-sm text-foreground hover:border-[#334155] transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] text-sm text-foreground hover:border-[#CBD5E1] transition-colors"
           >
             <Download size={13} className="text-muted-foreground" />
             Download
@@ -240,19 +240,19 @@ function AmendedClausePanel({
   }
 
   return (
-    <div className="rounded-xl border border-[#1E293B] bg-[#080F18] overflow-hidden space-y-0">
+    <div className="rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] overflow-hidden space-y-0">
       {/* Original */}
       <div className="px-4 pt-4 pb-3 space-y-2">
-        <div className="text-[10px] font-bold uppercase tracking-widest text-white/60">Original clause</div>
-        <div className="rounded-lg border border-[#450A0A] bg-[#1F0A0A] px-3 py-2.5 text-xs leading-relaxed text-white/80 font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-foreground/60">Original clause</div>
+        <div className="rounded-lg border border-[#FCEBEB] bg-[#FCEBEB] px-3 py-2.5 text-xs leading-relaxed text-foreground/80 font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
           {original || "(Original text not available. Paste the original clause here when sending.)"}
         </div>
       </div>
 
       {/* Revised */}
       <div className="px-4 pb-3 space-y-2">
-        <div className="text-[10px] font-bold uppercase tracking-widest text-white/60">Revised clause</div>
-        <div className="rounded-lg border border-[#14532D] bg-[#052E16] px-3 py-2.5 text-xs leading-relaxed text-white/90 font-mono whitespace-pre-wrap">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-foreground/60">Revised clause</div>
+        <div className="rounded-lg border border-[#E7F6EE] bg-[#E7F6EE] px-3 py-2.5 text-xs leading-relaxed text-foreground/90 font-mono whitespace-pre-wrap">
           {revised}
         </div>
       </div>
@@ -265,7 +265,7 @@ function AmendedClausePanel({
         <div className="flex items-center gap-2">
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#14532D] text-white text-xs font-medium hover:bg-[#166534] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#E7F6EE] text-foreground text-xs font-medium hover:bg-[#BBE6CC] transition-colors"
           >
             {copied ? <Check size={11} /> : <Copy size={11} />}
             {copied ? "Copied!" : "Copy revised clause"}
@@ -303,10 +303,10 @@ function SuggestClausePanel({
   }
 
   return (
-    <div className="rounded-xl border border-[#1E3A5F] bg-[#0C1929] overflow-hidden">
+    <div className="rounded-xl border border-[#E6F1FB] bg-[#FFFFFF] overflow-hidden">
       <div className="px-4 pt-4 pb-3 space-y-2">
-        <div className="text-[10px] font-bold uppercase tracking-widest text-[#60A5FA]/70">Suggested clause to add</div>
-        <div className="rounded-lg border border-[#1E3A5F] bg-[#050A14] px-3 py-2.5 text-xs leading-relaxed text-[#93C5FD]/90 font-mono whitespace-pre-wrap">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-[#2563EB]/70">Suggested clause to add</div>
+        <div className="rounded-lg border border-[#E6F1FB] bg-[#FFFFFF] px-3 py-2.5 text-xs leading-relaxed text-[#2563EB]/90 font-mono whitespace-pre-wrap">
           {clauseText}
         </div>
       </div>
@@ -317,7 +317,7 @@ function SuggestClausePanel({
         <div className="flex items-center gap-2">
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1D4ED8]/30 text-[#60A5FA] text-xs font-medium hover:bg-[#1D4ED8]/50 transition-colors border border-[#1D4ED8]/40"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1D4ED8]/30 text-[#2563EB] text-xs font-medium hover:bg-[#1D4ED8]/50 transition-colors border border-[#1D4ED8]/40"
           >
             {copied ? <Check size={11} /> : <Copy size={11} />}
             {copied ? "Copied!" : "Copy clause"}
@@ -486,11 +486,11 @@ function FounderClauseCard({
 
           {/* Absent clause notice */}
           {result.isAbsent && (
-            <div className="flex items-start gap-2 rounded-lg bg-[#0F172A] border border-[#334155] px-3 py-2.5">
-              <AlertCircle size={13} className="text-[#94A3B8] mt-0.5 shrink-0" />
+            <div className="flex items-start gap-2 rounded-lg bg-[#FFFFFF] border border-[#CBD5E1] px-3 py-2.5">
+              <AlertCircle size={13} className="text-[#64748B] mt-0.5 shrink-0" />
               <div className="space-y-0.5">
-                <div className="text-xs font-semibold text-[#94A3B8]">Clause not found in this contract</div>
-                <p className="text-xs text-[#94A3B8]/80">
+                <div className="text-xs font-semibold text-[#64748B]">Clause not found in this contract</div>
+                <p className="text-xs text-[#64748B]/80">
                   Check whether your deal requires this clause to be present. If so, ask the other side to include it before you sign.
                 </p>
               </div>
@@ -608,17 +608,17 @@ function FounderClauseCard({
 
           {/* Fundraising relevance */}
           {result.founderFundraisingRelevance && result.founderFundraisingRelevance !== "Not relevant to fundraising" && (
-            <div className="rounded-lg bg-[#0F172A] border border-[#334155] px-3 py-2.5">
-              <div className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-wide mb-0.5">Fundraising note</div>
-              <p className="text-xs text-[#94A3B8]">{result.founderFundraisingRelevance}</p>
+            <div className="rounded-lg bg-[#FFFFFF] border border-[#CBD5E1] px-3 py-2.5">
+              <div className="text-[10px] font-semibold text-[#64748B] uppercase tracking-wide mb-0.5">Fundraising note</div>
+              <p className="text-xs text-[#64748B]">{result.founderFundraisingRelevance}</p>
             </div>
           )}
 
           {/* If ignored */}
           {result.founderIfIgnored && result.ragStatus !== "GREEN" && (
-            <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] px-3 py-2.5">
-              <div className="text-[10px] font-semibold text-[#FCA5A5] uppercase tracking-wide mb-0.5">If you sign as-is</div>
-              <p className="text-xs text-[#FCA5A5]/90">{result.founderIfIgnored}</p>
+            <div className="rounded-lg bg-[#FCEBEB] border border-[#FCEBEB] px-3 py-2.5">
+              <div className="text-[10px] font-semibold text-[#A32D2D] uppercase tracking-wide mb-0.5">If you sign as-is</div>
+              <p className="text-xs text-[#A32D2D]/90">{result.founderIfIgnored}</p>
             </div>
           )}
 
@@ -640,8 +640,8 @@ function FounderClauseCard({
                 <div className="copy-block rounded-lg p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
-                      <Mail size={12} className="text-[#60A5FA]" />
-                      <span className="text-xs font-semibold text-[#60A5FA]">Email reply: copy and send</span>
+                      <Mail size={12} className="text-[#2563EB]" />
+                      <span className="text-xs font-semibold text-[#2563EB]">Email reply: copy and send</span>
                     </div>
                     <div className="flex gap-1.5">
                       <button
@@ -667,9 +667,9 @@ function FounderClauseCard({
 
           {/* Escalation note */}
           {result.escalationRequired && result.escalationTrigger && (
-            <div className="flex items-start gap-2 rounded-lg bg-[#1F0A0A] border border-[#450A0A] px-3 py-2.5">
-              <AlertTriangle size={13} className="text-[#FCA5A5] mt-0.5 shrink-0" />
-              <p className="text-xs text-[#FCA5A5]">{result.escalationTrigger}</p>
+            <div className="flex items-start gap-2 rounded-lg bg-[#FCEBEB] border border-[#FCEBEB] px-3 py-2.5">
+              <AlertTriangle size={13} className="text-[#A32D2D] mt-0.5 shrink-0" />
+              <p className="text-xs text-[#A32D2D]">{result.escalationTrigger}</p>
             </div>
           )}
 
@@ -706,8 +706,8 @@ function FounderClauseCard({
 
           {/* "What was actually agreed" capture */}
           {showWhatAgreed && (
-            <div className="rounded-lg border border-[#14532D] bg-[#052E16] p-3 space-y-2">
-              <div className="text-xs font-medium text-[#86EFAC]">
+            <div className="rounded-lg border border-[#E7F6EE] bg-[#E7F6EE] p-3 space-y-2">
+              <div className="text-xs font-medium text-[#1B7A4B]">
                 Optional: what was the final agreed wording?
               </div>
               <textarea
@@ -750,33 +750,33 @@ function FounderFallbackCard({ result }: { result: ReviewResult }) {
   const label = CLAUSE_LABELS[result.clauseCategory] ?? result.clauseCategory.replace(/_/g, " ");
   const isRed = result.ragStatus === "RED";
   return (
-    <div className="rounded-2xl border border-[#334155] bg-[#0F172A] overflow-hidden border-l-4 border-l-[#334155]">
-      <div className="bg-[#1E293B] px-4 py-3 flex items-center gap-2">
-        <AlertTriangle size={14} className="text-white shrink-0" />
-        <span className="text-xs font-bold uppercase tracking-wider text-white">Needs manual review</span>
-        <span className="ml-auto text-[10px] text-white/40">{label}</span>
+    <div className="rounded-2xl border border-[#CBD5E1] bg-[#FFFFFF] overflow-hidden border-l-4 border-l-[#CBD5E1]">
+      <div className="bg-[#E2E8F0] px-4 py-3 flex items-center gap-2">
+        <AlertTriangle size={14} className="text-foreground shrink-0" />
+        <span className="text-xs font-bold uppercase tracking-wider text-foreground">Needs manual review</span>
+        <span className="ml-auto text-[10px] text-foreground/40">{label}</span>
       </div>
       <div className="px-4 py-4 space-y-3">
-        <p className="text-sm text-white/70 leading-relaxed">
+        <p className="text-sm text-foreground/70 leading-relaxed">
           Zane identified an issue with this clause but could not generate a reliable recommendation automatically.
         </p>
-        <div className="bg-[#0B1118] rounded-lg px-3 py-2.5 space-y-1">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-white/30">What was found</div>
-          <p className="text-sm text-white/80">
-            <span className={`font-semibold ${isRed ? "text-[#FCA5A5]" : "text-[#FCD34D]"}`}>
+        <div className="bg-[#FFFFFF] rounded-lg px-3 py-2.5 space-y-1">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-foreground/30">What was found</div>
+          <p className="text-sm text-foreground/80">
+            <span className={`font-semibold ${isRed ? "text-[#A32D2D]" : "text-[#854F0B]"}`}>
               {isRed ? "Problem" : "Worth negotiating"}:
             </span>{" "}
             {result.clauseSummary || result.founderPlainEnglish || "This clause deviates from your preferred position."}
           </p>
         </div>
-        <p className="text-xs text-white/50 leading-relaxed">
+        <p className="text-xs text-foreground/50 leading-relaxed">
           This clause should be reviewed by a qualified solicitor before you respond to the counterparty.
         </p>
         <div className="flex gap-2 pt-1">
           <a
             href="https://calendly.com/ahmedljasem/30min"
             target="_blank" rel="noopener noreferrer"
-            className="flex-1 text-center px-3 py-2 rounded-lg border border-[#1E3A5F] text-[#60A5FA] text-xs font-semibold hover:bg-[#0C1929] transition-colors"
+            className="flex-1 text-center px-3 py-2 rounded-lg border border-[#E6F1FB] text-[#2563EB] text-xs font-semibold hover:bg-[#FFFFFF] transition-colors"
           >
             Book a 30 min legal review
           </a>
@@ -802,23 +802,23 @@ function FounderFeedbackButtons({ resultId }: { resultId: string }) {
   ];
 
   if (submitted) {
-    return <p className="text-xs text-white/30 text-center py-1">Thanks for your feedback.</p>;
+    return <p className="text-xs text-foreground/30 text-center py-1">Thanks for your feedback.</p>;
   }
 
   return (
     <div className="border-t border-white/8 px-4 py-3 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-white/30 uppercase tracking-widest">Was this helpful?</span>
+        <span className="text-[10px] text-foreground/30 uppercase tracking-widest">Was this helpful?</span>
         <div className="flex items-center gap-2">
           <button
             onClick={() => { setRating("up"); setSubmitted(true); }}
-            className={`text-sm px-2 py-0.5 rounded transition-colors ${rating === "up" ? "bg-[#052E16] text-white" : "text-white/30 hover:text-white/60"}`}
+            className={`text-sm px-2 py-0.5 rounded transition-colors ${rating === "up" ? "bg-[#E7F6EE] text-foreground" : "text-foreground/30 hover:text-foreground/60"}`}
           >
             👍 Looks right
           </button>
           <button
             onClick={() => setRating(rating === "down" ? null : "down")}
-            className={`text-sm px-2 py-0.5 rounded transition-colors ${rating === "down" ? "bg-[#1F0A0A] text-white" : "text-white/30 hover:text-white/60"}`}
+            className={`text-sm px-2 py-0.5 rounded transition-colors ${rating === "down" ? "bg-[#FCEBEB] text-foreground" : "text-foreground/30 hover:text-foreground/60"}`}
           >
             👎 Something's wrong
           </button>
@@ -831,7 +831,7 @@ function FounderFeedbackButtons({ resultId }: { resultId: string }) {
               <button
                 key={r}
                 onClick={() => setReason(r)}
-                className={`text-[10px] px-2 py-1 rounded border transition-colors ${reason === r ? "border-primary bg-primary/10 text-white" : "border-white/10 text-white/40 hover:border-white/25"}`}
+                className={`text-[10px] px-2 py-1 rounded border transition-colors ${reason === r ? "border-primary bg-primary/10 text-white" : "border-white/10 text-foreground/40 hover:border-white/25"}`}
               >
                 {r}
               </button>
@@ -866,7 +866,7 @@ function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) 
   const [copied, setCopied] = useState(false);
   return (
     <button
-      className="flex items-center gap-1.5 text-xs font-medium text-[#60A5FA] hover:text-white transition-colors px-2 py-1 rounded border border-[#1E3A5F] hover:border-[#3B82F6]"
+      className="flex items-center gap-1.5 text-xs font-medium text-[#2563EB] hover:text-foreground transition-colors px-2 py-1 rounded border border-[#E6F1FB] hover:border-[#3B82F6]"
       onClick={() => {
         void navigator.clipboard.writeText(text).then(() => {
           setCopied(true);
@@ -891,11 +891,11 @@ function SolutionSection({
         className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-white/3 transition-colors"
         onClick={() => setOpen(!open)}
       >
-        <span className="text-sm font-semibold text-white">{title}</span>
-        <ChevronDown size={14} className={`text-white/40 transition-transform ${open ? "rotate-180" : ""}`} />
+        <span className="text-sm font-semibold text-foreground">{title}</span>
+        <ChevronDown size={14} className={`text-foreground/40 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {!open && preview && (
-        <p className="px-4 pb-3 text-xs text-white/40 truncate">{preview}</p>
+        <p className="px-4 pb-3 text-xs text-foreground/40 truncate">{preview}</p>
       )}
       {open && <div className="px-4 pb-4">{children}</div>}
     </div>
@@ -941,9 +941,9 @@ function FounderSolutionCard({
   const isRed   = result.ragStatus === "RED";
   const isAmber = result.ragStatus === "AMBER";
 
-  const borderColor  = isRed ? "border-l-[#450A0A]" : isAmber ? "border-l-[#431407]" : "border-l-[#14532D]";
-  const headerBg     = isRed ? "bg-[#1F0A0A]"         : isAmber ? "bg-[#1C0F00]"         : "bg-[#052E16]";
-  const badgeColor   = isRed ? "bg-[#450A0A] text-white" : isAmber ? "bg-[#431407] text-white" : "bg-[#14532D] text-white";
+  const borderColor  = isRed ? "border-l-[#FCEBEB]" : isAmber ? "border-l-[#FAEEDA]" : "border-l-[#E7F6EE]";
+  const headerBg     = isRed ? "bg-[#FCEBEB]"         : isAmber ? "bg-[#FAEEDA]"         : "bg-[#E7F6EE]";
+  const badgeColor   = isRed ? "bg-[#FCEBEB] text-foreground" : isAmber ? "bg-[#FAEEDA] text-foreground" : "bg-[#E7F6EE] text-foreground";
   const statusLabel  = isRed ? "Problem" : isAmber ? "Worth negotiating" : "Fine";
 
   // Section content, use stored founder fields with fallbacks
@@ -966,11 +966,11 @@ function FounderSolutionCard({
           <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded ${badgeColor}`}>
             {statusLabel}
           </span>
-          <span className="font-semibold text-white text-sm">{label}</span>
+          <span className="font-semibold text-foreground text-sm">{label}</span>
         </div>
-        <p className="text-sm text-white/80 mt-2 leading-relaxed">{verdict}</p>
+        <p className="text-sm text-foreground/80 mt-2 leading-relaxed">{verdict}</p>
         {riskIfSigned && (
-          <p className="text-xs text-white/50 mt-1.5 leading-relaxed italic">{riskIfSigned}</p>
+          <p className="text-xs text-foreground/50 mt-1.5 leading-relaxed italic">{riskIfSigned}</p>
         )}
       </div>
 
@@ -982,11 +982,11 @@ function FounderSolutionCard({
         >
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-white/40">Subject</span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-foreground/40">Subject</span>
               <CopyButton text={`Subject: ${emailSubject}\n\n${emailBody}`} label="Copy email" />
             </div>
-            <div className="text-xs text-white/60 bg-[#050A10] rounded px-3 py-1.5 font-mono">{emailSubject}</div>
-            <pre className="text-sm text-white/80 bg-[#050A10] rounded px-3 py-3 leading-relaxed whitespace-pre-wrap font-sans max-h-64 overflow-y-auto">
+            <div className="text-xs text-foreground/60 bg-[#FFFFFF] rounded px-3 py-1.5 font-mono">{emailSubject}</div>
+            <pre className="text-sm text-foreground/80 bg-[#FFFFFF] rounded px-3 py-3 leading-relaxed whitespace-pre-wrap font-sans max-h-64 overflow-y-auto">
               {emailBody}
             </pre>
           </div>
@@ -1001,14 +1001,14 @@ function FounderSolutionCard({
         >
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-white/40">Suggested replacement</span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-foreground/40">Suggested replacement</span>
               <CopyButton text={replaceClause} label="Copy clause" />
             </div>
-            <pre className="text-xs text-white/80 bg-[#050A10] rounded px-3 py-3 leading-relaxed whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">
+            <pre className="text-xs text-foreground/80 bg-[#FFFFFF] rounded px-3 py-3 leading-relaxed whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">
               {replaceClause}
             </pre>
             {askFor && (
-              <p className="text-xs text-white/50 leading-relaxed pt-1">{askFor}</p>
+              <p className="text-xs text-foreground/50 leading-relaxed pt-1">{askFor}</p>
             )}
             {/* Clean, playbook-aligned drop-in version generated on demand */}
             {!amendedData ? (
@@ -1039,13 +1039,13 @@ function FounderSolutionCard({
           title="If you sign this as it stands →"
           preview={riskIfSigned.slice(0, 80) + "…"}
         >
-          <p className="text-sm text-white/70 leading-relaxed">{riskIfSigned}</p>
+          <p className="text-sm text-foreground/70 leading-relaxed">{riskIfSigned}</p>
         </SolutionSection>
       )}
 
       {/* Your decision: records the call and captures reasoning if it is unusual */}
       <div className="border-t border-white/8 px-4 py-3 space-y-2">
-        <span className="text-[10px] text-white/30 uppercase tracking-widest">Your decision</span>
+        <span className="text-[10px] text-foreground/30 uppercase tracking-widest">Your decision</span>
         <div className="flex flex-wrap gap-2">
           <button
             className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"
@@ -1195,11 +1195,11 @@ export default function FounderReview() {
           <button onClick={() => navigate(backPath)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
             <ArrowLeft size={15} /> Back
           </button>
-          <div className="card p-8 space-y-6 border-[#1C2A3A]" style={{ background: "#0D1B2A" }}>
+          <div className="card p-8 space-y-6 border-[#E2E8F0]" style={{ background: "#FFFFFF" }}>
             <div className="flex items-center gap-3">
-              <Sparkles size={18} className="text-[#60A5FA]" />
+              <Sparkles size={18} className="text-[#2563EB]" />
               <div>
-                <div className="font-semibold text-[#93C5FD]">Zane is reviewing your contract</div>
+                <div className="font-semibold text-[#2563EB]">Zane is reviewing your contract</div>
                 <div className="text-xs text-muted-foreground mt-0.5 truncate">{doc.originalName}</div>
               </div>
             </div>
@@ -1211,15 +1211,15 @@ export default function FounderReview() {
                 return (
                   <div key={stage.label} className="flex items-center gap-3">
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all
-                      ${done    ? "bg-[#14532D] border-[#166534]" : ""}
-                      ${active  ? "bg-[#1C0F00] border-[#92400E] animate-pulse" : ""}
-                      ${pending ? "bg-transparent border-[#1E293B]" : ""}`}>
-                      {done   && <CheckCircle size={10} className="text-[#86EFAC]" />}
-                      {active && <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D]" />}
+                      ${done    ? "bg-[#E7F6EE] border-[#BBE6CC]" : ""}
+                      ${active  ? "bg-[#FAEEDA] border-[#92400E] animate-pulse" : ""}
+                      ${pending ? "bg-transparent border-[#E2E8F0]" : ""}`}>
+                      {done   && <CheckCircle size={10} className="text-[#1B7A4B]" />}
+                      {active && <span className="w-1.5 h-1.5 rounded-full bg-[#854F0B]" />}
                     </div>
                     <span className={`text-sm leading-none transition-all
                       ${done    ? "text-muted-foreground line-through" : ""}
-                      ${active  ? "text-[#FCD34D] font-medium" : ""}
+                      ${active  ? "text-[#854F0B] font-medium" : ""}
                       ${pending ? "text-muted-foreground/40" : ""}`}>
                       {stage.label}
                     </span>
@@ -1274,10 +1274,10 @@ export default function FounderReview() {
   const filtered = filter === "ALL" ? results : results.filter((r) => r.ragStatus === filter);
 
   const VERDICT_BANNER = {
-    safe:    { label: "Looks good. You can proceed",              color: "text-white", bg: "bg-[#052E16] border-[#14532D]", icon: CheckCircle   },
-    caution: { label: "Worth a closer look before signing",        color: "text-white", bg: "bg-[#1C0F00] border-[#431407]", icon: AlertCircle   },
-    danger:  { label: "Don't sign yet. Fix these first.",          color: "text-white", bg: "bg-[#1F0A0A] border-[#450A0A]", icon: AlertTriangle },
-    pending: { label: "No playbook clauses matched this contract",  color: "text-white", bg: "bg-[#0F172A] border-[#334155]", icon: AlertCircle   },
+    safe:    { label: "Looks good. You can proceed",              color: "text-foreground", bg: "bg-[#E7F6EE] border-[#E7F6EE]", icon: CheckCircle   },
+    caution: { label: "Worth a closer look before signing",        color: "text-foreground", bg: "bg-[#FAEEDA] border-[#FAEEDA]", icon: AlertCircle   },
+    danger:  { label: "Don't sign yet. Fix these first.",          color: "text-foreground", bg: "bg-[#FCEBEB] border-[#FCEBEB]", icon: AlertTriangle },
+    pending: { label: "No playbook clauses matched this contract",  color: "text-foreground", bg: "bg-[#FFFFFF] border-[#CBD5E1]", icon: AlertCircle   },
   } as const;
 
   const banner    = VERDICT_BANNER[verdict];
@@ -1312,26 +1312,26 @@ export default function FounderReview() {
 
         {/* ── Large prominent verdict banner ── */}
         <div className={`rounded-2xl border-2 p-7 text-center space-y-3 ${
-          verdict === "danger"  ? "border-[#450A0A] bg-[#1F0A0A]" :
-          verdict === "caution" ? "border-[#431407] bg-[#1C0F00]" :
-          verdict === "safe"    ? "border-[#14532D] bg-[#052E16]" :
-          "border-[#334155] bg-[#0F172A]"
+          verdict === "danger"  ? "border-[#FCEBEB] bg-[#FCEBEB]" :
+          verdict === "caution" ? "border-[#FAEEDA] bg-[#FAEEDA]" :
+          verdict === "safe"    ? "border-[#E7F6EE] bg-[#E7F6EE]" :
+          "border-[#CBD5E1] bg-[#FFFFFF]"
         }`}>
           <div className="flex items-center justify-center gap-2">
-            <BannerIcon size={20} className="text-white" />
-            <span className="text-2xl font-bold tracking-tight text-white">
+            <BannerIcon size={20} className="text-foreground" />
+            <span className="text-2xl font-bold tracking-tight text-foreground">
               {verdict === "danger"  ? "DO NOT SIGN YET" :
                verdict === "caution" ? "NEGOTIATE FIRST" :
                verdict === "safe"    ? "SAFE TO SIGN"    : "REVIEWING…"}
             </span>
           </div>
-          <p className="text-white/70 text-sm max-w-sm mx-auto leading-relaxed">
+          <p className="text-foreground/70 text-sm max-w-sm mx-auto leading-relaxed">
             {verdict === "danger"  ? `${counts.RED} issue${counts.RED !== 1 ? "s" : ""} need${counts.RED === 1 ? "s" : ""} resolving first. Here is exactly what to do for each one.` :
              verdict === "caution" ? `${counts.AMBER} clause${counts.AMBER !== 1 ? "s" : ""} worth pushing back on. Here is what to say.` :
              verdict === "safe"    ? "No material issues found. You can proceed." :
              "Review in progress…"}
           </p>
-          <div className="text-xs text-white/35">
+          <div className="text-xs text-foreground/35">
             {counts.RED > 0 && <span className="mr-3">🔴 {counts.RED} problem{counts.RED !== 1 ? "s" : ""}</span>}
             {counts.AMBER > 0 && <span className="mr-3">🟡 {counts.AMBER} to negotiate</span>}
             {counts.GREEN > 0 && <span className="mr-3">🟢 {counts.GREEN} fine</span>}
@@ -1343,7 +1343,7 @@ export default function FounderReview() {
         {topRisks.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <AlertTriangle size={14} className="text-[#FCD34D]" />
+              <AlertTriangle size={14} className="text-[#854F0B]" />
               <h2 className="text-sm font-semibold">Top things to focus on</h2>
             </div>
             {topRisks.map((result) => (
@@ -1430,11 +1430,11 @@ export default function FounderReview() {
 
         {/* ── Feature 4: Draft full negotiation response ─────────────── */}
         {(counts.RED + counts.AMBER + counts.GREY) > 0 && (
-          <div className="rounded-2xl border border-[#1E3A5F] bg-[#0C1929] px-6 py-5 space-y-4">
+          <div className="rounded-2xl border border-[#E6F1FB] bg-[#FFFFFF] px-6 py-5 space-y-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Mail size={16} className="text-[#60A5FA]" />
-                <span className="font-semibold text-[#93C5FD]">Draft full negotiation response</span>
+                <Mail size={16} className="text-[#2563EB]" />
+                <span className="font-semibold text-[#2563EB]">Draft full negotiation response</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Zane writes one professional email covering all the issues you want to raise, ready to edit and send.
@@ -1442,7 +1442,7 @@ export default function FounderReview() {
             </div>
 
             {issueCount > 0 && (
-              <p className="text-xs text-[#60A5FA]/80">
+              <p className="text-xs text-[#2563EB]/80">
                 Will cover {issueCount} selected issue{issueCount !== 1 ? "s" : ""}.
                 Use the <strong>+</strong> button on each clause card to add or remove issues.
               </p>
@@ -1469,8 +1469,8 @@ export default function FounderReview() {
         )}
 
         {/* ── Persistent disclaimer ── */}
-        <div className="rounded-xl border border-white/8 bg-[#0B1118] px-4 py-3">
-          <p className="text-[11px] text-white/35 leading-relaxed text-center">
+        <div className="rounded-xl border border-white/8 bg-[#FFFFFF] px-4 py-3">
+          <p className="text-[11px] text-foreground/35 leading-relaxed text-center">
             Zane's output is based on the contract text you uploaded and your configured playbook positions.
             It is decision support, not legal advice. For contracts above £10,000 in value or involving
             unusual terms we recommend a qualified solicitor reviews before you sign.
@@ -1497,7 +1497,7 @@ export default function FounderReview() {
                 a.href = url; a.download = "negotiation-emails.txt"; a.click();
                 URL.revokeObjectURL(url);
               }}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-[#1E3A5F] text-[#60A5FA] text-sm font-semibold hover:bg-[#0C1929] transition-colors"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-[#E6F1FB] text-[#2563EB] text-sm font-semibold hover:bg-[#FFFFFF] transition-colors"
             >
               <Download size={15} /> Download all emails as a pack
             </button>

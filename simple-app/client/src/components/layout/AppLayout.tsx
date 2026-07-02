@@ -234,7 +234,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <span className="font-semibold text-sm">Zane</span>
         </div>
 
-        <main className="flex-1 overflow-y-auto">
+        {/* Light theme applied app-wide: the content area renders on the light
+            canvas while the navy navigation rail (above, outside this scope) stays. */}
+        <main className="flex-1 overflow-y-auto theme-light bg-background">
           <TrialBanner />
           {children}
         </main>

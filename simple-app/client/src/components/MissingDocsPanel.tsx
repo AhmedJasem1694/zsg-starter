@@ -27,7 +27,7 @@ export default function MissingDocsPanel() {
           {missing.map((m) => (
             <div key={m.contractType} className="flex items-start gap-2.5">
               {m.priority === "high" ? (
-                <AlertCircle size={13} className="text-[#FCD34D] mt-0.5 shrink-0" />
+                <AlertCircle size={13} className="text-[#854F0B] mt-0.5 shrink-0" />
               ) : (
                 <Circle size={13} className="text-muted-foreground mt-0.5 shrink-0" />
               )}

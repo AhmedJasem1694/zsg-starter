@@ -59,7 +59,7 @@ class ClauseErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="rounded-xl border border-[#450A0A] bg-[#1F0A0A] px-4 py-3 text-xs text-white/70">
+        <div className="rounded-xl border border-[#FCEBEB] bg-[#FCEBEB] px-4 py-3 text-xs text-foreground/70">
           Could not render clause{this.props.label ? ` "${this.props.label}"` : ""}. This clause may have unexpected data. Other clauses are unaffected.
         </div>
       );
@@ -99,10 +99,10 @@ const RAG_BADGE: Record<RagStatus, string> = {
 };
 
 const RAG_DOT: Record<RagStatus, string> = {
-  RED:   "bg-[#FCA5A5]",
-  AMBER: "bg-[#FCD34D]",
-  GREEN: "bg-[#86EFAC]",
-  GREY:  "bg-[#475569]",
+  RED:   "bg-[#A32D2D]",
+  AMBER: "bg-[#854F0B]",
+  GREEN: "bg-[#1B7A4B]",
+  GREY:  "bg-[#64748B]",
 };
 
 const RAG_LABEL: Record<RagStatus, string> = {
@@ -113,18 +113,18 @@ const RAG_LABEL: Record<RagStatus, string> = {
 };
 
 const RAG_BORDER_LEFT: Record<RagStatus, string> = {
-  RED:   "border-l-[#F87171]",
-  AMBER: "border-l-[#FBBF24]",
-  GREEN: "border-l-[#4ADE80]",
-  GREY:  "border-l-[#475569]",
+  RED:   "border-l-[#A32D2D]",
+  AMBER: "border-l-[#854F0B]",
+  GREEN: "border-l-[#1B7A4B]",
+  GREY:  "border-l-[#64748B]",
 };
 
 // ─── Confidence badge config ──────────────────────────────────────────────────
 
 const CONFIDENCE_CONFIG: Record<ConfidenceLabel, { label: string; classes: string }> = {
-  HIGH:   { label: "High confidence",          classes: "bg-[#052E16] border-[#14532D] text-white" },
-  MEDIUM: { label: "Medium confidence",        classes: "bg-[#1C0F00] border-[#431407] text-white" },
-  LOW:    { label: "Lawyer review required",   classes: "bg-[#1F0A0A] border-[#450A0A] text-white" },
+  HIGH:   { label: "High confidence",          classes: "bg-[#E7F6EE] border-[#E7F6EE] text-foreground" },
+  MEDIUM: { label: "Medium confidence",        classes: "bg-[#FAEEDA] border-[#FAEEDA] text-foreground" },
+  LOW:    { label: "Lawyer review required",   classes: "bg-[#FCEBEB] border-[#FCEBEB] text-foreground" },
 };
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -283,8 +283,8 @@ export default function ReviewDetail() {
         <div className="px-6 py-8 max-w-6xl mx-auto space-y-4">
           <BackButton onClick={() => navigate("/app/legal/dashboard")} />
           <div className="card p-8 text-center space-y-4">
-            <AlertTriangle size={24} className="text-[#FCA5A5] mx-auto" />
-            <div className="font-semibold text-[#FCA5A5]">Document not found</div>
+            <AlertTriangle size={24} className="text-[#A32D2D] mx-auto" />
+            <div className="font-semibold text-[#A32D2D]">Document not found</div>
             <div className="flex items-center justify-center gap-3">
               <button className="btn-secondary text-sm px-4 py-2" onClick={handleGoBack}>
                 Go back
@@ -327,9 +327,9 @@ export default function ReviewDetail() {
         <div className="px-6 py-8 max-w-6xl mx-auto space-y-4">
           <BackButton onClick={() => navigate("/app/legal/dashboard")} />
           <div className="card p-12 text-center space-y-4">
-            <AlertTriangle size={28} className="text-[#FCA5A5] mx-auto" />
+            <AlertTriangle size={28} className="text-[#A32D2D] mx-auto" />
             <div className="space-y-2">
-              <div className="font-semibold text-[#FCA5A5]">This review has been processing longer than expected</div>
+              <div className="font-semibold text-[#A32D2D]">This review has been processing longer than expected</div>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                 Something may have gone wrong. You can retry the review or contact support if this keeps happening.
               </p>
@@ -370,11 +370,11 @@ export default function ReviewDetail() {
       <AppLayout>
         <div className="px-6 py-8 max-w-6xl mx-auto space-y-4">
           <BackButton onClick={() => navigate("/app/legal/dashboard")} />
-          <div className="card p-8 space-y-6 border-[#1C2A3A]" style={{ background: "#0D1B2A" }}>
+          <div className="card p-8 space-y-6 border-[#E2E8F0]" style={{ background: "#FFFFFF" }}>
             <div className="flex items-center gap-3">
-              <Zap size={18} className="text-[#60A5FA]" />
+              <Zap size={18} className="text-[#2563EB]" />
               <div>
-                <div className="font-semibold text-[#93C5FD]">Zane is reviewing this contract</div>
+                <div className="font-semibold text-[#2563EB]">Zane is reviewing this contract</div>
                 <div className="text-xs text-muted-foreground mt-0.5 truncate">{doc.originalName}</div>
               </div>
             </div>
@@ -389,15 +389,15 @@ export default function ReviewDetail() {
                 return (
                   <div key={stage.status} className="flex items-center gap-3">
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-500
-                      ${done    ? "bg-[#14532D] border-[#166534]" : ""}
-                      ${active  ? "bg-[#1C0F00] border-[#92400E] animate-pulse" : ""}
-                      ${pending ? "bg-transparent border-[#1E293B]" : ""}`}>
-                      {done && <CheckCircle size={10} className="text-[#86EFAC]" />}
-                      {active && <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D]" />}
+                      ${done    ? "bg-[#E7F6EE] border-[#BBE6CC]" : ""}
+                      ${active  ? "bg-[#FAEEDA] border-[#92400E] animate-pulse" : ""}
+                      ${pending ? "bg-transparent border-[#E2E8F0]" : ""}`}>
+                      {done && <CheckCircle size={10} className="text-[#1B7A4B]" />}
+                      {active && <span className="w-1.5 h-1.5 rounded-full bg-[#854F0B]" />}
                     </div>
                     <span className={`text-sm leading-none transition-all
                       ${done    ? "text-muted-foreground line-through" : ""}
-                      ${active  ? "text-[#FCD34D] font-medium" : ""}
+                      ${active  ? "text-[#854F0B] font-medium" : ""}
                       ${pending ? "text-muted-foreground/40" : ""}`}>
                       {label}
                     </span>
@@ -418,11 +418,11 @@ export default function ReviewDetail() {
       <AppLayout>
         <div className="px-6 py-8 max-w-6xl mx-auto space-y-4">
           <BackButton onClick={() => navigate("/app/legal/dashboard")} />
-          <div className="card border-[#450A0A] p-8 space-y-4" style={{ background: "#120404" }}>
-            <AlertTriangle size={28} className="text-[#FCA5A5] mx-auto" />
+          <div className="card border-[#FCEBEB] p-8 space-y-4" style={{ background: "#FCEBEB" }}>
+            <AlertTriangle size={28} className="text-[#A32D2D] mx-auto" />
             <div className="text-center space-y-2">
-              <div className="font-semibold text-[#FCA5A5]">Review failed</div>
-              <p className="text-sm text-[#FCA5A5]/80 max-w-sm mx-auto">
+              <div className="font-semibold text-[#A32D2D]">Review failed</div>
+              <p className="text-sm text-[#A32D2D]/80 max-w-sm mx-auto">
                 {lastError ? formatLastError(lastError) : "Zane could not complete the analysis for this document."}
               </p>
             </div>
@@ -506,16 +506,16 @@ export default function ReviewDetail() {
 
         {/* ── Live analysis progress banner (during COMPARING with partial results) */}
         {isComparing && hasPartial && (
-          <div className="flex items-center gap-3 rounded-xl border border-[#1E3A5F] bg-[#0D1B2A] px-4 py-3">
-            <Loader2 size={14} className="text-[#60A5FA] shrink-0 animate-spin" />
+          <div className="flex items-center gap-3 rounded-xl border border-[#E6F1FB] bg-[#FFFFFF] px-4 py-3">
+            <Loader2 size={14} className="text-[#2563EB] shrink-0 animate-spin" />
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium text-[#93C5FD]">
+              <span className="text-sm font-medium text-[#2563EB]">
                 {doc.clausesTotal != null
                   ? `Analysing clauses: ${partialResults.length} of ${doc.clausesTotal} complete`
                   : "Analysing clauses…"}
               </span>
               {doc.clausesTotal != null && (
-                <div className="mt-1.5 h-1 bg-[#1E293B] rounded-full overflow-hidden w-48">
+                <div className="mt-1.5 h-1 bg-[#E2E8F0] rounded-full overflow-hidden w-48">
                   <div
                     className="h-full bg-[#3B82F6] rounded-full transition-all duration-700"
                     style={{ width: `${Math.min(100, (partialResults.length / doc.clausesTotal) * 100)}%` }}
@@ -539,7 +539,7 @@ export default function ReviewDetail() {
 
         {/* ── Section 3c: known counterparty negotiation patterns ──────── */}
         {counterpartyProfile && (
-          <div className="rounded-xl border border-[#1E293B] bg-[#0D1521] px-4 py-3 space-y-2">
+          <div className="rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] px-4 py-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Known patterns · {counterpartyProfile.counterparty}
@@ -561,17 +561,17 @@ export default function ReviewDetail() {
             accepted with this counterparty and why. Raises what to consider,
             never prescribes. */}
         {counterpartyJudgment && counterpartyJudgment.considerations.length > 0 && (
-          <div className="rounded-xl border border-[#1E3A8A]/50 bg-[#0B1220] px-4 py-3 space-y-2">
+          <div className="rounded-xl border border-[#DBEAFE]/50 bg-[#FFFFFF] px-4 py-3 space-y-2">
             <div className="flex items-center gap-2">
-              <Brain size={14} className="text-[#60A5FA] shrink-0" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-[#93C5FD]">
+              <Brain size={14} className="text-[#2563EB] shrink-0" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#2563EB]">
                 Worth considering with {counterpartyJudgment.counterparty}
               </span>
             </div>
             <ul className="space-y-1">
               {counterpartyJudgment.considerations.map((line, i) => (
                 <li key={i} className="text-xs text-foreground/80 leading-snug flex gap-1.5">
-                  <span className="text-[#60A5FA]/60 shrink-0">•</span>
+                  <span className="text-[#2563EB]/60 shrink-0">•</span>
                   <span>{line}</span>
                 </li>
               ))}
@@ -581,18 +581,18 @@ export default function ReviewDetail() {
 
         {/* ── Cross-document references: parent agreements relied upon ───── */}
         {crossRef && crossRef.references.length > 0 && (
-          <div className="rounded-xl border border-[#3F2D00] bg-[#161003] px-4 py-3 space-y-3">
+          <div className="rounded-xl border border-[#F5D9AE] bg-[#FAEEDA] px-4 py-3 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <Layers size={14} className="text-[#FCD34D] shrink-0" />
-                <span className="text-xs font-semibold uppercase tracking-wider text-[#FCD34D]">
+                <Layers size={14} className="text-[#854F0B] shrink-0" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-[#854F0B]">
                   Relies on other agreements
                 </span>
               </div>
               <button
                 onClick={() => relinkMutation.mutate()}
                 disabled={relinkMutation.isPending}
-                className="shrink-0 text-[11px] px-2 py-1 rounded-md border border-[#3F2D00] text-[#FCD34D]/80 hover:text-[#FCD34D] transition-colors disabled:opacity-50"
+                className="shrink-0 text-[11px] px-2 py-1 rounded-md border border-[#F5D9AE] text-[#854F0B]/80 hover:text-[#854F0B] transition-colors disabled:opacity-50"
               >
                 {relinkMutation.isPending ? "Checking…" : "Re-check library"}
               </button>
@@ -620,7 +620,7 @@ export default function ReviewDetail() {
                     <div className="text-muted-foreground">Defined terms from it: {ref.definedTerms.slice(0, 8).join(", ")}</div>
                   )}
                   {!ref.found && (
-                    <div className="text-[#FCD34D]/70">
+                    <div className="text-[#854F0B]/70">
                       Upload this agreement to your library, then re-check so Zane can verify the clause references line up.
                     </div>
                   )}
@@ -632,13 +632,13 @@ export default function ReviewDetail() {
 
         {/* ── Urgency strip (RED only) ─────────────────────────────────── */}
         {counts.RED > 0 && (
-          <div className="flex items-start gap-3 rounded-xl border border-[#450A0A] bg-[#1A0404] px-4 py-3">
-            <AlertTriangle size={14} className="text-[#FCA5A5] shrink-0 mt-0.5" />
+          <div className="flex items-start gap-3 rounded-xl border border-[#FCEBEB] bg-[#FCEBEB] px-4 py-3">
+            <AlertTriangle size={14} className="text-[#A32D2D] shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-semibold text-[#FCA5A5]">
+              <span className="text-sm font-semibold text-[#A32D2D]">
                 {counts.RED} clause{counts.RED !== 1 ? "s" : ""} require immediate attention before signing.
               </span>
-              <span className="text-xs text-[#FCA5A5]/60 ml-2">
+              <span className="text-xs text-[#A32D2D]/60 ml-2">
                 {results.filter(r => r.ragStatus === "RED").map(r => CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory).join(" · ")}
               </span>
             </div>
@@ -647,24 +647,24 @@ export default function ReviewDetail() {
 
         {/* ── Outcome capture banner ───────────────────────────────────── */}
         {!outcomeDismissed && !outcomeCaptured && (looksLikeSigned || doc?.outcome === undefined) && !isMock && (
-          <div className="rounded-xl border border-[#14532D] bg-[#052E16] px-4 py-3 space-y-2">
+          <div className="rounded-xl border border-[#E7F6EE] bg-[#E7F6EE] px-4 py-3 space-y-2">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <FileCheck size={14} className="text-[#86EFAC] shrink-0" />
-                <span className="text-sm font-semibold text-[#86EFAC]">
+                <FileCheck size={14} className="text-[#1B7A4B] shrink-0" />
+                <span className="text-sm font-semibold text-[#1B7A4B]">
                   {looksLikeSigned ? "Is this the final signed contract?" : "Mark this contract as signed"}
                 </span>
               </div>
-              <button onClick={() => setOutcomeDismissed(true)} className="text-[#86EFAC]/40 hover:text-[#86EFAC]/80 text-xs">✕</button>
+              <button onClick={() => setOutcomeDismissed(true)} className="text-[#1B7A4B]/40 hover:text-[#1B7A4B]/80 text-xs">✕</button>
             </div>
             {looksLikeSigned && (
-              <p className="text-xs text-[#86EFAC]/70">
+              <p className="text-xs text-[#1B7A4B]/70">
                 The filename suggests this may be an executed version. Marking it helps Zane track what was actually negotiated.
               </p>
             )}
             {showOutcomeNotes && (
               <textarea
-                className="w-full rounded-lg border border-[#14532D] bg-[#030f08] px-3 py-2 text-xs text-[#86EFAC] placeholder:text-[#86EFAC]/30 focus:outline-none min-h-[64px] resize-y"
+                className="w-full rounded-lg border border-[#E7F6EE] bg-[#E7F6EE] px-3 py-2 text-xs text-[#1B7A4B] placeholder:text-[#1B7A4B]/30 focus:outline-none min-h-[64px] resize-y"
                 placeholder="Optional: note what was negotiated or changed from the draft…"
                 value={outcomeNotes}
                 onChange={(e) => setOutcomeNotes(e.target.value)}
@@ -672,21 +672,21 @@ export default function ReviewDetail() {
             )}
             <div className="flex flex-wrap gap-2">
               <button
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#14532D] text-white hover:bg-[#166534] transition-colors disabled:opacity-60"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#E7F6EE] text-foreground hover:bg-[#BBE6CC] transition-colors disabled:opacity-60"
                 disabled={outcomeMutation.isPending}
                 onClick={() => outcomeMutation.mutate("SIGNED")}
               >
                 <CheckCircle size={11} /> Mark as signed
               </button>
               <button
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#14532D] text-white hover:bg-[#166534] transition-colors disabled:opacity-60"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-[#E7F6EE] text-foreground hover:bg-[#BBE6CC] transition-colors disabled:opacity-60"
                 disabled={outcomeMutation.isPending}
                 onClick={() => outcomeMutation.mutate("EXECUTED")}
               >
                 <CheckCircle size={11} /> Mark as executed
               </button>
               <button
-                className="text-xs px-2 py-1.5 text-[#86EFAC]/50 hover:text-[#86EFAC]/80"
+                className="text-xs px-2 py-1.5 text-[#1B7A4B]/50 hover:text-[#1B7A4B]/80"
                 onClick={() => setShowOutcomeNotes((v) => !v)}
               >
                 {showOutcomeNotes ? "Hide notes" : "Add note"}
@@ -695,9 +695,9 @@ export default function ReviewDetail() {
           </div>
         )}
         {outcomeCaptured && !isMock && (
-          <div className="flex items-center gap-2 rounded-xl border border-[#14532D] bg-[#052E16] px-4 py-2.5">
-            <CheckCircle size={13} className="text-[#86EFAC] shrink-0" />
-            <span className="text-xs text-[#86EFAC]">
+          <div className="flex items-center gap-2 rounded-xl border border-[#E7F6EE] bg-[#E7F6EE] px-4 py-2.5">
+            <CheckCircle size={13} className="text-[#1B7A4B] shrink-0" />
+            <span className="text-xs text-[#1B7A4B]">
               Marked as {doc?.outcome?.toLowerCase() ?? "signed"} - outcome captured for negotiation intelligence.
             </span>
           </div>
@@ -705,16 +705,16 @@ export default function ReviewDetail() {
 
         {/* ── Unconfirmed outcomes banner ────────────────────────────────── */}
         {hasUnconfirmedOutcomes && !isMock && (
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-[#1D4ED8] bg-[#0E1E3A] px-4 py-3">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-[#1D4ED8] bg-[#FFFFFF] px-4 py-3">
             <div className="flex items-center gap-2">
-              <Brain size={13} className="text-[#60A5FA] shrink-0" />
-              <span className="text-xs font-semibold text-[#93C5FD]">
+              <Brain size={13} className="text-[#2563EB] shrink-0" />
+              <span className="text-xs font-semibold text-[#2563EB]">
                 Final version uploaded - confirm outcomes to update Zane's learning
               </span>
             </div>
             <Link
               to={`/app/legal/${id}/outcome`}
-              className="text-xs text-[#60A5FA] hover:text-[#93C5FD] whitespace-nowrap font-medium"
+              className="text-xs text-[#2563EB] hover:text-[#2563EB] whitespace-nowrap font-medium"
             >
               Confirm now →
             </Link>
@@ -723,7 +723,7 @@ export default function ReviewDetail() {
 
         {/* ── Upload final version banner (not yet uploaded) ────────────── */}
         {!hasUnconfirmedOutcomes && !isMock && !outcomeDeltaData?.allConfirmed && (
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-[#1E293B] bg-[#0B1118] px-4 py-2.5">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] px-4 py-2.5">
             <div className="flex items-center gap-2">
               <Upload size={12} className="text-muted-foreground shrink-0" />
               <span className="text-xs text-muted-foreground">
@@ -742,7 +742,7 @@ export default function ReviewDetail() {
                 }}
               />
               <button
-                className="text-xs text-[#60A5FA] hover:text-[#93C5FD] font-medium disabled:opacity-60 flex items-center gap-1"
+                className="text-xs text-[#2563EB] hover:text-[#2563EB] font-medium disabled:opacity-60 flex items-center gap-1"
                 disabled={uploadingFinal}
                 onClick={() => finalFileInputRef.current?.click()}
               >
@@ -764,10 +764,10 @@ export default function ReviewDetail() {
 
             {/* Contradiction findings */}
             {doc.contradictions && doc.contradictions.length > 0 && (
-              <div className="rounded-xl border border-[#431407] bg-[#1C0F00] px-4 py-3 space-y-3">
+              <div className="rounded-xl border border-[#FAEEDA] bg-[#FAEEDA] px-4 py-3 space-y-3">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle size={13} className="text-[#FCD34D] shrink-0" />
-                  <span className="text-xs font-semibold text-[#FCD34D]">
+                  <AlertTriangle size={13} className="text-[#854F0B] shrink-0" />
+                  <span className="text-xs font-semibold text-[#854F0B]">
                     {doc.contradictions.length} internal contradiction{doc.contradictions.length !== 1 ? "s" : ""} detected
                   </span>
                 </div>
@@ -776,10 +776,10 @@ export default function ReviewDetail() {
                     const finding = c as import("../lib/types").ContradictionFinding;
                     const sev = finding.severity ?? "LOW";
                     const severityColor = sev === "HIGH"
-                      ? "text-white bg-[#1F0A0A] border-[#450A0A]"
+                      ? "text-foreground bg-[#FCEBEB] border-[#FCEBEB]"
                       : sev === "MEDIUM"
-                      ? "text-white bg-[#1C0F00] border-[#431407]"
-                      : "text-white bg-[#0F172A] border-[#334155]";
+                      ? "text-foreground bg-[#FAEEDA] border-[#FAEEDA]"
+                      : "text-foreground bg-[#FFFFFF] border-[#CBD5E1]";
                     return (
                       <div key={i} className={`rounded-lg border px-3 py-2 space-y-1 ${severityColor}`}>
                         <div className="flex items-center gap-2">
@@ -809,8 +809,8 @@ export default function ReviewDetail() {
                 onClick={() => setFilter("ALL")}
                 className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                   filter === "ALL"
-                    ? "bg-[#1E3A5F] text-[#93C5FD] border-[#2563EB]"
-                    : "border-border text-muted-foreground hover:border-[#475569] hover:text-foreground"
+                    ? "bg-[#E6F1FB] text-[#2563EB] border-[#2563EB]"
+                    : "border-border text-muted-foreground hover:border-[#64748B] hover:text-foreground"
                 }`}
               >
                 All ({results.length})
@@ -823,8 +823,8 @@ export default function ReviewDetail() {
                   onClick={() => setFilter(f)}
                   className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                     filter === f
-                      ? "bg-[#1E3A5F] text-[#93C5FD] border-[#2563EB]"
-                      : "border-border text-muted-foreground hover:border-[#475569] hover:text-foreground"
+                      ? "bg-[#E6F1FB] text-[#2563EB] border-[#2563EB]"
+                      : "border-border text-muted-foreground hover:border-[#64748B] hover:text-foreground"
                   }`}
                 >
                   {RAG_LABEL[f]} ({counts[f]})
@@ -836,12 +836,12 @@ export default function ReviewDetail() {
                 onClick={() => setFilter("GREY_CRITICAL")}
                 className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                   filter === "GREY_CRITICAL"
-                    ? "bg-[#1E3A5F] text-[#93C5FD] border-[#2563EB]"
-                    : "border-border text-muted-foreground hover:border-[#475569] hover:text-foreground"
+                    ? "bg-[#E6F1FB] text-[#2563EB] border-[#2563EB]"
+                    : "border-border text-muted-foreground hover:border-[#64748B] hover:text-foreground"
                 }`}
               >
                 Missing: Critical{" "}
-                <span className="inline-flex items-center justify-center ml-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#1F0A0A] border border-[#450A0A] text-white">
+                <span className="inline-flex items-center justify-center ml-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FCEBEB] border border-[#FCEBEB] text-foreground">
                   {counts.GREY_CRITICAL}
                 </span>
               </button>
@@ -851,12 +851,12 @@ export default function ReviewDetail() {
                 onClick={() => setFilter("GREY_OPTIONAL")}
                 className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                   filter === "GREY_OPTIONAL"
-                    ? "bg-[#1E3A5F] text-[#93C5FD] border-[#2563EB]"
-                    : "border-border text-muted-foreground hover:border-[#475569] hover:text-foreground"
+                    ? "bg-[#E6F1FB] text-[#2563EB] border-[#2563EB]"
+                    : "border-border text-muted-foreground hover:border-[#64748B] hover:text-foreground"
                 }`}
               >
                 Missing: Optional{" "}
-                <span className="inline-flex items-center justify-center ml-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#0F172A] border border-[#334155] text-white">
+                <span className="inline-flex items-center justify-center ml-0.5 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FFFFFF] border border-[#CBD5E1] text-foreground">
                   {counts.GREY_OPTIONAL}
                 </span>
               </button>
@@ -865,7 +865,7 @@ export default function ReviewDetail() {
               {results.some(r => r.urgencyLevel === "IMMEDIATE") && (
                 <button
                   onClick={() => setFilter("ALL")}
-                  className="px-3 py-1 rounded-full text-xs font-medium border border-[#450A0A] bg-[#1F0A0A] text-white hover:bg-[#2A0808]"
+                  className="px-3 py-1 rounded-full text-xs font-medium border border-[#FCEBEB] bg-[#FCEBEB] text-foreground hover:bg-[#FCEBEB]"
                 >
                   ⚡ {results.filter(r => r.urgencyLevel === "IMMEDIATE").length} Immediate
                 </button>
@@ -876,8 +876,8 @@ export default function ReviewDetail() {
             <div className="space-y-2 card-enter-stagger">
               {results.length === 0 && doc.status === "COMPLETE" ? (
                 <div className="card p-8 text-center space-y-2">
-                  <AlertTriangle size={24} className="text-[#FCA5A5] mx-auto" />
-                  <div className="font-semibold text-[#FCA5A5]">No clauses were analysed</div>
+                  <AlertTriangle size={24} className="text-[#A32D2D] mx-auto" />
+                  <div className="font-semibold text-[#A32D2D]">No clauses were analysed</div>
                   <p className="text-sm text-muted-foreground">
                     Zane could not find any relevant clauses in this document. Try uploading a clearer version or a different format.
                   </p>
@@ -943,18 +943,18 @@ function ContractHeader({
   isMock: boolean;
 }) {
   const RISK_CONFIG = {
-    RED:   { label: "High Risk",      bg: "bg-[#1F0A0A] border-[#450A0A]", text: "text-white" },
-    AMBER: { label: "Moderate Risk",  bg: "bg-[#1C0F00] border-[#431407]", text: "text-white" },
-    GREEN: { label: "Low Risk",       bg: "bg-[#052E16] border-[#14532D]", text: "text-white" },
+    RED:   { label: "High Risk",      bg: "bg-[#FCEBEB] border-[#FCEBEB]", text: "text-foreground" },
+    AMBER: { label: "Moderate Risk",  bg: "bg-[#FAEEDA] border-[#FAEEDA]", text: "text-foreground" },
+    GREEN: { label: "Low Risk",       bg: "bg-[#E7F6EE] border-[#E7F6EE]", text: "text-foreground" },
     GREY:  { label: "Pending",        bg: "bg-muted border-border",         text: "text-muted-foreground" },
   };
   const riskCfg = RISK_CONFIG[overallRag];
 
   const READINESS_CONFIG = {
-    "not-ready": { label: "Do not sign yet",   color: "text-white", bg: "bg-[#1F0A0A] border-[#450A0A]" },
-    "negotiate":  { label: "Negotiate first",   color: "text-white", bg: "bg-[#1C0F00] border-[#431407]" },
-    "review":     { label: "Review needed",     color: "text-white", bg: "bg-[#1C0F00] border-[#431407]" },
-    "ready":      { label: "Ready to sign",     color: "text-white", bg: "bg-[#052E16] border-[#14532D]" },
+    "not-ready": { label: "Do not sign yet",   color: "text-foreground", bg: "bg-[#FCEBEB] border-[#FCEBEB]" },
+    "negotiate":  { label: "Negotiate first",   color: "text-foreground", bg: "bg-[#FAEEDA] border-[#FAEEDA]" },
+    "review":     { label: "Review needed",     color: "text-foreground", bg: "bg-[#FAEEDA] border-[#FAEEDA]" },
+    "ready":      { label: "Ready to sign",     color: "text-foreground", bg: "bg-[#E7F6EE] border-[#E7F6EE]" },
   };
   const readiness: "not-ready" | "negotiate" | "review" | "ready" =
     counts.RED >= 2 ? "not-ready" :
@@ -965,7 +965,7 @@ function ContractHeader({
   const date = formatDateShort(doc.uploadedAt);
 
   return (
-    <div className="rounded-xl border border-[#1E293B] bg-[#0B1521] px-6 py-5 space-y-4">
+    <div className="rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] px-6 py-5 space-y-4">
       {/* Top row: name + risk badge + actions */}
       <div className="flex items-start gap-4 justify-between">
         <div className="min-w-0 flex-1">
@@ -1034,8 +1034,8 @@ function MetaPill({
   return (
     <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium
       ${urgent
-        ? "border-[#431407] bg-[#1C0F00] text-white"
-        : "border-[#1E293B] bg-[#0D1521] text-muted-foreground"
+        ? "border-[#FAEEDA] bg-[#FAEEDA] text-foreground"
+        : "border-[#E2E8F0] bg-[#FFFFFF] text-muted-foreground"
       }`}
     >
       {icon}
@@ -1110,17 +1110,17 @@ function SignOffTracker({ doc, results }: { doc: UploadedDocument; results: Revi
         {steps.map((step) => (
           <div key={step.label} className="flex items-start gap-2.5">
             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all
-              ${step.status === "done"     ? "bg-[#14532D] border-[#166534]" : ""}
-              ${step.status === "required" ? "bg-[#1C0F00] border-[#92400E]" : ""}
-              ${step.status === "skipped"  ? "bg-transparent border-[#1E293B]" : ""}`}
+              ${step.status === "done"     ? "bg-[#E7F6EE] border-[#BBE6CC]" : ""}
+              ${step.status === "required" ? "bg-[#FAEEDA] border-[#92400E]" : ""}
+              ${step.status === "skipped"  ? "bg-transparent border-[#E2E8F0]" : ""}`}
             >
-              {step.status === "done"     && <CheckCircle size={9} className="text-[#86EFAC]" />}
-              {step.status === "required" && <span className="w-1.5 h-1.5 rounded-full bg-[#FCD34D]" />}
+              {step.status === "done"     && <CheckCircle size={9} className="text-[#1B7A4B]" />}
+              {step.status === "required" && <span className="w-1.5 h-1.5 rounded-full bg-[#854F0B]" />}
             </div>
             <div className="min-w-0">
               <div className={`text-xs font-medium leading-none
-                ${step.status === "done"     ? "text-[#86EFAC]" : ""}
-                ${step.status === "required" ? "text-[#FCD34D]" : ""}
+                ${step.status === "done"     ? "text-[#1B7A4B]" : ""}
+                ${step.status === "required" ? "text-[#854F0B]" : ""}
                 ${step.status === "skipped"  ? "text-muted-foreground/35" : ""}`}
               >
                 {step.label}
@@ -1128,7 +1128,7 @@ function SignOffTracker({ doc, results }: { doc: UploadedDocument; results: Revi
               {step.detail && (
                 <div className={`text-[10px] mt-1 leading-tight
                   ${step.status === "done"     ? "text-muted-foreground/60" : ""}
-                  ${step.status === "required" ? "text-[#FCD34D]/55" : ""}
+                  ${step.status === "required" ? "text-[#854F0B]/55" : ""}
                   ${step.status === "skipped"  ? "text-muted-foreground/25" : ""}`}
                 >
                   {step.detail}
@@ -1191,9 +1191,9 @@ function IntelligenceSignals({
     const co = companyName ?? "your organisation";
     signals.push({
       icon: TrendingDown,
-      color: "#FCA5A5",
-      bgColor: "#1A0404",
-      borderColor: "#450A0A",
+      color: "#A32D2D",
+      bgColor: "#FCEBEB",
+      borderColor: "#FCEBEB",
       text: isMock
         ? `${redResults.length} clauses flagged RED across all prior Acme Corp reviews - consistent counterparty negotiation posture.`
         : `These ${redResults.length} clause${redResults.length !== 1 ? "s" : ""} exceed ${co}'s accepted risk thresholds and trigger mandatory ${approverRole} approval before this contract can proceed.`,
@@ -1204,9 +1204,9 @@ function IntelligenceSignals({
   if (renewalDaysUntil !== null && renewalDaysUntil <= 90) {
     signals.push({
       icon: CalendarClock,
-      color: "#FCD34D",
-      bgColor: "#130D00",
-      borderColor: "#431407",
+      color: "#854F0B",
+      bgColor: "#FAEEDA",
+      borderColor: "#FAEEDA",
       text: `Auto-renewal notice window closes in ${renewalDaysUntil} days. ${
         doc.contractValue ? `Failure to act locks £${doc.contractValue.toLocaleString("en-GB")} for another year.` : ""
       }`,
@@ -1217,9 +1217,9 @@ function IntelligenceSignals({
   if (isMock) {
     signals.push({
       icon: Layers,
-      color: "#A5B4FC",
-      bgColor: "#0F0E1A",
-      borderColor: "#312E81",
+      color: "#185FA5",
+      bgColor: "#FFFFFF",
+      borderColor: "#C7D2FE",
       text: "Zane has processed 2 prior agreements with this counterparty. Liability cap position unchanged across all 3 reviews - systemic pattern flagged.",
     });
   } else if (results.length > 0) {
@@ -1227,9 +1227,9 @@ function IntelligenceSignals({
     if (absentCount > 0) {
       signals.push({
         icon: Layers,
-        color: "#A5B4FC",
-        bgColor: "#0F0E1A",
-        borderColor: "#312E81",
+        color: "#185FA5",
+        bgColor: "#FFFFFF",
+        borderColor: "#C7D2FE",
         text: `${absentCount} clause${absentCount !== 1 ? "s" : ""} absent from this contract. Your playbook requires ${absentCount !== 1 ? "them" : "it"} to be present - request insertion before signing.`,
       });
     }
@@ -1286,25 +1286,25 @@ function DocumentAuditPanel({ audit }: { audit: import("../lib/types").DocumentA
   };
 
   const SEVERITY_CONFIG = {
-    HIGH:   { classes: "bg-[#1F0A0A] border-[#450A0A] text-white", label: "High" },
-    MEDIUM: { classes: "bg-[#1C0F00] border-[#431407] text-white", label: "Medium" },
-    LOW:    { classes: "bg-[#0F172A] border-[#334155] text-white", label: "Low" },
+    HIGH:   { classes: "bg-[#FCEBEB] border-[#FCEBEB] text-foreground", label: "High" },
+    MEDIUM: { classes: "bg-[#FAEEDA] border-[#FAEEDA] text-foreground", label: "Medium" },
+    LOW:    { classes: "bg-[#FFFFFF] border-[#CBD5E1] text-foreground", label: "Low" },
   };
 
   return (
-    <div className="rounded-xl border border-[#1E3A5F] bg-[#0C1929] overflow-hidden">
+    <div className="rounded-xl border border-[#E6F1FB] bg-[#FFFFFF] overflow-hidden">
       <button
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#0E1E3A] transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#FFFFFF] transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-2.5">
-          <Scale size={13} className="text-[#60A5FA] shrink-0" />
-          <span className="text-sm font-semibold text-[#93C5FD]">Document Audit</span>
-          <span className="text-[10px] bg-[#1D4ED8]/30 text-[#60A5FA] border border-[#1D4ED8]/40 rounded-full px-2 py-0.5 font-semibold">
+          <Scale size={13} className="text-[#2563EB] shrink-0" />
+          <span className="text-sm font-semibold text-[#2563EB]">Document Audit</span>
+          <span className="text-[10px] bg-[#1D4ED8]/30 text-[#2563EB] border border-[#1D4ED8]/40 rounded-full px-2 py-0.5 font-semibold">
             {allFindings.length} finding{allFindings.length !== 1 ? "s" : ""}
           </span>
           {audit.highSeverityCount > 0 && (
-            <span className="text-[10px] bg-[#1F0A0A] text-white border border-[#450A0A] rounded-full px-2 py-0.5 font-semibold">
+            <span className="text-[10px] bg-[#FCEBEB] text-foreground border border-[#FCEBEB] rounded-full px-2 py-0.5 font-semibold">
               {audit.highSeverityCount} high
             </span>
           )}
@@ -1315,7 +1315,7 @@ function DocumentAuditPanel({ audit }: { audit: import("../lib/types").DocumentA
         </div>
       </button>
       {expanded && (
-        <div className="border-t border-[#1E293B] px-4 py-4 space-y-4">
+        <div className="border-t border-[#E2E8F0] px-4 py-4 space-y-4">
           {[
             { key: "definedTerms",        findings: audit.definedTerms ?? [] },
             { key: "crossReferences",     findings: audit.crossReferences ?? [] },
@@ -1360,11 +1360,11 @@ function RiskDistribution({ counts, total }: { counts: ExtendedCounts; total: nu
   if (total === 0) return null;
 
   const bars: Array<{ label: string; count: number; color: string; bg: string }> = [
-    { label: "Red",               count: counts.RED,           color: "#FCA5A5", bg: "bg-[#FCA5A5]" },
-    { label: "Amber",             count: counts.AMBER,         color: "#FCD34D", bg: "bg-[#FCD34D]" },
-    { label: "Green",             count: counts.GREEN,         color: "#86EFAC", bg: "bg-[#86EFAC]" },
-    { label: "Missing (critical)", count: counts.GREY_CRITICAL, color: "#FCA5A5", bg: "bg-[#FCA5A5]/60" },
-    { label: "Missing (optional)", count: counts.GREY_OPTIONAL, color: "#475569", bg: "bg-[#475569]" },
+    { label: "Red",               count: counts.RED,           color: "#A32D2D", bg: "bg-[#A32D2D]" },
+    { label: "Amber",             count: counts.AMBER,         color: "#854F0B", bg: "bg-[#854F0B]" },
+    { label: "Green",             count: counts.GREEN,         color: "#1B7A4B", bg: "bg-[#1B7A4B]" },
+    { label: "Missing (critical)", count: counts.GREY_CRITICAL, color: "#A32D2D", bg: "bg-[#A32D2D]/60" },
+    { label: "Missing (optional)", count: counts.GREY_OPTIONAL, color: "#64748B", bg: "bg-[#64748B]" },
   ].filter((b) => b.count > 0);
 
   return (
@@ -1379,7 +1379,7 @@ function RiskDistribution({ counts, total }: { counts: ExtendedCounts; total: nu
         {bars.map((bar) => (
           <div key={bar.label} className="flex items-center gap-2.5">
             <div className="w-14 text-[11px] text-muted-foreground/60 shrink-0">{bar.label}</div>
-            <div className="flex-1 h-1.5 bg-[#1E293B] rounded-full overflow-hidden">
+            <div className="flex-1 h-1.5 bg-[#E2E8F0] rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full ${bar.bg} transition-all duration-700`}
                 style={{ width: `${(bar.count / total) * 100}%` }}
@@ -1421,7 +1421,7 @@ function LearningIndicator({ clauseCategory }: { clauseCategory: string }) {
 
   return (
     <div className="group relative flex items-center gap-1" title={tooltip}>
-      <div className={`w-1.5 h-1.5 rounded-full ${hasSignals ? "bg-[#60A5FA]" : "bg-[#334155]"}`} />
+      <div className={`w-1.5 h-1.5 rounded-full ${hasSignals ? "bg-[#2563EB]" : "bg-[#CBD5E1]"}`} />
       <span className="text-[10px] text-foreground/30 group-hover:text-foreground/60 transition-colors">
         {hasSignals ? "Personalised" : "Standard"}
       </span>
@@ -1468,19 +1468,19 @@ function OverridePanel({
   }
 
   const statuses: Array<{ value: string; label: string; color: string; bg: string; border: string }> = [
-    { value: "RED",   label: "Red",   color: "#FCA5A5", bg: "#1F0A0A", border: "#450A0A" },
-    { value: "AMBER", label: "Amber", color: "#FCD34D", bg: "#1C0F00", border: "#431407" },
-    { value: "GREEN", label: "Green", color: "#86EFAC", bg: "#052E16", border: "#14532D" },
+    { value: "RED",   label: "Red",   color: "#A32D2D", bg: "#FCEBEB", border: "#FCEBEB" },
+    { value: "AMBER", label: "Amber", color: "#854F0B", bg: "#FAEEDA", border: "#FAEEDA" },
+    { value: "GREEN", label: "Green", color: "#1B7A4B", bg: "#E7F6EE", border: "#E7F6EE" },
   ];
 
   return (
-    <div className="rounded-xl border border-[#1D4ED8] bg-[#0E1E3A] p-4 space-y-3">
+    <div className="rounded-xl border border-[#1D4ED8] bg-[#FFFFFF] p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Edit2 size={12} className="text-[#60A5FA]" />
-          <span className="text-xs font-semibold text-[#93C5FD]">Override RAG status</span>
+          <Edit2 size={12} className="text-[#2563EB]" />
+          <span className="text-xs font-semibold text-[#2563EB]">Override RAG status</span>
         </div>
-        <button onClick={onClose} className="text-[#60A5FA]/40 hover:text-[#60A5FA] text-xs">✕</button>
+        <button onClick={onClose} className="text-[#2563EB]/40 hover:text-[#2563EB] text-xs">✕</button>
       </div>
 
       {/* Status chips */}
@@ -1492,7 +1492,7 @@ function OverridePanel({
             className="flex-1 text-xs py-1.5 rounded-lg border font-medium transition-all"
             style={{
               background: correctedStatus === s.value ? s.bg : "transparent",
-              borderColor: correctedStatus === s.value ? s.border : "#1E293B",
+              borderColor: correctedStatus === s.value ? s.border : "#E2E8F0",
               color: correctedStatus === s.value ? s.color : "#64748B",
             }}
           >
@@ -1511,7 +1511,7 @@ function OverridePanel({
               onClick={() => setReason(chip)}
               className="text-[11px] px-2.5 py-1 rounded-md border transition-colors"
               style={{
-                borderColor: reason === chip ? "#2563EB" : "#1E293B",
+                borderColor: reason === chip ? "#2563EB" : "#E2E8F0",
                 background: reason === chip ? "#1D4ED8" : "transparent",
                 color: reason === chip ? "#fff" : "#64748B",
               }}
@@ -1521,7 +1521,7 @@ function OverridePanel({
           ))}
         </div>
         <input
-          className="w-full rounded-lg border border-[#1E293B] bg-[#0B1118] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-[#2563EB]"
+          className="w-full rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-[#2563EB]"
           placeholder="Or type a reason…"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
@@ -1575,13 +1575,13 @@ function FalsePositivePanel({
   }
 
   return (
-    <div className="rounded-xl border border-[#431407] bg-[#1C0F00] p-4 space-y-3">
+    <div className="rounded-xl border border-[#FAEEDA] bg-[#FAEEDA] p-4 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Flag size={12} className="text-[#FCD34D]" />
-          <span className="text-xs font-semibold text-[#FCD34D]">Mark as false positive</span>
+          <Flag size={12} className="text-[#854F0B]" />
+          <span className="text-xs font-semibold text-[#854F0B]">Mark as false positive</span>
         </div>
-        <button onClick={onClose} className="text-[#FCD34D]/40 hover:text-[#FCD34D] text-xs">✕</button>
+        <button onClick={onClose} className="text-[#854F0B]/40 hover:text-[#854F0B] text-xs">✕</button>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -1591,11 +1591,11 @@ function FalsePositivePanel({
             onClick={() => setErrorType(t.value)}
             className="text-left p-3 rounded-lg border transition-all"
             style={{
-              borderColor: errorType === t.value ? "#431407" : "#1E293B",
-              background: errorType === t.value ? "#1C0F00" : "transparent",
+              borderColor: errorType === t.value ? "#FAEEDA" : "#E2E8F0",
+              background: errorType === t.value ? "#FAEEDA" : "transparent",
             }}
           >
-            <div className={`text-[11px] font-semibold ${errorType === t.value ? "text-[#FCD34D]" : "text-muted-foreground"}`}>
+            <div className={`text-[11px] font-semibold ${errorType === t.value ? "text-[#854F0B]" : "text-muted-foreground"}`}>
               {t.label}
             </div>
             <div className="text-[10px] text-muted-foreground/50 mt-0.5">{t.desc}</div>
@@ -1604,14 +1604,14 @@ function FalsePositivePanel({
       </div>
 
       <textarea
-        className="w-full rounded-lg border border-[#1E293B] bg-[#0B1118] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none min-h-[60px] resize-y"
+        className="w-full rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none min-h-[60px] resize-y"
         placeholder="Optional: what is the correct interpretation?"
         value={correctInterpretation}
         onChange={(e) => setCorrectInterpretation(e.target.value)}
       />
 
       <button
-        className="w-full text-xs py-2 rounded-lg bg-[#431407] text-white font-semibold disabled:opacity-50 transition-colors hover:bg-[#7C2D12]"
+        className="w-full text-xs py-2 rounded-lg bg-[#FAEEDA] text-foreground font-semibold disabled:opacity-50 transition-colors hover:bg-[#FCEBEB]"
         disabled={!errorType || submitting}
         onClick={() => void handleSubmit()}
       >
@@ -1734,7 +1734,7 @@ function ClauseCard({
 
   return (
     <div
-      className={`overflow-hidden rounded-xl border border-[#1E293B] border-l-[3px] ${RAG_BORDER_LEFT[result.ragStatus]} bg-card transition-all duration-200 ${expanded ? "shadow-lg shadow-black/20" : ""}`}
+      className={`overflow-hidden rounded-xl border border-[#E2E8F0] border-l-[3px] ${RAG_BORDER_LEFT[result.ragStatus]} bg-card transition-all duration-200 ${expanded ? "shadow-lg shadow-black/20" : ""}`}
       style={{ animationDelay: `${index * 40}ms` }}
     >
       {/* ── Collapsed header ──────────────────────────────────────────── */}
@@ -1747,12 +1747,12 @@ function ClauseCard({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-semibold">{label}</span>
             {result.isAbsent && (
-              <span className="text-[11px] bg-[#0F172A] text-white border border-[#334155] rounded px-1.5 py-0.5">
+              <span className="text-[11px] bg-[#FFFFFF] text-foreground border border-[#CBD5E1] rounded px-1.5 py-0.5">
                 Absent
               </span>
             )}
             {result.escalationRequired && (
-              <span className="text-[11px] bg-[#1F0A0A] text-white border border-[#450A0A] rounded px-1.5 py-0.5 flex items-center gap-1">
+              <span className="text-[11px] bg-[#FCEBEB] text-foreground border border-[#FCEBEB] rounded px-1.5 py-0.5 flex items-center gap-1">
                 <AlertTriangle size={9} /> Escalate
               </span>
             )}
@@ -1775,15 +1775,15 @@ function ClauseCard({
           {result.urgencyLevel && result.urgencyLevel !== "BACKGROUND" && (
             <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${
               result.urgencyLevel === "IMMEDIATE"
-                ? "bg-[#1F0A0A] text-white border-[#450A0A]"
-                : "bg-[#1C0F00] text-white border-[#431407]"
+                ? "bg-[#FCEBEB] text-foreground border-[#FCEBEB]"
+                : "bg-[#FAEEDA] text-foreground border-[#FAEEDA]"
             }`}>
               {result.urgencyLevel === "IMMEDIATE" ? "⚡ Immediate" : "Material"}
             </span>
           )}
           {/* Error category badge */}
           {result.errorCategory && result.errorCategory !== "SUBSTANTIVE_RISK" && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-[#0F172A] text-white border-[#334155]">
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded border bg-[#FFFFFF] text-foreground border-[#CBD5E1]">
               {result.errorCategory === "DRAFTING_ERROR" ? "Drafting" : "Mechanical"}
             </span>
           )}
@@ -1800,13 +1800,13 @@ function ClauseCard({
 
       {/* ── Expanded detail ───────────────────────────────────────────── */}
       {expanded && (
-        <div className="border-t border-[#1E293B] px-5 py-5 space-y-4 bg-[#080F18]">
+        <div className="border-t border-[#E2E8F0] px-5 py-5 space-y-4 bg-[#FFFFFF]">
 
           {/* Absent clause notice */}
           {result.isAbsent && (
-            <div className="flex items-start gap-2 rounded-lg border border-[#334155] bg-[#0F172A] px-3 py-2">
-              <Info size={12} className="text-[#94A3B8] shrink-0 mt-0.5" />
-              <span className="text-xs text-[#94A3B8]">
+            <div className="flex items-start gap-2 rounded-lg border border-[#CBD5E1] bg-[#FFFFFF] px-3 py-2">
+              <Info size={12} className="text-[#64748B] shrink-0 mt-0.5" />
+              <span className="text-xs text-[#64748B]">
                 This clause was not identified in the contract. Review whether your playbook requires it to be present.
               </span>
             </div>
@@ -1816,24 +1816,24 @@ function ClauseCard({
           {(result.ragStatus !== "GREY" || result.clauseSummary || result.recommendedAction) && (
           <div className="grid sm:grid-cols-2 gap-3">
             {/* Issue */}
-            <div className="rounded-lg border border-[#1E293B] bg-[#0D1521] px-4 py-3 space-y-1.5">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA]/70">Issue</div>
+            <div className="rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-4 py-3 space-y-1.5">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[#2563EB]/70">Issue</div>
               <p className="text-sm leading-snug font-medium">
                 {result.iracIssue || result.recommendedAction || result.clauseSummary || "No analysis available for this clause."}
               </p>
             </div>
 
             {/* Why it matters */}
-            <div className="rounded-lg border border-[#1E293B] bg-[#0D1521] px-4 py-3 space-y-1.5">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[#A78BFA]/70">Why it matters</div>
+            <div className="rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-4 py-3 space-y-1.5">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[#6D28D9]/70">Why it matters</div>
               <p className="text-sm leading-snug text-foreground/80">
                 {result.whyItMatters || result.businessSummary}
               </p>
             </div>
 
             {/* Fallback */}
-            <div className="rounded-lg border border-[#1E293B] bg-[#0D1521] px-4 py-3 space-y-1.5">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[#86EFAC]/70">Fallback</div>
+            <div className="rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-4 py-3 space-y-1.5">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-[#1B7A4B]/70">Fallback</div>
               {result.suggestedFallback ? (
                 <div className="space-y-2">
                   <p className="text-xs leading-relaxed text-foreground/80 font-mono whitespace-pre-line">
@@ -1849,20 +1849,20 @@ function ClauseCard({
             {/* Escalation */}
             <div className={`rounded-lg border px-4 py-3 space-y-1.5 ${
               result.escalationRequired
-                ? "border-[#450A0A] bg-[#1F0A0A]"
-                : "border-[#1E293B] bg-[#0D1521]"
+                ? "border-[#FCEBEB] bg-[#FCEBEB]"
+                : "border-[#E2E8F0] bg-[#FFFFFF]"
             }`}>
-              <div className={`text-[10px] font-bold uppercase tracking-wider ${result.escalationRequired ? "text-white/60" : "text-foreground/40"}`}>
+              <div className={`text-[10px] font-bold uppercase tracking-wider ${result.escalationRequired ? "text-foreground/60" : "text-foreground/40"}`}>
                 Escalation
               </div>
               {result.escalationRequired ? (
                 <div className="space-y-1">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-white">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                     <AlertTriangle size={11} className="shrink-0" />
                     Sign-off required
                   </div>
                   {result.escalationTrigger && (
-                    <p className="text-xs text-white/70 leading-relaxed">{result.escalationTrigger}</p>
+                    <p className="text-xs text-foreground/70 leading-relaxed">{result.escalationTrigger}</p>
                   )}
                 </div>
               ) : (
@@ -1889,7 +1889,7 @@ function ClauseCard({
           {/* Playbook comparison */}
           {result.comparisonStatement && (
             <Detail title="Playbook comparison">
-              <div className="rounded-lg border border-[#1E293B] bg-[#050A10] px-4 py-3 text-xs leading-relaxed text-[#94A3B8] font-mono whitespace-pre-line">
+              <div className="rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-4 py-3 text-xs leading-relaxed text-[#64748B] font-mono whitespace-pre-line">
                 {result.comparisonStatement}
               </div>
             </Detail>
@@ -1908,11 +1908,11 @@ function ClauseCard({
               <Detail title="Regulatory references">
                 <div className="space-y-2">
                   {visibleCitations.map((c: RegulatoryCitation, i: number) => (
-                    <div key={i} className="flex items-start gap-2.5 rounded-lg border border-[#312E81] bg-[#1E1B4B] px-3 py-2">
-                      <BookOpen size={11} className="text-[#A5B4FC] shrink-0 mt-0.5" />
+                    <div key={i} className="flex items-start gap-2.5 rounded-lg border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-2">
+                      <BookOpen size={11} className="text-[#185FA5] shrink-0 mt-0.5" />
                       <div className="min-w-0">
-                        <div className="text-xs font-semibold text-[#A5B4FC]">{c.regulation} - {c.article}</div>
-                        <div className="text-[11px] text-[#A5B4FC]/70 mt-0.5">{c.relevance}</div>
+                        <div className="text-xs font-semibold text-[#185FA5]">{c.regulation} - {c.article}</div>
+                        <div className="text-[11px] text-[#185FA5]/70 mt-0.5">{c.relevance}</div>
                       </div>
                     </div>
                   ))}
@@ -1928,7 +1928,7 @@ function ClauseCard({
 
               {/* ── Output 1: Message to counterparty ──────────────────────── */}
               <div className="space-y-2">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA]/70">Message to counterparty</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#2563EB]/70">Message to counterparty</div>
                 {!generatedReply ? (
                   <button
                     className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
@@ -1961,7 +1961,7 @@ function ClauseCard({
               {/* ── Output 2: Redrafted clause (clean drop-in) ─────────────── */}
               {result.suggestedFallback && (
                 <div className="space-y-2">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#86EFAC]/70">Redrafted clause</div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#1B7A4B]/70">Redrafted clause</div>
                   {!redraft ? (
                     <button
                       className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
@@ -1976,7 +1976,7 @@ function ClauseCard({
                     </button>
                   ) : (
                     <div className="space-y-2">
-                      <p className="text-xs leading-relaxed whitespace-pre-wrap rounded-lg border border-[#14532D] bg-[#052E16] px-4 py-3 font-mono text-foreground/90">
+                      <p className="text-xs leading-relaxed whitespace-pre-wrap rounded-lg border border-[#E7F6EE] bg-[#E7F6EE] px-4 py-3 font-mono text-foreground/90">
                         {redraft.revised}
                       </p>
                       {redraft.explanation && (
@@ -2006,22 +2006,22 @@ function ClauseCard({
               {!overrideDone ? (
                 <button
                   onClick={() => { setShowOverridePanel(true); setShowFpSignalPanel(false); }}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#1E293B] hover:border-[#2563EB] hover:text-[#60A5FA] transition-colors"
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#E2E8F0] hover:border-[#2563EB] hover:text-[#2563EB] transition-colors"
                 >
                   <Edit2 size={11} /> Override status
                 </button>
               ) : (
-                <span className="text-xs text-[#60A5FA] flex items-center gap-1"><CheckCircle size={11} /> Status overridden</span>
+                <span className="text-xs text-[#2563EB] flex items-center gap-1"><CheckCircle size={11} /> Status overridden</span>
               )}
               {!fpSignalDone ? (
                 <button
                   onClick={() => { setShowFpSignalPanel(true); setShowOverridePanel(false); }}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#1E293B] hover:border-[#431407] hover:text-[#FCD34D] transition-colors"
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#E2E8F0] hover:border-[#FAEEDA] hover:text-[#854F0B] transition-colors"
                 >
                   <Flag size={11} /> Flag as false positive
                 </button>
               ) : (
-                <span className="text-xs text-[#FCD34D] flex items-center gap-1"><CheckCircle size={11} /> False positive flagged</span>
+                <span className="text-xs text-[#854F0B] flex items-center gap-1"><CheckCircle size={11} /> False positive flagged</span>
               )}
             </div>
           )}
@@ -2048,7 +2048,7 @@ function ClauseCard({
           )}
 
           {/* ── Record outcome ─────────────────────────────────────────── */}
-          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[#1E293B]">
+          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[#E2E8F0]">
             <span className="text-xs text-muted-foreground">Record outcome:</span>
             {([
               { action: "ACCEPTED",  label: "Accept",           icon: <CheckCircle size={12} /> },
@@ -2065,7 +2065,7 @@ function ClauseCard({
                 className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
                   feedback?.userAction === action
                     ? "bg-[#2563EB] text-white border-[#2563EB]"
-                    : "border-border hover:border-[#475569]"
+                    : "border-border hover:border-[#64748B]"
                 }`}
               >
                 {submitting === action ? "…" : <>{icon} {btnLabel}</>}
@@ -2088,22 +2088,22 @@ function ClauseCard({
           {/* Accept + capture clause text */}
           {showWhatAgreed && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.8)" }}>
-              <div className="w-full max-w-md rounded-2xl border border-[#14532D] bg-[#030f08] shadow-2xl p-6 space-y-5">
+              <div className="w-full max-w-md rounded-2xl border border-[#E7F6EE] bg-[#E7F6EE] shadow-2xl p-6 space-y-5">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <CheckCircle size={16} className="text-white" />
-                    <span className="text-sm font-semibold text-white">Capture signed outcome</span>
+                    <CheckCircle size={16} className="text-foreground" />
+                    <span className="text-sm font-semibold text-foreground">Capture signed outcome</span>
                   </div>
-                  <div className="text-xs text-white/60 leading-relaxed">
+                  <div className="text-xs text-foreground/60 leading-relaxed">
                     Record the final agreed wording for <span className="font-medium">{label}</span>. This trains Zane on your actual negotiation outcomes.
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-widest text-white/50">
+                  <label className="text-[10px] font-semibold uppercase tracking-widest text-foreground/50">
                     Final agreed clause text (optional)
                   </label>
                   <textarea
-                    className="w-full rounded-xl border border-[#14532D] bg-[#052E16] px-3.5 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-[#166534] min-h-[96px] resize-y font-mono"
+                    className="w-full rounded-xl border border-[#E7F6EE] bg-[#E7F6EE] px-3.5 py-2.5 text-sm text-foreground placeholder:text-foreground/25 focus:outline-none focus:border-[#BBE6CC] min-h-[96px] resize-y font-mono"
                     placeholder="Paste the final clause text as executed…"
                     value={agreedText}
                     onChange={(e) => setAgreedText(e.target.value)}
@@ -2112,13 +2112,13 @@ function ClauseCard({
                 </div>
                 <div className="flex flex-col gap-2">
                   <button
-                    className="w-full px-4 py-2.5 bg-[#14532D] hover:bg-[#166534] text-white text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+                    className="w-full px-4 py-2.5 bg-[#E7F6EE] hover:bg-[#BBE6CC] text-foreground text-sm font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
                     onClick={() => { void handle("ACCEPTED", agreedText || undefined); setShowWhatAgreed(false); }}
                   >
                     <CheckCircle size={14} /> Save & mark accepted
                   </button>
                   <button
-                    className="w-full px-4 py-2 text-xs text-white/50 hover:text-white/80 transition-colors"
+                    className="w-full px-4 py-2 text-xs text-foreground/50 hover:text-foreground/80 transition-colors"
                     onClick={() => { void handle("ACCEPTED"); setShowWhatAgreed(false); setAgreedText(""); }}
                   >
                     Accept without recording clause text
@@ -2130,14 +2130,14 @@ function ClauseCard({
 
           {/* ── Improve analysis ──────────────────────────────────────── */}
           {!isMock && (
-            <div className="pt-2 border-t border-[#1E293B] space-y-3">
+            <div className="pt-2 border-t border-[#E2E8F0] space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-muted-foreground">Improve this analysis:</span>
                 <button
                   onClick={() => setShowTeachZane(!showTeachZane)}
                   disabled={teachDone}
                   className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors ${
-                    teachDone ? "bg-[#052E16] border-[#14532D] text-white" : "border-border hover:border-[#475569]"
+                    teachDone ? "bg-[#E7F6EE] border-[#E7F6EE] text-foreground" : "border-border hover:border-[#64748B]"
                   }`}
                 >
                   <GraduationCap size={11} />
@@ -2148,7 +2148,7 @@ function ClauseCard({
                     onClick={() => void handleFalsePositive()}
                     disabled={fpSubmitting || fpDone}
                     className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
-                      fpDone ? "bg-[#1F0A0A] border-[#450A0A] text-white" : "border-border hover:border-[#475569]"
+                      fpDone ? "bg-[#FCEBEB] border-[#FCEBEB] text-foreground" : "border-border hover:border-[#64748B]"
                     }`}
                   >
                     <XCircle size={11} />
@@ -2158,8 +2158,8 @@ function ClauseCard({
               </div>
 
               {showTeachZane && (
-                <div className="rounded-lg border border-[#172B4D] bg-[#0B1020] p-4 space-y-3">
-                  <div className="text-xs font-semibold text-[#60A5FA]">Correct this analysis</div>
+                <div className="rounded-lg border border-[#E6F1FB] bg-[#0B1020] p-4 space-y-3">
+                  <div className="text-xs font-semibold text-[#2563EB]">Correct this analysis</div>
                   <div className="space-y-2">
                     <label className="text-xs text-muted-foreground">What Zane said (incorrect part)</label>
                     <textarea
@@ -2245,20 +2245,20 @@ function EscalationSummary({ doc, results }: { doc: UploadedDocument; results: R
   const signOffSequence = APPROVER_ORDER_FULL.filter((a) => requiredApprovers.has(a));
 
   return (
-    <div className="card overflow-hidden border border-[#450A0A]">
-      <div className="bg-[#1F0A0A] px-5 py-3 flex items-center gap-3 border-b border-[#450A0A]">
-        <AlertTriangle size={14} className="text-white shrink-0" />
-        <span className="text-sm font-semibold text-white flex-1">
+    <div className="card overflow-hidden border border-[#FCEBEB]">
+      <div className="bg-[#FCEBEB] px-5 py-3 flex items-center gap-3 border-b border-[#FCEBEB]">
+        <AlertTriangle size={14} className="text-foreground shrink-0" />
+        <span className="text-sm font-semibold text-foreground flex-1">
           Escalation required - {tiersActive} tier{tiersActive !== 1 ? "s" : ""} triggered
         </span>
       </div>
       <div className="p-4 space-y-3">
         {tier1Clauses.length > 0 && (
-          <div className="rounded-lg bg-[#1F0A0A] border border-[#450A0A] p-4 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-white">Tier 1 - Clause Risk</div>
+          <div className="rounded-lg bg-[#FCEBEB] border border-[#FCEBEB] p-4 space-y-2">
+            <div className="text-xs font-semibold uppercase tracking-wider text-foreground">Tier 1 - Clause Risk</div>
             <ul className="space-y-1.5">
               {tier1Clauses.map((r) => (
-                <li key={r.id} className="flex gap-2 text-sm text-white">
+                <li key={r.id} className="flex gap-2 text-sm text-foreground">
                   <span className="shrink-0 mt-0.5">·</span>
                   <span>
                     <span className="font-semibold">{CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory}</span>
@@ -2270,19 +2270,19 @@ function EscalationSummary({ doc, results }: { doc: UploadedDocument; results: R
           </div>
         )}
         {valueTier && (
-          <div className="rounded-lg bg-[#1C0F00] border border-[#431407] p-4 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-[#FCD34D]">Tier 2 - Contract Value</div>
-            <div className="text-sm text-[#FCD34D]">
+          <div className="rounded-lg bg-[#FAEEDA] border border-[#FAEEDA] p-4 space-y-2">
+            <div className="text-xs font-semibold uppercase tracking-wider text-[#854F0B]">Tier 2 - Contract Value</div>
+            <div className="text-sm text-[#854F0B]">
               <span className="font-semibold">£{doc.contractValue!.toLocaleString("en-GB")}</span> - {valueTier.label}
             </div>
           </div>
         )}
         {govTriggers.length > 0 && (
-          <div className="rounded-lg bg-[#1E1B4B] border border-[#312E81] p-4 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-[#A5B4FC]">Tier 3 - Governance</div>
+          <div className="rounded-lg bg-[#EEF2FF] border border-[#C7D2FE] p-4 space-y-2">
+            <div className="text-xs font-semibold uppercase tracking-wider text-[#185FA5]">Tier 3 - Governance</div>
             <ul className="space-y-1.5">
               {govTriggers.map((t, i) => (
-                <li key={i} className="flex gap-2 text-sm text-[#A5B4FC]">
+                <li key={i} className="flex gap-2 text-sm text-[#185FA5]">
                   <span className="shrink-0 mt-0.5">·</span>
                   <span>{t.label}</span>
                 </li>
@@ -2405,7 +2405,7 @@ function FallbackCopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={copy}
-      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border hover:border-[#475569] transition-colors"
+      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border hover:border-[#64748B] transition-colors"
     >
       <Copy size={11} />
       {copied ? "Copied!" : "Copy fallback language"}

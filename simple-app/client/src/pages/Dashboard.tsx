@@ -639,7 +639,7 @@ function MiniRagBar({ results }: { results: { ragStatus: string }[] }) {
         {red   > 0 && <div className="bg-[#A32D2D]" style={{ width: `${(red / total) * 100}%` }} />}
         {amber > 0 && <div className="bg-[#854F0B]" style={{ width: `${(amber / total) * 100}%` }} />}
         {green > 0 && <div className="bg-[#1B7A4B]" style={{ width: `${(green / total) * 100}%` }} />}
-        {grey  > 0 && <div className="bg-[#475569]"   style={{ width: `${(grey / total) * 100}%` }} />}
+        {grey  > 0 && <div className="bg-[#64748B]"   style={{ width: `${(grey / total) * 100}%` }} />}
       </div>
       <span className="text-[10px] text-muted-foreground">{total} clauses</span>
     </div>

@@ -28,10 +28,10 @@ interface QueuedFile {
 }
 
 const RAG_CELL: Record<string, string> = {
-  RED:   "bg-[#1F0A0A] text-white border border-[#450A0A] font-semibold",
-  AMBER: "bg-[#1C0F00] text-white border border-[#431407] font-semibold",
-  GREEN: "bg-[#052E16] text-white border border-[#14532D] font-semibold",
-  GREY:  "bg-[#0F172A] text-white border border-[#334155]",
+  RED:   "bg-[#FCEBEB] text-foreground border border-[#FCEBEB] font-semibold",
+  AMBER: "bg-[#FAEEDA] text-foreground border border-[#FAEEDA] font-semibold",
+  GREEN: "bg-[#E7F6EE] text-foreground border border-[#E7F6EE] font-semibold",
+  GREY:  "bg-[#FFFFFF] text-foreground border border-[#CBD5E1]",
 };
 
 const RAG_SHORT: Record<string, string> = {
@@ -417,9 +417,9 @@ export default function BulkReview() {
 
         {/* Processing indicator */}
         {processingDocs.length > 0 && (
-          <div className="max-w-6xl card p-4 flex items-center gap-3 border-[#431407] bg-[#1C0F00]">
-            <div className="w-4 h-4 rounded-full border-2 border-[#FCD34D] border-t-transparent animate-spin shrink-0" />
-            <span className="text-sm text-[#FCD34D]">
+          <div className="max-w-6xl card p-4 flex items-center gap-3 border-[#FAEEDA] bg-[#FAEEDA]">
+            <div className="w-4 h-4 rounded-full border-2 border-[#854F0B] border-t-transparent animate-spin shrink-0" />
+            <span className="text-sm text-[#854F0B]">
               {processingDocs.length} contract{processingDocs.length !== 1 ? "s" : ""} being reviewed. Results will appear automatically.
             </span>
           </div>
@@ -462,7 +462,7 @@ export default function BulkReview() {
                     return (
                       <tr
                         key={doc.id}
-                        className={`border-b border-card-border hover:bg-muted/30 transition-colors cursor-pointer ${hasRed ? "bg-[#1F0A0A]/40" : ""}`}
+                        className={`border-b border-card-border hover:bg-muted/30 transition-colors cursor-pointer ${hasRed ? "bg-[#FCEBEB]/40" : ""}`}
                         onClick={() => navigate(`/review/${doc.id}`)}
                       >
                         <td className="px-4 py-3 sticky left-0 bg-background z-10 min-w-[200px]">
@@ -513,10 +513,10 @@ export default function BulkReview() {
           <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground max-w-6xl">
             <span className="font-medium">Key:</span>
             {[
-              { short: "R", label: "Red: review required", cls: "bg-[#1F0A0A] text-white border border-[#450A0A]" },
-              { short: "A", label: "Amber: caution",       cls: "bg-[#1C0F00] text-white border border-[#431407]" },
-              { short: "G", label: "Green: acceptable",    cls: "bg-[#052E16] text-white border border-[#14532D]" },
-              { short: "-", label: "Not found",             cls: "bg-[#0F172A] text-white border border-[#334155]" },
+              { short: "R", label: "Red: review required", cls: "bg-[#FCEBEB] text-foreground border border-[#FCEBEB]" },
+              { short: "A", label: "Amber: caution",       cls: "bg-[#FAEEDA] text-foreground border border-[#FAEEDA]" },
+              { short: "G", label: "Green: acceptable",    cls: "bg-[#E7F6EE] text-foreground border border-[#E7F6EE]" },
+              { short: "-", label: "Not found",             cls: "bg-[#FFFFFF] text-foreground border border-[#CBD5E1]" },
             ].map(({ short, label, cls }) => (
               <span key={short} className="flex items-center gap-1.5">
                 <span className={`inline-block px-1.5 py-0.5 rounded font-bold text-[10px] ${cls}`}>{short}</span>

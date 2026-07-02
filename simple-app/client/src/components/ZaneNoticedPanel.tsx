@@ -4,9 +4,9 @@ import { getFeedbackPatterns } from "../lib/api";
 import type { ZanePattern } from "../lib/api";
 
 function PatternIcon({ severity }: { severity: ZanePattern["severity"] }) {
-  if (severity === "good")  return <CheckCircle  size={13} className="text-[#86EFAC] shrink-0 mt-0.5" />;
-  if (severity === "warn")  return <AlertTriangle size={13} className="text-[#FCD34D] shrink-0 mt-0.5" />;
-  return                           <Info          size={13} className="text-[#60A5FA] shrink-0 mt-0.5" />;
+  if (severity === "good")  return <CheckCircle  size={13} className="text-[#1B7A4B] shrink-0 mt-0.5" />;
+  if (severity === "warn")  return <AlertTriangle size={13} className="text-[#854F0B] shrink-0 mt-0.5" />;
+  return                           <Info          size={13} className="text-[#2563EB] shrink-0 mt-0.5" />;
 }
 
 export default function ZaneNoticedPanel() {

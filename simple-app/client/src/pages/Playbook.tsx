@@ -85,13 +85,13 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
           <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-muted-foreground shrink-0">
             {outcome && outcome.total > 0 ? (
               <>
-                <span className="text-white bg-[#052E16] border border-[#14532D] px-1.5 py-0.5 rounded-full">
+                <span className="text-foreground bg-[#E7F6EE] border border-[#E7F6EE] px-1.5 py-0.5 rounded-full">
                   Preferred {Math.round((outcome.greenCount / outcome.total) * 100)}%
                 </span>
-                <span className="text-white bg-[#1C0F00] border border-[#431407] px-1.5 py-0.5 rounded-full">
+                <span className="text-foreground bg-[#FAEEDA] border border-[#FAEEDA] px-1.5 py-0.5 rounded-full">
                   Fallback {Math.round((outcome.amberCount / outcome.total) * 100)}%
                 </span>
-                <span className="text-white bg-[#1F0A0A] border border-[#450A0A] px-1.5 py-0.5 rounded-full">
+                <span className="text-foreground bg-[#FCEBEB] border border-[#FCEBEB] px-1.5 py-0.5 rounded-full">
                   Below fallback {Math.round((outcome.redCount / outcome.total) * 100)}%
                 </span>
               </>
@@ -120,11 +120,11 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
               <div className="flex flex-wrap gap-3">
                 {[
                   { label: "Reviewed",   val: outcome.total,     color: "" },
-                  { label: "RED",        val: outcome.redCount,   color: "text-[#FCA5A5]" },
-                  { label: "AMBER",      val: outcome.amberCount, color: "text-[#FCD34D]" },
-                  { label: "GREEN",      val: outcome.greenCount, color: "text-[#86EFAC]" },
+                  { label: "RED",        val: outcome.redCount,   color: "text-[#A32D2D]" },
+                  { label: "AMBER",      val: outcome.amberCount, color: "text-[#854F0B]" },
+                  { label: "GREEN",      val: outcome.greenCount, color: "text-[#1B7A4B]" },
                   { label: "Accepted",   val: outcome.accepted,   color: "text-foreground" },
-                  { label: "Escalated",  val: outcome.escalated,  color: "text-[#60A5FA]" },
+                  { label: "Escalated",  val: outcome.escalated,  color: "text-[#2563EB]" },
                 ].map(({ label, val, color }) => val > 0 ? (
                   <div key={label} className="text-xs">
                     <span className={`font-semibold ${color}`}>{val}</span>
@@ -133,7 +133,7 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
                 ) : null)}
               </div>
               {outcome.accepted > 0 && outcome.redCount > 0 && (
-                <p className="text-xs text-[#FCD34D]">
+                <p className="text-xs text-[#854F0B]">
                   You accepted {outcome.accepted} clause{outcome.accepted > 1 ? "s" : ""} that Zane flagged as red.
                   Consider reviewing your position below.
                 </p>
@@ -152,7 +152,7 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
             const firstFiveWords = (rule.preferredPosition ?? CLAUSE_LABELS[rule.clauseCategory as ClauseCategory] ?? rule.clauseCategory)
               .split(" ").slice(0, 5).join(" ");
             return (
-              <div className="rounded-lg bg-[#0B1118] border border-[#1E293B] px-4 py-3">
+              <div className="rounded-lg bg-[#FFFFFF] border border-[#E2E8F0] px-4 py-3">
                 <div className="flex items-center gap-6 text-xs">
                   <div>
                     <span className="text-muted-foreground/60">Written position: </span>
@@ -160,15 +160,15 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
                   </div>
                   <div>
                     <span className="text-muted-foreground/60">Avg signed: </span>
-                    <span className={avgSigned === "preferred" ? "text-[#86EFAC] font-semibold" : "text-[#FCA5A5] font-semibold"}>
+                    <span className={avgSigned === "preferred" ? "text-[#1B7A4B] font-semibold" : "text-[#A32D2D] font-semibold"}>
                       {avgSigned === "preferred" ? "Preferred position" : avgSigned === "fallback" ? "Fallback" : "Below fallback"}
                     </span>
                   </div>
                   {avgSigned !== "preferred" && (
-                    <span className="text-[10px] bg-[#1F0A0A] text-white border border-[#450A0A] rounded px-2 py-0.5">Drifting below preferred</span>
+                    <span className="text-[10px] bg-[#FCEBEB] text-foreground border border-[#FCEBEB] rounded px-2 py-0.5">Drifting below preferred</span>
                   )}
                   {avgSigned === "preferred" && (
-                    <span className="text-[10px] bg-[#052E16] text-white border border-[#14532D] rounded px-2 py-0.5">Tracking to preferred</span>
+                    <span className="text-[10px] bg-[#E7F6EE] text-foreground border border-[#E7F6EE] rounded px-2 py-0.5">Tracking to preferred</span>
                   )}
                 </div>
               </div>
@@ -178,7 +178,7 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
           {/* Feature 39 - Generate suggested position */}
           <div className="flex items-center gap-3">
             <button
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#312E81] bg-[#1E1B4B] text-white hover:bg-[#312E81] transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#C7D2FE] bg-[#EEF2FF] text-foreground hover:bg-[#C7D2FE] transition-colors disabled:opacity-50"
               onClick={() => void handleGenerateSuggestion()}
               disabled={suggestionLoading}
             >
@@ -190,13 +190,13 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
 
           {/* Suggestion panel */}
           {showSuggestion && suggestion && (
-            <div className="rounded-xl border border-[#312E81] bg-[#0F0E1A] p-4 space-y-3">
+            <div className="rounded-xl border border-[#C7D2FE] bg-[#FFFFFF] p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Sparkles size={12} className="text-[#A5B4FC]" />
-                  <span className="text-xs font-semibold text-white">Suggested starting position</span>
+                  <Sparkles size={12} className="text-[#185FA5]" />
+                  <span className="text-xs font-semibold text-foreground">Suggested starting position</span>
                 </div>
-                <span className="text-[10px] text-white/50 bg-[#1E1B4B] border border-[#312E81] rounded px-2 py-0.5">
+                <span className="text-[10px] text-foreground/50 bg-[#EEF2FF] border border-[#C7D2FE] rounded px-2 py-0.5">
                   AI-generated. Review before saving.
                 </span>
               </div>
@@ -206,13 +206,13 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
                 { label: "Hard red line",         value: suggestion.hardRedLine },
               ].map(({ label, value }) => (
                 <div key={label} className="space-y-1">
-                  <div className="text-[10px] font-semibold uppercase tracking-widest text-white/50">{label}</div>
-                  <div className="text-xs text-white leading-relaxed font-mono bg-[#1E1B4B] rounded-lg px-3 py-2">{value}</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-widest text-foreground/50">{label}</div>
+                  <div className="text-xs text-foreground leading-relaxed font-mono bg-[#EEF2FF] rounded-lg px-3 py-2">{value}</div>
                 </div>
               ))}
               <div className="flex gap-2 pt-1">
                 <button
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#7C3AED] text-white hover:bg-[#6D28D9] transition-colors"
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#7C3AED] text-foreground hover:bg-[#6D28D9] transition-colors"
                   onClick={applySuggestion}
                 >
                   <Sparkles size={11} /> Use this suggestion
@@ -258,12 +258,12 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
 
           {/* CHANGE 2, Counterparty intelligence, gated by the counterpartyIntelligence tier flag */}
           {cpIntelEnabled && (
-          <div className="rounded-lg bg-[#0C1929] border border-[#1E3A5F] rounded-lg p-3">
+          <div className="rounded-lg bg-[#FFFFFF] border border-[#E6F1FB] rounded-lg p-3">
             <button
               className="flex items-center justify-between w-full text-left"
               onClick={() => setCpOpen(!cpOpen)}
             >
-              <span className="text-xs font-semibold text-white">
+              <span className="text-xs font-semibold text-foreground">
                 Counterparty intelligence ({counterpartyEntries?.length ?? 0} counterparties tracked)
               </span>
               {cpOpen ? <ChevronUp size={12} className="text-muted-foreground" /> : <ChevronDown size={12} className="text-muted-foreground" />}
@@ -274,7 +274,7 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
                   <p className="text-xs text-muted-foreground/50">No counterparty data yet. This builds automatically as contracts are reviewed and outcomes logged.</p>
                 ) : counterpartyEntries.map((entry) => (
                   <div key={entry.counterpartyName} className="space-y-0.5">
-                    <Link to={`/app/legal/vendor/${encodeURIComponent(entry.counterpartyName)}`} className="text-xs font-semibold text-white hover:text-blue-300 hover:underline transition-colors">{entry.counterpartyName}</Link>
+                    <Link to={`/app/legal/vendor/${encodeURIComponent(entry.counterpartyName)}`} className="text-xs font-semibold text-foreground hover:text-blue-300 hover:underline transition-colors">{entry.counterpartyName}</Link>
                     <div className="text-xs text-muted-foreground leading-relaxed">
                       Accepted our preferred position in {entry.accepted} of {entry.total} contracts.{" "}
                       Pushed back in {entry.pushedBack} of {entry.total}.{" "}
@@ -288,7 +288,7 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
           )}
 
           <div className="flex justify-end gap-2 pt-1">
-            {saved && <span className="text-xs text-[#86EFAC] flex items-center gap-1">✓ Saved</span>}
+            {saved && <span className="text-xs text-[#1B7A4B] flex items-center gap-1">✓ Saved</span>}
             <button
               className="btn-primary gap-2 text-sm"
               onClick={() => mut.mutate()}
@@ -360,7 +360,7 @@ function AddClausePanel({ workflowType, onSaved, startOpen }: { workflowType?: s
   if (!open) {
     return (
       <button
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-[#475569] rounded-xl px-5 py-4 w-full transition-colors"
+        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground border border-dashed border-border hover:border-[#64748B] rounded-xl px-5 py-4 w-full transition-colors"
         onClick={() => setOpen(true)}
       >
         <Plus size={15} className="shrink-0" />
@@ -370,11 +370,11 @@ function AddClausePanel({ workflowType, onSaved, startOpen }: { workflowType?: s
   }
 
   return (
-    <div className="card border-[#312E81] overflow-hidden" style={{ background: "#0F0E1A" }}>
-      <div className="px-5 py-4 border-b border-[#312E81] flex items-center justify-between">
+    <div className="card border-[#C7D2FE] overflow-hidden" style={{ background: "#FFFFFF" }}>
+      <div className="px-5 py-4 border-b border-[#C7D2FE] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Plus size={14} className="text-[#A5B4FC]" />
-          <span className="text-sm font-semibold text-[#C4B5FD]">Add clause position</span>
+          <Plus size={14} className="text-[#185FA5]" />
+          <span className="text-sm font-semibold text-[#6D28D9]">Add clause position</span>
         </div>
         <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
           <X size={15} />
@@ -394,7 +394,7 @@ function AddClausePanel({ workflowType, onSaved, startOpen }: { workflowType?: s
               onChange={(e) => setClauseCategory(e.target.value)}
             />
             <button
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#312E81] bg-[#1E1B4B] text-white hover:bg-[#312E81] transition-colors disabled:opacity-50 shrink-0"
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#C7D2FE] bg-[#EEF2FF] text-foreground hover:bg-[#C7D2FE] transition-colors disabled:opacity-50 shrink-0"
               onClick={() => void handleGenerate()}
               disabled={generating || !clauseCategory.trim()}
             >
@@ -438,8 +438,8 @@ function AddClausePanel({ workflowType, onSaved, startOpen }: { workflowType?: s
           </select>
         </div>
 
-        <div className="flex items-center gap-3 pt-1 border-t border-[#312E81]">
-          {saved && <span className="text-xs text-[#86EFAC] flex items-center gap-1">✓ Clause added to playbook</span>}
+        <div className="flex items-center gap-3 pt-1 border-t border-[#C7D2FE]">
+          {saved && <span className="text-xs text-[#1B7A4B] flex items-center gap-1">✓ Clause added to playbook</span>}
           <div className="ml-auto flex gap-2">
             <button className="btn-ghost text-xs px-3 py-1.5" onClick={() => setOpen(false)}>Cancel</button>
             <button
@@ -475,14 +475,14 @@ function OutcomesView({ outcomes }: { outcomes: ClauseOutcome[] }) {
     <div className="space-y-6">
       {/* Drift alert */}
       {drifted.length > 0 && (
-        <div className="card border-[#431407] bg-[#1C0F00] p-4 space-y-2">
-          <div className="text-sm font-semibold text-[#FCD34D]">Negotiation drift detected</div>
-          <p className="text-xs text-[#FCD34D] opacity-80">
+        <div className="card border-[#FAEEDA] bg-[#FAEEDA] p-4 space-y-2">
+          <div className="text-sm font-semibold text-[#854F0B]">Negotiation drift detected</div>
+          <p className="text-xs text-[#854F0B] opacity-80">
             These clause types have been accepted even when Zane flagged them as red. Your team may be drifting from the playbook position.
           </p>
           <div className="flex flex-wrap gap-2 mt-1">
             {drifted.map((o) => (
-              <span key={o.clauseCategory} className="text-xs bg-[#1C0F00] border border-[#431407] text-white px-2 py-0.5 rounded-full">
+              <span key={o.clauseCategory} className="text-xs bg-[#FAEEDA] border border-[#FAEEDA] text-foreground px-2 py-0.5 rounded-full">
                 {CLAUSE_LABELS[o.clauseCategory as ClauseCategory] ?? o.clauseCategory.replace(/_/g, " ")}
                 {" "}({o.accepted}×)
               </span>
@@ -497,9 +497,9 @@ function OutcomesView({ outcomes }: { outcomes: ClauseOutcome[] }) {
           <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wide px-1">
             <span>Clause</span>
             <span className="text-center">Reviews</span>
-            <span className="text-center text-[#FCA5A5]">Red</span>
-            <span className="text-center text-[#86EFAC]">Accepted</span>
-            <span className="text-center text-[#60A5FA]">Escalated</span>
+            <span className="text-center text-[#A32D2D]">Red</span>
+            <span className="text-center text-[#1B7A4B]">Accepted</span>
+            <span className="text-center text-[#2563EB]">Escalated</span>
           </div>
         </div>
         <div className="divide-y divide-card-border">
@@ -507,19 +507,19 @@ function OutcomesView({ outcomes }: { outcomes: ClauseOutcome[] }) {
             <div
               key={o.clauseCategory}
               className={`grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center px-5 py-3 text-sm
-                ${o.accepted > 0 && o.redCount > 0 ? "bg-[#1C0F00]" : ""}`}
+                ${o.accepted > 0 && o.redCount > 0 ? "bg-[#FAEEDA]" : ""}`}
             >
               <span className="font-medium text-sm">
                 {CLAUSE_LABELS[o.clauseCategory as ClauseCategory] ?? o.clauseCategory.replace(/_/g, " ")}
               </span>
               <span className="text-center text-muted-foreground text-xs w-12">{o.total}</span>
-              <span className={`text-center text-xs w-12 ${o.redCount > 0 ? "text-[#FCA5A5] font-semibold" : "text-muted-foreground"}`}>
+              <span className={`text-center text-xs w-12 ${o.redCount > 0 ? "text-[#A32D2D] font-semibold" : "text-muted-foreground"}`}>
                 {o.redCount || "-"}
               </span>
               <span className={`text-center text-xs w-16 ${o.accepted > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`}>
                 {o.accepted || "-"}
               </span>
-              <span className={`text-center text-xs w-16 ${o.escalated > 0 ? "text-[#60A5FA] font-medium" : "text-muted-foreground"}`}>
+              <span className={`text-center text-xs w-16 ${o.escalated > 0 ? "text-[#2563EB] font-medium" : "text-muted-foreground"}`}>
                 {o.escalated || "-"}
               </span>
             </div>
@@ -529,9 +529,9 @@ function OutcomesView({ outcomes }: { outcomes: ClauseOutcome[] }) {
 
       {/* Clean streak */}
       {clean.length > 0 && (
-        <div className="card border-[#14532D] bg-[#052E16] p-4">
-          <div className="text-sm font-semibold text-[#86EFAC] mb-1">Playbook holding strong</div>
-          <p className="text-xs text-[#86EFAC] opacity-80">
+        <div className="card border-[#E7F6EE] bg-[#E7F6EE] p-4">
+          <div className="text-sm font-semibold text-[#1B7A4B] mb-1">Playbook holding strong</div>
+          <p className="text-xs text-[#1B7A4B] opacity-80">
             {clean.length} clause type{clean.length > 1 ? "s" : ""} ({clean.map((o) => CLAUSE_LABELS[o.clauseCategory as ClauseCategory] ?? o.clauseCategory.replace(/_/g, " ")).join(", ")}) have been consistently green.
           </p>
         </div>
@@ -577,11 +577,11 @@ function DriftSuggestionsView({
 
   return (
     <div className="space-y-4">
-      <div className="card border-[#431407] bg-[#1C0F00] p-4 flex gap-3">
-        <AlertOctagon size={15} className="text-[#FCD34D] shrink-0 mt-0.5" />
+      <div className="card border-[#FAEEDA] bg-[#FAEEDA] p-4 flex gap-3">
+        <AlertOctagon size={15} className="text-[#854F0B] shrink-0 mt-0.5" />
         <div>
-          <div className="text-sm font-semibold text-[#FCD34D]">Playbook drift detected</div>
-          <p className="text-xs text-[#FCD34D]/80 mt-0.5">
+          <div className="text-sm font-semibold text-[#854F0B]">Playbook drift detected</div>
+          <p className="text-xs text-[#854F0B]/80 mt-0.5">
             Zane has detected {suggestions.length} clause{suggestions.length !== 1 ? "s" : ""} where your team consistently accepts below the playbook red line.
             Review and apply the suggested updates below.
           </p>
@@ -741,15 +741,15 @@ function PendingRulesView() {
           {pendingRules.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <AlertTriangle size={13} className="text-[#FCD34D]" />
+                <AlertTriangle size={13} className="text-[#854F0B]" />
                 <span className="text-sm font-semibold">{pendingRules.length} pending rule{pendingRules.length !== 1 ? "s" : ""} - awaiting GC approval</span>
               </div>
               {pendingRules.map((rule) => (
-                <div key={rule.id} className="card overflow-hidden border-l-4 border-l-[#431407]">
+                <div key={rule.id} className="card overflow-hidden border-l-4 border-l-[#FAEEDA]">
                   <div className="px-5 py-4 space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="text-xs font-semibold text-[#FCD34D] uppercase tracking-wide">
+                        <div className="text-xs font-semibold text-[#854F0B] uppercase tracking-wide">
                           {CLAUSE_LABELS[rule.clauseCategory as ClauseCategory] ?? rule.clauseCategory.replace(/_/g, " ")}
                         </div>
                         <div className="text-[11px] text-muted-foreground/60 mt-0.5">
@@ -758,7 +758,7 @@ function PendingRulesView() {
                             : `Same override ${rule.evidenceCount} time${rule.evidenceCount !== 1 ? "s" : ""}`}
                         </div>
                       </div>
-                      <span className="text-[10px] px-2 py-0.5 rounded border border-[#431407] bg-[#1C0F00] text-white shrink-0">
+                      <span className="text-[10px] px-2 py-0.5 rounded border border-[#FAEEDA] bg-[#FAEEDA] text-foreground shrink-0">
                         {rule.generatedFrom === "OUTCOME_PATTERN" ? "Outcome pattern" : "Override pattern"}
                       </span>
                     </div>
@@ -766,13 +766,13 @@ function PendingRulesView() {
                     {/* Rule text (editable) */}
                     {editingId === rule.id ? (
                       <textarea
-                        className="w-full rounded-lg border border-[#2563EB] bg-[#0B1118] px-3 py-2.5 text-sm text-foreground focus:outline-none min-h-[80px] resize-y"
+                        className="w-full rounded-lg border border-[#2563EB] bg-[#FFFFFF] px-3 py-2.5 text-sm text-foreground focus:outline-none min-h-[80px] resize-y"
                         value={editText}
                         onChange={(e) => setEditText(e.target.value)}
                       />
                     ) : (
                       <div
-                        className="text-sm text-foreground leading-relaxed px-3 py-2.5 rounded-lg border border-[#1E293B] bg-[#0B1118] cursor-pointer hover:border-[#2563EB] transition-colors"
+                        className="text-sm text-foreground leading-relaxed px-3 py-2.5 rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] cursor-pointer hover:border-[#2563EB] transition-colors"
                         onClick={() => startEdit(rule)}
                         title="Click to edit"
                       >
@@ -782,7 +782,7 @@ function PendingRulesView() {
 
                     {/* Risk assessment */}
                     {rule.riskAssessment && (
-                      <div className="text-xs text-muted-foreground/70 italic border-l-2 border-[#431407] pl-3">
+                      <div className="text-xs text-muted-foreground/70 italic border-l-2 border-[#FAEEDA] pl-3">
                         {rule.riskAssessment}
                       </div>
                     )}
@@ -792,14 +792,14 @@ function PendingRulesView() {
                       {editingId === rule.id ? (
                         <>
                           <button
-                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#052E16] border border-[#14532D] text-white hover:bg-[#14532D] transition-colors"
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#E7F6EE] border border-[#E7F6EE] text-foreground hover:bg-[#E7F6EE] transition-colors"
                             onClick={() => void approveWithEdit(rule.id)}
                             disabled={approveMut.isPending}
                           >
                             <CheckCircle size={11} /> Approve with edits
                           </button>
                           <button
-                            className="text-xs px-3 py-1.5 rounded-md border border-[#1E293B] text-muted-foreground hover:border-[#475569] transition-colors"
+                            className="text-xs px-3 py-1.5 rounded-md border border-[#E2E8F0] text-muted-foreground hover:border-[#64748B] transition-colors"
                             onClick={() => void saveEdit(rule.id)}
                           >
                             Save only
@@ -814,20 +814,20 @@ function PendingRulesView() {
                       ) : (
                         <>
                           <button
-                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#052E16] border border-[#14532D] text-[#86EFAC] hover:bg-[#14532D] transition-colors disabled:opacity-50"
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#E7F6EE] border border-[#E7F6EE] text-[#1B7A4B] hover:bg-[#E7F6EE] transition-colors disabled:opacity-50"
                             onClick={() => approveMut.mutate(rule.id)}
                             disabled={approveMut.isPending}
                           >
                             <CheckCircle size={11} /> Approve
                           </button>
                           <button
-                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#1E293B] text-muted-foreground hover:border-[#2563EB] hover:text-[#60A5FA] transition-colors"
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#E2E8F0] text-muted-foreground hover:border-[#2563EB] hover:text-[#2563EB] transition-colors"
                             onClick={() => startEdit(rule)}
                           >
                             Edit & approve
                           </button>
                           <button
-                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#450A0A] text-[#FCA5A5] hover:bg-[#1F0A0A] transition-colors disabled:opacity-50"
+                            className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#FCEBEB] text-[#A32D2D] hover:bg-[#FCEBEB] transition-colors disabled:opacity-50"
                             onClick={() => rejectMut.mutate(rule.id)}
                             disabled={rejectMut.isPending}
                           >
@@ -846,15 +846,15 @@ function PendingRulesView() {
           {activeRules.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Shield size={13} className="text-[#86EFAC]" />
-                <span className="text-sm font-semibold text-[#86EFAC]">{activeRules.length} active rule{activeRules.length !== 1 ? "s" : ""}</span>
+                <Shield size={13} className="text-[#1B7A4B]" />
+                <span className="text-sm font-semibold text-[#1B7A4B]">{activeRules.length} active rule{activeRules.length !== 1 ? "s" : ""}</span>
               </div>
               {activeRules.map((rule) => (
-                <div key={rule.id} className="card px-4 py-3 border-l-4 border-l-[#14532D]">
+                <div key={rule.id} className="card px-4 py-3 border-l-4 border-l-[#E7F6EE]">
                   <div className="flex items-start gap-3">
-                    <CheckCircle size={13} className="text-[#86EFAC] shrink-0 mt-0.5" />
+                    <CheckCircle size={13} className="text-[#1B7A4B] shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
-                      <div className="text-xs font-semibold text-[#86EFAC]">
+                      <div className="text-xs font-semibold text-[#1B7A4B]">
                         {CLAUSE_LABELS[rule.clauseCategory as ClauseCategory] ?? rule.clauseCategory.replace(/_/g, " ")}
                       </div>
                       <p className="text-xs text-foreground/70 mt-0.5">{rule.editedRuleText || rule.ruleText}</p>
@@ -899,7 +899,7 @@ function ExtendedOutcomesView({ outcomes, extendedOutcomes }: { outcomes: Clause
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-[#1E293B] text-left text-muted-foreground/60">
+            <tr className="border-b border-[#E2E8F0] text-left text-muted-foreground/60">
               <th className="pb-2 pr-4 font-medium">Clause</th>
               <th className="pb-2 px-3 font-medium text-center">Reviews</th>
               <th className="pb-2 px-3 font-medium text-center">Red</th>
@@ -907,16 +907,16 @@ function ExtendedOutcomesView({ outcomes, extendedOutcomes }: { outcomes: Clause
               <th className="pb-2 px-3 font-medium text-center">Avg signed</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1E293B]/50">
+          <tbody className="divide-y divide-[#E2E8F0]/50">
             {merged.map((o) => {
               const ext = extMap.get(o.clauseCategory);
               const avgSigned = ext?.avgSignedOutcome ?? "UNKNOWN";
               const belowFallbackRate = ext?.belowFallbackRate ?? 0;
 
               const avgColor =
-                avgSigned === "BELOW_FALLBACK" ? "text-[#FCA5A5]" :
-                avgSigned === "FALLBACK" ? "text-[#FCD34D]" :
-                avgSigned === "PREFERRED" ? "text-[#86EFAC]" :
+                avgSigned === "BELOW_FALLBACK" ? "text-[#A32D2D]" :
+                avgSigned === "FALLBACK" ? "text-[#854F0B]" :
+                avgSigned === "PREFERRED" ? "text-[#1B7A4B]" :
                 "text-muted-foreground/50";
 
               return (
@@ -926,17 +926,17 @@ function ExtendedOutcomesView({ outcomes, extendedOutcomes }: { outcomes: Clause
                   </td>
                   <td className="py-2.5 px-3 text-center text-muted-foreground">{o.total}</td>
                   <td className="py-2.5 px-3 text-center">
-                    {o.redCount > 0 ? <span className="text-[#FCA5A5]">{o.redCount}</span> : <span className="text-muted-foreground/40">-</span>}
+                    {o.redCount > 0 ? <span className="text-[#A32D2D]">{o.redCount}</span> : <span className="text-muted-foreground/40">-</span>}
                   </td>
                   <td className="py-2.5 px-3 text-center">
-                    {o.accepted > 0 ? <span className="text-[#FCD34D]">{o.accepted}</span> : <span className="text-muted-foreground/40">-</span>}
+                    {o.accepted > 0 ? <span className="text-[#854F0B]">{o.accepted}</span> : <span className="text-muted-foreground/40">-</span>}
                   </td>
                   <td className="py-2.5 px-3 text-center">
                     {avgSigned !== "UNKNOWN" ? (
                       <div className="flex flex-col items-center gap-0.5">
                         <span className={`font-medium ${avgColor}`}>{avgSigned.replace(/_/g, " ")}</span>
                         {belowFallbackRate > 0 && (
-                          <span className="text-[10px] text-[#FCA5A5]/60">{belowFallbackRate}% below fallback</span>
+                          <span className="text-[10px] text-[#A32D2D]/60">{belowFallbackRate}% below fallback</span>
                         )}
                       </div>
                     ) : (
@@ -1107,16 +1107,16 @@ export default function Playbook() {
         </div>
 
         {/* L3 synthesis: what the company's own data actually says */}
-        <div className="card border-[#1E3A8A]/40 bg-[#0B1220] p-4 space-y-3">
+        <div className="card border-[#DBEAFE]/40 bg-[#FFFFFF] p-4 space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Brain size={15} className="text-[#60A5FA]" />
+              <Brain size={15} className="text-[#2563EB]" />
               <span className="text-sm font-semibold text-foreground">What your data actually says</span>
             </div>
             <button
               onClick={() => synthGen.mutate()}
               disabled={synthGen.isPending}
-              className="shrink-0 inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-border hover:border-[#334155] text-muted-foreground transition-colors disabled:opacity-50"
+              className="shrink-0 inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md border border-border hover:border-[#CBD5E1] text-muted-foreground transition-colors disabled:opacity-50"
             >
               {synthGen.isPending ? <Loader2 size={12} className="animate-spin" /> : <Brain size={12} />}
               {synthGen.isPending ? "Synthesising…" : "Regenerate"}
@@ -1154,7 +1154,7 @@ export default function Playbook() {
               {healthPct !== null ? (
                 <>
                   <div>
-                    <div className={`text-2xl font-bold ${healthPct >= 70 ? "text-[#86EFAC]" : healthPct >= 40 ? "text-[#FCD34D]" : "text-[#FCA5A5]"}`}>{healthPct}%</div>
+                    <div className={`text-2xl font-bold ${healthPct >= 70 ? "text-[#1B7A4B]" : healthPct >= 40 ? "text-[#854F0B]" : "text-[#A32D2D]"}`}>{healthPct}%</div>
                     <div className="text-xs text-muted-foreground mt-0.5">Playbook Health</div>
                   </div>
                   <div className="text-sm">
@@ -1209,7 +1209,7 @@ export default function Playbook() {
             <Shield size={14} />
             Pending Rules
             {pendingRulesCount > 0 && (
-              <span className="ml-1 text-[10px] bg-[#431407] text-white rounded-full px-1.5 py-0.5">
+              <span className="ml-1 text-[10px] bg-[#FAEEDA] text-foreground rounded-full px-1.5 py-0.5">
                 {pendingRulesCount}
               </span>
             )}
@@ -1258,29 +1258,29 @@ export default function Playbook() {
             <div className="space-y-3">
               {/* Key positions callout - 3 most critical clauses for commercial contracts */}
               {rules.some((r) => KEY_CLAUSE_CATEGORIES.includes(r.clauseCategory as typeof KEY_CLAUSE_CATEGORIES[number])) && (
-                <div className="rounded-xl border border-[#1B2D4A] p-4 space-y-3" style={{ background: "#0C1929" }}>
+                <div className="rounded-xl border border-[#E6F1FB] p-4 space-y-3" style={{ background: "#FFFFFF" }}>
                   <div className="flex items-center gap-2">
-                    <Star size={13} className="text-[#60A5FA]" />
-                    <span className="text-xs font-semibold text-[#60A5FA]">Key positions</span>
+                    <Star size={13} className="text-[#2563EB]" />
+                    <span className="text-xs font-semibold text-[#2563EB]">Key positions</span>
                     <span className="text-xs text-muted-foreground ml-1">- the 3 clauses that matter most in commercial contracts</span>
                   </div>
                   <div className="grid sm:grid-cols-3 gap-3">
                     {rules
                       .filter((r) => KEY_CLAUSE_CATEGORIES.includes(r.clauseCategory as typeof KEY_CLAUSE_CATEGORIES[number]))
                       .map((rule) => (
-                        <div key={rule.id} className="rounded-lg border border-[#1E3A5F] bg-[#0F1F35] px-3 py-3 space-y-2">
-                          <div className="text-xs font-semibold text-white">
+                        <div key={rule.id} className="rounded-lg border border-[#E6F1FB] bg-[#FFFFFF] px-3 py-3 space-y-2">
+                          <div className="text-xs font-semibold text-foreground">
                             {CLAUSE_LABELS[rule.clauseCategory as ClauseCategory] ?? rule.clauseCategory.replace(/_/g, " ")}
                           </div>
                           {rule.preferredPosition ? (
-                            <p className="text-[11px] text-white/70 leading-relaxed line-clamp-3 font-mono">
+                            <p className="text-[11px] text-foreground/70 leading-relaxed line-clamp-3 font-mono">
                               {rule.preferredPosition}
                             </p>
                           ) : (
-                            <p className="text-[11px] text-white/40 italic">No position set - click to configure</p>
+                            <p className="text-[11px] text-foreground/40 italic">No position set - click to configure</p>
                           )}
                           {rule.hardRedLine && (
-                            <div className="flex items-center gap-1 text-[10px] text-white/80">
+                            <div className="flex items-center gap-1 text-[10px] text-foreground/80">
                               <div className="w-1 h-1 rounded-full bg-white/80 shrink-0" />
                               Red line set
                             </div>
@@ -1312,7 +1312,7 @@ export default function Playbook() {
                       .map((p) => (
                         <div key={p.counterparty} className="rounded-md border border-card-border/60 bg-background/40 p-3 space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
-                            <Link to={`/app/legal/vendor/${encodeURIComponent(p.counterparty)}`} className="text-xs font-semibold text-white truncate hover:text-blue-300 hover:underline transition-colors">{p.counterparty}</Link>
+                            <Link to={`/app/legal/vendor/${encodeURIComponent(p.counterparty)}`} className="text-xs font-semibold text-foreground truncate hover:text-blue-300 hover:underline transition-colors">{p.counterparty}</Link>
                             <div className="text-[10px] text-muted-foreground/50 shrink-0">{p.contracts} contract(s) · {p.totalMoves} move(s)</div>
                           </div>
                           <ul className="space-y-0.5">
@@ -1361,8 +1361,8 @@ export default function Playbook() {
       {/* CHANGE 5, Briefing modal */}
       {showBriefing && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setShowBriefing(false)}>
-          <div className="bg-[#111A24] border border-[#1E293B] rounded-xl max-w-2xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1E293B]">
+          <div className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-xl max-w-2xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#E2E8F0]">
               <span className="font-semibold">New Hire Legal Briefing</span>
               <div className="flex items-center gap-2">
                 <button onClick={() => { void navigator.clipboard.writeText(briefingText); }} className="btn-secondary text-xs px-3 py-1.5">Copy</button>

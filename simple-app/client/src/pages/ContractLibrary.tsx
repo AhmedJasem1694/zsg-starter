@@ -228,7 +228,7 @@ function TableRow({ doc, allDocs, onFolderChange }: {
       <td className="px-4 py-3 max-w-0 w-[260px]">
         <Link to={`/app/legal/review/${doc.id}`} className="flex items-center gap-2 group/link">
           <FileText size={13} className="shrink-0 text-foreground/30 group-hover/link:text-foreground/60 transition-colors" />
-          <span className="text-sm text-foreground/90 font-medium truncate group-hover/link:text-white transition-colors">
+          <span className="text-sm text-foreground/90 font-medium truncate group-hover/link:text-foreground transition-colors">
             {doc.originalName ?? doc.filename}
           </span>
           {doc.draft && (

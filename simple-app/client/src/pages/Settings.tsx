@@ -475,7 +475,7 @@ export default function Settings() {
             onClick={() => setActiveTab("danger")}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
               activeTab === "danger"
-                ? "border-[#FCA5A5] text-[#FCA5A5]"
+                ? "border-[#A32D2D] text-[#A32D2D]"
                 : "border-transparent text-muted-foreground/50 hover:text-muted-foreground"
             }`}
           >
@@ -579,12 +579,12 @@ export default function Settings() {
         {/* Danger Zone tab */}
         {activeTab === "danger" && (
           <div className="flex flex-col gap-5">
-            <div className="rounded-xl border border-[#450A0A] bg-[#1F0A0A] p-5 space-y-4">
+            <div className="rounded-xl border border-[#FCEBEB] bg-[#FCEBEB] p-5 space-y-4">
               <div className="flex items-start gap-3">
-                <Trash2 size={18} className="text-[#FCA5A5] mt-0.5 shrink-0" />
+                <Trash2 size={18} className="text-[#A32D2D] mt-0.5 shrink-0" />
                 <div>
-                  <div className="text-sm font-semibold text-[#FCA5A5]">Clear all contracts</div>
-                  <p className="text-xs text-[#FCA5A5]/70 mt-1 leading-relaxed">
+                  <div className="text-sm font-semibold text-[#A32D2D]">Clear all contracts</div>
+                  <p className="text-xs text-[#A32D2D]/70 mt-1 leading-relaxed">
                     Remove all uploaded contracts and their analysis results. Your playbook and company
                     settings will not be affected. Use this to reset your workspace during testing.
                   </p>
@@ -594,14 +594,14 @@ export default function Settings() {
               {!clearConfirm ? (
                 <button
                   onClick={() => setClearConfirm(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-[#450A0A] bg-transparent text-[#FCA5A5] text-sm font-semibold hover:bg-[#450A0A]/40 transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-[#FCEBEB] bg-transparent text-[#A32D2D] text-sm font-semibold hover:bg-[#FCEBEB]/40 transition-colors"
                 >
                   <Trash2 size={14} />
                   Clear all contracts
                 </button>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-xs text-[#FCA5A5] font-medium">
+                  <p className="text-xs text-[#A32D2D] font-medium">
                     This will permanently remove all contracts and their analysis results. This cannot be undone.
                   </p>
                   <div className="flex items-center gap-3">
@@ -609,20 +609,20 @@ export default function Settings() {
                       autoFocus
                       onClick={() => setClearConfirm(false)}
                       disabled={clearMutation.isPending}
-                      className="px-4 py-2 rounded-lg border border-[#450A0A] text-[#FCA5A5]/70 text-sm font-semibold hover:text-[#FCA5A5] transition-colors"
+                      className="px-4 py-2 rounded-lg border border-[#FCEBEB] text-[#A32D2D]/70 text-sm font-semibold hover:text-[#A32D2D] transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={() => clearMutation.mutate()}
                       disabled={clearMutation.isPending}
-                      className="px-4 py-2 rounded-lg bg-[#450A0A] hover:bg-[#5A0E0E] text-[#FCA5A5] text-sm font-semibold transition-colors disabled:opacity-50"
+                      className="px-4 py-2 rounded-lg bg-[#FCEBEB] hover:bg-[#F8D4D4] text-[#A32D2D] text-sm font-semibold transition-colors disabled:opacity-50"
                     >
                       {clearMutation.isPending ? "Clearing…" : "Clear all contracts"}
                     </button>
                   </div>
                   {clearMutation.isSuccess && (
-                    <p className="text-xs text-[#86EFAC]">All contracts cleared successfully.</p>
+                    <p className="text-xs text-[#1B7A4B]">All contracts cleared successfully.</p>
                   )}
                 </div>
               )}
@@ -689,7 +689,7 @@ function EmailZaneSettings() {
             onClick={copy}
             className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-card-border hover:bg-white/5 transition-colors"
           >
-            {copied ? <Check size={13} className="text-[#86EFAC]" /> : <Copy size={13} />}
+            {copied ? <Check size={13} className="text-[#1B7A4B]" /> : <Copy size={13} />}
             {copied ? "Copied" : "Copy"}
           </button>
         </div>
@@ -778,8 +778,8 @@ function RegulatoryAnalysisSettings() {
           </button>
         )}
         {mutation.isPending && <span className="text-muted-foreground/60">Saving…</span>}
-        {mutation.isSuccess && !mutation.isPending && <span className="text-[#86EFAC]">Saved.</span>}
-        {mutation.isError && <span className="text-[#FCA5A5]">Could not save - please try again.</span>}
+        {mutation.isSuccess && !mutation.isPending && <span className="text-[#1B7A4B]">Saved.</span>}
+        {mutation.isError && <span className="text-[#A32D2D]">Could not save - please try again.</span>}
       </div>
     </div>
   );
