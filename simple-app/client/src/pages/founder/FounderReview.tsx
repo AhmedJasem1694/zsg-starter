@@ -913,11 +913,23 @@ function FounderSolutionCard({
   // where a founder makes the unusual call (accepting a problem clause anyway),
   // so the significance check + prompt belong here too.
   const [reasoningPrompt, setReasoningPrompt] = useState<{ decisionEventId: string; significance: SignificanceResult } | null>(null);
+  // Clean redrafted clause (drop-in), distinct from the negotiation message.
+  const [amendedData, setAmendedData] = useState<{ original: string; revised: string; explanation: string } | null>(null);
+  const [generatingAmended, setGeneratingAmended] = useState(false);
 
   async function runFeedback(action: FeedbackAction, finalClauseText?: string) {
     const res = await onFeedback(action, finalClauseText);
     if (res && res.significance?.significant && res.decisionEventId) {
       setReasoningPrompt({ decisionEventId: res.decisionEventId, significance: res.significance });
+    }
+  }
+
+  async function handleGenerateRedraft() {
+    setGeneratingAmended(true);
+    try {
+      setAmendedData(await generateAmendedClause(result.id));
+    } catch { /* silent */ } finally {
+      setGeneratingAmended(false);
     }
   }
 
@@ -965,7 +977,7 @@ function FounderSolutionCard({
       {/* Section 2, Email to send */}
       {emailText && (
         <SolutionSection
-          title="What to say to them →"
+          title="Message to counterparty →"
           preview={emailBody.slice(0, 80) + "…"}
         >
           <div className="space-y-2">
@@ -981,15 +993,15 @@ function FounderSolutionCard({
         </SolutionSection>
       )}
 
-      {/* Section 3, Replacement clause */}
+      {/* Section 3, Redrafted clause to drop in */}
       {replaceClause && (
         <SolutionSection
-          title="What to replace it with →"
+          title="Redrafted clause to drop in →"
           preview={replaceClause.slice(0, 80) + "…"}
         >
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-white/40">Proposed replacement</span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-white/40">Suggested replacement</span>
               <CopyButton text={replaceClause} label="Copy clause" />
             </div>
             <pre className="text-xs text-white/80 bg-[#050A10] rounded px-3 py-3 leading-relaxed whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">
@@ -997,6 +1009,25 @@ function FounderSolutionCard({
             </pre>
             {askFor && (
               <p className="text-xs text-white/50 leading-relaxed pt-1">{askFor}</p>
+            )}
+            {/* Clean, playbook-aligned drop-in version generated on demand */}
+            {!amendedData ? (
+              <button
+                onClick={() => void handleGenerateRedraft()}
+                disabled={generatingAmended}
+                className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
+              >
+                {generatingAmended
+                  ? <><Loader2 size={11} className="animate-spin" /> Redrafting clause…</>
+                  : <><FileText size={11} /> Generate a clean drop-in version</>}
+              </button>
+            ) : (
+              <AmendedClausePanel
+                original={amendedData.original}
+                revised={amendedData.revised}
+                explanation={amendedData.explanation}
+                onClose={() => setAmendedData(null)}
+              />
             )}
           </div>
         </SolutionSection>

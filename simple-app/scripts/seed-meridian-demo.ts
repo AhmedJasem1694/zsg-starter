@@ -239,6 +239,9 @@ async function main() {
         clauseSummary: d.summary,
         whyItMatters: d.summary,
         recommendedAction: d.rag === "GREEN" ? "Position acceptable as drafted." : `Negotiate toward playbook: ${d.final}.`,
+        // Fallback / replacement wording, present on non-green clauses so the
+        // negotiation message and the redrafted clause outputs both surface.
+        suggestedFallback: d.rag === "GREEN" ? "" : d.final,
         businessSummary: d.summary,
         confidenceLabel: "High",
         escalationRequired: d.rag === "RED",

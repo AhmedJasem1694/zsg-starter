@@ -7,7 +7,7 @@ import {
   TrendingDown, Layers, CalendarClock, FileCheck, Users, BarChart2, ChevronRight,
   MessageSquare, Shield, Edit2, Flag, Upload, Brain, Dot,
 } from "lucide-react";
-import { getReview, saveFeedback, generateReply, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany, getContractCounterpartyProfile, getContractCounterpartyJudgment, getCrossReferences, relinkCrossReferences } from "../lib/api";
+import { getReview, saveFeedback, generateReply, generateAmendedClause, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany, getContractCounterpartyProfile, getContractCounterpartyJudgment, getCrossReferences, relinkCrossReferences } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import ReasoningPrompt from "../components/ReasoningPrompt";
 import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, ConfidenceLabel, RegulatoryCitation, FeedbackResponse, SignificanceResult } from "../lib/types";
@@ -1646,6 +1646,10 @@ function ClauseCard({
   const [submitting, setSubmitting] = useState<FeedbackAction | null>(null);
   const [generatedReply, setGeneratedReply] = useState<string | null>(null);
   const [copiedReply, setCopiedReply] = useState(false);
+  // Redrafted clause: the clean, playbook-aligned drop-in wording, distinct from
+  // the negotiation message. Reuses the existing amended-clause generation.
+  const [redraft, setRedraft] = useState<{ revised: string; explanation: string } | null>(null);
+  const [copiedRedraft, setCopiedRedraft] = useState(false);
   const [showWhatAgreed, setShowWhatAgreed] = useState(false);
   const [agreedText, setAgreedText] = useState("");
   const [showTeachZane, setShowTeachZane] = useState(false);
@@ -1672,6 +1676,19 @@ function ClauseCard({
     mutationFn: () => generateReply(result.id, "professional"),
     onSuccess: (data) => setGeneratedReply(data.reply),
   });
+
+  const redraftMutation = useMutation({
+    mutationFn: () => generateAmendedClause(result.id),
+    onSuccess: (data) => setRedraft({ revised: data.revised, explanation: data.explanation }),
+  });
+
+  function copyRedraft() {
+    if (!redraft) return;
+    void navigator.clipboard.writeText(redraft.revised).then(() => {
+      setCopiedRedraft(true);
+      setTimeout(() => setCopiedRedraft(false), 2000);
+    });
+  }
 
   function copyReply() {
     if (!generatedReply) return;
@@ -1904,37 +1921,81 @@ function ClauseCard({
             );
           })()}
 
-          {/* Generate reply */}
+          {/* Two distinct outputs for a Red/Amber clause: the message to send the
+              other side, and the clean redrafted clause to drop into the contract. */}
           {!isMock && (result.ragStatus === "RED" || result.ragStatus === "AMBER") && (
-            <div>
-              {!generatedReply ? (
-                <button
-                  className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
-                  onClick={() => replyMutation.mutate()}
-                  disabled={replyMutation.isPending}
-                >
-                  {replyMutation.isPending ? (
-                    <><Loader2 size={11} className="animate-spin" /> Drafting response…</>
-                  ) : (
-                    <><MessageSquare size={11} /> Draft negotiation response</>
-                  )}
-                </button>
-              ) : (
-                <Detail title="Negotiation reply">
+            <div className="space-y-4">
+
+              {/* ── Output 1: Message to counterparty ──────────────────────── */}
+              <div className="space-y-2">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#60A5FA]/70">Message to counterparty</div>
+                {!generatedReply ? (
+                  <button
+                    className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
+                    onClick={() => replyMutation.mutate()}
+                    disabled={replyMutation.isPending}
+                  >
+                    {replyMutation.isPending ? (
+                      <><Loader2 size={11} className="animate-spin" /> Drafting message…</>
+                    ) : (
+                      <><MessageSquare size={11} /> Draft message to counterparty</>
+                    )}
+                  </button>
+                ) : (
                   <div className="space-y-2">
                     <p className="text-sm leading-relaxed whitespace-pre-wrap rounded-lg border border-card-border bg-card px-4 py-3">
                       {generatedReply}
                     </p>
                     <div className="flex gap-2">
                       <button className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1" onClick={copyReply}>
-                        <Copy size={11} />{copiedReply ? "Copied!" : "Copy text"}
+                        <Copy size={11} />{copiedReply ? "Copied!" : "Copy message"}
                       </button>
                       <button className="btn-ghost text-xs px-3 py-1.5 text-muted-foreground" onClick={() => setGeneratedReply(null)}>
                         Regenerate
                       </button>
                     </div>
                   </div>
-                </Detail>
+                )}
+              </div>
+
+              {/* ── Output 2: Redrafted clause (clean drop-in) ─────────────── */}
+              {result.suggestedFallback && (
+                <div className="space-y-2">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#86EFAC]/70">Redrafted clause</div>
+                  {!redraft ? (
+                    <button
+                      className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
+                      onClick={() => redraftMutation.mutate()}
+                      disabled={redraftMutation.isPending}
+                    >
+                      {redraftMutation.isPending ? (
+                        <><Loader2 size={11} className="animate-spin" /> Redrafting clause…</>
+                      ) : (
+                        <><FileCheck size={11} /> Generate redrafted clause</>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs leading-relaxed whitespace-pre-wrap rounded-lg border border-[#14532D] bg-[#052E16] px-4 py-3 font-mono text-foreground/90">
+                        {redraft.revised}
+                      </p>
+                      {redraft.explanation && (
+                        <p className="text-[11px] text-muted-foreground italic">{redraft.explanation}</p>
+                      )}
+                      <p className="text-[11px] text-muted-foreground/70">
+                        A playbook-aligned clause you can paste straight into the contract. Any [TO CONFIRM] marker is a commercial decision for you to set.
+                      </p>
+                      <div className="flex gap-2">
+                        <button className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1" onClick={copyRedraft}>
+                          <Copy size={11} />{copiedRedraft ? "Copied!" : "Copy clause"}
+                        </button>
+                        <button className="btn-ghost text-xs px-3 py-1.5 text-muted-foreground" onClick={() => setRedraft(null)}>
+                          Regenerate
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           )}

@@ -3254,22 +3254,41 @@ ${issueList}`;
     const doc = await pb.collection("uploaded_documents").getOne(result["document"] as string).catch(() => null);
     const contractType = ((doc?.["contractType"] as string | undefined) ?? "commercial agreement").replace(/_/g, " ").toLowerCase();
 
-    const systemPrompt = `You are a commercial contracts expert rewriting a clause to be more founder-friendly.
-Use plain English. No Latin. Minimal legal jargon.
-Return ONLY valid JSON with no markdown fences:
-{"revised":"the full revised clause text as proper contract language","explanation":"one plain English sentence explaining the key change"}`;
+    // Ground the redraft in the company's own playbook position for this clause,
+    // so the output is the playbook-aligned version, not a generic rewrite.
+    const company = await getCompany(req.user?.email).catch(() => null);
+    let playbookContext = "";
+    if (company) {
+      const rules = await pb.collection("playbook_rules").getFullList({
+        filter: `company = "${company.id}" && clauseCategory = "${(result["clauseCategory"] as string).replace(/"/g, "")}"`,
+      }).catch(() => [] as PBRecord[]);
+      const rule = rules[0];
+      if (rule) {
+        playbookContext = `\nYour company's position on this clause:\n- Preferred: ${String(rule["preferredPosition"] ?? "").slice(0, 600)}\n- Acceptable fallback: ${String(rule["acceptableFallback"] ?? "").slice(0, 600)}\n- Red line (never cross): ${String(rule["hardRedLine"] ?? "").slice(0, 600)}`;
+      }
+    }
+
+    const systemPrompt = `You are a commercial contracts expert producing a clean, drop-in redraft of a single clause, aligned to the company's own position. The output is the actual clause wording a lawyer can paste straight into the contract, not a negotiation note.
+
+Rules:
+- Write proper, complete contract language in plain professional English. Minimal Latin, minimal jargon.
+- Align the redraft to the company's playbook position where provided (aim for preferred, no worse than the acceptable fallback, never cross a red line).
+- Do NOT invent specific commercial terms (figures, dates, percentages, cap amounts, notice periods) that are not given. Where a specific commercial value is genuinely needed, insert a clearly marked placeholder in the form [TO CONFIRM: what the business must decide], for example "[TO CONFIRM: liability cap amount]".
+- Return ONLY valid JSON, no markdown fences:
+{"revised":"the full redrafted clause as proper contract language","explanation":"one plain English sentence on the key change"}`;
 
     const userPrompt = `Contract type: ${contractType}
 Clause: ${clauseLabel}
 
 Original clause text:
 ${originalText}
+${playbookContext}
 
 What needs to change:
 ${ask}
 ${fallback ? `\nSuggested wording to incorporate:\n"${fallback}"` : ""}
 
-Rewrite the full clause incorporating the change. Keep it professional and complete.`;
+Produce the full redrafted clause aligned to the company's position. Keep it complete and professional, and use [TO CONFIRM: ...] placeholders for any commercial term that is not specified rather than inventing one.`;
 
     const apiKey = process.env.OPENROUTER_API_KEY;
     let revised: string;
