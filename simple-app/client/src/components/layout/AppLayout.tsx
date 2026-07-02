@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { ZaneLogo } from "../ZaneLogo";
 import {
   LayoutDashboard, BookOpen, Settings, LogOut, Menu, Shield,
   PieChart, CalendarClock, LayoutGrid, Activity, ClipboardList, Library, Users,
-  AlertTriangle, Archive, Brain,
+  AlertTriangle, Archive, Brain, ChevronDown, FolderOpen, Sparkles, Building2,
 } from "lucide-react";
 import { useAuth, useLogout } from "../../hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -12,41 +12,53 @@ import { getCompany } from "../../lib/api";
 import type { Persona } from "../../lib/types";
 import { useFeatureFlags } from "../../contexts/FeatureFlagsContext";
 
-// ── Legal nav ─────────────────────────────────────────────────────────────────
+// ── Nav model ─────────────────────────────────────────────────────────────────
 
-const LEGAL_NAV = [
-  { to: "/app/legal/dashboard",   icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/app/legal/library",     icon: Library,          label: "Library" },
-  { to: "/app/legal/legacy-review", icon: Archive,        label: "Legacy Review" },
-  { to: "/app/legal/patterns",    icon: Activity,         label: "Negotiation Intelligence" },
-  { to: "/app/legal/playbook",    icon: BookOpen,         label: "Playbook" },
-  { to: "/app/legal/portfolio",   icon: PieChart,         label: "Portfolio Risk" },
-  { to: "/app/legal/bulk-review", icon: LayoutGrid,       label: "Bulk Review" },
+type NavItem = { to: string; icon: typeof LayoutDashboard; label: string };
+type NavGroup = { label: string; icon: typeof LayoutDashboard; items: NavItem[] };
+
+// Legal nav, grouped into a few calm top-level sections with expandable
+// sub-menus so nothing needs to scroll. Every destination is preserved.
+const LEGAL_GROUPS: NavGroup[] = [
+  {
+    label: "Contracts", icon: FolderOpen, items: [
+      { to: "/app/legal/dashboard",     icon: LayoutDashboard, label: "Dashboard" },
+      { to: "/app/legal/library",       icon: Library,         label: "Library" },
+      { to: "/app/legal/bulk-review",   icon: LayoutGrid,      label: "Bulk Review" },
+      { to: "/app/legal/legacy-review", icon: Archive,         label: "Legacy Review" },
+    ],
+  },
+  {
+    label: "Intelligence", icon: Sparkles, items: [
+      { to: "/app/legal/playbook",  icon: BookOpen,      label: "Playbook" },
+      { to: "/app/legal/portfolio", icon: PieChart,      label: "Portfolio Risk" },
+      { to: "/app/legal/patterns",  icon: Activity,      label: "Negotiation Intelligence" },
+      { to: "/app/legal/timings",   icon: CalendarClock, label: "Timings and Obligations" },
+    ],
+  },
+  {
+    label: "Workspace", icon: Building2, items: [
+      { to: "/app/legal/team",        icon: Users,         label: "Team" },
+      { to: "/app/legal/briefing",    icon: Brain,         label: "Joiner Briefing" },
+      { to: "/app/legal/audit",       icon: ClipboardList, label: "Audit Trail" },
+      { to: "/app/legal/regulations", icon: Shield,        label: "Regulatory Profile" },
+    ],
+  },
 ];
 
-// Items that require populated data - shown dimmer in secondary section
-const LEGAL_NAV_DATA_DEPENDENT = [
-  { to: "/app/legal/timings",  icon: CalendarClock, label: "Timings and Obligations" },
+// Founder nav is already short, so it stays a flat, calm list.
+const FOUNDER_ITEMS: NavItem[] = [
+  { to: "/app/founder/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { to: "/app/legal/playbook",    icon: BookOpen,        label: "Playbook" },
+  { to: "/app/legal/portfolio",   icon: PieChart,        label: "Portfolio Risk" },
+  { to: "/app/legal/timings",     icon: CalendarClock,   label: "Renewals" },
+  { to: "/app/legal/bulk-review", icon: LayoutGrid,      label: "Bulk Review" },
 ];
 
-const LEGAL_NAV_SECONDARY = [
-  { to: "/app/legal/team",        icon: Users,         label: "Team" },
-  { to: "/app/legal/briefing",    icon: Brain,         label: "Joiner Briefing" },
-  { to: "/app/legal/audit",       icon: ClipboardList, label: "Audit Trail" },
-  { to: "/app/legal/regulations", icon: Shield,        label: "Regulatory Profile" },
-];
-
-// ── Founder nav ───────────────────────────────────────────────────────────────
-
-const FOUNDER_NAV = [
-  { to: "/app/founder/dashboard",  icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/app/legal/playbook",     icon: BookOpen,        label: "Playbook" },
-  { to: "/app/legal/portfolio",    icon: PieChart,        label: "Portfolio Risk" },
-  { to: "/app/legal/timings",      icon: CalendarClock,   label: "Renewals" },
-  { to: "/app/legal/bulk-review",  icon: LayoutGrid,      label: "Bulk Review" },
-];
-
-const FOUNDER_NAV_SECONDARY: typeof LEGAL_NAV_SECONDARY = [];
+const isPathActive = (pathname: string, to: string) =>
+  pathname === to || pathname.startsWith(to + "/");
+const groupHasActive = (pathname: string, g: NavGroup) =>
+  g.items.some((it) => isPathActive(pathname, it.to));
 
 // ── Trial countdown banner ────────────────────────────────────────────────────
 
@@ -91,8 +103,36 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const persona: Persona = (company as { persona?: Persona } | undefined)?.persona ?? "CORPORATE";
   const isFounder = persona === "FOUNDER";
 
-  const nav           = isFounder ? FOUNDER_NAV         : LEGAL_NAV;
-  const navSecondary  = isFounder ? FOUNDER_NAV_SECONDARY : LEGAL_NAV_SECONDARY;
+  // Which sub-menus are expanded. Default: only the group containing the current
+  // route is open (falls back to the first group on a fresh load).
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    for (const g of LEGAL_GROUPS) init[g.label] = groupHasActive(location.pathname, g);
+    if (!Object.values(init).some(Boolean) && LEGAL_GROUPS[0]) init[LEGAL_GROUPS[0].label] = true;
+    return init;
+  });
+
+  // Keep the active item visible: whenever the route changes, ensure its group is open.
+  useEffect(() => {
+    const g = LEGAL_GROUPS.find((gr) => groupHasActive(location.pathname, gr));
+    if (g) setOpenGroups((prev) => (prev[g.label] ? prev : { ...prev, [g.label]: true }));
+  }, [location.pathname]);
+
+  const renderLeaf = ({ to, icon: Icon, label }: NavItem) => {
+    const active = isPathActive(location.pathname, to);
+    return (
+      <Link
+        key={to}
+        to={to}
+        onClick={() => setOpen(false)}
+        className={`nav-item ${active ? "nav-item-active" : ""}`}
+      >
+        <Icon size={16} className="shrink-0" style={{ color: active ? "#3B82F6" : "#64748B" }} />
+        {label}
+      </Link>
+    );
+  };
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Mobile overlay */}
@@ -126,72 +166,47 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {nav.map(({ to, icon: Icon, label }) => {
-            const active = location.pathname === to || location.pathname.startsWith(to + "/");
-            return (
-              <Link
-                key={to}
-                to={to}
-                onClick={() => setOpen(false)}
-                className={`nav-item ${active ? "nav-item-active" : ""}`}
-              >
-                <Icon size={16} className="shrink-0" style={{ color: active ? "#3B82F6" : "#64748B" }} />
-                {label}
-              </Link>
-            );
-          })}
-
-          {/* Data-dependent items - slightly dimmer, with hint */}
-          {!isFounder && (
-            <div className="pt-3 pb-1 space-y-0.5">
-              <div className="px-3 pb-1 text-[10px] uppercase tracking-widest text-sidebar-foreground/20 font-medium">Analytics</div>
-              {LEGAL_NAV_DATA_DEPENDENT.map(({ to, icon: Icon, label }) => {
-                const active = location.pathname === to || location.pathname.startsWith(to + "/");
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {isFounder
+            ? FOUNDER_ITEMS.map(renderLeaf)
+            : LEGAL_GROUPS.map((group) => {
+                const isOpen = !!openGroups[group.label];
+                const hasActive = groupHasActive(location.pathname, group);
+                const GIcon = group.icon;
                 return (
-                  <Link
-                    key={to}
-                    to={to}
-                    onClick={() => setOpen(false)}
-                    className={`nav-item ${active ? "nav-item-active" : "opacity-60 hover:opacity-100"}`}
-                  >
-                    <Icon size={16} className="shrink-0" style={{ color: active ? "#3B82F6" : "#64748B" }} />
-                    {label}
-                  </Link>
+                  <div key={group.label} className="space-y-0.5">
+                    <button
+                      onClick={() => setOpenGroups((prev) => ({ ...prev, [group.label]: !prev[group.label] }))}
+                      className="nav-item w-full justify-between"
+                      aria-expanded={isOpen}
+                    >
+                      <span className="flex items-center gap-3">
+                        <GIcon size={16} className="shrink-0" style={{ color: hasActive ? "#3B82F6" : "#64748B" }} />
+                        {group.label}
+                      </span>
+                      <ChevronDown
+                        size={14}
+                        className="shrink-0 transition-transform"
+                        style={{ color: "#64748B", transform: isOpen ? "none" : "rotate(-90deg)" }}
+                      />
+                    </button>
+                    {isOpen && (
+                      <div className="ml-4 pl-2 border-l border-sidebar-border space-y-0.5">
+                        {group.items.map(renderLeaf)}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
-            </div>
-          )}
         </nav>
-
-        {/* Secondary nav */}
-        {navSecondary.length > 0 && (
-        <div className="px-3 pb-2 space-y-0.5 border-t border-sidebar-border pt-3">
-          <div className="px-3 pb-1 text-[10px] uppercase tracking-widest text-sidebar-foreground/20 font-medium">System</div>
-          {navSecondary.map(({ to, icon: Icon, label }) => {
-            const active = location.pathname === to;
-            return (
-              <Link
-                key={to}
-                to={to}
-                onClick={() => setOpen(false)}
-                className={`nav-item opacity-60 hover:opacity-100 ${active ? "nav-item-active !opacity-100" : ""}`}
-              >
-                <Icon size={16} className="shrink-0" style={{ color: active ? "#3B82F6" : "#64748B" }} />
-                {label}
-              </Link>
-            );
-          })}
-        </div>
-        )}
 
         {/* Footer */}
         <div className="px-3 py-4 border-t border-sidebar-border space-y-0.5">
           <button
-            className="nav-item w-full"
+            className={`nav-item w-full ${isPathActive(location.pathname, "/settings") ? "nav-item-active" : ""}`}
             onClick={() => { setOpen(false); navigate("/settings"); }}
           >
-            <Settings size={16} className="shrink-0" />
+            <Settings size={16} className="shrink-0" style={{ color: isPathActive(location.pathname, "/settings") ? "#3B82F6" : "#64748B" }} />
             Settings
           </button>
           <button
