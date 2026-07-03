@@ -96,7 +96,7 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
                 </span>
               </>
             ) : (
-              <span className="bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground/50">No outcomes yet</span>
+              <span className="bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground">No outcomes yet</span>
             )}
           </div>
         </div>
@@ -155,11 +155,11 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
               <div className="rounded-lg bg-[#FFFFFF] border border-[#E2E8F0] px-4 py-3">
                 <div className="flex items-center gap-6 text-xs">
                   <div>
-                    <span className="text-muted-foreground/60">Written position: </span>
+                    <span className="text-muted-foreground">Written position: </span>
                     <span className="font-medium">{firstFiveWords}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground/60">Avg signed: </span>
+                    <span className="text-muted-foreground">Avg signed: </span>
                     <span className={avgSigned === "preferred" ? "text-[#1B7A4B] font-semibold" : "text-[#A32D2D] font-semibold"}>
                       {avgSigned === "preferred" ? "Preferred position" : avgSigned === "fallback" ? "Fallback" : "Below fallback"}
                     </span>
@@ -185,7 +185,7 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
               {suggestionLoading ? <Loader2 size={11} className="animate-spin" /> : <Sparkles size={11} />}
               {suggestionLoading ? "Generating…" : "Generate suggested position"}
             </button>
-            <span className="text-[10px] text-muted-foreground/60">Zane suggests a starting position based on market standards for your sector</span>
+            <span className="text-[10px] text-muted-foreground">Zane suggests a starting position based on market standards for your sector</span>
           </div>
 
           {/* Suggestion panel */}
@@ -196,7 +196,7 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
                   <Sparkles size={12} className="text-[#185FA5]" />
                   <span className="text-xs font-semibold text-foreground">Suggested starting position</span>
                 </div>
-                <span className="text-[10px] text-foreground/50 bg-[#EEF2FF] border border-[#C7D2FE] rounded px-2 py-0.5">
+                <span className="text-[10px] text-muted-foreground bg-[#EEF2FF] border border-[#C7D2FE] rounded px-2 py-0.5">
                   AI-generated. Review before saving.
                 </span>
               </div>
@@ -206,13 +206,13 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
                 { label: "Hard red line",         value: suggestion.hardRedLine },
               ].map(({ label, value }) => (
                 <div key={label} className="space-y-1">
-                  <div className="text-[10px] font-semibold uppercase tracking-widest text-foreground/50">{label}</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</div>
                   <div className="text-xs text-foreground leading-relaxed font-mono bg-[#EEF2FF] rounded-lg px-3 py-2">{value}</div>
                 </div>
               ))}
               <div className="flex gap-2 pt-1">
                 <button
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#7C3AED] text-foreground hover:bg-[#6D28D9] transition-colors"
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#6D28D9] text-foreground hover:bg-[#6D28D9] transition-colors"
                   onClick={applySuggestion}
                 >
                   <Sparkles size={11} /> Use this suggestion
@@ -271,7 +271,7 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
             {cpOpen && (
               <div className="mt-3 space-y-3">
                 {!counterpartyEntries || counterpartyEntries.length === 0 ? (
-                  <p className="text-xs text-muted-foreground/50">No counterparty data yet. This builds automatically as contracts are reviewed and outcomes logged.</p>
+                  <p className="text-xs text-muted-foreground">No counterparty data yet. This builds automatically as contracts are reviewed and outcomes logged.</p>
                 ) : counterpartyEntries.map((entry) => (
                   <div key={entry.counterpartyName} className="space-y-0.5">
                     <Link to={`/app/legal/vendor/${encodeURIComponent(entry.counterpartyName)}`} className="text-xs font-semibold text-foreground hover:text-blue-300 hover:underline transition-colors">{entry.counterpartyName}</Link>
@@ -402,7 +402,7 @@ function AddClausePanel({ workflowType, onSaved, startOpen }: { workflowType?: s
               {generating ? "Generating…" : "Generate positions"}
             </button>
           </div>
-          <p className="text-[10px] text-muted-foreground/50">
+          <p className="text-[10px] text-muted-foreground">
             Enter the clause name then click Generate. Zane suggests a starting position based on market standards.
           </p>
         </div>
@@ -730,9 +730,9 @@ function PendingRulesView() {
       {/* Pending */}
       {pendingRules.length === 0 && activeRules.length === 0 ? (
         <div className="card p-8 text-center space-y-2">
-          <Shield size={24} className="mx-auto text-muted-foreground/40" />
+          <Shield size={24} className="mx-auto text-muted-foreground" />
           <div className="text-sm font-medium text-muted-foreground">No pending rules</div>
-          <p className="text-xs text-muted-foreground/60 max-w-sm mx-auto">
+          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
             As Zane detects patterns in your overrides and negotiated outcomes, it will suggest rules here for GC approval.
           </p>
         </div>
@@ -752,7 +752,7 @@ function PendingRulesView() {
                         <div className="text-xs font-semibold text-[#854F0B] uppercase tracking-wide">
                           {CLAUSE_LABELS[rule.clauseCategory as ClauseCategory] ?? rule.clauseCategory.replace(/_/g, " ")}
                         </div>
-                        <div className="text-[11px] text-muted-foreground/60 mt-0.5">
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
                           {rule.generatedFrom === "OUTCOME_PATTERN"
                             ? `${rule.evidenceCount} contract${rule.evidenceCount !== 1 ? "s" : ""} accepted below fallback`
                             : `Same override ${rule.evidenceCount} time${rule.evidenceCount !== 1 ? "s" : ""}`}
@@ -782,7 +782,7 @@ function PendingRulesView() {
 
                     {/* Risk assessment */}
                     {rule.riskAssessment && (
-                      <div className="text-xs text-muted-foreground/70 italic border-l-2 border-[#FAEEDA] pl-3">
+                      <div className="text-xs text-muted-foreground italic border-l-2 border-[#FAEEDA] pl-3">
                         {rule.riskAssessment}
                       </div>
                     )}
@@ -805,7 +805,7 @@ function PendingRulesView() {
                             Save only
                           </button>
                           <button
-                            className="text-xs px-2 py-1.5 text-muted-foreground/50 hover:text-muted-foreground"
+                            className="text-xs px-2 py-1.5 text-muted-foreground hover:text-muted-foreground"
                             onClick={() => setEditingId(null)}
                           >
                             Cancel
@@ -877,7 +877,7 @@ function ExtendedOutcomesView({ outcomes, extendedOutcomes }: { outcomes: Clause
 
   if (outcomes.length === 0 && extendedOutcomes.length === 0) {
     return (
-      <div className="text-sm text-muted-foreground/60 py-6 text-center">
+      <div className="text-sm text-muted-foreground py-6 text-center">
         No feedback data yet. Accept, escalate or dismiss clauses on your review pages to track outcomes here.
       </div>
     );
@@ -899,7 +899,7 @@ function ExtendedOutcomesView({ outcomes, extendedOutcomes }: { outcomes: Clause
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-[#E2E8F0] text-left text-muted-foreground/60">
+            <tr className="border-b border-[#E2E8F0] text-left text-muted-foreground">
               <th className="pb-2 pr-4 font-medium">Clause</th>
               <th className="pb-2 px-3 font-medium text-center">Reviews</th>
               <th className="pb-2 px-3 font-medium text-center">Red</th>
@@ -917,7 +917,7 @@ function ExtendedOutcomesView({ outcomes, extendedOutcomes }: { outcomes: Clause
                 avgSigned === "BELOW_FALLBACK" ? "text-[#A32D2D]" :
                 avgSigned === "FALLBACK" ? "text-[#854F0B]" :
                 avgSigned === "PREFERRED" ? "text-[#1B7A4B]" :
-                "text-muted-foreground/50";
+                "text-muted-foreground";
 
               return (
                 <tr key={o.clauseCategory}>
@@ -926,10 +926,10 @@ function ExtendedOutcomesView({ outcomes, extendedOutcomes }: { outcomes: Clause
                   </td>
                   <td className="py-2.5 px-3 text-center text-muted-foreground">{o.total}</td>
                   <td className="py-2.5 px-3 text-center">
-                    {o.redCount > 0 ? <span className="text-[#A32D2D]">{o.redCount}</span> : <span className="text-muted-foreground/40">-</span>}
+                    {o.redCount > 0 ? <span className="text-[#A32D2D]">{o.redCount}</span> : <span className="text-muted-foreground">-</span>}
                   </td>
                   <td className="py-2.5 px-3 text-center">
-                    {o.accepted > 0 ? <span className="text-[#854F0B]">{o.accepted}</span> : <span className="text-muted-foreground/40">-</span>}
+                    {o.accepted > 0 ? <span className="text-[#854F0B]">{o.accepted}</span> : <span className="text-muted-foreground">-</span>}
                   </td>
                   <td className="py-2.5 px-3 text-center">
                     {avgSigned !== "UNKNOWN" ? (
@@ -940,7 +940,7 @@ function ExtendedOutcomesView({ outcomes, extendedOutcomes }: { outcomes: Clause
                         )}
                       </div>
                     ) : (
-                      <span className="text-muted-foreground/40">-</span>
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </td>
                 </tr>
@@ -1070,7 +1070,7 @@ export default function Playbook() {
           </div>
           <div className="flex items-center gap-2 shrink-0 mt-1">
             {!isLoading && (
-              <span className="text-[11px] text-muted-foreground/60 border border-border rounded-full px-2.5 py-1">
+              <span className="text-[11px] text-muted-foreground border border-border rounded-full px-2.5 py-1">
                 v{playbookVersion}
               </span>
             )}
@@ -1223,7 +1223,7 @@ export default function Playbook() {
             <div className="space-y-8">
               <div className="text-center py-10 space-y-4">
                 <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center mx-auto">
-                  <BookOpen size={22} className="text-muted-foreground/50" />
+                  <BookOpen size={22} className="text-muted-foreground" />
                 </div>
                 <div className="space-y-2">
                   <div className="text-base font-semibold">Your playbook is empty.</div>
@@ -1277,7 +1277,7 @@ export default function Playbook() {
                               {rule.preferredPosition}
                             </p>
                           ) : (
-                            <p className="text-[11px] text-foreground/40 italic">No position set - click to configure</p>
+                            <p className="text-[11px] text-muted-foreground italic">No position set - click to configure</p>
                           )}
                           {rule.hardRedLine && (
                             <div className="flex items-center gap-1 text-[10px] text-foreground/80">
@@ -1286,14 +1286,14 @@ export default function Playbook() {
                             </div>
                           )}
                           {rule.approvalRequired && (
-                            <div className="text-[10px] text-muted-foreground/50">
+                            <div className="text-[10px] text-muted-foreground">
                               Escalates to {rule.approvalRequired}
                             </div>
                           )}
                         </div>
                       ))}
                   </div>
-                  <p className="text-[10px] text-muted-foreground/50">
+                  <p className="text-[10px] text-muted-foreground">
                     Open any clause below to review or update your full position, fallback language, and approval routing.
                   </p>
                 </div>
@@ -1304,7 +1304,7 @@ export default function Playbook() {
                 <div className="rounded-lg border border-card-border bg-card p-5 space-y-3">
                   <div>
                     <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Counterparty negotiation profiles</div>
-                    <p className="text-[11px] text-muted-foreground/50 mt-1">Built automatically from negotiation threads emailed to Zane.</p>
+                    <p className="text-[11px] text-muted-foreground mt-1">Built automatically from negotiation threads emailed to Zane.</p>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-3">
                     {Object.values(counterpartyData.profiles)
@@ -1313,7 +1313,7 @@ export default function Playbook() {
                         <div key={p.counterparty} className="rounded-md border border-card-border/60 bg-background/40 p-3 space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
                             <Link to={`/app/legal/vendor/${encodeURIComponent(p.counterparty)}`} className="text-xs font-semibold text-foreground truncate hover:text-blue-300 hover:underline transition-colors">{p.counterparty}</Link>
-                            <div className="text-[10px] text-muted-foreground/50 shrink-0">{p.contracts} contract(s) · {p.totalMoves} move(s)</div>
+                            <div className="text-[10px] text-muted-foreground shrink-0">{p.contracts} contract(s) · {p.totalMoves} move(s)</div>
                           </div>
                           <ul className="space-y-0.5">
                             {p.summaryLines.map((line, i) => (
