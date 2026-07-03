@@ -491,7 +491,7 @@ export default function BulkReview() {
                                   {RAG_SHORT[status]}
                                 </span>
                               ) : (
-                                <span className="text-muted-foreground/30">-</span>
+                                <span className="text-muted-foreground">-</span>
                               )}
                             </td>
                           );
