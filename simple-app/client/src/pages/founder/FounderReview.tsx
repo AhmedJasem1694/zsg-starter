@@ -177,7 +177,7 @@ function NegotiationEmailModal({
             />
           </div>
 
-          <p className="text-[11px] text-muted-foreground/60">
+          <p className="text-[11px] text-muted-foreground">
             Edit freely. This is your email. Zane has drafted it based on the issues you flagged.
           </p>
         </div>
@@ -274,7 +274,7 @@ function AmendedClausePanel({
             ×
           </button>
         </div>
-        <p className="text-[11px] text-muted-foreground/60">
+        <p className="text-[11px] text-muted-foreground">
           Paste this into your reply or negotiation email where you reference this clause.
         </p>
       </div>
@@ -326,7 +326,7 @@ function SuggestClausePanel({
             ×
           </button>
         </div>
-        <p className="text-[11px] text-muted-foreground/60">
+        <p className="text-[11px] text-muted-foreground">
           Ask the counterparty to add this clause to the agreement.
         </p>
       </div>
@@ -469,7 +469,7 @@ function FounderClauseCard({
             className={`shrink-0 self-stretch px-3 flex items-center border-l transition-colors ${
               selected
                 ? "border-current/20 bg-current/10 text-current"
-                : "border-current/10 text-muted-foreground/40 hover:text-muted-foreground"
+                : "border-current/10 text-muted-foreground hover:text-muted-foreground"
             }`}
           >
             {selected
@@ -754,14 +754,14 @@ function FounderFallbackCard({ result }: { result: ReviewResult }) {
       <div className="bg-[#E2E8F0] px-4 py-3 flex items-center gap-2">
         <AlertTriangle size={14} className="text-foreground shrink-0" />
         <span className="text-xs font-bold uppercase tracking-wider text-foreground">Needs manual review</span>
-        <span className="ml-auto text-[10px] text-foreground/40">{label}</span>
+        <span className="ml-auto text-[10px] text-muted-foreground">{label}</span>
       </div>
       <div className="px-4 py-4 space-y-3">
         <p className="text-sm text-foreground/70 leading-relaxed">
           Zane identified an issue with this clause but could not generate a reliable recommendation automatically.
         </p>
         <div className="bg-[#FFFFFF] rounded-lg px-3 py-2.5 space-y-1">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-foreground/30">What was found</div>
+          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">What was found</div>
           <p className="text-sm text-foreground/80">
             <span className={`font-semibold ${isRed ? "text-[#A32D2D]" : "text-[#854F0B]"}`}>
               {isRed ? "Problem" : "Worth negotiating"}:
@@ -769,7 +769,7 @@ function FounderFallbackCard({ result }: { result: ReviewResult }) {
             {result.clauseSummary || result.founderPlainEnglish || "This clause deviates from your preferred position."}
           </p>
         </div>
-        <p className="text-xs text-foreground/50 leading-relaxed">
+        <p className="text-xs text-muted-foreground leading-relaxed">
           This clause should be reviewed by a qualified solicitor before you respond to the counterparty.
         </p>
         <div className="flex gap-2 pt-1">
@@ -802,23 +802,23 @@ function FounderFeedbackButtons({ resultId }: { resultId: string }) {
   ];
 
   if (submitted) {
-    return <p className="text-xs text-foreground/30 text-center py-1">Thanks for your feedback.</p>;
+    return <p className="text-xs text-muted-foreground text-center py-1">Thanks for your feedback.</p>;
   }
 
   return (
     <div className="border-t border-white/8 px-4 py-3 space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-foreground/30 uppercase tracking-widest">Was this helpful?</span>
+        <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Was this helpful?</span>
         <div className="flex items-center gap-2">
           <button
             onClick={() => { setRating("up"); setSubmitted(true); }}
-            className={`text-sm px-2 py-0.5 rounded transition-colors ${rating === "up" ? "bg-[#E7F6EE] text-foreground" : "text-foreground/30 hover:text-foreground/60"}`}
+            className={`text-sm px-2 py-0.5 rounded transition-colors ${rating === "up" ? "bg-[#E7F6EE] text-foreground" : "text-muted-foreground hover:text-foreground/60"}`}
           >
             👍 Looks right
           </button>
           <button
             onClick={() => setRating(rating === "down" ? null : "down")}
-            className={`text-sm px-2 py-0.5 rounded transition-colors ${rating === "down" ? "bg-[#FCEBEB] text-foreground" : "text-foreground/30 hover:text-foreground/60"}`}
+            className={`text-sm px-2 py-0.5 rounded transition-colors ${rating === "down" ? "bg-[#FCEBEB] text-foreground" : "text-muted-foreground hover:text-foreground/60"}`}
           >
             👎 Something's wrong
           </button>
@@ -831,7 +831,7 @@ function FounderFeedbackButtons({ resultId }: { resultId: string }) {
               <button
                 key={r}
                 onClick={() => setReason(r)}
-                className={`text-[10px] px-2 py-1 rounded border transition-colors ${reason === r ? "border-primary bg-primary/10 text-white" : "border-white/10 text-foreground/40 hover:border-white/25"}`}
+                className={`text-[10px] px-2 py-1 rounded border transition-colors ${reason === r ? "border-primary bg-primary/10 text-white" : "border-white/10 text-muted-foreground hover:border-white/25"}`}
               >
                 {r}
               </button>
@@ -892,10 +892,10 @@ function SolutionSection({
         onClick={() => setOpen(!open)}
       >
         <span className="text-sm font-semibold text-foreground">{title}</span>
-        <ChevronDown size={14} className={`text-foreground/40 transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown size={14} className={`text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {!open && preview && (
-        <p className="px-4 pb-3 text-xs text-foreground/40 truncate">{preview}</p>
+        <p className="px-4 pb-3 text-xs text-muted-foreground truncate">{preview}</p>
       )}
       {open && <div className="px-4 pb-4">{children}</div>}
     </div>
@@ -970,7 +970,7 @@ function FounderSolutionCard({
         </div>
         <p className="text-sm text-foreground/80 mt-2 leading-relaxed">{verdict}</p>
         {riskIfSigned && (
-          <p className="text-xs text-foreground/50 mt-1.5 leading-relaxed italic">{riskIfSigned}</p>
+          <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed italic">{riskIfSigned}</p>
         )}
       </div>
 
@@ -982,7 +982,7 @@ function FounderSolutionCard({
         >
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-foreground/40">Subject</span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Subject</span>
               <CopyButton text={`Subject: ${emailSubject}\n\n${emailBody}`} label="Copy email" />
             </div>
             <div className="text-xs text-foreground/60 bg-[#FFFFFF] rounded px-3 py-1.5 font-mono">{emailSubject}</div>
@@ -1001,14 +1001,14 @@ function FounderSolutionCard({
         >
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-foreground/40">Suggested replacement</span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Suggested replacement</span>
               <CopyButton text={replaceClause} label="Copy clause" />
             </div>
             <pre className="text-xs text-foreground/80 bg-[#FFFFFF] rounded px-3 py-3 leading-relaxed whitespace-pre-wrap font-mono max-h-48 overflow-y-auto">
               {replaceClause}
             </pre>
             {askFor && (
-              <p className="text-xs text-foreground/50 leading-relaxed pt-1">{askFor}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed pt-1">{askFor}</p>
             )}
             {/* Clean, playbook-aligned drop-in version generated on demand */}
             {!amendedData ? (
@@ -1045,7 +1045,7 @@ function FounderSolutionCard({
 
       {/* Your decision: records the call and captures reasoning if it is unusual */}
       <div className="border-t border-white/8 px-4 py-3 space-y-2">
-        <span className="text-[10px] text-foreground/30 uppercase tracking-widest">Your decision</span>
+        <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Your decision</span>
         <div className="flex flex-wrap gap-2">
           <button
             className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1"
@@ -1212,7 +1212,7 @@ export default function FounderReview() {
                   <div key={stage.label} className="flex items-center gap-3">
                     <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-all
                       ${done    ? "bg-[#E7F6EE] border-[#BBE6CC]" : ""}
-                      ${active  ? "bg-[#FAEEDA] border-[#92400E] animate-pulse" : ""}
+                      ${active  ? "bg-[#FAEEDA] border-[#854F0B] animate-pulse" : ""}
                       ${pending ? "bg-transparent border-[#E2E8F0]" : ""}`}>
                       {done   && <CheckCircle size={10} className="text-[#1B7A4B]" />}
                       {active && <span className="w-1.5 h-1.5 rounded-full bg-[#854F0B]" />}
@@ -1220,7 +1220,7 @@ export default function FounderReview() {
                     <span className={`text-sm leading-none transition-all
                       ${done    ? "text-muted-foreground line-through" : ""}
                       ${active  ? "text-[#854F0B] font-medium" : ""}
-                      ${pending ? "text-muted-foreground/40" : ""}`}>
+                      ${pending ? "text-muted-foreground" : ""}`}>
                       {stage.label}
                     </span>
                   </div>
@@ -1391,11 +1391,11 @@ export default function FounderReview() {
 
         {/* Selection hint: shown when there are negotiable items */}
         {results.some((r) => r.ragStatus !== "GREEN") && (
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground/60 -mt-2">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground -mt-2">
             <Check size={11} />
             <span>
               {issueCount} issue{issueCount !== 1 ? "s" : ""} selected for negotiation email. Tap the{" "}
-              <span className="font-semibold text-foreground/50">+</span> on any clause to include or exclude it
+              <span className="font-semibold text-muted-foreground">+</span> on any clause to include or exclude it
             </span>
           </div>
         )}
@@ -1461,7 +1461,7 @@ export default function FounderReview() {
             </button>
 
             {issueCount === 0 && (
-              <p className="text-xs text-muted-foreground/60 text-center">
+              <p className="text-xs text-muted-foreground text-center">
                 Select at least one issue using the + button on a clause card.
               </p>
             )}
