@@ -53,7 +53,7 @@ function InviteStatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string; icon: React.ReactNode }> = {
     pending:  { label: "Pending",  cls: "text-amber-400 bg-amber-500/10 border-amber-500/30",  icon: <Clock size={10} /> },
     accepted: { label: "Accepted", cls: "text-green-400 bg-green-500/10 border-green-500/30",  icon: <CheckCircle size={10} /> },
-    expired:  { label: "Expired",  cls: "text-foreground/40 bg-foreground/5 border-border",      icon: <AlertCircle size={10} /> },
+    expired:  { label: "Expired",  cls: "text-muted-foreground bg-foreground/5 border-border",      icon: <AlertCircle size={10} /> },
   };
   const entry = map[status] ?? map["pending"];
   return (
@@ -129,17 +129,17 @@ export default function TeamManagement() {
               <Users size={22} className="text-blue-400" />
               <h1 className="text-2xl font-bold">Team</h1>
             </div>
-            <p className="text-sm text-foreground/50">Invite colleagues and track their access to Zane.</p>
+            <p className="text-sm text-muted-foreground">Invite colleagues and track their access to Zane.</p>
           </div>
           <div className="flex items-center gap-2 text-sm">
             <div className="text-center">
               <div className="text-xl font-bold text-foreground">{acceptedInvites.length}</div>
-              <div className="text-[10px] text-foreground/40">active members</div>
+              <div className="text-[10px] text-muted-foreground">active members</div>
             </div>
             <div className="w-px h-8 bg-border mx-2" />
             <div className="text-center">
               <div className="text-xl font-bold text-amber-400">{pendingInvites.length}</div>
-              <div className="text-[10px] text-foreground/40">pending invites</div>
+              <div className="text-[10px] text-muted-foreground">pending invites</div>
             </div>
           </div>
         </div>
@@ -161,7 +161,7 @@ export default function TeamManagement() {
                 onChange={(e) => setEmailInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onBlur={addEmail}
-                className="flex-1 bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-blue-500 transition-colors"
+                className="flex-1 bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-blue-500 transition-colors"
               />
               <button className="btn-secondary gap-2 text-sm" onClick={addEmail}>
                 <Plus size={14} />Add
@@ -200,7 +200,7 @@ export default function TeamManagement() {
                   onClick={() => setSelectedRole(role.value)}
                 >
                   <div className="text-xs font-semibold">{role.label}</div>
-                  <div className="text-[10px] text-foreground/50 mt-0.5">{role.desc}</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{role.desc}</div>
                 </button>
               ))}
             </div>
@@ -237,7 +237,7 @@ export default function TeamManagement() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium truncate">{invite.email}</div>
-                    <div className="text-[10px] text-foreground/40">
+                    <div className="text-[10px] text-muted-foreground">
                       {ROLES.find((r) => r.value === invite.role)?.label ?? invite.role} ·
                       {" "}Invited {formatDateShort(invite.created)}
                     </div>
@@ -245,7 +245,7 @@ export default function TeamManagement() {
                   <InviteStatusBadge status={invite.status} />
                   {invite.status === "pending" && (
                     <button
-                      className="text-foreground/30 hover:text-red-400 transition-colors ml-1"
+                      className="text-muted-foreground hover:text-red-400 transition-colors ml-1"
                       title="Cancel invite"
                       onClick={() => cancelMutation.mutate(invite.id)}
                     >
@@ -259,7 +259,7 @@ export default function TeamManagement() {
         )}
 
         {isLoading && (
-          <div className="text-sm text-foreground/40 text-center py-6">Loading invites…</div>
+          <div className="text-sm text-muted-foreground text-center py-6">Loading invites…</div>
         )}
 
         {/* New hire onboarding guide */}
@@ -270,9 +270,9 @@ export default function TeamManagement() {
           >
             <div>
               <h2 className="text-sm font-semibold">New hire onboarding guide</h2>
-              <p className="text-xs text-foreground/50 mt-0.5">Share this checklist with new team members to get them up to speed.</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Share this checklist with new team members to get them up to speed.</p>
             </div>
-            <ChevronRight size={16} className={`text-foreground/40 transition-transform ${showOnboarding ? "rotate-90" : ""}`} />
+            <ChevronRight size={16} className={`text-muted-foreground transition-transform ${showOnboarding ? "rotate-90" : ""}`} />
           </button>
 
           {showOnboarding && (
@@ -290,13 +290,13 @@ export default function TeamManagement() {
                     <div className="text-sm font-medium group-hover:text-blue-400 transition-colors">
                       {i + 1}. {step.title}
                     </div>
-                    <div className="text-xs text-foreground/50 mt-0.5">{step.desc}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{step.desc}</div>
                   </div>
-                  <ChevronRight size={14} className="text-foreground/20 group-hover:text-blue-400 transition-colors shrink-0 mt-1" />
+                  <ChevronRight size={14} className="text-muted-foreground group-hover:text-blue-400 transition-colors shrink-0 mt-1" />
                 </a>
               ))}
 
-              <div className="mt-4 pt-4 border-t border-border/50 text-xs text-foreground/40 space-y-1">
+              <div className="mt-4 pt-4 border-t border-border/50 text-xs text-muted-foreground space-y-1">
                 <p>💡 <strong className="text-foreground/60">Tip:</strong> Share your playbook with new legal hires so they understand your negotiation positions before their first review.</p>
                 <p>🔐 <strong className="text-foreground/60">Access:</strong> New members receive an email with a one-click login link (or a password to set).</p>
               </div>
