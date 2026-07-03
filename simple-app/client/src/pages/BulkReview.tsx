@@ -105,12 +105,12 @@ function FileQueue({
               <tr key={qf.id} className={`${qf.status === "error" ? "bg-red-500/5" : qf.status === "done" ? "bg-green-500/5" : ""}`}>
                 <td className="px-3 py-2">
                   <div className="flex items-center gap-1.5">
-                    <FileText size={12} className="shrink-0 text-foreground/40" />
+                    <FileText size={12} className="shrink-0 text-muted-foreground" />
                     <span className="truncate max-w-[140px] font-medium" title={qf.file.name}>
                       {qf.file.name}
                     </span>
                   </div>
-                  <div className="text-[10px] text-foreground/30 pl-4">
+                  <div className="text-[10px] text-muted-foreground pl-4">
                     {(qf.file.size / 1024).toFixed(0)} KB
                   </div>
                 </td>
@@ -158,7 +158,7 @@ function FileQueue({
                 <td className="px-3 py-2">
                   {qf.status === "queued" ? (
                     <div className="relative">
-                      <Folder size={11} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-foreground/30" />
+                      <Folder size={11} className="absolute left-1.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
                       <input
                         className="w-full bg-card border border-border rounded pl-5 pr-1.5 py-1 text-xs text-foreground outline-none focus:border-blue-500"
                         placeholder="Optional folder"
@@ -171,7 +171,7 @@ function FileQueue({
                   )}
                 </td>
                 <td className="px-3 py-2 text-center">
-                  {qf.status === "queued" && <span className="text-[10px] text-foreground/40">Queued</span>}
+                  {qf.status === "queued" && <span className="text-[10px] text-muted-foreground">Queued</span>}
                   {qf.status === "uploading" && (
                     <span className="flex items-center gap-1 justify-center text-amber-400 text-[10px]">
                       <Loader2 size={10} className="animate-spin" />Uploading
@@ -196,7 +196,7 @@ function FileQueue({
                 <td className="px-2 py-2">
                   {(qf.status === "queued" || qf.status === "error") && (
                     <button
-                      className="text-foreground/30 hover:text-red-400 transition-colors"
+                      className="text-muted-foreground hover:text-red-400 transition-colors"
                       onClick={() => onRemove(qf.id)}
                     >
                       <X size={13} />
@@ -384,11 +384,11 @@ export default function BulkReview() {
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
         >
-          <Upload size={28} className={`mx-auto mb-3 ${dragOver ? "text-blue-400" : "text-foreground/20"}`} />
+          <Upload size={28} className={`mx-auto mb-3 ${dragOver ? "text-blue-400" : "text-muted-foreground"}`} />
           <div className="text-sm font-medium text-foreground/70">
             {dragOver ? "Drop files to add to queue" : "Drag & drop contracts here, or click to select"}
           </div>
-          <div className="text-xs text-foreground/40 mt-1">PDF and DOCX supported · Multiple files</div>
+          <div className="text-xs text-muted-foreground mt-1">PDF and DOCX supported · Multiple files</div>
           <input
             ref={fileInputRef}
             type="file"
