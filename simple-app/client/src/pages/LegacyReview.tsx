@@ -144,7 +144,7 @@ function AdminLegacyQuote() {
           </div>
         </div>
       )}
-      <p className="text-[10px] text-muted-foreground/60">Indicative only. Final pricing agreed in conversation.</p>
+      <p className="text-[10px] text-muted-foreground">Indicative only. Final pricing agreed in conversation.</p>
     </div>
   );
 }
@@ -297,7 +297,7 @@ export default function LegacyReview() {
                   {q.state === "submitted" && <CheckCircle size={14} className="text-[#1B7A4B] shrink-0" />}
                   {q.state === "failed"    && <XCircle size={14} className="text-[#A32D2D] shrink-0" />}
                   <span className="truncate text-foreground/80">{q.name}</span>
-                  <span className="text-muted-foreground/60 shrink-0 ml-auto">
+                  <span className="text-muted-foreground shrink-0 ml-auto">
                     {q.state === "submitted" ? "processing" : q.state === "failed" ? (q.error ?? "failed") : q.state}
                   </span>
                 </div>
@@ -372,7 +372,7 @@ export default function LegacyReview() {
             <div className="card overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-card-border text-xs uppercase tracking-wider text-muted-foreground/60">
+                  <tr className="border-b border-card-border text-xs uppercase tracking-wider text-muted-foreground">
                     <SortHeader k="name">Contract</SortHeader>
                     <SortHeader k="counterparty">Counterparty</SortHeader>
                     <SortHeader k="contractType">Type</SortHeader>
@@ -388,7 +388,7 @@ export default function LegacyReview() {
                     <tr key={r.id} className="border-b border-card-border/50 last:border-0 align-top">
                       <td className="px-3 py-3">
                         <div className="text-foreground/90 max-w-[220px] truncate">{r.name}</div>
-                        <div className="text-[11px] text-muted-foreground/60 mt-0.5">
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
                           {STATUS_LABELS[r.status] ?? r.status}
                         </div>
                       </td>
@@ -405,7 +405,7 @@ export default function LegacyReview() {
                       </td>
                       <td className="px-3 py-3">
                         {r.riskFlags.length === 0 ? (
-                          <span className="text-muted-foreground/50 text-xs">{r.status === "COMPLETE" ? "None" : "-"}</span>
+                          <span className="text-muted-foreground text-xs">{r.status === "COMPLETE" ? "None" : "-"}</span>
                         ) : (
                           <div className="space-y-1">
                             {r.riskFlags.map((f) => (
@@ -425,7 +425,7 @@ export default function LegacyReview() {
         ) : (
           <div className="card p-14 text-center space-y-4">
             <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center mx-auto">
-              <Archive size={24} className="text-muted-foreground/50" />
+              <Archive size={24} className="text-muted-foreground" />
             </div>
             <div className="space-y-2">
               <div className="font-semibold">No legacy contracts yet</div>
