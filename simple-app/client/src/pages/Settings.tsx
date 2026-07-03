@@ -74,7 +74,7 @@ function syncStatusIcon(status: string) {
     return <AlertCircle size={12} className="text-red-400 shrink-0" />;
   if (status === "review_started" || status === "downloaded")
     return <RefreshCw size={12} className="text-blue-400 shrink-0 animate-spin" />;
-  return <Clock size={12} className="text-slate-400 shrink-0" />;
+  return <Clock size={12} className="text-[#64748B] shrink-0" />;
 }
 
 function syncStatusLabel(status: string): string {
@@ -207,7 +207,7 @@ function IntegrationCard({
           <div>
             <div className="text-sm font-semibold text-foreground">{title}</div>
             {isLoading ? (
-              <div className="text-xs text-muted-foreground/40">Loading…</div>
+              <div className="text-xs text-muted-foreground">Loading…</div>
             ) : (
               <IntegrationStatusBadge
                 status={status as "connected" | "disconnected" | "error"}
@@ -273,7 +273,7 @@ function IntegrationCard({
 
       {/* Last sync */}
       {config?.lastSyncAt && (
-        <div className="text-xs text-muted-foreground/40">
+        <div className="text-xs text-muted-foreground">
           Last sync:{" "}
           {formatDateTime(config.lastSyncAt)}
         </div>
@@ -291,14 +291,14 @@ function IntegrationCard({
             </span>
             <button
               onClick={() => setShowFolderPicker(false)}
-              className="text-muted-foreground/40 hover:text-muted-foreground"
+              className="text-muted-foreground hover:text-muted-foreground"
             >
               <X size={14} />
             </button>
           </div>
 
           {foldersLoading && (
-            <div className="text-xs text-muted-foreground/40 py-2">
+            <div className="text-xs text-muted-foreground py-2">
               Loading folders…
             </div>
           )}
@@ -310,7 +310,7 @@ function IntegrationCard({
           )}
 
           {!foldersLoading && folders.length === 0 && !foldersError && (
-            <div className="text-xs text-muted-foreground/40 py-2">
+            <div className="text-xs text-muted-foreground py-2">
               No folders found.
             </div>
           )}
@@ -348,7 +348,7 @@ function IntegrationCard({
           {recentLog.map((entry) => (
             <div
               key={entry.id}
-              className="flex items-center gap-2 text-xs text-muted-foreground/60 py-0.5"
+              className="flex items-center gap-2 text-xs text-muted-foreground py-0.5"
             >
               {syncStatusIcon(entry.status)}
               <span className="truncate flex-1">
@@ -422,7 +422,7 @@ export default function Settings() {
         {/* Page header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-          <p className="text-sm text-muted-foreground/60 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Configure integrations and preferences for Zane.
           </p>
         </div>
@@ -434,7 +434,7 @@ export default function Settings() {
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
               activeTab === "integrations"
                 ? "border-blue-500 text-blue-400"
-                : "border-transparent text-muted-foreground/50 hover:text-muted-foreground"
+                : "border-transparent text-muted-foreground hover:text-muted-foreground"
             }`}
           >
             Integrations
@@ -444,7 +444,7 @@ export default function Settings() {
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
               activeTab === "email"
                 ? "border-blue-500 text-blue-400"
-                : "border-transparent text-muted-foreground/50 hover:text-muted-foreground"
+                : "border-transparent text-muted-foreground hover:text-muted-foreground"
             }`}
           >
             Email Zane
@@ -454,7 +454,7 @@ export default function Settings() {
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
               activeTab === "regulatory"
                 ? "border-blue-500 text-blue-400"
-                : "border-transparent text-muted-foreground/50 hover:text-muted-foreground"
+                : "border-transparent text-muted-foreground hover:text-muted-foreground"
             }`}
           >
             Regulatory analysis
@@ -465,7 +465,7 @@ export default function Settings() {
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
                 activeTab === "costs"
                   ? "border-blue-500 text-blue-400"
-                  : "border-transparent text-muted-foreground/50 hover:text-muted-foreground"
+                  : "border-transparent text-muted-foreground hover:text-muted-foreground"
               }`}
             >
               Costs
@@ -476,7 +476,7 @@ export default function Settings() {
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
               activeTab === "danger"
                 ? "border-[#A32D2D] text-[#A32D2D]"
-                : "border-transparent text-muted-foreground/50 hover:text-muted-foreground"
+                : "border-transparent text-muted-foreground hover:text-muted-foreground"
             }`}
           >
             Danger Zone
@@ -486,7 +486,7 @@ export default function Settings() {
         {/* Integrations tab */}
         {activeTab === "integrations" && (
           <div className="flex flex-col gap-5">
-            <p className="text-sm text-muted-foreground/60">
+            <p className="text-sm text-muted-foreground">
               Connect a cloud storage folder. Zane will automatically review any
               contract document added to the watched folder.
             </p>
@@ -525,14 +525,14 @@ export default function Settings() {
         {/* Admin-only: review costs tab */}
         {activeTab === "costs" && costReport && (
           <div className="flex flex-col gap-5">
-            <p className="text-sm text-muted-foreground/60">
+            <p className="text-sm text-muted-foreground">
               Estimated LLM cost per company per month, from token usage logged on every
               pipeline run. Cached reviews cost $0.
             </p>
             <div className="card overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-card-border text-left text-xs uppercase tracking-wider text-muted-foreground/60">
+                  <tr className="border-b border-card-border text-left text-xs uppercase tracking-wider text-muted-foreground">
                     <th className="px-4 py-3">Company</th>
                     {costReport.months.map((m) => (
                       <th key={m} className="px-4 py-3 text-right">{m}</th>
@@ -544,7 +544,7 @@ export default function Settings() {
                 <tbody>
                   {costReport.companies.length === 0 && (
                     <tr>
-                      <td colSpan={costReport.months.length + 3} className="px-4 py-6 text-center text-muted-foreground/60">
+                      <td colSpan={costReport.months.length + 3} className="px-4 py-6 text-center text-muted-foreground">
                         No review costs logged yet. Costs appear after the next pipeline run.
                       </td>
                     </tr>
@@ -675,7 +675,7 @@ function EmailZaneSettings() {
         </div>
         <div>
           <div className="text-sm font-semibold text-foreground">Your company's Zane address</div>
-          <p className="text-sm text-muted-foreground/70 mt-1 leading-relaxed">
+          <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
             CC or forward any contract to this address and Zane will handle it, review it,
             summarise it, or draft from your playbook, then reply by email with the result.
           </p>
@@ -694,12 +694,12 @@ function EmailZaneSettings() {
           </button>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground/60">
+        <p className="text-sm text-muted-foreground">
           Your inbound address is being set up. Refresh in a moment, or contact support if it doesn't appear.
         </p>
       )}
 
-      <p className="text-xs text-muted-foreground/50 max-w-xl leading-relaxed">
+      <p className="text-xs text-muted-foreground max-w-xl leading-relaxed">
         Only emails sent from a registered member of your team are processed. Anything from an
         unrecognised address is ignored.
       </p>
@@ -722,7 +722,7 @@ function RegulatoryAnalysisSettings() {
 
   return (
     <div className="flex flex-col gap-5">
-      <p className="text-sm text-muted-foreground/60">
+      <p className="text-sm text-muted-foreground">
         How prominently regulatory citations appear in contract reviews. The default
         is derived from your sector
         {company ? <> (<span className="text-foreground/70">{SETTING_LABELS[derivedSetting]}</span> for your profile)</> : null}
@@ -754,7 +754,7 @@ function RegulatoryAnalysisSettings() {
                   <div className="text-sm font-semibold text-foreground flex items-center gap-2">
                     {label}
                     {value === derivedSetting && (
-                      <span className="text-[10px] font-medium text-muted-foreground/60 border border-card-border rounded px-1.5 py-0.5">
+                      <span className="text-[10px] font-medium text-muted-foreground border border-card-border rounded px-1.5 py-0.5">
                         Sector default
                       </span>
                     )}
@@ -772,12 +772,12 @@ function RegulatoryAnalysisSettings() {
           <button
             onClick={() => mutation.mutate("")}
             disabled={mutation.isPending}
-            className="text-muted-foreground/60 hover:text-foreground transition-colors underline underline-offset-2"
+            className="text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
           >
             Reset to sector default ({SETTING_LABELS[derivedSetting]})
           </button>
         )}
-        {mutation.isPending && <span className="text-muted-foreground/60">Saving…</span>}
+        {mutation.isPending && <span className="text-muted-foreground">Saving…</span>}
         {mutation.isSuccess && !mutation.isPending && <span className="text-[#1B7A4B]">Saved.</span>}
         {mutation.isError && <span className="text-[#A32D2D]">Could not save - please try again.</span>}
       </div>
@@ -800,7 +800,7 @@ function SyncLogTable({ entries }: { entries: SyncLogEntry[] }) {
         <span className="text-sm font-semibold text-foreground">
           Sync log
         </span>
-        <span className="text-xs text-muted-foreground/40">
+        <span className="text-xs text-muted-foreground">
           {entries.length} entries
         </span>
       </div>
@@ -817,7 +817,7 @@ function SyncLogTable({ entries }: { entries: SyncLogEntry[] }) {
             <span className="flex-1 truncate text-foreground/70">
               {entry.externalFileName ?? "Unknown file"}
             </span>
-            <span className="shrink-0 text-muted-foreground/40">
+            <span className="shrink-0 text-muted-foreground">
               {syncStatusLabel(entry.status)}
             </span>
             <span className="shrink-0 text-muted-foreground/30 font-mono text-[10px]">
@@ -829,7 +829,7 @@ function SyncLogTable({ entries }: { entries: SyncLogEntry[] }) {
       {entries.length > 10 && (
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="w-full px-5 py-3 text-xs text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors flex items-center justify-center gap-1.5 border-t border-white/5"
+          className="w-full px-5 py-3 text-xs text-muted-foreground hover:text-muted-foreground transition-colors flex items-center justify-center gap-1.5 border-t border-white/5"
         >
           <ChevronDown size={12} className={expanded ? "rotate-180" : ""} />
           {expanded ? "Show less" : `Show all ${entries.length} entries`}
