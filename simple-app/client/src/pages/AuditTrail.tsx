@@ -67,20 +67,20 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
       onClick={hasDetail ? () => setExpanded((v) => !v) : undefined}
     >
       <div className="flex items-center gap-3 min-w-0">
-        <div className="text-[11px] text-muted-foreground/50 shrink-0 w-32 font-mono">
+        <div className="text-[11px] text-muted-foreground shrink-0 w-32 font-mono">
           {formatDateTime(entry.createdAt)}
         </div>
         <span className={`text-xs font-semibold shrink-0 ${actionColor(entry.action)}`}>
           {actionLabel(entry.action)}
         </span>
-        <span className="text-xs text-muted-foreground/50 shrink-0">{entry.entityType}</span>
+        <span className="text-xs text-muted-foreground shrink-0">{entry.entityType}</span>
         {entry.entityId && (
           <span className="text-[11px] text-muted-foreground/30 font-mono truncate hidden sm:block">
             {entry.entityId.slice(0, 12)}…
           </span>
         )}
         {hasDetail && (
-          <span className="ml-auto text-[10px] text-muted-foreground/40 shrink-0">
+          <span className="ml-auto text-[10px] text-muted-foreground shrink-0">
             {expanded ? "▲" : "▼"}
           </span>
         )}
@@ -149,7 +149,7 @@ export default function AuditTrail() {
         {/* Filters */}
         <div className="card p-4 space-y-3">
           <div className="flex items-center gap-2 mb-1">
-            <Search size={13} className="text-muted-foreground/60" />
+            <Search size={13} className="text-muted-foreground" />
             <span className="text-xs font-semibold text-muted-foreground">Filter</span>
             {hasFilters && (
               <button
@@ -223,9 +223,9 @@ export default function AuditTrail() {
             <div className="card overflow-hidden">
               {/* Column headers */}
               <div className="flex items-center gap-3 px-5 py-2.5 border-b border-card-border bg-muted/30">
-                <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/50 w-32 shrink-0">Time</span>
-                <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/50">Action</span>
-                <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/50">Entity</span>
+                <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground w-32 shrink-0">Time</span>
+                <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Action</span>
+                <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground">Entity</span>
               </div>
               {data.entries.map((entry) => (
                 <AuditRow key={entry.id} entry={entry} />
