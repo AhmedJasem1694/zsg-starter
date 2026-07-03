@@ -357,7 +357,7 @@ export default function FounderDashboard() {
               </div>
               {documents.length === 0 ? (
                 <div className="card-body text-center py-12">
-                  <FileText size={32} className="text-muted-foreground/30 mx-auto mb-3" />
+                  <FileText size={32} className="text-muted-foreground mx-auto mb-3" />
                   <div className="text-sm font-medium text-muted-foreground">No contracts yet</div>
                   <div className="text-xs text-muted-foreground mt-1">Upload one above - you'll get a plain-English verdict on every clause</div>
                 </div>
