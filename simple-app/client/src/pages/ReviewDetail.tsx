@@ -1129,7 +1129,7 @@ function SignOffTracker({ doc, results }: { doc: UploadedDocument; results: Revi
                 <div className={`text-[10px] mt-1 leading-tight
                   ${step.status === "done"     ? "text-muted-foreground" : ""}
                   ${step.status === "required" ? "text-[#854F0B]/55" : ""}
-                  ${step.status === "skipped"  ? "text-muted-foreground/25" : ""}`}
+                  ${step.status === "skipped"  ? "text-muted-foreground" : ""}`}
                 >
                   {step.detail}
                 </div>
