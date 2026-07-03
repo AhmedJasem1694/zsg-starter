@@ -125,7 +125,7 @@ function StatusPill({ status }: { status?: string }) {
     return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-500/15 text-green-400 border border-green-500/25">Complete</span>;
   }
   const map: Record<string, { label: string; cls: string }> = {
-    UPLOADED:   { label: "Uploaded",   cls: "bg-foreground/10 text-foreground/50 border-foreground/20" },
+    UPLOADED:   { label: "Uploaded",   cls: "bg-foreground/10 text-muted-foreground border-foreground/20" },
     PROCESSING: { label: "Processing", cls: "bg-amber-500/15 text-amber-400 border-amber-500/25" },
     FAILED:     { label: "Failed",     cls: "bg-red-500/15 text-red-400 border-red-500/25" },
   };
@@ -142,7 +142,7 @@ function StatusPill({ status }: { status?: string }) {
 
 function OutcomePill({ outcome }: { outcome?: string }) {
   if (!outcome || outcome === "DRAFT") {
-    return <span className="text-[10px] text-foreground/30">Draft</span>;
+    return <span className="text-[10px] text-muted-foreground">Draft</span>;
   }
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
@@ -163,7 +163,7 @@ function InlineFolderEdit({ documentId, currentFolder, onSave }: {
   const handleSave = () => { if (value.trim()) onSave(value.trim()); setEditing(false); };
   if (!editing) {
     return (
-      <button className="inline-flex items-center gap-1 text-[10px] text-foreground/40 hover:text-foreground/70 transition-colors max-w-[100px] truncate"
+      <button className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground/70 transition-colors max-w-[100px] truncate"
         onClick={(e) => { e.preventDefault(); setEditing(true); }} title="Edit folder">
         <Edit2 size={9} /><span className="truncate">{currentFolder || "-"}</span>
       </button>
@@ -191,11 +191,11 @@ function VersionPickerCell({ doc, allDocs }: { doc: UploadedDocument; allDocs: U
   const parent   = doc.parentDocumentId ? allDocs.find((d) => d.id === doc.parentDocumentId) : null;
   const children = allDocs.filter((d) => d.parentDocumentId === doc.id);
   if (parent || children.length > 0) {
-    return <span className="inline-flex items-center gap-1 text-[10px] text-foreground/40"><GitBranch size={10} />{parent ? "Version" : `${children.length}v`}</span>;
+    return <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground"><GitBranch size={10} />{parent ? "Version" : `${children.length}v`}</span>;
   }
   return (
     <div className="relative">
-      <button className="inline-flex items-center gap-1 text-[10px] text-foreground/20 hover:text-blue-400 transition-colors"
+      <button className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-blue-400 transition-colors"
         title="Link as version" onClick={(e) => { e.preventDefault(); setOpen(!open); }}>
         <GitBranch size={10} />
       </button>
@@ -211,7 +211,7 @@ function VersionPickerCell({ doc, allDocs }: { doc: UploadedDocument; allDocs: U
               </button>
             ))}
           </div>
-          <button className="mt-2 text-[11px] text-foreground/40 hover:text-foreground/70" onClick={() => setOpen(false)}>Cancel</button>
+          <button className="mt-2 text-[11px] text-muted-foreground hover:text-foreground/70" onClick={() => setOpen(false)}>Cancel</button>
         </div>
       )}
     </div>
@@ -227,7 +227,7 @@ function TableRow({ doc, allDocs, onFolderChange }: {
     <tr className="group hover:bg-white/[0.03] transition-colors">
       <td className="px-4 py-3 max-w-0 w-[260px]">
         <Link to={`/app/legal/review/${doc.id}`} className="flex items-center gap-2 group/link">
-          <FileText size={13} className="shrink-0 text-foreground/30 group-hover/link:text-foreground/60 transition-colors" />
+          <FileText size={13} className="shrink-0 text-muted-foreground group-hover/link:text-foreground/60 transition-colors" />
           <span className="text-sm text-foreground/90 font-medium truncate group-hover/link:text-foreground transition-colors">
             {doc.originalName ?? doc.filename}
           </span>
@@ -241,33 +241,33 @@ function TableRow({ doc, allDocs, onFolderChange }: {
               <Mail size={8} /> Email
             </span>
           )}
-          <ExternalLink size={10} className="shrink-0 text-foreground/20 group-hover/link:text-foreground/50 transition-colors" />
+          <ExternalLink size={10} className="shrink-0 text-muted-foreground group-hover/link:text-muted-foreground transition-colors" />
         </Link>
         {doc.contractTags && (
           <div className="flex items-center gap-1 mt-0.5 ml-5">
-            <Tag size={8} className="text-foreground/30" />
-            <span className="text-[9px] text-foreground/30 truncate">{doc.contractTags}</span>
+            <Tag size={8} className="text-muted-foreground" />
+            <span className="text-[9px] text-muted-foreground truncate">{doc.contractTags}</span>
           </div>
         )}
       </td>
       <td className="px-4 py-3 text-xs text-foreground/60 whitespace-nowrap">
-        {doc.counterpartyName || <span className="text-foreground/20">-</span>}
+        {doc.counterpartyName || <span className="text-muted-foreground">-</span>}
       </td>
       <td className="px-4 py-3 text-xs text-foreground/60 whitespace-nowrap">
-        {doc.contractType ? doc.contractType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : <span className="text-foreground/20">-</span>}
+        {doc.contractType ? doc.contractType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : <span className="text-muted-foreground">-</span>}
       </td>
       <td className="px-4 py-3 text-xs text-foreground/60 whitespace-nowrap text-right">
-        {doc.contractValue != null ? `${doc.currency ?? "£"}${doc.contractValue.toLocaleString()}` : <span className="text-foreground/20">-</span>}
+        {doc.contractValue != null ? `${doc.currency ?? "£"}${doc.contractValue.toLocaleString()}` : <span className="text-muted-foreground">-</span>}
       </td>
-      <td className="px-4 py-3 text-xs text-foreground/50 whitespace-nowrap">
-        {doc.governingLaw || <span className="text-foreground/20">-</span>}
+      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+        {doc.governingLaw || <span className="text-muted-foreground">-</span>}
       </td>
       <td className="px-4 py-3 whitespace-nowrap"><StatusPill status={doc.status} /></td>
       <td className="px-4 py-3 whitespace-nowrap"><OutcomePill outcome={doc.outcome} /></td>
       <td className="px-4 py-3 whitespace-nowrap">
         <InlineFolderEdit documentId={doc.id} currentFolder={doc.folder} onSave={(folder) => onFolderChange(doc.id, folder)} />
       </td>
-      <td className="px-4 py-3 text-[11px] text-foreground/40 whitespace-nowrap">{formatDate(doc.uploadedAt)}</td>
+      <td className="px-4 py-3 text-[11px] text-muted-foreground whitespace-nowrap">{formatDate(doc.uploadedAt)}</td>
       <td className="px-4 py-3"><VersionPickerCell doc={doc} allDocs={allDocs} /></td>
     </tr>
   );
@@ -286,7 +286,7 @@ function ColHeader({ label, sortKey, current, onSort, align = "left" }: {
     <th className={`px-4 py-3 text-[10px] uppercase tracking-wider font-semibold whitespace-nowrap select-none
       ${align === "right" ? "text-right" : "text-left"}
       ${sortKey ? "cursor-pointer hover:text-foreground/70" : ""}
-      ${active ? "text-foreground/60" : "text-foreground/30"}`}
+      ${active ? "text-foreground/60" : "text-muted-foreground"}`}
       onClick={() => sortKey && onSort?.(sortKey)}>
       <span className="inline-flex items-center gap-1">
         {label}
@@ -397,13 +397,13 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-[11px] font-medium text-foreground/60 uppercase tracking-wider">Counterparty name <span className="text-foreground/30 normal-case">(optional)</span></label>
+          <label className="text-[11px] font-medium text-foreground/60 uppercase tracking-wider">Counterparty name <span className="text-muted-foreground normal-case">(optional)</span></label>
           <input
             type="text"
             placeholder="e.g. Acme Corp Ltd"
             value={counterpartyName}
             onChange={(e) => setCounterpartyName(e.target.value)}
-            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-blue-500 transition-colors"
+            className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-blue-500 transition-colors"
           />
         </div>
         <div className="space-y-1">
@@ -444,13 +444,13 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
           <>
             <Loader2 size={28} className="text-blue-400 animate-spin" />
             <div className="text-sm font-medium text-foreground">Uploading and starting review…</div>
-            <div className="text-xs text-foreground/40">This may take a moment</div>
+            <div className="text-xs text-muted-foreground">This may take a moment</div>
           </>
         ) : uploadSuccess ? (
           <>
             <CheckCircle size={28} className="text-green-400" />
             <div className="text-sm font-medium text-foreground">Upload complete, review started</div>
-            <div className="text-xs text-foreground/40">The contract will appear in the table below when processing finishes</div>
+            <div className="text-xs text-muted-foreground">The contract will appear in the table below when processing finishes</div>
           </>
         ) : (
           <>
@@ -461,7 +461,7 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
               <div className="text-sm font-semibold text-foreground">
                 {dragOver ? "Drop to upload" : "Drag and drop or click to browse"}
               </div>
-              <div className="text-xs text-foreground/40">PDF or DOCX, max 50 MB</div>
+              <div className="text-xs text-muted-foreground">PDF or DOCX, max 50 MB</div>
             </div>
           </>
         )}
@@ -550,7 +550,7 @@ export default function ContractLibrary() {
               <Library size={22} className="text-blue-400" />
               <h1 className="text-2xl font-bold text-foreground">Contract Library</h1>
             </div>
-            <p className="text-sm text-foreground/50">Upload contracts for review or browse your existing library</p>
+            <p className="text-sm text-muted-foreground">Upload contracts for review or browse your existing library</p>
           </div>
 
           <div className="flex items-center gap-4">
@@ -558,15 +558,15 @@ export default function ContractLibrary() {
               <div className="flex items-center gap-5 text-right">
                 <div>
                   <div className="text-xl font-bold text-foreground">{data.total}</div>
-                  <div className="text-[10px] text-foreground/40 uppercase tracking-wider">Total</div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</div>
                 </div>
                 <div>
                   <div className="text-xl font-bold text-foreground">{completeCount}</div>
-                  <div className="text-[10px] text-foreground/40 uppercase tracking-wider">Reviewed</div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Reviewed</div>
                 </div>
                 <div>
                   <div className="text-xl font-bold text-blue-400">{signedCount}</div>
-                  <div className="text-[10px] text-foreground/40 uppercase tracking-wider">Signed</div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Signed</div>
                 </div>
               </div>
             )}
@@ -590,7 +590,7 @@ export default function ContractLibrary() {
               <Upload size={15} className="text-blue-400" />
               Upload a new contract for review
             </div>
-            {uploadOpen ? <ChevronUp size={15} className="text-foreground/40" /> : <ChevronDown size={15} className="text-foreground/40" />}
+            {uploadOpen ? <ChevronUp size={15} className="text-muted-foreground" /> : <ChevronDown size={15} className="text-muted-foreground" />}
           </button>
 
           {uploadOpen && (
@@ -602,13 +602,13 @@ export default function ContractLibrary() {
 
         {/* Search */}
         <div className="relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/30" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             placeholder="Search by name, counterparty, tags, or folder…"
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 bg-card border border-border rounded-xl text-sm text-foreground placeholder:text-foreground/30 outline-none focus:border-blue-500 transition-colors"
+            className="w-full pl-9 pr-4 py-2.5 bg-card border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-blue-500 transition-colors"
           />
         </div>
 
@@ -624,7 +624,7 @@ export default function ContractLibrary() {
                 key={v}
                 onClick={() => setView(v)}
                 className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
-                  view === v ? "bg-blue-500/15 text-blue-300" : "text-foreground/50 hover:text-foreground/80"
+                  view === v ? "bg-blue-500/15 text-blue-300" : "text-muted-foreground hover:text-foreground/80"
                 }`}
               >
                 {label}
@@ -635,14 +635,14 @@ export default function ContractLibrary() {
 
         {/* Loading */}
         {isLoading && (
-          <div className="text-center py-16 text-foreground/40 text-sm">Loading library…</div>
+          <div className="text-center py-16 text-muted-foreground text-sm">Loading library…</div>
         )}
 
         {/* Empty state (no contracts yet) */}
         {!isLoading && allDocs.length === 0 && (
           <div className="text-center py-16 space-y-3">
-            <Library size={40} className="mx-auto text-foreground/20" />
-            <p className="text-foreground/50 text-sm">
+            <Library size={40} className="mx-auto text-muted-foreground" />
+            <p className="text-muted-foreground text-sm">
               {debouncedSearch ? "No contracts match your search." : "No contracts uploaded yet."}
             </p>
             {!debouncedSearch && (
@@ -691,7 +691,7 @@ export default function ContractLibrary() {
                           ) : (
                             g.label
                           )}
-                          <span className="ml-1.5 font-normal text-foreground/40">({g.docs.length})</span>
+                          <span className="ml-1.5 font-normal text-muted-foreground">({g.docs.length})</span>
                         </td>
                       </tr>
                     ) : null,
@@ -709,11 +709,11 @@ export default function ContractLibrary() {
             </div>
 
             <div className="px-4 py-3 border-t border-border bg-card/50 flex items-center justify-between">
-              <span className="text-[11px] text-foreground/40">
+              <span className="text-[11px] text-muted-foreground">
                 {sorted.length} contract{sorted.length !== 1 ? "s" : ""}
                 {debouncedSearch && " matching search"}
               </span>
-              <div className="flex items-center gap-4 text-[11px] text-foreground/30">
+              <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
                 <div className="flex items-center gap-1.5"><CheckCircle size={10} className="text-blue-400" /> Signed/Executed</div>
                 <div className="flex items-center gap-1.5"><AlertTriangle size={10} className="text-amber-400" /> Processing</div>
                 <div className="flex items-center gap-1.5"><XCircle size={10} className="text-red-400" /> Failed</div>
