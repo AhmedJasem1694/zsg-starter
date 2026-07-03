@@ -20,9 +20,9 @@ export default function AccumulationCard() {
       <div className="card p-4">
         <div className="flex items-center gap-2 mb-3">
           <Brain size={14} className="text-[#2563EB]" />
-          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">Zane learning</span>
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Zane learning</span>
         </div>
-        <div className="h-20 flex items-center justify-center text-xs text-muted-foreground/40">Loading…</div>
+        <div className="h-20 flex items-center justify-center text-xs text-muted-foreground">Loading…</div>
       </div>
     );
   }
@@ -48,7 +48,7 @@ export default function AccumulationCard() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Brain size={14} className="text-[#2563EB]" />
-          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">Zane learning</span>
+          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Zane learning</span>
         </div>
         {overrideRate !== undefined && (
           <div className={`flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded border ${
@@ -69,14 +69,14 @@ export default function AccumulationCard() {
         {stats.map((s) => (
           <div key={s.label} className="rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-3 py-2.5">
             <div className="text-xl font-bold" style={{ color: s.color }}>{s.value}</div>
-            <div className="text-[11px] text-muted-foreground/60 mt-0.5">{s.label}</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Override rate trend */}
       {(overrideRate !== undefined && overrideRatePrev !== undefined) && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Activity size={11} />
           <span>
             Override rate:{" "}
@@ -93,13 +93,13 @@ export default function AccumulationCard() {
 
       {/* Insight */}
       {hasInsight && (
-        <div className="text-xs text-muted-foreground/70 italic border-t border-[#E2E8F0] pt-3 leading-relaxed">
+        <div className="text-xs text-muted-foreground italic border-t border-[#E2E8F0] pt-3 leading-relaxed">
           {insight}
         </div>
       )}
 
       {!hasInsight && contractsReviewed === 0 && (
-        <div className="text-xs text-muted-foreground/40 italic">
+        <div className="text-xs text-muted-foreground italic">
           Upload and review contracts to start building Zane's understanding of your negotiation patterns.
         </div>
       )}

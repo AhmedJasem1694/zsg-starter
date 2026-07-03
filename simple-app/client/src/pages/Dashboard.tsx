@@ -85,7 +85,7 @@ function DeleteConfirmModal({ count, name, onConfirm, onCancel, loading }: Delet
             <div className="text-sm text-muted-foreground truncate">{name}</div>
           )}
         </div>
-        <p className="text-sm text-muted-foreground/70 leading-relaxed">
+        <p className="text-sm text-muted-foreground leading-relaxed">
           {isBulk
             ? `This will permanently remove ${count} contracts and all their analysis results.`
             : "This will permanently remove the contract, its analysis results, and all associated data."}
@@ -318,7 +318,7 @@ function UrgencyPanel({ signals }: { signals: UrgencySignal[] }) {
         <span className="text-xs font-semibold text-[#A32D2D]/80 uppercase tracking-wider">
           {signals.filter(s => s.severity === "red").length > 0 ? "Requires attention" : "Operational notice"}
         </span>
-        <span className="ml-auto text-[10px] text-muted-foreground/40">{signals.length} active</span>
+        <span className="ml-auto text-[10px] text-muted-foreground">{signals.length} active</span>
       </div>
       {signals.map((sig) => {
         const cfg = SIGNAL_CONFIG[sig.type] ?? SIGNAL_CONFIG.pattern;
@@ -329,13 +329,13 @@ function UrgencyPanel({ signals }: { signals: UrgencySignal[] }) {
             <div className="min-w-0 flex-1">
               <div className="text-xs font-semibold" style={{ color: cfg.color }}>{sig.message}</div>
               {sig.detail && (
-                <div className="text-[11px] text-muted-foreground/50 mt-0.5 truncate">{sig.detail}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5 truncate">{sig.detail}</div>
               )}
             </div>
             {sig.docId && (
               <a
                 href={`/app/legal/review/${sig.docId}`}
-                className="text-[10px] font-semibold text-muted-foreground/40 hover:text-muted-foreground transition-colors shrink-0"
+                className="text-[10px] font-semibold text-muted-foreground hover:text-muted-foreground transition-colors shrink-0"
               >
                 View →
               </a>
@@ -470,7 +470,7 @@ function ReviewProcessingCard({ doc }: { doc: UploadedDocument }) {
                 <span className={`text-xs leading-none transition-all
                   ${done    ? "text-muted-foreground line-through" : ""}
                   ${active  ? "text-[#854F0B] font-medium" : ""}
-                  ${pending ? "text-muted-foreground/40" : ""}`}>
+                  ${pending ? "text-muted-foreground" : ""}`}>
                   {stage.label}
                 </span>
               </div>
@@ -518,7 +518,7 @@ function RiskInbox({ documents }: RiskInboxProps) {
 
         {redDocs.length > 0 && (
           <div className="space-y-1.5">
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-medium">Red flags open</div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Red flags open</div>
             {redDocs.slice(0, 3).map((d) => {
               const redCount = (d.reviewResults ?? []).filter((r) => r.ragStatus === "RED").length;
               return (
@@ -534,7 +534,7 @@ function RiskInbox({ documents }: RiskInboxProps) {
 
         {renewalDocs.length > 0 && (
           <div className="space-y-1.5">
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-medium">Renewals due</div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Renewals due</div>
             {renewalDocs.slice(0, 3).map((d) => {
               const daysLeft = Math.ceil((new Date((d as DocWithRag & { renewalDate: string }).renewalDate).getTime() - now) / (1000 * 60 * 60 * 24));
               return (
@@ -595,7 +595,7 @@ function ApprovalQueue({ documents }: { documents: DocWithRag[] }) {
             );
           })}
         </div>
-        <p className="text-[10px] text-muted-foreground/50 leading-relaxed">
+        <p className="text-[10px] text-muted-foreground leading-relaxed">
           These contracts have clauses flagged for escalation. Open each to confirm, escalate or dismiss.
         </p>
       </div>
@@ -691,7 +691,7 @@ function DashboardCapabilities({ inboundEmail }: { inboundEmail?: string }) {
             </button>
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground/60 max-w-xl">
+          <p className="text-xs text-muted-foreground max-w-xl">
             Your dedicated Zane address is being set up. You can also find it in Settings, Email Zane.
           </p>
         )}
