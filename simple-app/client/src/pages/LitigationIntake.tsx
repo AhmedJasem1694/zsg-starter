@@ -604,7 +604,7 @@ export default function LitigationIntake() {
                     e.target.value = "";
                   }}
                 />
-                <Upload size={22} className="text-muted-foreground/50 mx-auto mb-2" />
+                <Upload size={22} className="text-muted-foreground mx-auto mb-2" />
                 <div className="text-sm font-medium">Drop file or click to browse</div>
                 <div className="text-xs text-muted-foreground mt-1">You will be asked about legal privilege before uploading</div>
               </div>
