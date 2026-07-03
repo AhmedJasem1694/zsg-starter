@@ -66,7 +66,7 @@ function DeltaCard({
               <span className={`rag-badge ${RAG_BADGE[delta.originalStatus as RagStatus] ?? "rag-grey"} text-[10px]`}>
                 {delta.originalStatus}
               </span>
-              <span className="text-[10px] text-foreground/40">original status</span>
+              <span className="text-[10px] text-muted-foreground">original status</span>
             </div>
           </div>
           {/* LLM suggested outcome */}
@@ -103,7 +103,7 @@ function DeltaCard({
 
         {/* Collapsible detail */}
         <button
-          className="flex items-center gap-1 mt-3 text-xs text-foreground/40 hover:text-foreground/70 transition-colors"
+          className="flex items-center gap-1 mt-3 text-xs text-muted-foreground hover:text-foreground/70 transition-colors"
           onClick={() => setExpanded((v) => !v)}
         >
           {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
@@ -115,25 +115,25 @@ function DeltaCard({
         <div className="border-t border-[#E2E8F0] px-5 py-4 space-y-3 bg-[#FFFFFF]/60">
           {delta.notes && (
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-foreground/40 mb-1">LLM reasoning</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">LLM reasoning</div>
               <p className="text-xs text-foreground/70">{delta.notes}</p>
             </div>
           )}
           {delta.originalClauseText && (
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-foreground/40 mb-1">Original clause</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Original clause</div>
               <p className="text-xs text-foreground/60 line-clamp-4">{delta.originalClauseText}</p>
             </div>
           )}
           {delta.finalClauseText && (
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-foreground/40 mb-1">Final clause</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Final clause</div>
               <p className="text-xs text-foreground/60 line-clamp-4">{delta.finalClauseText}</p>
             </div>
           )}
           {delta.playbookPreferred && (
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-foreground/40 mb-1">Playbook preferred</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Playbook preferred</div>
               <p className="text-xs text-foreground/60">{delta.playbookPreferred}</p>
             </div>
           )}
@@ -213,7 +213,7 @@ export default function OutcomeConfirmation() {
     return (
       <AppLayout>
         <div className="px-6 py-8 max-w-3xl mx-auto space-y-5">
-          <Link to={`/app/legal/review/${id}`} className="flex items-center gap-1.5 text-sm text-foreground/50 hover:text-foreground/80 transition-colors">
+          <Link to={`/app/legal/review/${id}`} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground/80 transition-colors">
             <ArrowLeft size={14} /> Back to review
           </Link>
           <div className="card p-8 text-center space-y-3">
@@ -238,7 +238,7 @@ export default function OutcomeConfirmation() {
         {/* Back */}
         <Link
           to={`/app/legal/review/${id}`}
-          className="flex items-center gap-1.5 text-sm text-foreground/50 hover:text-foreground/80 transition-colors"
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground/80 transition-colors"
         >
           <ArrowLeft size={14} /> Back to review
         </Link>
