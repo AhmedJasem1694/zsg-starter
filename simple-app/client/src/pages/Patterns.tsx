@@ -197,38 +197,38 @@ function PatternCard({ pattern }: { pattern: EnrichedPattern }) {
       <div className="grid sm:grid-cols-2 gap-3">
         {/* Frequency */}
         <div className="rounded-lg bg-black/20 border border-white/5 px-3 py-2.5">
-          <div className="text-[10px] uppercase tracking-wider text-foreground/40 font-medium mb-1">Frequency</div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Frequency</div>
           <div className="text-xs text-foreground/80 leading-relaxed">{pattern.frequency}</div>
         </div>
 
         {/* Commercial impact */}
         <div className="rounded-lg bg-black/20 border border-white/5 px-3 py-2.5">
-          <div className="text-[10px] uppercase tracking-wider text-foreground/40 font-medium mb-1">Commercial impact</div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Commercial impact</div>
           <div className="text-xs text-foreground/80 leading-relaxed">{pattern.commercialImpact}</div>
         </div>
 
         {/* Counterparties */}
         <div className="rounded-lg bg-black/20 border border-white/5 px-3 py-2.5">
-          <div className="text-[10px] uppercase tracking-wider text-foreground/40 font-medium mb-1">Counterparties involved</div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Counterparties involved</div>
           {pattern.counterparties.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {pattern.counterparties.slice(0, 3).map((cp) => (
                 <span key={cp} className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-foreground/70 border border-white/10">{cp}</span>
               ))}
               {pattern.counterparties.length > 3 && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-foreground/40 border border-white/5">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-muted-foreground border border-white/5">
                   +{pattern.counterparties.length - 3} more
                 </span>
               )}
             </div>
           ) : (
-            <div className="text-xs text-foreground/40">No specific counterparty identified</div>
+            <div className="text-xs text-muted-foreground">No specific counterparty identified</div>
           )}
         </div>
 
         {/* Suggested action */}
         <div className="rounded-lg bg-black/20 border border-white/5 px-3 py-2.5">
-          <div className="text-[10px] uppercase tracking-wider text-foreground/40 font-medium mb-1">Suggested action</div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Suggested action</div>
           <div className="text-xs text-foreground/80 leading-relaxed">{pattern.suggestedAction}</div>
         </div>
       </div>
@@ -259,7 +259,7 @@ function DriftBar({ entry }: { entry: NegotiationDrift }) {
     <div className="flex items-center gap-3">
       <div className="w-36 shrink-0">
         <div className="text-xs font-medium truncate">{label(entry.clauseCategory)}</div>
-        <div className="text-[10px] text-foreground/40">{entry.acceptedRed}/{entry.totalRed} accepted below red line</div>
+        <div className="text-[10px] text-muted-foreground">{entry.acceptedRed}/{entry.totalRed} accepted below red line</div>
       </div>
       <div className="flex-1">
         <div className="h-2 bg-muted rounded-full overflow-hidden">
@@ -284,11 +284,11 @@ function CounterpartyCard({ cp }: { cp: CounterpartyPattern }) {
       <div className="flex items-start justify-between gap-2 mb-2">
         <div>
           <div className="text-sm font-medium">{cp.counterparty}</div>
-          <div className="text-xs text-foreground/50">{label(cp.clauseCategory)}</div>
+          <div className="text-xs text-muted-foreground">{label(cp.clauseCategory)}</div>
         </div>
         <div className="text-right">
           <div className="text-sm font-bold text-red-400">{cp.redCount}× RED</div>
-          <div className="text-[10px] text-foreground/40">{cp.amberCount > 0 ? `+${cp.amberCount} amber` : "no amber"}</div>
+          <div className="text-[10px] text-muted-foreground">{cp.amberCount > 0 ? `+${cp.amberCount} amber` : "no amber"}</div>
         </div>
       </div>
       <div className="h-1.5 bg-muted rounded-full overflow-hidden">
@@ -348,12 +348,12 @@ function OverrideTrendSection() {
                   style={{ height: `${Math.max(height, entry.totalResults > 0 ? 4 : 0)}%` }}
                   title={`${entry.month}: ${entry.overrideRate}% override rate (${entry.overrideCount}/${entry.totalResults})`}
                 />
-                <div className="text-[9px] text-muted-foreground/50">{entry.month.slice(5)}</div>
+                <div className="text-[9px] text-muted-foreground">{entry.month.slice(5)}</div>
               </div>
             );
           })}
         </div>
-        <div className="mt-2 text-[11px] text-muted-foreground/60">
+        <div className="mt-2 text-[11px] text-muted-foreground">
           A declining override rate means Zane's analysis is aligning more closely with your team's judgement.
         </div>
       </div>
@@ -412,7 +412,7 @@ export default function Patterns() {
         {!isLoading && !hasData && flags.patternIntelligence && (
           <div className="card p-14 text-center space-y-5">
             <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center mx-auto">
-              <Activity size={24} className="text-muted-foreground/50" />
+              <Activity size={24} className="text-muted-foreground" />
             </div>
             <div className="space-y-2">
               <div className="font-semibold">No patterns detected yet</div>
@@ -458,7 +458,7 @@ export default function Patterns() {
             </div>
             {data.decisionSummary.mostOverriddenCategories.length > 0 && (
               <div className="card p-4 space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   Most overridden clause positions
                 </div>
                 {data.decisionSummary.mostOverriddenCategories.map((c) => (
