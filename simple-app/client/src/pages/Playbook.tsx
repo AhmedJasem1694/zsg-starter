@@ -565,7 +565,7 @@ function DriftSuggestionsView({
   if (suggestions.length === 0) {
     return (
       <div className="card p-10 text-center space-y-3">
-        <TrendingUp size={28} className="text-muted-foreground/30 mx-auto" />
+        <TrendingUp size={28} className="text-muted-foreground mx-auto" />
         <div className="text-sm font-medium">No updates needed</div>
         <p className="text-xs text-muted-foreground max-w-sm mx-auto">
           Your playbook positions appear to match your actual negotiation outcomes. Keep reviewing contracts and Zane will
