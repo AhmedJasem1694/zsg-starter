@@ -390,7 +390,7 @@ export default function ReviewDetail() {
                   <div key={stage.status} className="flex items-center gap-3">
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all duration-500
                       ${done    ? "bg-[#E7F6EE] border-[#BBE6CC]" : ""}
-                      ${active  ? "bg-[#FAEEDA] border-[#92400E] animate-pulse" : ""}
+                      ${active  ? "bg-[#FAEEDA] border-[#854F0B] animate-pulse" : ""}
                       ${pending ? "bg-transparent border-[#E2E8F0]" : ""}`}>
                       {done && <CheckCircle size={10} className="text-[#1B7A4B]" />}
                       {active && <span className="w-1.5 h-1.5 rounded-full bg-[#854F0B]" />}
@@ -398,7 +398,7 @@ export default function ReviewDetail() {
                     <span className={`text-sm leading-none transition-all
                       ${done    ? "text-muted-foreground line-through" : ""}
                       ${active  ? "text-[#854F0B] font-medium" : ""}
-                      ${pending ? "text-muted-foreground/40" : ""}`}>
+                      ${pending ? "text-muted-foreground" : ""}`}>
                       {label}
                     </span>
                   </div>
@@ -544,7 +544,7 @@ export default function ReviewDetail() {
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Known patterns · {counterpartyProfile.counterparty}
               </span>
-              <span className="text-[10px] text-muted-foreground/50 shrink-0">
+              <span className="text-[10px] text-muted-foreground shrink-0">
                 {counterpartyProfile.contracts} contract(s) · {counterpartyProfile.totalMoves} captured move(s)
               </span>
             </div>
@@ -974,9 +974,9 @@ function ContractHeader({
             {doc.counterpartyName && (
               <span className="font-medium text-foreground/80">{doc.counterpartyName}</span>
             )}
-            {doc.counterpartyName && <span className="text-muted-foreground/40">·</span>}
+            {doc.counterpartyName && <span className="text-muted-foreground">·</span>}
             <span>{(doc.contractType ?? "").replace(/_/g, " ")}</span>
-            <span className="text-muted-foreground/40">·</span>
+            <span className="text-muted-foreground">·</span>
             <span>Reviewed {date}</span>
           </div>
         </div>
@@ -1101,8 +1101,8 @@ function SignOffTracker({ doc, results }: { doc: UploadedDocument; results: Revi
   return (
     <div className="card p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <Users size={13} className="text-muted-foreground/60 shrink-0" />
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+        <Users size={13} className="text-muted-foreground shrink-0" />
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
           Sign-off workflow
         </span>
       </div>
@@ -1111,7 +1111,7 @@ function SignOffTracker({ doc, results }: { doc: UploadedDocument; results: Revi
           <div key={step.label} className="flex items-start gap-2.5">
             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all
               ${step.status === "done"     ? "bg-[#E7F6EE] border-[#BBE6CC]" : ""}
-              ${step.status === "required" ? "bg-[#FAEEDA] border-[#92400E]" : ""}
+              ${step.status === "required" ? "bg-[#FAEEDA] border-[#854F0B]" : ""}
               ${step.status === "skipped"  ? "bg-transparent border-[#E2E8F0]" : ""}`}
             >
               {step.status === "done"     && <CheckCircle size={9} className="text-[#1B7A4B]" />}
@@ -1127,7 +1127,7 @@ function SignOffTracker({ doc, results }: { doc: UploadedDocument; results: Revi
               </div>
               {step.detail && (
                 <div className={`text-[10px] mt-1 leading-tight
-                  ${step.status === "done"     ? "text-muted-foreground/60" : ""}
+                  ${step.status === "done"     ? "text-muted-foreground" : ""}
                   ${step.status === "required" ? "text-[#854F0B]/55" : ""}
                   ${step.status === "skipped"  ? "text-muted-foreground/25" : ""}`}
                 >
@@ -1139,7 +1139,7 @@ function SignOffTracker({ doc, results }: { doc: UploadedDocument; results: Revi
         ))}
       </div>
       {!hasEscalation && (
-        <div className="text-[10px] text-muted-foreground/40 pt-1 border-t border-border">
+        <div className="text-[10px] text-muted-foreground pt-1 border-t border-border">
           No sign-off required based on current flags and contract value.
         </div>
       )}
@@ -1240,8 +1240,8 @@ function IntelligenceSignals({
   return (
     <div className="card p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <Layers size={13} className="text-muted-foreground/60 shrink-0" />
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+        <Layers size={13} className="text-muted-foreground shrink-0" />
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
           Intelligence
         </span>
       </div>
@@ -1309,7 +1309,7 @@ function DocumentAuditPanel({ audit }: { audit: import("../lib/types").DocumentA
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2 text-[10px] text-muted-foreground/50">
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
           <span>Passes 2 to 5: defined terms · cross-refs · numbers · consistency</span>
           {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
         </div>
@@ -1323,7 +1323,7 @@ function DocumentAuditPanel({ audit }: { audit: import("../lib/types").DocumentA
             { key: "internalConsistency", findings: audit.internalConsistency ?? [] },
           ].filter(g => g.findings.length > 0).map(({ key, findings }) => (
             <div key={key} className="space-y-2">
-              <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 {PASS_LABELS[findings[0].pass] ?? key}
               </div>
               {findings.map((f, i) => {
@@ -1370,15 +1370,15 @@ function RiskDistribution({ counts, total }: { counts: ExtendedCounts; total: nu
   return (
     <div className="card p-4 space-y-3">
       <div className="flex items-center gap-2">
-        <BarChart2 size={13} className="text-muted-foreground/60 shrink-0" />
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+        <BarChart2 size={13} className="text-muted-foreground shrink-0" />
+        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
           Risk distribution
         </span>
       </div>
       <div className="space-y-2">
         {bars.map((bar) => (
           <div key={bar.label} className="flex items-center gap-2.5">
-            <div className="w-14 text-[11px] text-muted-foreground/60 shrink-0">{bar.label}</div>
+            <div className="w-14 text-[11px] text-muted-foreground shrink-0">{bar.label}</div>
             <div className="flex-1 h-1.5 bg-[#E2E8F0] rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full ${bar.bg} transition-all duration-700`}
@@ -1391,7 +1391,7 @@ function RiskDistribution({ counts, total }: { counts: ExtendedCounts; total: nu
           </div>
         ))}
       </div>
-      <div className="text-[10px] text-muted-foreground/40 pt-1 border-t border-border">
+      <div className="text-[10px] text-muted-foreground pt-1 border-t border-border">
         {total} clauses reviewed
       </div>
     </div>
@@ -1422,7 +1422,7 @@ function LearningIndicator({ clauseCategory }: { clauseCategory: string }) {
   return (
     <div className="group relative flex items-center gap-1" title={tooltip}>
       <div className={`w-1.5 h-1.5 rounded-full ${hasSignals ? "bg-[#2563EB]" : "bg-[#CBD5E1]"}`} />
-      <span className="text-[10px] text-foreground/30 group-hover:text-foreground/60 transition-colors">
+      <span className="text-[10px] text-muted-foreground group-hover:text-foreground/60 transition-colors">
         {hasSignals ? "Personalised" : "Standard"}
       </span>
     </div>
@@ -1503,7 +1503,7 @@ function OverridePanel({
 
       {/* Reason chips */}
       <div>
-        <div className="text-[10px] text-muted-foreground/50 mb-1.5">Reason (required)</div>
+        <div className="text-[10px] text-muted-foreground mb-1.5">Reason (required)</div>
         <div className="flex flex-wrap gap-1.5 mb-2">
           {OVERRIDE_REASON_CHIPS.map((chip) => (
             <button
@@ -1521,7 +1521,7 @@ function OverridePanel({
           ))}
         </div>
         <input
-          className="w-full rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-[#2563EB]"
+          className="w-full rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#2563EB]"
           placeholder="Or type a reason…"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
@@ -1598,13 +1598,13 @@ function FalsePositivePanel({
             <div className={`text-[11px] font-semibold ${errorType === t.value ? "text-[#854F0B]" : "text-muted-foreground"}`}>
               {t.label}
             </div>
-            <div className="text-[10px] text-muted-foreground/50 mt-0.5">{t.desc}</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">{t.desc}</div>
           </button>
         ))}
       </div>
 
       <textarea
-        className="w-full rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground/40 focus:outline-none min-h-[60px] resize-y"
+        className="w-full rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none min-h-[60px] resize-y"
         placeholder="Optional: what is the correct interpretation?"
         value={correctInterpretation}
         onChange={(e) => setCorrectInterpretation(e.target.value)}
@@ -1764,7 +1764,7 @@ function ClauseCard({
           </div>
           {/* Business summary - only shown when expanded (RED/AMBER show a hint) */}
           {(result.ragStatus === "RED" || result.ragStatus === "AMBER") && !expanded && (
-            <div className="text-xs text-muted-foreground/70 mt-1 line-clamp-1 leading-relaxed">
+            <div className="text-xs text-muted-foreground mt-1 line-clamp-1 leading-relaxed">
               {result.businessSummary || result.clauseSummary}
             </div>
           )}
@@ -1794,7 +1794,7 @@ function ClauseCard({
           ) : (
             <span className={RAG_BADGE[result.ragStatus]}>{RAG_LABEL[result.ragStatus]}</span>
           )}
-          <span className="text-muted-foreground/50 text-xs">{expanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}</span>
+          <span className="text-muted-foreground text-xs">{expanded ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}</span>
         </div>
       </button>
 
@@ -1842,7 +1842,7 @@ function ClauseCard({
                   <FallbackCopyButton text={result.suggestedFallback} />
                 </div>
               ) : (
-                <p className="text-xs text-foreground/40">No fallback wording available for this clause.</p>
+                <p className="text-xs text-muted-foreground">No fallback wording available for this clause.</p>
               )}
             </div>
 
@@ -1852,7 +1852,7 @@ function ClauseCard({
                 ? "border-[#FCEBEB] bg-[#FCEBEB]"
                 : "border-[#E2E8F0] bg-[#FFFFFF]"
             }`}>
-              <div className={`text-[10px] font-bold uppercase tracking-wider ${result.escalationRequired ? "text-foreground/60" : "text-foreground/40"}`}>
+              <div className={`text-[10px] font-bold uppercase tracking-wider ${result.escalationRequired ? "text-foreground/60" : "text-muted-foreground"}`}>
                 Escalation
               </div>
               {result.escalationRequired ? (
@@ -1866,7 +1866,7 @@ function ClauseCard({
                   )}
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 text-xs text-foreground/40">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <CheckCircle size={11} className="shrink-0" />
                   No escalation required
                 </div>
@@ -1982,7 +1982,7 @@ function ClauseCard({
                       {redraft.explanation && (
                         <p className="text-[11px] text-muted-foreground italic">{redraft.explanation}</p>
                       )}
-                      <p className="text-[11px] text-muted-foreground/70">
+                      <p className="text-[11px] text-muted-foreground">
                         A playbook-aligned clause you can paste straight into the contract. Any [TO CONFIRM] marker is a commercial decision for you to set.
                       </p>
                       <div className="flex gap-2">
@@ -2072,7 +2072,7 @@ function ClauseCard({
               </button>
             ))}
             {isMock && (
-              <span className="text-[10px] text-muted-foreground/40">Demo - outcomes disabled</span>
+              <span className="text-[10px] text-muted-foreground">Demo - outcomes disabled</span>
             )}
           </div>
 
@@ -2099,11 +2099,11 @@ function ClauseCard({
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-semibold uppercase tracking-widest text-foreground/50">
+                  <label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                     Final agreed clause text (optional)
                   </label>
                   <textarea
-                    className="w-full rounded-xl border border-[#E7F6EE] bg-[#E7F6EE] px-3.5 py-2.5 text-sm text-foreground placeholder:text-foreground/25 focus:outline-none focus:border-[#BBE6CC] min-h-[96px] resize-y font-mono"
+                    className="w-full rounded-xl border border-[#E7F6EE] bg-[#E7F6EE] px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-[#BBE6CC] min-h-[96px] resize-y font-mono"
                     placeholder="Paste the final clause text as executed…"
                     value={agreedText}
                     onChange={(e) => setAgreedText(e.target.value)}
@@ -2118,7 +2118,7 @@ function ClauseCard({
                     <CheckCircle size={14} /> Save & mark accepted
                   </button>
                   <button
-                    className="w-full px-4 py-2 text-xs text-foreground/50 hover:text-foreground/80 transition-colors"
+                    className="w-full px-4 py-2 text-xs text-muted-foreground hover:text-foreground/80 transition-colors"
                     onClick={() => { void handle("ACCEPTED"); setShowWhatAgreed(false); setAgreedText(""); }}
                   >
                     Accept without recording clause text
@@ -2426,7 +2426,7 @@ function RegulatorySummaryPanel({ results }: { results: ReviewResult[] }) {
   if (counts.size === 0) return null;
   return (
     <div className="card p-4 space-y-3">
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         <Shield size={11} />
         Regulatory summary
       </div>
@@ -2482,7 +2482,7 @@ function RegulatoryReferencesAccordion({ results }: { results: ReviewResult[] })
 function Detail({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60">{title}</div>
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</div>
       {children}
     </div>
   );
