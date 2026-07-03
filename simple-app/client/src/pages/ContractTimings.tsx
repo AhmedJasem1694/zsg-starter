@@ -37,7 +37,7 @@ export default function ContractTimings() {
         {!isLoading && !data && (
           <div className="card p-14 text-center space-y-5">
             <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center mx-auto">
-              <CalendarClock size={24} className="text-muted-foreground/50" />
+              <CalendarClock size={24} className="text-muted-foreground" />
             </div>
             <div className="space-y-2">
               <div className="font-semibold">No renewal data yet</div>
