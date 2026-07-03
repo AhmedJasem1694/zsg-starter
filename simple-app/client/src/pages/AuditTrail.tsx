@@ -75,7 +75,7 @@ function AuditRow({ entry }: { entry: AuditEntry }) {
         </span>
         <span className="text-xs text-muted-foreground shrink-0">{entry.entityType}</span>
         {entry.entityId && (
-          <span className="text-[11px] text-muted-foreground/30 font-mono truncate hidden sm:block">
+          <span className="text-[11px] text-muted-foreground font-mono truncate hidden sm:block">
             {entry.entityId.slice(0, 12)}…
           </span>
         )}
@@ -203,7 +203,7 @@ export default function AuditTrail() {
 
         {!isLoading && !isError && (!data?.entries?.length) && (
           <div className="card p-12 text-center space-y-3">
-            <ClipboardList size={32} className="text-muted-foreground/30 mx-auto" />
+            <ClipboardList size={32} className="text-muted-foreground mx-auto" />
             <div className="font-medium text-muted-foreground">
               {hasFilters ? "No entries match the current filters" : "No audit entries yet"}
             </div>
