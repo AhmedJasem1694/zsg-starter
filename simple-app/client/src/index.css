@@ -203,6 +203,48 @@
   }
   .btn-danger:hover:not(:disabled) { background: #2D0A0A; }
 
+  /* ── Light theme overrides for hardcoded component classes ─────────────
+     The classes above carry dark-theme hex, still correct on the public dark
+     pages (Login, Register, Onboarding). Inside the app's .theme-light scope
+     they align to the agreed light palette. */
+  .theme-light .input {
+    background: #FFFFFF;
+    border-color: #E2E8F0;
+    color: #0B1020;
+  }
+  .theme-light .input::placeholder { color: #94A3B8; }
+  .theme-light .btn-secondary { border-color: #CBD5E1; }
+  .theme-light .btn-secondary:hover:not(:disabled) {
+    background: #F1F5F9;
+    border-color: #94A3B8;
+  }
+  .theme-light .btn-ghost { color: #64748B; }
+  .theme-light .btn-ghost:hover:not(:disabled) {
+    color: #0B1020;
+    background: #F1F5F9;
+  }
+  .theme-light .btn-danger {
+    background: #FCEBEB;
+    border-color: #F8D4D4;
+    color: #A32D2D;
+  }
+  .theme-light .btn-danger:hover:not(:disabled) { background: #F8D4D4; }
+  .theme-light .rag-red   { background: #FCEBEB; border-color: #F8D4D4; color: #A32D2D; }
+  .theme-light .rag-amber { background: #FAEEDA; border-color: #F5D9AE; color: #854F0B; }
+  .theme-light .rag-green { background: #E7F6EE; border-color: #BBE6CC; color: #1B7A4B; }
+  .theme-light .rag-grey  { background: #F1F5F9; border-color: #CBD5E1; color: #475569; }
+  /* Contract and long-form text: dark navy on off-white for readability */
+  .theme-light .clause-block {
+    background: #F8FAFC;
+    border-color: #E2E8F0;
+    color: #0B1020;
+  }
+  .theme-light .copy-block {
+    background: #E6F1FB;
+    border-color: #CBE2F7;
+    color: #185FA5;
+  }
+
   /* ── Cards ──────────────────────────────────────────────────────────── */
   .card {
     @apply bg-card border border-card-border rounded-xl;
