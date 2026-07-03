@@ -325,7 +325,7 @@ export default function FounderDashboard() {
                             <div key={stage.label} className="flex items-center gap-2.5">
                               <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0
                                 ${done    ? "bg-[#E7F6EE] border-[#BBE6CC]" : ""}
-                                ${active  ? "bg-[#FAEEDA] border-[#92400E] animate-pulse" : ""}
+                                ${active  ? "bg-[#FAEEDA] border-[#854F0B] animate-pulse" : ""}
                                 ${pending ? "bg-transparent border-[#E2E8F0]" : ""}`}>
                                 {done   && <CheckCircle size={9} className="text-[#1B7A4B]" />}
                                 {active && <span className="w-1 h-1 rounded-full bg-[#854F0B]" />}
