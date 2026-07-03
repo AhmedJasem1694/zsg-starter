@@ -83,7 +83,7 @@ function SynthesisPanel({ regId }: { regId: string }) {
   return (
     <div className="border-t border-border/50 mt-3 pt-3">
       <button
-        className="flex items-center gap-2 text-[11px] text-foreground/50 hover:text-blue-400 transition-colors"
+        className="flex items-center gap-2 text-[11px] text-muted-foreground hover:text-blue-400 transition-colors"
         onClick={handleExpand}
       >
         {loading ? (
@@ -95,7 +95,7 @@ function SynthesisPanel({ regId }: { regId: string }) {
         )}
         <Zap size={11} />
         {loading ? "Generating Zane synthesis…" : open ? "Hide synthesis" : "Generate Zane synthesis"}
-        {cached && !loading && <span className="text-[9px] text-foreground/30">(cached)</span>}
+        {cached && !loading && <span className="text-[9px] text-muted-foreground">(cached)</span>}
       </button>
 
       {open && synthesis && (
@@ -104,7 +104,7 @@ function SynthesisPanel({ regId }: { regId: string }) {
             {synthesis}
           </div>
           {createdAt && (
-            <div className="text-[9px] text-foreground/30">
+            <div className="text-[9px] text-muted-foreground">
               Synthesised {formatContractDate(createdAt)}
             </div>
           )}
@@ -121,13 +121,13 @@ function UpdateCard({ update }: { update: { framework: string; jurisdiction: str
     HIGH:   "text-red-400 bg-red-500/10 border-red-500/30",
     MEDIUM: "text-amber-400 bg-amber-500/10 border-amber-500/30",
     LOW:    "text-green-400 bg-green-500/10 border-green-500/30",
-  }[update.impact] ?? "text-foreground/50 bg-foreground/10 border-border";
+  }[update.impact] ?? "text-muted-foreground bg-foreground/10 border-border";
 
   return (
     <div className="card p-4 space-y-2">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <div className="text-[10px] text-foreground/40 font-mono mb-0.5">
+          <div className="text-[10px] text-muted-foreground font-mono mb-0.5">
             {update.framework} · {update.jurisdiction} · {update.date}
           </div>
           <div className="text-sm font-medium leading-snug">{update.title}</div>
@@ -263,7 +263,7 @@ export default function Regulations() {
           <div className="text-sm text-muted-foreground py-8 text-center">Loading regulatory frameworks…</div>
         ) : regulations.length === 0 ? (
           <div className="card p-10 text-center space-y-4">
-            <AlertCircle size={32} className="text-muted-foreground/40 mx-auto" />
+            <AlertCircle size={32} className="text-muted-foreground mx-auto" />
             <div>
               <div className="text-sm font-medium">No regulatory frameworks detected yet</div>
               <div className="text-xs text-muted-foreground mt-1">
@@ -311,7 +311,7 @@ export default function Regulations() {
                     <TrendingUp size={15} className="text-blue-400" />
                     <span className="text-sm font-semibold">Regulatory updates</span>
                     {updatesData?.cached && (
-                      <span className="text-[10px] text-foreground/30">(cached)</span>
+                      <span className="text-[10px] text-muted-foreground">(cached)</span>
                     )}
                   </div>
                   <button
