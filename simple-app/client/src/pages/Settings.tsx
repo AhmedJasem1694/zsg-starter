@@ -342,7 +342,7 @@ function IntegrationCard({
       {/* Recent sync log */}
       {recentLog.length > 0 && (
         <div className="flex flex-col gap-1">
-          <div className="text-[10px] uppercase tracking-widest text-muted-foreground/30 font-medium mb-1">
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">
             Recent activity
           </div>
           {recentLog.map((entry) => (
@@ -354,7 +354,7 @@ function IntegrationCard({
               <span className="truncate flex-1">
                 {entry.externalFileName ?? "Unknown file"}
               </span>
-              <span className="shrink-0 text-muted-foreground/30">
+              <span className="shrink-0 text-muted-foreground">
                 {syncStatusLabel(entry.status)}
               </span>
               {entry.status === "error" && entry.errorMessage && (
@@ -811,7 +811,7 @@ function SyncLogTable({ entries }: { entries: SyncLogEntry[] }) {
             className="px-5 py-2.5 flex items-center gap-3 text-xs"
           >
             {syncStatusIcon(entry.status)}
-            <span className="text-muted-foreground/30 w-8 shrink-0 uppercase font-medium text-[10px]">
+            <span className="text-muted-foreground w-8 shrink-0 uppercase font-medium text-[10px]">
               {entry.provider === "google_drive" ? "GD" : "SP"}
             </span>
             <span className="flex-1 truncate text-foreground/70">
@@ -820,7 +820,7 @@ function SyncLogTable({ entries }: { entries: SyncLogEntry[] }) {
             <span className="shrink-0 text-muted-foreground">
               {syncStatusLabel(entry.status)}
             </span>
-            <span className="shrink-0 text-muted-foreground/30 font-mono text-[10px]">
+            <span className="shrink-0 text-muted-foreground font-mono text-[10px]">
               {formatDateTime(entry.created)}
             </span>
           </div>
