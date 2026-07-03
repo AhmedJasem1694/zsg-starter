@@ -37,7 +37,7 @@ function AnswerCard({
     <div className={`card p-5 space-y-3 ${urgent ? "border-red-500/30" : ""}`}>
       <div className="flex items-center gap-2">
         <Icon size={14} className={color} />
-        <span className="text-[11px] uppercase tracking-wider font-semibold text-foreground/40">{question}</span>
+        <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">{question}</span>
       </div>
       <div className={`text-2xl font-bold leading-tight ${color}`}>{answer}</div>
       {detail && <p className="text-xs text-muted-foreground leading-relaxed">{detail}</p>}
@@ -127,7 +127,7 @@ export default function Portfolio() {
         {flags.portfolioDashboard && !isLoading && !data && !isMeridianDemo && (
           <div className="card p-14 text-center space-y-5">
             <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center mx-auto">
-              <PieChart size={24} className="text-muted-foreground/50" />
+              <PieChart size={24} className="text-muted-foreground" />
             </div>
             <div className="space-y-2">
               <div className="font-semibold">No portfolio data yet</div>
