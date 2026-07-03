@@ -46,7 +46,7 @@ export default function JoinerBriefing() {
               your company decides, assembled so a new joiner inherits it instead of starting from zero.
             </p>
             {briefing && (
-              <p className="text-xs text-muted-foreground/70">
+              <p className="text-xs text-muted-foreground">
                 Generated {formatDateShort(briefing.generatedAt)}
                 {briefing.validUntil ? ` · valid until ${formatDateShort(briefing.validUntil)}` : ""}
               </p>
@@ -91,7 +91,7 @@ export default function JoinerBriefing() {
                       <div className="text-sm font-semibold text-foreground">{title}</div>
                       <div className="text-xs text-muted-foreground truncate">{blurb}</div>
                     </div>
-                    <span className={`text-muted-foreground/50 text-xs transition-transform ${isOpen ? "rotate-90" : ""}`}>›</span>
+                    <span className={`text-muted-foreground text-xs transition-transform ${isOpen ? "rotate-90" : ""}`}>›</span>
                   </button>
                   {isOpen && (
                     <div className="px-4 pb-4 pt-1 border-t border-border">
