@@ -1238,7 +1238,7 @@ export default function Dashboard() {
               </div>
             ) : recentDocs.length === 0 && !useMock ? (
               <div className="card-body text-center py-12">
-                <FileText size={32} className="text-muted-foreground/30 mx-auto mb-3" />
+                <FileText size={32} className="text-muted-foreground mx-auto mb-3" />
                 <div className="text-sm font-medium text-muted-foreground">No contracts reviewed yet</div>
                 <div className="text-xs text-muted-foreground mt-2 max-w-xs mx-auto">
                   Go to <Link to="/app/legal/library" className="text-primary underline">Library</Link> to upload your first contract.
