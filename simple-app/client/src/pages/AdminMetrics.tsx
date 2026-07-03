@@ -20,7 +20,7 @@ function MetricCard({ value, label, sub }: { value: string | number; label: stri
     <div className="card p-4">
       <div className="text-2xl font-bold">{value}</div>
       <div className="text-xs text-muted-foreground mt-1">{label}</div>
-      {sub && <div className="text-[11px] text-muted-foreground/60 mt-0.5">{sub}</div>}
+      {sub && <div className="text-[11px] text-muted-foreground mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -31,7 +31,7 @@ function ReviewsTrendChart({ months, byMonth }: { months: string[]; byMonth: Rec
   const max = Math.max(1, ...values);
   return (
     <div className="card p-5 space-y-3">
-      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-2">
+      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
         <BarChart2 size={12} /> Reviews per month
       </div>
       <div className="flex items-end gap-1.5 h-36">
@@ -43,7 +43,7 @@ function ReviewsTrendChart({ months, byMonth }: { months: string[]; byMonth: Rec
               style={{ height: `${Math.max(values[i] > 0 ? 4 : 1, Math.round((values[i] / max) * 100))}%` }}
               title={`${m}: ${values[i]} review${values[i] !== 1 ? "s" : ""}`}
             />
-            <div className="text-[9px] text-muted-foreground/50 truncate">{m.slice(2).replace("-", "/")}</div>
+            <div className="text-[9px] text-muted-foreground truncate">{m.slice(2).replace("-", "/")}</div>
           </div>
         ))}
       </div>
@@ -96,7 +96,7 @@ export default function AdminMetrics() {
 
         {error != null && (
           <div className="card p-14 text-center space-y-3">
-            <Lock size={24} className="text-muted-foreground/50 mx-auto" />
+            <Lock size={24} className="text-muted-foreground mx-auto" />
             <div className="font-semibold">Admin access required</div>
             <p className="text-sm text-muted-foreground">This dashboard is restricted to admin users.</p>
           </div>
@@ -119,7 +119,7 @@ export default function AdminMetrics() {
               <div className="card overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-card-border text-left text-xs uppercase tracking-wider text-muted-foreground/60">
+                    <tr className="border-b border-card-border text-left text-xs uppercase tracking-wider text-muted-foreground">
                       <th className="px-3 py-2.5">Company</th>
                       <th className="px-3 py-2.5">Tier</th>
                       <th className="px-3 py-2.5 text-right">Reviews</th>
@@ -136,7 +136,7 @@ export default function AdminMetrics() {
                   </thead>
                   <tbody>
                     {data.companies.length === 0 && (
-                      <tr><td colSpan={12} className="px-3 py-6 text-center text-muted-foreground/60">No companies yet.</td></tr>
+                      <tr><td colSpan={12} className="px-3 py-6 text-center text-muted-foreground">No companies yet.</td></tr>
                     )}
                     {data.companies.map((c) => (
                       <tr key={c.companyId} className="border-b border-card-border/50 last:border-0">
