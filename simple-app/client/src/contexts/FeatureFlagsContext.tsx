@@ -57,14 +57,27 @@ const DEFAULT_FLAGS: FeatureFlags = {
 };
 
 // ── Context ───────────────────────────────────────────────────────────────────
+// The context object is stored on globalThis so that if Vite's dev server ever
+// evaluates this module twice (HMR can register the file under two different
+// query-string URLs), both instances share the same context. Without this, the
+// provider writes to one context while consumers read the other's default value,
+// and every flag-gated page shows its upgrade wall in dev despite the API
+// returning the correct tier. Production bundles evaluate the module once, so
+// this is a no-op there.
 
-const FeatureFlagsContext = createContext<FeatureFlagsState>({
-  tier: "starter",
-  flags: DEFAULT_FLAGS,
-  trialDaysRemaining: null,
-  reviewsThisMonth: 0,
-  isLoading: true,
-});
+const CONTEXT_KEY = "__zaneFeatureFlagsContext";
+const globalStore = globalThis as unknown as Record<string, React.Context<FeatureFlagsState> | undefined>;
+
+const FeatureFlagsContext: React.Context<FeatureFlagsState> =
+  globalStore[CONTEXT_KEY] ??
+  createContext<FeatureFlagsState>({
+    tier: "starter",
+    flags: DEFAULT_FLAGS,
+    trialDaysRemaining: null,
+    reviewsThisMonth: 0,
+    isLoading: true,
+  });
+globalStore[CONTEXT_KEY] = FeatureFlagsContext;
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
