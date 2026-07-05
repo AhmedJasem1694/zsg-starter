@@ -1122,7 +1122,7 @@ export default function Dashboard() {
 
           {visibleRedDocs.map((d) => {
             const redCount = (d.reviewResults ?? []).filter((r) => r.ragStatus === "RED").length;
-            const cp = (d as UploadedDocument & { counterpartyName?: string }).counterpartyName;
+            const cp = ((d as UploadedDocument & { counterpartyName?: string }).counterpartyName ?? "").trim();
             return (
               <a key={d.id} href={`/app/legal/review/${d.id}`}
                 className="flex items-start gap-4 px-5 py-5 rounded-xl border border-red-500/15 bg-red-500/[0.035] hover:bg-red-500/[0.06] transition-colors group shadow-sm">
@@ -1131,7 +1131,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-bold uppercase tracking-widest text-[#A32D2D]/60 mb-0.5">Red clauses, do not sign yet</div>
-                  <div className="text-sm font-semibold text-foreground truncate">{cp ?? d.originalName}</div>
+                  <div className="text-sm font-semibold text-foreground truncate">{cp || d.originalName}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">{redCount} red clause{redCount !== 1 ? "s" : ""}</div>
                 </div>
                 <span className="text-xs font-semibold text-[#A32D2D] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
@@ -1142,7 +1142,7 @@ export default function Dashboard() {
           {visibleEscDocs.map((d) => {
             const escResults = (d.reviewResults ?? []).filter((r) => r.escalationRequired && r.feedback?.userAction !== "ESCALATED");
             const trigger = escResults[0]?.escalationTrigger ?? "Approval required";
-            const cp = (d as UploadedDocument & { counterpartyName?: string }).counterpartyName;
+            const cp = ((d as UploadedDocument & { counterpartyName?: string }).counterpartyName ?? "").trim();
             return (
               <a key={`esc-${d.id}`} href={`/app/legal/review/${d.id}`}
                 className="flex items-start gap-4 px-5 py-5 rounded-xl border border-amber-500/15 bg-amber-500/[0.035] hover:bg-amber-500/[0.06] transition-colors group shadow-sm">
@@ -1151,7 +1151,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-bold uppercase tracking-widest text-[#854F0B]/60 mb-0.5">Pending escalation</div>
-                  <div className="text-sm font-semibold text-foreground truncate">{cp ?? d.originalName}</div>
+                  <div className="text-sm font-semibold text-foreground truncate">{cp || d.originalName}</div>
                   <div className="text-xs text-muted-foreground mt-0.5 truncate">{trigger}</div>
                 </div>
                 <span className="text-xs font-semibold text-[#854F0B] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
@@ -1169,7 +1169,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-bold uppercase tracking-widest text-[#2563EB]/60 mb-0.5">Renewal window closing</div>
-                  <div className="text-sm font-semibold text-foreground truncate">{d.counterpartyName ?? d.originalName}</div>
+                  <div className="text-sm font-semibold text-foreground truncate">{(d.counterpartyName ?? "").trim() || d.originalName}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">{daysLeft} days remaining</div>
                 </div>
                 <span className="text-xs font-semibold text-[#2563EB] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
