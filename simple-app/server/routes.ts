@@ -3774,7 +3774,7 @@ Draft the complete clause.`;
     if (format === "csv") {
       // Full export - no pagination, max 5000 rows
       const rows = await pb.collection("audit_log").getFullList({
-        sort: "-id",
+        sort: "-created",
         filter: filterStr || undefined,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
@@ -3793,11 +3793,12 @@ Draft the complete clause.`;
         return cols;
       }).join("\n");
 
-      // Audit the export itself
+      // Audit the export itself. companyId must be a real company record id
+      // (auditLogger sets it on the company relation); passing the user id here
+      // made every audit_log_exported write fail relation validation silently.
       audit({
         action: "audit_log_exported",
         entityType: "audit_log",
-        companyId: req.user?.userId,
         userId: req.user?.userId,
         detail: { rows: rows.length, filters: filterStr },
       }).catch(() => {});
@@ -3809,7 +3810,7 @@ Draft the complete clause.`;
     }
 
     const result = await pb.collection("audit_log").getList(page, limit, {
-      sort: "-id",
+      sort: "-created",
       filter: filterStr || undefined,
     });
 

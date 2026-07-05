@@ -751,6 +751,9 @@ async function main() {
     textField("entityId"),
     textField("companyId"),
     textField("userId"),
+    // PB 0.23+ requires explicit autodate fields (sorts on "created" 400 without them)
+    { name: "created", type: "autodate", onCreate: true, onUpdate: false },
+    { name: "updated", type: "autodate", onCreate: true, onUpdate: true },
   ]);
 
   // ── 30. team_briefing_documents ───────────────────────────────────────────
