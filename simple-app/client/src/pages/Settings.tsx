@@ -194,18 +194,15 @@ function IntegrationCard({
     .slice(0, 5);
 
   return (
-    <div
-      style={{ background: "hsl(220 20% 13%)" }}
-      className="rounded-xl border border-white/5 p-5 flex flex-col gap-4"
-    >
+    <div className="rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] shadow-sm p-5 flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center">
-            <Icon size={18} className="text-blue-400" />
+          <div className="w-9 h-9 rounded-lg bg-[#F1F5F9] flex items-center justify-center">
+            <Icon size={18} className="text-[#64748B]" />
           </div>
           <div>
-            <div className="text-sm font-semibold text-foreground">{title}</div>
+            <div className="text-sm font-semibold text-[#0B1020]">{title}</div>
             {isLoading ? (
               <div className="text-xs text-muted-foreground">Loading…</div>
             ) : (
@@ -235,7 +232,7 @@ function IntegrationCard({
             {connected && !config?.folderName && (
               <button
                 onClick={handleOpenFolderPicker}
-                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-white/10 hover:bg-white/15 text-foreground transition-colors flex items-center gap-1.5"
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-[#E2E8F0] bg-white hover:bg-[#F8FAFC] text-[#0B1020] transition-colors flex items-center gap-1.5"
               >
                 <FolderOpen size={13} />
                 Pick folder
@@ -244,7 +241,7 @@ function IntegrationCard({
             {connected && config?.folderName && (
               <button
                 onClick={handleOpenFolderPicker}
-                className="px-3 py-1.5 text-xs rounded-lg bg-white/5 hover:bg-white/10 text-muted-foreground transition-colors flex items-center gap-1.5"
+                className="px-3 py-1.5 text-xs rounded-lg border border-[#E2E8F0] bg-white hover:bg-[#F8FAFC] text-[#64748B] transition-colors flex items-center gap-1.5"
               >
                 <FolderOpen size={12} />
                 Change
@@ -254,7 +251,7 @@ function IntegrationCard({
               <button
                 onClick={() => disconnectMutation.mutate()}
                 disabled={disconnectMutation.isPending}
-                className="px-3 py-1.5 text-xs rounded-lg bg-white/5 hover:bg-red-900/30 text-red-400/70 hover:text-red-400 transition-colors flex items-center gap-1.5"
+                className="px-3 py-1.5 text-xs rounded-lg hover:bg-red-500/[0.06] text-[#A32D2D]/70 hover:text-[#A32D2D] transition-colors flex items-center gap-1.5"
               >
                 <X size={12} />
                 Disconnect
@@ -266,7 +263,7 @@ function IntegrationCard({
 
       {/* Error state */}
       {config?.errorMessage && (
-        <div className="text-xs text-red-400 bg-red-900/20 border border-red-900/40 rounded-lg px-3 py-2">
+        <div className="text-xs text-[#A32D2D] bg-red-500/[0.04] border border-red-200/70 rounded-lg px-3 py-2">
           {config.errorMessage}
         </div>
       )}
@@ -281,10 +278,7 @@ function IntegrationCard({
 
       {/* Folder picker */}
       {showFolderPicker && (
-        <div
-          style={{ background: "hsl(220 20% 10%)" }}
-          className="rounded-lg border border-white/5 p-3 flex flex-col gap-2"
-        >
+        <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3 flex flex-col gap-2">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-semibold text-muted-foreground">
               Select a folder to watch
@@ -321,9 +315,9 @@ function IntegrationCard({
                 key={f.id}
                 disabled={watchLoading}
                 onClick={() => handleSelectFolder(f)}
-                className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-white/5 text-foreground/80 hover:text-foreground transition-colors flex items-center gap-2"
+                className="w-full text-left px-3 py-2 text-xs rounded-lg hover:bg-white text-foreground/80 hover:text-foreground transition-colors flex items-center gap-2"
               >
-                <FolderOpen size={12} className="text-blue-400 shrink-0" />
+                <FolderOpen size={12} className="text-[#64748B] shrink-0" />
                 {f.name}
               </button>
             ))}
@@ -333,7 +327,7 @@ function IntegrationCard({
 
       {/* Watching confirmation */}
       {connected && config?.folderName && !showFolderPicker && (
-        <div className="flex items-center gap-2 text-xs text-emerald-400 bg-emerald-900/10 border border-emerald-900/30 rounded-lg px-3 py-2">
+        <div className="flex items-center gap-2 text-xs text-[#1B7A4B] bg-emerald-500/[0.05] border border-emerald-200/70 rounded-lg px-3 py-2">
           <CheckCircle size={12} />
           Now watching: <span className="font-medium">{config.folderName}</span>
         </div>

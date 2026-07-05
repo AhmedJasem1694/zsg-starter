@@ -10,17 +10,17 @@ export default function IntegrationStatusBadge({
   const configs = {
     connected: {
       dot: "bg-emerald-500",
-      text: "text-emerald-400",
+      text: "text-[#1B7A4B]",
       defaultLabel: "Connected",
     },
     disconnected: {
-      dot: "bg-slate-500",
-      text: "text-slate-400",
+      dot: "bg-[#94A3B8]",
+      text: "text-[#64748B]",
       defaultLabel: "Not connected",
     },
     error: {
       dot: "bg-red-500",
-      text: "text-red-400",
+      text: "text-[#A32D2D]",
       defaultLabel: "Error",
     },
   };
