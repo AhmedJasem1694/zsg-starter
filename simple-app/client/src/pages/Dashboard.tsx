@@ -990,7 +990,7 @@ export default function Dashboard() {
     <AppLayout>
       {/* Light theme scope: staged rollout, dashboard only for now */}
       <div className="theme-light min-h-full bg-background">
-      <div className="px-6 py-10 max-w-4xl mx-auto space-y-12">
+      <div className="px-6 py-10 max-w-4xl mx-auto space-y-8">
 
         {/* Page header */}
         <div className="flex items-center justify-between gap-4">
@@ -1105,16 +1105,16 @@ export default function Dashboard() {
             </div>
           )}
 
+          <div className="space-y-2">
           {useMock && (
             <a href="/app/legal/review/mock-1"
-              className="flex items-start gap-4 px-5 py-5 rounded-xl border border-red-500/15 bg-red-500/[0.035] hover:bg-red-500/[0.06] transition-colors group shadow-sm">
-              <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
-                <AlertTriangle size={14} className="text-[#A32D2D]" />
+              className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-red-200/70 bg-red-500/[0.03] hover:bg-red-500/[0.06] transition-colors group shadow-sm">
+              <div className="w-7 h-7 rounded-md bg-red-500/10 flex items-center justify-center shrink-0">
+                <AlertTriangle size={13} className="text-[#A32D2D]" />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-bold uppercase tracking-widest text-[#A32D2D]/60 mb-0.5">Red clauses, do not sign yet</div>
-                <div className="text-sm font-semibold text-foreground">Acme Corp MSA</div>
-                <div className="text-xs text-muted-foreground mt-0.5">3 red clauses · GC sign-off required</div>
+              <div className="flex-1 min-w-0 flex items-baseline gap-2">
+                <span className="text-sm font-bold text-[#0B1020] truncate">Acme Corp MSA</span>
+                <span className="text-xs text-[#64748B] truncate">Red clauses, do not sign yet · 3 red clauses · GC sign-off required</span>
               </div>
               <span className="text-xs font-semibold text-[#A32D2D] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
             </a>
@@ -1125,14 +1125,13 @@ export default function Dashboard() {
             const cp = ((d as UploadedDocument & { counterpartyName?: string }).counterpartyName ?? "").trim();
             return (
               <a key={d.id} href={`/app/legal/review/${d.id}`}
-                className="flex items-start gap-4 px-5 py-5 rounded-xl border border-red-500/15 bg-red-500/[0.035] hover:bg-red-500/[0.06] transition-colors group shadow-sm">
-                <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center shrink-0">
-                  <AlertTriangle size={14} className="text-[#A32D2D]" />
+                className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-red-200/70 bg-red-500/[0.03] hover:bg-red-500/[0.06] transition-colors group shadow-sm">
+                <div className="w-7 h-7 rounded-md bg-red-500/10 flex items-center justify-center shrink-0">
+                  <AlertTriangle size={13} className="text-[#A32D2D]" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold uppercase tracking-widest text-[#A32D2D]/60 mb-0.5">Red clauses, do not sign yet</div>
-                  <div className="text-sm font-semibold text-foreground truncate">{cp || d.originalName}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{redCount} red clause{redCount !== 1 ? "s" : ""}</div>
+                <div className="flex-1 min-w-0 flex items-baseline gap-2">
+                  <span className="text-sm font-bold text-[#0B1020] truncate">{cp || d.originalName}</span>
+                  <span className="text-xs text-[#64748B] truncate">Red clauses, do not sign yet · {redCount} red clause{redCount !== 1 ? "s" : ""}</span>
                 </div>
                 <span className="text-xs font-semibold text-[#A32D2D] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
               </a>
@@ -1145,14 +1144,13 @@ export default function Dashboard() {
             const cp = ((d as UploadedDocument & { counterpartyName?: string }).counterpartyName ?? "").trim();
             return (
               <a key={`esc-${d.id}`} href={`/app/legal/review/${d.id}`}
-                className="flex items-start gap-4 px-5 py-5 rounded-xl border border-amber-500/15 bg-amber-500/[0.035] hover:bg-amber-500/[0.06] transition-colors group shadow-sm">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
-                  <Bell size={14} className="text-[#854F0B]" />
+                className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-amber-200/70 bg-amber-500/[0.03] hover:bg-amber-500/[0.06] transition-colors group shadow-sm">
+                <div className="w-7 h-7 rounded-md bg-amber-500/10 flex items-center justify-center shrink-0">
+                  <Bell size={13} className="text-[#854F0B]" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold uppercase tracking-widest text-[#854F0B]/60 mb-0.5">Pending escalation</div>
-                  <div className="text-sm font-semibold text-foreground truncate">{cp || d.originalName}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5 truncate">{trigger}</div>
+                <div className="flex-1 min-w-0 flex items-baseline gap-2">
+                  <span className="text-sm font-bold text-[#0B1020] truncate">{cp || d.originalName}</span>
+                  <span className="text-xs text-[#64748B] truncate">Pending escalation · {trigger}</span>
                 </div>
                 <span className="text-xs font-semibold text-[#854F0B] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
               </a>
@@ -1163,16 +1161,15 @@ export default function Dashboard() {
             const daysLeft = Math.ceil((new Date(d.renewalDate!).getTime() - now30) / (1000 * 60 * 60 * 24));
             return (
               <a key={`ren-${d.id}`} href={`/app/legal/review/${d.id}`}
-                className="flex items-start gap-4 px-5 py-5 rounded-xl border border-[#E2E8F0] bg-[#F5F9FE] hover:bg-[#EAF3FD] transition-colors group shadow-sm">
-                <div className="w-8 h-8 rounded-lg bg-[#E6F1FB] flex items-center justify-center shrink-0">
-                  <CalendarClock size={14} className="text-[#2563EB]" />
+                className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-[#E2E8F0] bg-[#FFFFFF] hover:bg-[#F8FAFC] transition-colors group shadow-sm">
+                <div className="w-7 h-7 rounded-md bg-[#F1F5F9] flex items-center justify-center shrink-0">
+                  <CalendarClock size={13} className="text-[#64748B]" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-bold uppercase tracking-widest text-[#2563EB]/60 mb-0.5">Renewal window closing</div>
-                  <div className="text-sm font-semibold text-foreground truncate">{(d.counterpartyName ?? "").trim() || d.originalName}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{daysLeft} days remaining</div>
+                <div className="flex-1 min-w-0 flex items-baseline gap-2">
+                  <span className="text-sm font-bold text-[#0B1020] truncate">{(d.counterpartyName ?? "").trim() || d.originalName}</span>
+                  <span className="text-xs text-[#64748B] truncate">Renewal window closing · {daysLeft} days remaining</span>
                 </div>
-                <span className="text-xs font-semibold text-[#2563EB] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
+                <span className="text-xs font-semibold text-[#0B1020] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
               </a>
             );
           })}
@@ -1194,12 +1191,13 @@ export default function Dashboard() {
               Show fewer
             </button>
           )}
+          </div>
         </div>
 
         {/* ── Section 2: Executive Overview ──────────────────────────────── */}
         <div className="space-y-4">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Overview</h2>
-          <div className="card grid grid-cols-2 sm:grid-cols-4 sm:divide-x divide-card-border overflow-hidden shadow-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               {
                 label: "Contracts reviewed this month",
@@ -1222,9 +1220,9 @@ export default function Dashboard() {
                 highlight: false,
               },
             ].map((s) => (
-              <div key={s.label} className="px-5 py-6">
-                <div className={`text-xl font-semibold tracking-tight ${s.highlight ? "text-[#A32D2D]" : "text-foreground"}`}>{s.value}</div>
-                <div className="text-[11px] text-muted-foreground/80 leading-snug mt-1.5">{s.label}</div>
+              <div key={s.label} className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-xl shadow-sm px-4 py-4">
+                <div className={`text-2xl font-semibold tracking-tight ${s.highlight ? "text-[#A32D2D]" : "text-[#0B1020]"}`}>{s.value}</div>
+                <div className="text-[10px] uppercase tracking-wider text-[#64748B] leading-snug mt-1.5">{s.label}</div>
               </div>
             ))}
           </div>
