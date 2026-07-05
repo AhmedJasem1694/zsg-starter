@@ -7,7 +7,7 @@ import {
   RotateCcw, Shield, ChevronRight, AlertCircle, LayoutGrid, ArrowRight,
   CalendarClock, Bell, Lock, Activity, X, Trash2, Mail, Copy, Archive,
 } from "lucide-react";
-import { getDocuments, uploadDocument, startReview, getCompany, getDocumentStats, deleteDocument, deleteDocuments } from "../lib/api";
+import { getDocuments, uploadDocument, startReview, getCompany, getDocumentStats, getPortfolio, deleteDocument, deleteDocuments } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import ZaneNoticedPanel from "../components/ZaneNoticedPanel";
 import MissingDocsPanel from "../components/MissingDocsPanel";
@@ -775,6 +775,16 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
+  // Red-flagged exposure is sourced from the same query the Portfolio Risk page
+  // uses (queryKey ["portfolio"] / getPortfolio), so the two screens read the
+  // identical value and can never diverge.
+  const { data: portfolio } = useQuery({
+    queryKey: ["portfolio"],
+    queryFn: getPortfolio,
+    refetchInterval: 30000,
+  });
+  const redAtRisk = portfolio?.valueAtRisk?.RED ?? 0;
+
   const ACTIVE_STATUSES: DocumentStatus[] = ["PROCESSING", "PARSING", "ANONYMISING", "CLASSIFYING", "COMPARING"];
 
   const { data: realDocuments = [], error: docsError, refetch: refetchDocs } = useQuery({
@@ -1203,10 +1213,8 @@ export default function Dashboard() {
               },
               {
                 label: "Value at risk from red clauses",
-                value: stats && (stats as { valueAtRisk?: { RED?: number } }).valueAtRisk?.RED
-                  ? `£${(((stats as unknown as { valueAtRisk: { RED: number } }).valueAtRisk.RED) / 1000).toFixed(0)}k`
-                  : "£0",
-                highlight: !!(stats && (stats as { valueAtRisk?: { RED?: number } }).valueAtRisk?.RED),
+                value: redAtRisk > 0 ? `£${(redAtRisk / 1000).toFixed(0)}k` : "£0",
+                highlight: redAtRisk > 0,
               },
               {
                 label: "Renewals due in 90 days",
