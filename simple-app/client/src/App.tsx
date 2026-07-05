@@ -11,7 +11,6 @@ import DocumentFirstDashboard from "./pages/DocumentFirstDashboard";
 import Dashboard from "./pages/Dashboard";
 import ReviewDetail from "./pages/ReviewDetail";
 import Playbook from "./pages/Playbook";
-import Regulations from "./pages/Regulations";
 import Security from "./pages/Security";
 import Resources from "./pages/Resources";
 import FirstPlaybook from "./pages/resources/FirstPlaybook";
@@ -169,10 +168,8 @@ function AppRoutes() {
         path="/app/legal/playbook"
         element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><Playbook /></RequireAuth>}
       />
-      <Route
-        path="/app/legal/regulations"
-        element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><Regulations /></RequireAuth>}
-      />
+      {/* Regulatory Profile removed from the product surface. The Regulations
+          page component is kept in the codebase for easy restoration. */}
       <Route
         path="/app/legal/portfolio"
         element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><Portfolio /></RequireAuth>}
@@ -234,7 +231,6 @@ function AppRoutes() {
 
       {/* Legacy route aliases → redirect to /app/legal/* */}
       <Route path="/playbook"     element={<Navigate to="/app/legal/playbook"     replace />} />
-      <Route path="/regulations"  element={<Navigate to="/app/legal/regulations"  replace />} />
       <Route path="/portfolio"    element={<Navigate to="/app/legal/portfolio"    replace />} />
       <Route path="/timings"      element={<Navigate to="/app/legal/timings"      replace />} />
       <Route path="/bulk-review"  element={<Navigate to="/app/legal/bulk-review"  replace />} />

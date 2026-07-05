@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { ZaneLogo } from "../ZaneLogo";
 import {
-  LayoutDashboard, BookOpen, Settings, LogOut, Menu, Shield,
+  LayoutDashboard, BookOpen, Settings, LogOut, Menu,
   PieChart, CalendarClock, LayoutGrid, Activity, ClipboardList, Library, Users,
   AlertTriangle, Archive, Brain, ChevronDown, FolderOpen, Sparkles, Building2,
 } from "lucide-react";
@@ -41,7 +41,6 @@ const LEGAL_GROUPS: NavGroup[] = [
       { to: "/app/legal/team",        icon: Users,         label: "Team" },
       { to: "/app/legal/briefing",    icon: Brain,         label: "Joiner Briefing" },
       { to: "/app/legal/audit",       icon: ClipboardList, label: "Audit Trail" },
-      { to: "/app/legal/regulations", icon: Shield,        label: "Regulatory Profile" },
     ],
   },
 ];
