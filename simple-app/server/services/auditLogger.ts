@@ -97,6 +97,10 @@ export async function audit(entry: AuditEntry): Promise<void> {
       userId: entry.userId ?? "",
       detail: entry.detail ? JSON.stringify(entry.detail) : "{}",
       ipAddress: entry.ipAddress ?? "",
+      // `created` is a plain date field (not autodate) so historical demo
+      // entries could be backfilled; every writer goes through this function,
+      // which stamps the real event time.
+      created: new Date().toISOString().replace("T", " "),
     };
     if (entry.companyId) {
       payload.company = entry.companyId; // satisfy the relation field
