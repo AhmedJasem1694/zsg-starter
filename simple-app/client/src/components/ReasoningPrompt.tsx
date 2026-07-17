@@ -38,25 +38,25 @@ export default function ReasoningPrompt({
   }
 
   return (
-    <div className="mt-3 rounded-xl border border-[#1E3A8A]/50 bg-[#0B1220] p-4 space-y-3">
+    <div className="mt-3 rounded-xl border border-[#CBE2F7] bg-[#F5F9FE] p-4 space-y-3">
       <div className="flex items-start gap-2">
-        <Brain size={15} className="text-[#60A5FA] mt-0.5 shrink-0" />
+        <Brain size={15} className="text-[#2563EB] mt-0.5 shrink-0" />
         <div className="space-y-1 flex-1 min-w-0">
-          <div className="text-sm font-semibold text-white leading-snug">{significance.headline}</div>
+          <div className="text-sm font-semibold text-[#0B1020] leading-snug">{significance.headline}</div>
           {significance.description && (
-            <div className="text-xs text-white/55 leading-relaxed">{significance.description}</div>
+            <div className="text-xs text-[#64748B] leading-relaxed">{significance.description}</div>
           )}
-          <div className="text-xs text-white/70 pt-0.5">
+          <div className="text-xs text-[#475569] pt-0.5">
             What is the reason? This helps Zane apply the right judgment next time.
           </div>
         </div>
-        <button onClick={onClose} aria-label="Dismiss" className="text-white/30 hover:text-white/70 transition-colors text-xs shrink-0">
+        <button onClick={onClose} aria-label="Dismiss" className="text-[#94A3B8] hover:text-[#64748B] transition-colors text-xs shrink-0">
           Skip
         </button>
       </div>
 
       {saved ? (
-        <div className="text-xs text-[#86EFAC] flex items-center gap-1.5">
+        <div className="text-xs text-[#1B7A4B] flex items-center gap-1.5">
           <CheckCircle size={13} /> Saved. Zane will remember this.
         </div>
       ) : (
@@ -69,7 +69,7 @@ export default function ReasoningPrompt({
                 className={`text-xs px-2.5 py-1 rounded-md border transition-colors ${
                   category === r
                     ? "bg-[#2563EB] text-white border-[#2563EB]"
-                    : "border-[#1E293B] text-white/60 hover:border-[#334155]"
+                    : "border-[#E2E8F0] bg-white text-[#475569] hover:border-[#94A3B8]"
                 }`}
               >
                 {r}
@@ -77,7 +77,7 @@ export default function ReasoningPrompt({
             ))}
           </div>
           <textarea
-            className="w-full rounded-lg border border-[#1E293B] bg-[#020617] px-3 py-2 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-[#2563EB] min-h-[60px] resize-y"
+            className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#0B1020] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#2563EB] min-h-[60px] resize-y"
             placeholder="Add any detail (optional)…"
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -90,7 +90,7 @@ export default function ReasoningPrompt({
             >
               {saving ? "Saving…" : <><CheckCircle size={12} /> Save reason</>}
             </button>
-            <button onClick={onClose} className="text-xs text-white/40 hover:text-white/70 transition-colors">
+            <button onClick={onClose} className="text-xs text-[#94A3B8] hover:text-[#64748B] transition-colors">
               Not now
             </button>
           </div>

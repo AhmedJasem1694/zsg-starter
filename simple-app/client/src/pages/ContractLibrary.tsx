@@ -122,12 +122,12 @@ function formatDate(iso?: string) {
 
 function StatusPill({ status }: { status?: string }) {
   if (!status || status === "COMPLETE") {
-    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-500/15 text-green-400 border border-green-500/25">Complete</span>;
+    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-500/15 text-[#1B7A4B] border border-green-500/25">Complete</span>;
   }
   const map: Record<string, { label: string; cls: string }> = {
     UPLOADED:   { label: "Uploaded",   cls: "bg-foreground/10 text-muted-foreground border-foreground/20" },
-    PROCESSING: { label: "Processing", cls: "bg-amber-500/15 text-amber-400 border-amber-500/25" },
-    FAILED:     { label: "Failed",     cls: "bg-red-500/15 text-red-400 border-red-500/25" },
+    PROCESSING: { label: "Processing", cls: "bg-amber-500/15 text-[#854F0B] border-amber-500/25" },
+    FAILED:     { label: "Failed",     cls: "bg-red-500/15 text-[#A32D2D] border-red-500/25" },
   };
   const entry = map[status];
   if (!entry) return null;
@@ -146,7 +146,7 @@ function OutcomePill({ outcome }: { outcome?: string }) {
   }
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
-      outcome === "SIGNED" ? "bg-blue-500/15 text-blue-400 border-blue-500/25" : "bg-purple-500/15 text-purple-400 border-purple-500/25"
+      outcome === "SIGNED" ? "bg-blue-500/15 text-[#185FA5] border-blue-500/25" : "bg-purple-500/15 text-purple-700 border-purple-500/25"
     }`}>
       {outcome === "SIGNED" ? "Signed" : "Executed"}
     </span>
@@ -174,8 +174,8 @@ function InlineFolderEdit({ documentId, currentFolder, onSave }: {
       <input autoFocus className="text-[11px] bg-card border border-border rounded px-1.5 py-0.5 text-foreground w-24 outline-none focus:border-blue-500"
         value={value} onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }} />
-      <button className="text-green-500 hover:text-green-400" onClick={handleSave}><Check size={12} /></button>
-      <button className="text-red-400 hover:text-red-300" onClick={() => setEditing(false)}><X size={12} /></button>
+      <button className="text-green-600 hover:text-green-700" onClick={handleSave}><Check size={12} /></button>
+      <button className="text-red-600 hover:text-red-700" onClick={() => setEditing(false)}><X size={12} /></button>
     </span>
   );
 }
@@ -195,7 +195,7 @@ function VersionPickerCell({ doc, allDocs }: { doc: UploadedDocument; allDocs: U
   }
   return (
     <div className="relative">
-      <button className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-blue-400 transition-colors"
+      <button className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-blue-600 transition-colors"
         title="Link as version" onClick={(e) => { e.preventDefault(); setOpen(!open); }}>
         <GitBranch size={10} />
       </button>
@@ -205,7 +205,7 @@ function VersionPickerCell({ doc, allDocs }: { doc: UploadedDocument; allDocs: U
           <p className="text-[11px] text-foreground/60 mb-2">Select the parent document:</p>
           <div className="space-y-1 max-h-40 overflow-y-auto">
             {allDocs.filter((d) => d.id !== doc.id && !d.parentDocumentId).map((d) => (
-              <button key={d.id} className="w-full text-left px-2 py-1.5 rounded hover:bg-white/5 text-[11px] text-foreground/80 transition-colors"
+              <button key={d.id} className="w-full text-left px-2 py-1.5 rounded hover:bg-muted text-[11px] text-foreground/80 transition-colors"
                 onClick={() => linkMutation.mutate({ docId: doc.id, parentId: d.id })}>
                 {d.originalName ?? d.filename}
               </button>
@@ -224,7 +224,7 @@ function TableRow({ doc, allDocs, onFolderChange }: {
   doc: UploadedDocument; allDocs: UploadedDocument[]; onFolderChange: (id: string, folder: string) => void;
 }) {
   return (
-    <tr className="group hover:bg-white/[0.03] transition-colors">
+    <tr className="group hover:bg-slate-100 transition-colors">
       <td className="px-4 py-3 max-w-0 w-[260px]">
         <Link to={`/app/legal/review/${doc.id}`} className="flex items-center gap-2 group/link">
           <FileText size={13} className="shrink-0 text-muted-foreground group-hover/link:text-foreground/60 transition-colors" />
@@ -232,12 +232,12 @@ function TableRow({ doc, allDocs, onFolderChange }: {
             {doc.originalName ?? doc.filename}
           </span>
           {doc.draft && (
-            <span title="Zane-generated first draft" className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-500/10 text-amber-400">
+            <span title="Zane-generated first draft" className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-500/10 text-[#854F0B]">
               Draft
             </span>
           )}
           {doc.source === "email" && (
-            <span title="Received by email" className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-blue-500/10 text-blue-400">
+            <span title="Received by email" className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-blue-500/10 text-[#185FA5]">
               <Mail size={8} /> Email
             </span>
           )}
@@ -290,7 +290,7 @@ function ColHeader({ label, sortKey, current, onSort, align = "left" }: {
       onClick={() => sortKey && onSort?.(sortKey)}>
       <span className="inline-flex items-center gap-1">
         {label}
-        {sortKey && <ArrowUpDown size={9} className={active ? "text-blue-400" : "opacity-30"} />}
+        {sortKey && <ArrowUpDown size={9} className={active ? "text-blue-600" : "opacity-30"} />}
       </span>
     </th>
   );
@@ -428,7 +428,7 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
         onDrop={onDrop}
         onClick={() => !uploading && fileInputRef.current?.click()}
         className={`relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed py-10 px-6 cursor-pointer transition-colors select-none
-          ${dragOver ? "border-blue-500 bg-blue-500/5" : "border-border hover:border-foreground/30 hover:bg-white/[0.02]"}
+          ${dragOver ? "border-blue-500 bg-blue-500/5" : "border-border hover:border-foreground/30 hover:bg-slate-50"}
           ${uploading ? "cursor-not-allowed opacity-60" : ""}`}
       >
         <input
@@ -442,20 +442,20 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
 
         {uploading ? (
           <>
-            <Loader2 size={28} className="text-blue-400 animate-spin" />
+            <Loader2 size={28} className="text-blue-600 animate-spin" />
             <div className="text-sm font-medium text-foreground">Uploading and starting review…</div>
             <div className="text-xs text-muted-foreground">This may take a moment</div>
           </>
         ) : uploadSuccess ? (
           <>
-            <CheckCircle size={28} className="text-green-400" />
+            <CheckCircle size={28} className="text-green-600" />
             <div className="text-sm font-medium text-foreground">Upload complete, review started</div>
             <div className="text-xs text-muted-foreground">The contract will appear in the table below when processing finishes</div>
           </>
         ) : (
           <>
             <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
-              <Upload size={22} className="text-blue-400" />
+              <Upload size={22} className="text-blue-600" />
             </div>
             <div className="text-center space-y-1">
               <div className="text-sm font-semibold text-foreground">
@@ -470,8 +470,8 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
       {/* Error */}
       {uploadError && (
         <div className="flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2.5">
-          <AlertTriangle size={13} className="text-red-400 shrink-0 mt-0.5" />
-          <p className="text-xs text-red-400 leading-relaxed">{uploadError}</p>
+          <AlertTriangle size={13} className="text-[#A32D2D] shrink-0 mt-0.5" />
+          <p className="text-xs text-[#A32D2D] leading-relaxed">{uploadError}</p>
         </div>
       )}
     </div>
@@ -547,7 +547,7 @@ export default function ContractLibrary() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-1">
-              <Library size={22} className="text-blue-400" />
+              <Library size={22} className="text-blue-600" />
               <h1 className="text-2xl font-bold text-foreground">Contract Library</h1>
             </div>
             <p className="text-sm text-muted-foreground">Upload contracts for review or browse your existing library</p>
@@ -565,7 +565,7 @@ export default function ContractLibrary() {
                   <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Reviewed</div>
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-blue-400">{signedCount}</div>
+                  <div className="text-xl font-bold text-blue-600">{signedCount}</div>
                   <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Signed</div>
                 </div>
               </div>
@@ -583,11 +583,11 @@ export default function ContractLibrary() {
         {/* Upload zone, collapsible, scrolled-to on button click */}
         <div ref={uploadRef}>
           <button
-            className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-card hover:bg-white/5 transition-colors text-sm font-medium text-foreground/80"
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-card hover:bg-muted transition-colors text-sm font-medium text-foreground/80"
             onClick={() => setUploadOpen((o) => !o)}
           >
             <div className="flex items-center gap-2">
-              <Upload size={15} className="text-blue-400" />
+              <Upload size={15} className="text-blue-600" />
               Upload a new contract for review
             </div>
             {uploadOpen ? <ChevronUp size={15} className="text-muted-foreground" /> : <ChevronDown size={15} className="text-muted-foreground" />}
@@ -624,7 +624,7 @@ export default function ContractLibrary() {
                 key={v}
                 onClick={() => setView(v)}
                 className={`px-3 py-1.5 rounded-md font-medium transition-colors ${
-                  view === v ? "bg-blue-500/15 text-blue-300" : "text-muted-foreground hover:text-foreground/80"
+                  view === v ? "bg-blue-500/15 text-blue-700" : "text-muted-foreground hover:text-foreground/80"
                 }`}
               >
                 {label}
@@ -648,7 +648,7 @@ export default function ContractLibrary() {
             {!debouncedSearch && (
               <button
                 onClick={openUpload}
-                className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 transition-colors"
               >
                 <Upload size={12} />
                 Upload your first contract
@@ -684,7 +684,7 @@ export default function ContractLibrary() {
                           {view === "vendor" && g.key !== "__none" ? (
                             <Link
                               to={`/app/legal/vendor/${encodeURIComponent(g.label)}`}
-                              className="text-blue-300 hover:text-blue-200 hover:underline transition-colors"
+                              className="text-blue-700 hover:text-blue-800 hover:underline transition-colors"
                             >
                               {g.label}
                             </Link>
@@ -714,9 +714,9 @@ export default function ContractLibrary() {
                 {debouncedSearch && " matching search"}
               </span>
               <div className="flex items-center gap-4 text-[11px] text-muted-foreground">
-                <div className="flex items-center gap-1.5"><CheckCircle size={10} className="text-blue-400" /> Signed/Executed</div>
-                <div className="flex items-center gap-1.5"><AlertTriangle size={10} className="text-amber-400" /> Processing</div>
-                <div className="flex items-center gap-1.5"><XCircle size={10} className="text-red-400" /> Failed</div>
+                <div className="flex items-center gap-1.5"><CheckCircle size={10} className="text-blue-600" /> Signed/Executed</div>
+                <div className="flex items-center gap-1.5"><AlertTriangle size={10} className="text-amber-600" /> Processing</div>
+                <div className="flex items-center gap-1.5"><XCircle size={10} className="text-red-600" /> Failed</div>
                 <div className="flex items-center gap-1.5"><GitBranch size={10} /> Version chain</div>
               </div>
             </div>

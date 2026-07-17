@@ -73,7 +73,7 @@ function FileQueue({
       <div className="flex items-center justify-between">
         <div className="text-sm font-medium">
           {queue.length} file{queue.length !== 1 ? "s" : ""} in queue
-          {doneCount > 0 && <span className="text-green-400 ml-2">· {doneCount} complete</span>}
+          {doneCount > 0 && <span className="text-[#1B7A4B] ml-2">· {doneCount} complete</span>}
         </div>
         {pendingCount > 0 && (
           <button
@@ -173,22 +173,22 @@ function FileQueue({
                 <td className="px-3 py-2 text-center">
                   {qf.status === "queued" && <span className="text-[10px] text-muted-foreground">Queued</span>}
                   {qf.status === "uploading" && (
-                    <span className="flex items-center gap-1 justify-center text-amber-400 text-[10px]">
+                    <span className="flex items-center gap-1 justify-center text-[#854F0B] text-[10px]">
                       <Loader2 size={10} className="animate-spin" />Uploading
                     </span>
                   )}
                   {qf.status === "reviewing" && (
-                    <span className="flex items-center gap-1 justify-center text-blue-400 text-[10px]">
+                    <span className="flex items-center gap-1 justify-center text-[#185FA5] text-[10px]">
                       <Loader2 size={10} className="animate-spin" />Reviewing
                     </span>
                   )}
                   {qf.status === "done" && (
-                    <span className="flex items-center gap-1 justify-center text-green-400 text-[10px]">
+                    <span className="flex items-center gap-1 justify-center text-[#1B7A4B] text-[10px]">
                       <CheckCircle size={10} />Done
                     </span>
                   )}
                   {qf.status === "error" && (
-                    <span className="flex items-center gap-1 justify-center text-red-400 text-[10px]" title={qf.error}>
+                    <span className="flex items-center gap-1 justify-center text-[#A32D2D] text-[10px]" title={qf.error}>
                       <AlertTriangle size={10} />Error
                     </span>
                   )}
@@ -196,7 +196,7 @@ function FileQueue({
                 <td className="px-2 py-2">
                   {(qf.status === "queued" || qf.status === "error") && (
                     <button
-                      className="text-muted-foreground hover:text-red-400 transition-colors"
+                      className="text-muted-foreground hover:text-[#A32D2D] transition-colors"
                       onClick={() => onRemove(qf.id)}
                     >
                       <X size={13} />
@@ -377,14 +377,14 @@ export default function BulkReview() {
           className={`max-w-6xl border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
             dragOver
               ? "border-blue-500 bg-blue-500/10"
-              : "border-border hover:border-blue-500/50 hover:bg-white/5"
+              : "border-border hover:border-blue-500/50 hover:bg-[#F8FAFC]"
           }`}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
         >
-          <Upload size={28} className={`mx-auto mb-3 ${dragOver ? "text-blue-400" : "text-muted-foreground"}`} />
+          <Upload size={28} className={`mx-auto mb-3 ${dragOver ? "text-[#185FA5]" : "text-muted-foreground"}`} />
           <div className="text-sm font-medium text-foreground/70">
             {dragOver ? "Drop files to add to queue" : "Drag & drop contracts here, or click to select"}
           </div>

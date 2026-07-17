@@ -196,27 +196,27 @@ function PatternCard({ pattern }: { pattern: EnrichedPattern }) {
       {/* Data grid */}
       <div className="grid sm:grid-cols-2 gap-3">
         {/* Frequency */}
-        <div className="rounded-lg bg-black/20 border border-white/5 px-3 py-2.5">
+        <div className="rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] px-3 py-2.5">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Frequency</div>
           <div className="text-xs text-foreground/80 leading-relaxed">{pattern.frequency}</div>
         </div>
 
         {/* Commercial impact */}
-        <div className="rounded-lg bg-black/20 border border-white/5 px-3 py-2.5">
+        <div className="rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] px-3 py-2.5">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Commercial impact</div>
           <div className="text-xs text-foreground/80 leading-relaxed">{pattern.commercialImpact}</div>
         </div>
 
         {/* Counterparties */}
-        <div className="rounded-lg bg-black/20 border border-white/5 px-3 py-2.5">
+        <div className="rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] px-3 py-2.5">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Counterparties involved</div>
           {pattern.counterparties.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {pattern.counterparties.slice(0, 3).map((cp) => (
-                <span key={cp} className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-foreground/70 border border-white/10">{cp}</span>
+                <span key={cp} className="text-[10px] px-2 py-0.5 rounded-full bg-[#EEF2F8] text-[#475569] border border-[#E2E8F0]">{cp}</span>
               ))}
               {pattern.counterparties.length > 3 && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-muted-foreground border border-white/5">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#F8FAFC] text-muted-foreground border border-[#E2E8F0]">
                   +{pattern.counterparties.length - 3} more
                 </span>
               )}
@@ -227,14 +227,14 @@ function PatternCard({ pattern }: { pattern: EnrichedPattern }) {
         </div>
 
         {/* Suggested action */}
-        <div className="rounded-lg bg-black/20 border border-white/5 px-3 py-2.5">
+        <div className="rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] px-3 py-2.5">
           <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Suggested action</div>
           <div className="text-xs text-foreground/80 leading-relaxed">{pattern.suggestedAction}</div>
         </div>
       </div>
 
       {/* Footer button */}
-      <div className="pt-1 border-t border-white/5">
+      <div className="pt-1 border-t border-[#E2E8F0]">
         <Link
           to={pattern.clauseCategory
             ? `/app/legal/playbook?clause=${pattern.clauseCategory}`
@@ -254,7 +254,7 @@ function PatternCard({ pattern }: { pattern: EnrichedPattern }) {
 // ── Drift bar ─────────────────────────────────────────────────────────────────
 
 function DriftBar({ entry }: { entry: NegotiationDrift }) {
-  const severity = entry.driftPct >= 75 ? "text-red-400" : entry.driftPct >= 50 ? "text-amber-400" : "text-foreground/60";
+  const severity = entry.driftPct >= 75 ? "text-[#A32D2D]" : entry.driftPct >= 50 ? "text-[#854F0B]" : "text-foreground/60";
   return (
     <div className="flex items-center gap-3">
       <div className="w-36 shrink-0">
@@ -287,7 +287,7 @@ function CounterpartyCard({ cp }: { cp: CounterpartyPattern }) {
           <div className="text-xs text-muted-foreground">{label(cp.clauseCategory)}</div>
         </div>
         <div className="text-right">
-          <div className="text-sm font-bold text-red-400">{cp.redCount}× RED</div>
+          <div className="text-sm font-bold text-[#A32D2D]">{cp.redCount}× RED</div>
           <div className="text-[10px] text-muted-foreground">{cp.amberCount > 0 ? `+${cp.amberCount} amber` : "no amber"}</div>
         </div>
       </div>
@@ -295,7 +295,7 @@ function CounterpartyCard({ cp }: { cp: CounterpartyPattern }) {
         <div className="h-full bg-red-400 rounded-full" style={{ width: `${redPct}%` }} />
       </div>
       {cp.acceptedRed > 0 && (
-        <div className="mt-2 text-[10px] text-amber-400 flex items-center gap-1">
+        <div className="mt-2 text-[10px] text-[#854F0B] flex items-center gap-1">
           <AlertTriangle size={9} />
           Accepted below red line {cp.acceptedRed} time{cp.acceptedRed !== 1 ? "s" : ""}
         </div>
@@ -521,7 +521,7 @@ export default function Patterns() {
               ))}
               {drift.some((d) => d.driftPct >= 50) && (
                 <div className="pt-3 mt-3 border-t border-border/50">
-                  <div className="flex items-start gap-2 text-xs text-amber-400">
+                  <div className="flex items-start gap-2 text-xs text-[#854F0B]">
                     <AlertOctagon size={12} className="shrink-0 mt-0.5" />
                     <span>High drift detected. Consider updating your playbook red lines to reflect your actual negotiation behaviour, or double down on enforcement.</span>
                   </div>

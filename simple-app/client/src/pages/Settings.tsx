@@ -69,11 +69,11 @@ const getSPFolders = () =>
 
 function syncStatusIcon(status: string) {
   if (status === "review_complete")
-    return <CheckCircle size={12} className="text-emerald-400 shrink-0" />;
+    return <CheckCircle size={12} className="text-[#1B7A4B] shrink-0" />;
   if (status === "error")
-    return <AlertCircle size={12} className="text-red-400 shrink-0" />;
+    return <AlertCircle size={12} className="text-[#A32D2D] shrink-0" />;
   if (status === "review_started" || status === "downloaded")
-    return <RefreshCw size={12} className="text-blue-400 shrink-0 animate-spin" />;
+    return <RefreshCw size={12} className="text-[#185FA5] shrink-0 animate-spin" />;
   return <Clock size={12} className="text-[#64748B] shrink-0" />;
 }
 
@@ -297,10 +297,10 @@ function IntegrationCard({
             </div>
           )}
           {foldersError && (
-            <div className="text-xs text-red-400">{foldersError}</div>
+            <div className="text-xs text-[#A32D2D]">{foldersError}</div>
           )}
           {watchError && (
-            <div className="text-xs text-red-400">{watchError}</div>
+            <div className="text-xs text-[#A32D2D]">{watchError}</div>
           )}
 
           {!foldersLoading && folders.length === 0 && !foldersError && (
@@ -353,7 +353,7 @@ function IntegrationCard({
               </span>
               {entry.status === "error" && entry.errorMessage && (
                 <span
-                  className="shrink-0 text-red-400/60"
+                  className="shrink-0 text-[#A32D2D]/60"
                   title={entry.errorMessage}
                 >
                   <AlertCircle size={11} />
@@ -422,12 +422,12 @@ export default function Settings() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-6 border-b border-white/5 pb-0">
+        <div className="flex gap-1 mb-6 border-b border-[#E2E8F0] pb-0">
           <button
             onClick={() => setActiveTab("integrations")}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
               activeTab === "integrations"
-                ? "border-blue-500 text-blue-400"
+                ? "border-blue-500 text-[#185FA5]"
                 : "border-transparent text-muted-foreground hover:text-muted-foreground"
             }`}
           >
@@ -437,7 +437,7 @@ export default function Settings() {
             onClick={() => setActiveTab("email")}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
               activeTab === "email"
-                ? "border-blue-500 text-blue-400"
+                ? "border-blue-500 text-[#185FA5]"
                 : "border-transparent text-muted-foreground hover:text-muted-foreground"
             }`}
           >
@@ -447,7 +447,7 @@ export default function Settings() {
             onClick={() => setActiveTab("regulatory")}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
               activeTab === "regulatory"
-                ? "border-blue-500 text-blue-400"
+                ? "border-blue-500 text-[#185FA5]"
                 : "border-transparent text-muted-foreground hover:text-muted-foreground"
             }`}
           >
@@ -458,7 +458,7 @@ export default function Settings() {
               onClick={() => setActiveTab("costs")}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
                 activeTab === "costs"
-                  ? "border-blue-500 text-blue-400"
+                  ? "border-blue-500 text-[#185FA5]"
                   : "border-transparent text-muted-foreground hover:text-muted-foreground"
               }`}
             >
@@ -665,7 +665,7 @@ function EmailZaneSettings() {
     <div className="flex flex-col gap-5">
       <div className="flex items-start gap-3">
         <div className="mt-0.5 w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-          <Mail size={18} className="text-blue-400" />
+          <Mail size={18} className="text-[#185FA5]" />
         </div>
         <div>
           <div className="text-sm font-semibold text-foreground">Your company's Zane address</div>
@@ -681,7 +681,7 @@ function EmailZaneSettings() {
           <code className="flex-1 text-sm text-foreground font-mono truncate">{address}</code>
           <button
             onClick={copy}
-            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-card-border hover:bg-white/5 transition-colors"
+            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-card-border hover:bg-[#F8FAFC] transition-colors"
           >
             {copied ? <Check size={13} className="text-[#1B7A4B]" /> : <Copy size={13} />}
             {copied ? "Copied" : "Copy"}
@@ -740,9 +740,9 @@ function RegulatoryAnalysisSettings() {
             >
               <div className="flex items-start gap-3">
                 <div className={`mt-0.5 w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
-                  selected ? "border-blue-400" : "border-muted-foreground/40"
+                  selected ? "border-blue-600" : "border-muted-foreground/40"
                 }`}>
-                  {selected && <div className="w-2 h-2 rounded-full bg-blue-400" />}
+                  {selected && <div className="w-2 h-2 rounded-full bg-blue-600" />}
                 </div>
                 <div className="min-w-0">
                   <div className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -786,11 +786,8 @@ function SyncLogTable({ entries }: { entries: SyncLogEntry[] }) {
   const shown = expanded ? entries : entries.slice(0, 10);
 
   return (
-    <div
-      style={{ background: "hsl(220 20% 13%)" }}
-      className="rounded-xl border border-white/5 overflow-hidden"
-    >
-      <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
+    <div className="rounded-xl border border-[#E2E8F0] bg-[#FFFFFF] shadow-sm overflow-hidden">
+      <div className="px-5 py-3 border-b border-[#E2E8F0] flex items-center justify-between">
         <span className="text-sm font-semibold text-foreground">
           Sync log
         </span>
@@ -798,7 +795,7 @@ function SyncLogTable({ entries }: { entries: SyncLogEntry[] }) {
           {entries.length} entries
         </span>
       </div>
-      <div className="divide-y divide-white/5">
+      <div className="divide-y divide-[#E2E8F0]">
         {shown.map((entry) => (
           <div
             key={entry.id}
@@ -823,7 +820,7 @@ function SyncLogTable({ entries }: { entries: SyncLogEntry[] }) {
       {entries.length > 10 && (
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="w-full px-5 py-3 text-xs text-muted-foreground hover:text-muted-foreground transition-colors flex items-center justify-center gap-1.5 border-t border-white/5"
+          className="w-full px-5 py-3 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1.5 border-t border-[#E2E8F0]"
         >
           <ChevronDown size={12} className={expanded ? "rotate-180" : ""} />
           {expanded ? "Show less" : `Show all ${entries.length} entries`}

@@ -58,14 +58,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }) {
   const cfg = {
-    error:   { border: "#450A0A", bg: "#1F0A0A", text: "#FCA5A5", Icon: AlertTriangle },
-    warning: { border: "#431407", bg: "#1C0F00", text: "#FCD34D", Icon: AlertCircle },
-    info:    { border: "#1E3A5F", bg: "#0D1B2A", text: "#93C5FD", Icon: AlertCircle },
+    error:   { border: "#FECACA", bg: "#FEF2F2", text: "#A32D2D", Icon: AlertTriangle },
+    warning: { border: "#FDE68A", bg: "#FFFBEB", text: "#854F0B", Icon: AlertCircle },
+    info:    { border: "#BFDBFE", bg: "#EFF6FF", text: "#185FA5", Icon: AlertCircle },
   }[toast.type];
 
   return (
     <div
-      className="pointer-events-auto rounded-xl border px-4 py-3 flex items-start gap-3 shadow-xl shadow-black/40"
+      className="pointer-events-auto rounded-xl border px-4 py-3 flex items-start gap-3 shadow-sm"
       style={{ borderColor: cfg.border, background: cfg.bg }}
     >
       <cfg.Icon size={14} className="shrink-0 mt-0.5" style={{ color: cfg.text }} />

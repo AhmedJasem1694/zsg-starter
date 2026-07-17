@@ -148,7 +148,7 @@ function PortfolioContent({ data }: { data: PortfolioData }) {
               : "No contracts with RED-flagged clauses. Your portfolio is clean."
           }
           icon={DollarSign}
-          color={data.valueAtRisk.RED > 0 ? "text-red-400" : "text-green-400"}
+          color={data.valueAtRisk.RED > 0 ? "text-[#A32D2D]" : "text-[#1B7A4B]"}
           urgent={data.valueAtRisk.RED > 0}
         />
         <AnswerCard
@@ -160,7 +160,7 @@ function PortfolioContent({ data }: { data: PortfolioData }) {
               : "No contracts are waiting for approval. All escalations are resolved."
           }
           icon={Shield}
-          color={data.escalationsOpen > 0 ? "text-amber-400" : "text-green-400"}
+          color={data.escalationsOpen > 0 ? "text-[#854F0B]" : "text-[#1B7A4B]"}
         />
         <AnswerCard
           question="Who is pushing back on your terms?"
@@ -171,7 +171,7 @@ function PortfolioContent({ data }: { data: PortfolioData }) {
               : "No counterparties are pushing RED-flagged positions in your current portfolio."
           }
           icon={Users}
-          color={deviatingCounterparties > 0 ? "text-blue-400" : "text-green-400"}
+          color={deviatingCounterparties > 0 ? "text-[#185FA5]" : "text-[#1B7A4B]"}
         />
       </div>
 
@@ -191,14 +191,14 @@ function PortfolioContent({ data }: { data: PortfolioData }) {
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-sm font-bold text-red-400">{count} RED</div>
+                  <div className="text-sm font-bold text-[#A32D2D]">{count} RED</div>
                   <div className="text-[10px] text-muted-foreground">{count > 1 ? "contracts" : "contract"}</div>
                 </div>
               </div>
             ))}
           </div>
           <div className="px-5 py-3 border-t border-border/40 bg-card/50">
-            <Link to="/app/legal/playbook" className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition-colors">
+            <Link to="/app/legal/playbook" className="inline-flex items-center gap-1.5 text-xs text-[#185FA5] hover:text-[#2563EB] transition-colors">
               Review playbook positions
               <ArrowRight size={11} />
             </Link>
@@ -230,11 +230,11 @@ function PortfolioContent({ data }: { data: PortfolioData }) {
                   </div>
                   <div className="text-right shrink-0 w-20">
                     {red > 0 ? (
-                      <span className="text-xs font-semibold text-red-400">{red} RED</span>
+                      <span className="text-xs font-semibold text-[#A32D2D]">{red} RED</span>
                     ) : tot > 0 ? (
-                      <span className="text-xs font-semibold text-amber-400">{Math.round((amber / tot) * 100)}% amber</span>
+                      <span className="text-xs font-semibold text-[#854F0B]">{Math.round((amber / tot) * 100)}% amber</span>
                     ) : (
-                      <span className="text-xs text-green-400">Clean</span>
+                      <span className="text-xs text-[#1B7A4B]">Clean</span>
                     )}
                   </div>
                 </div>
@@ -283,13 +283,13 @@ function PortfolioContent({ data }: { data: PortfolioData }) {
             <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{data.insight}</p>
             <div className="flex flex-wrap items-center gap-3 mt-2">
               {data.escalationsOpen > 0 && (
-                <p className="text-xs text-amber-400 flex items-center gap-1.5">
+                <p className="text-xs text-[#854F0B] flex items-center gap-1.5">
                   <AlertTriangle size={11} />
                   {data.escalationsOpen} contract{data.escalationsOpen !== 1 ? "s" : ""} pending approval
                 </p>
               )}
               {data.signedDocs > 0 && (
-                <p className="text-xs text-green-400 flex items-center gap-1.5">
+                <p className="text-xs text-[#1B7A4B] flex items-center gap-1.5">
                   <CheckCircle size={11} />
                   {data.signedDocs} contract{data.signedDocs !== 1 ? "s" : ""} signed or executed
                 </p>

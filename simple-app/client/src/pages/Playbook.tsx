@@ -212,7 +212,7 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
               ))}
               <div className="flex gap-2 pt-1">
                 <button
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#6D28D9] text-foreground hover:bg-[#6D28D9] transition-colors"
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-[#2563EB] text-white hover:bg-[#1D4ED8] transition-colors"
                   onClick={applySuggestion}
                 >
                   <Sparkles size={11} /> Use this suggestion
@@ -274,7 +274,7 @@ function RuleCard({ rule, outcome, counterpartyEntries, cpIntelEnabled }: { rule
                   <p className="text-xs text-muted-foreground">No counterparty data yet. This builds automatically as contracts are reviewed and outcomes logged.</p>
                 ) : counterpartyEntries.map((entry) => (
                   <div key={entry.counterpartyName} className="space-y-0.5">
-                    <Link to={`/app/legal/vendor/${encodeURIComponent(entry.counterpartyName)}`} className="text-xs font-semibold text-foreground hover:text-blue-300 hover:underline transition-colors">{entry.counterpartyName}</Link>
+                    <Link to={`/app/legal/vendor/${encodeURIComponent(entry.counterpartyName)}`} className="text-xs font-semibold text-foreground hover:text-[#2563EB] hover:underline transition-colors">{entry.counterpartyName}</Link>
                     <div className="text-xs text-muted-foreground leading-relaxed">
                       Accepted our preferred position in {entry.accepted} of {entry.total} contracts.{" "}
                       Pushed back in {entry.pushedBack} of {entry.total}.{" "}
@@ -607,8 +607,8 @@ function DriftSuggestionsView({
               <div className="flex items-center gap-2">
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                   sug.driftPct >= 75
-                    ? "text-red-400 bg-red-500/10 border-red-500/30"
-                    : "text-amber-400 bg-amber-500/10 border-amber-500/30"
+                    ? "text-[#A32D2D] bg-red-500/10 border-red-500/30"
+                    : "text-[#854F0B] bg-amber-500/10 border-amber-500/30"
                 }`}>
                   {sug.driftPct}% drift
                 </span>
@@ -623,27 +623,27 @@ function DriftSuggestionsView({
 
               <div className="grid sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <div className="text-[10px] font-semibold uppercase tracking-widest text-blue-400">Suggested preferred position</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-widest text-[#185FA5]">Suggested preferred position</div>
                   <div className="text-xs bg-card border border-border rounded-lg px-3 py-2 font-mono leading-relaxed text-foreground/80">
                     {sug.updatedPreferredPosition}
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <div className="text-[10px] font-semibold uppercase tracking-widest text-red-400">Suggested red line</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-widest text-[#A32D2D]">Suggested red line</div>
                   <div className="text-xs bg-card border border-border rounded-lg px-3 py-2 font-mono leading-relaxed text-foreground/80">
                     {sug.updatedRedLine}
                   </div>
                 </div>
               </div>
 
-              <div className="text-[11px] text-amber-400 flex items-start gap-1.5">
+              <div className="text-[11px] text-[#854F0B] flex items-start gap-1.5">
                 <AlertOctagon size={11} className="shrink-0 mt-0.5" />
                 {sug.recommendation}
               </div>
 
               <div className="flex gap-2 pt-1 border-t border-border/50">
                 {isApplied ? (
-                  <div className="flex items-center gap-1.5 text-xs text-green-400">
+                  <div className="flex items-center gap-1.5 text-xs text-[#1B7A4B]">
                     <CheckCircle size={12} />
                     Applied - open the clause below to review and save.
                   </div>
@@ -1281,7 +1281,7 @@ export default function Playbook() {
                           )}
                           {rule.hardRedLine && (
                             <div className="flex items-center gap-1 text-[10px] text-foreground/80">
-                              <div className="w-1 h-1 rounded-full bg-white/80 shrink-0" />
+                              <div className="w-1 h-1 rounded-full bg-[#A32D2D] shrink-0" />
                               Red line set
                             </div>
                           )}
@@ -1312,7 +1312,7 @@ export default function Playbook() {
                       .map((p) => (
                         <div key={p.counterparty} className="rounded-md border border-card-border/60 bg-background/40 p-3 space-y-1.5">
                           <div className="flex items-center justify-between gap-2">
-                            <Link to={`/app/legal/vendor/${encodeURIComponent(p.counterparty)}`} className="text-xs font-semibold text-foreground truncate hover:text-blue-300 hover:underline transition-colors">{p.counterparty}</Link>
+                            <Link to={`/app/legal/vendor/${encodeURIComponent(p.counterparty)}`} className="text-xs font-semibold text-foreground truncate hover:text-[#2563EB] hover:underline transition-colors">{p.counterparty}</Link>
                             <div className="text-[10px] text-muted-foreground shrink-0">{p.contracts} contract(s) · {p.totalMoves} move(s)</div>
                           </div>
                           <ul className="space-y-0.5">

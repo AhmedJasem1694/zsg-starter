@@ -46,10 +46,10 @@ function PilotNoticeBanner() {
   );
   if (dismissed) return null;
   return (
-    <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 flex items-start gap-3">
+    <div className="rounded-xl border border-amber-200/70 bg-amber-50 px-4 py-3 flex items-start gap-3">
       <AlertTriangle size={15} className="text-[#854F0B] shrink-0 mt-0.5" />
-      <p className="text-xs text-amber-200/80 leading-relaxed flex-1">
-        <span className="font-semibold text-amber-300">Pilot use only.</span>{" "}
+      <p className="text-xs text-[#854F0B]/90 leading-relaxed flex-1">
+        <span className="font-semibold text-[#854F0B]">Pilot use only.</span>{" "}
         Do not upload highly sensitive, privileged, or production-critical documents without prior agreement with Zane.
       </p>
       <button

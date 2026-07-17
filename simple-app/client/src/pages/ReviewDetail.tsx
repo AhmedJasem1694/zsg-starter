@@ -604,11 +604,11 @@ export default function ReviewDetail() {
                     <span className="font-semibold text-foreground">{ref.parentName}</span>
                     {ref.date && <span className="text-muted-foreground">({ref.date})</span>}
                     {ref.found ? (
-                      <Link to={`/app/legal/review/${ref.foundDocumentId}`} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-green-500/30 bg-green-500/10 text-green-400">
+                      <Link to={`/app/legal/review/${ref.foundDocumentId}`} className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-green-500/30 bg-green-500/10 text-[#1B7A4B]">
                         <CheckCircle size={10} /> In your library
                       </Link>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400">
+                      <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-[#854F0B]">
                         <AlertTriangle size={10} /> Not on file
                       </span>
                     )}
@@ -1300,7 +1300,7 @@ function DocumentAuditPanel({ audit }: { audit: import("../lib/types").DocumentA
         <div className="flex items-center gap-2.5">
           <Scale size={13} className="text-[#2563EB] shrink-0" />
           <span className="text-sm font-semibold text-[#2563EB]">Document Audit</span>
-          <span className="text-[10px] bg-[#1D4ED8]/30 text-[#2563EB] border border-[#1D4ED8]/40 rounded-full px-2 py-0.5 font-semibold">
+          <span className="text-[10px] bg-[#E6F1FB] text-[#185FA5] border border-[#C7D2FE] rounded-full px-2 py-0.5 font-semibold">
             {allFindings.length} finding{allFindings.length !== 1 ? "s" : ""}
           </span>
           {audit.highSeverityCount > 0 && (
@@ -1734,7 +1734,7 @@ function ClauseCard({
 
   return (
     <div
-      className={`overflow-hidden rounded-xl border border-[#E2E8F0] border-l-[3px] ${RAG_BORDER_LEFT[result.ragStatus]} bg-card transition-all duration-200 ${expanded ? "shadow-lg shadow-black/20" : ""}`}
+      className={`overflow-hidden rounded-xl border border-[#E2E8F0] border-l-[3px] ${RAG_BORDER_LEFT[result.ragStatus]} bg-card transition-all duration-200 ${expanded ? "shadow-sm" : ""}`}
       style={{ animationDelay: `${index * 40}ms` }}
     >
       {/* ── Collapsed header ──────────────────────────────────────────── */}
@@ -2158,7 +2158,7 @@ function ClauseCard({
               </div>
 
               {showTeachZane && (
-                <div className="rounded-lg border border-[#E6F1FB] bg-[#0B1020] p-4 space-y-3">
+                <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4 space-y-3">
                   <div className="text-xs font-semibold text-[#2563EB]">Correct this analysis</div>
                   <div className="space-y-2">
                     <label className="text-xs text-muted-foreground">What Zane said (incorrect part)</label>
