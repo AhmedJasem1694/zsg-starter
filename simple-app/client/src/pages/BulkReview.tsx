@@ -113,6 +113,9 @@ function FileQueue({
                   <div className="text-[10px] text-muted-foreground pl-4">
                     {(qf.file.size / 1024).toFixed(0)} KB
                   </div>
+                  {qf.status === "error" && qf.error && (
+                    <div className="text-[10px] text-[#A32D2D] pl-4 mt-0.5 leading-snug">{qf.error}</div>
+                  )}
                 </td>
                 <td className="px-3 py-2">
                   {qf.status === "queued" ? (
@@ -248,9 +251,25 @@ export default function BulkReview() {
 
   // Add files to queue
   const MAX_BULK_FILE_SIZE = 50 * 1024 * 1024; // 50MB per file
+  // Mirrors the server's upload filter (server/upload.ts). Drops bypass the
+  // file input's accept attribute, so validate every entry path here.
+  const ACCEPTED_BULK_EXTS = [".pdf", ".docx", ".doc"];
 
   const addFiles = useCallback((files: FileList | File[]) => {
     const newItems: QueuedFile[] = Array.from(files).map((file) => {
+      const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+      if (!ACCEPTED_BULK_EXTS.includes(ext)) {
+        return {
+          id: nanoid8(),
+          file,
+          contractType: "SUPPLIER_AGREEMENT",
+          counterpartyName: "",
+          contractValue: "",
+          folder: "",
+          status: "error" as const,
+          error: "Unsupported type. Only PDF and Word documents (.pdf, .docx) are accepted.",
+        };
+      }
       if (file.size > MAX_BULK_FILE_SIZE) {
         return {
           id: nanoid8(),
@@ -380,7 +399,7 @@ export default function BulkReview() {
               : "border-border hover:border-blue-500/50 hover:bg-[#F8FAFC]"
           }`}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
+          onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false); }}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
         >

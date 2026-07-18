@@ -157,6 +157,8 @@ export default function LegacyReview() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [uploadingBatch, setUploadingBatch] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [batchNote, setBatchNote] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("renewalDate");
   const [sortDir, setSortDir] = useState<1 | -1>(1);
 
@@ -175,14 +177,44 @@ export default function LegacyReview() {
   const renewals = report?.renewals ?? [];
   const completeRows = rows.filter((r) => r.status === "COMPLETE");
 
-  async function handleFiles(fileList: FileList | null) {
+  // Mirrors the server's upload filter (server/upload.ts). Drops bypass the
+  // file input's accept attribute, so both entry paths validate here.
+  const ACCEPTED_LEGACY_EXTS = [".pdf", ".docx", ".doc"];
+  const MAX_LEGACY_FILE_SIZE = 50 * 1024 * 1024;
+
+  function rejectFile(f: File): string | null {
+    const ext = f.name.slice(f.name.lastIndexOf(".")).toLowerCase();
+    if (!ACCEPTED_LEGACY_EXTS.includes(ext)) return "Unsupported type, only PDF or DOCX";
+    if (f.size > MAX_LEGACY_FILE_SIZE) return "Exceeds the 50 MB limit";
+    return null;
+  }
+
+  async function handleFiles(fileList: FileList | File[] | null) {
     if (!fileList || fileList.length === 0) return;
+    if (uploadingBatch) {
+      // A drop mid-upload must not be silently discarded: say why it was ignored.
+      setBatchNote("A batch is already uploading. Wait for it to finish, then add the next batch.");
+      return;
+    }
     let files = Array.from(fileList);
-    if (files.length > MAX_BATCH) {
+    const truncated = files.length > MAX_BATCH;
+    if (truncated) {
       files = files.slice(0, MAX_BATCH);
     }
-    const items: QueueItem[] = files.map((f) => ({ name: f.name, state: "queued" }));
+    setBatchNote(truncated ? `Batch capped at ${MAX_BATCH} files. The rest were not queued, upload them as a second batch.` : null);
+
+    // Unsupported and oversized files appear in the queue as failed rows with
+    // the reason, and are never sent to the server.
+    const items: QueueItem[] = files.map((f) => {
+      const rejection = rejectFile(f);
+      return rejection ? { name: f.name, state: "failed", error: rejection } : { name: f.name, state: "queued" };
+    });
     setQueue(items);
+
+    const uploadable = files
+      .map((f, i) => ({ file: f, queueIndex: i }))
+      .filter(({ file }) => rejectFile(file) === null);
+    if (uploadable.length === 0) return;
     setUploadingBatch(true);
 
     // Upload with limited concurrency; each file then kicks off the
@@ -192,20 +224,19 @@ export default function LegacyReview() {
       setQueue((prev) => prev.map((q, idx) => (idx === i ? { ...q, ...patch } : q)));
 
     async function worker() {
-      while (nextIndex < files.length) {
-        const i = nextIndex++;
-        const file = files[i];
-        setItem(i, { state: "uploading" });
+      while (nextIndex < uploadable.length) {
+        const { file, queueIndex } = uploadable[nextIndex++];
+        setItem(queueIndex, { state: "uploading" });
         try {
           const doc = await uploadDocument(file, "OTHER", {});
           await startLegacyReview(doc.id);
-          setItem(i, { state: "submitted" });
+          setItem(queueIndex, { state: "submitted" });
         } catch (err) {
-          setItem(i, { state: "failed", error: err instanceof Error ? err.message : "Upload failed" });
+          setItem(queueIndex, { state: "failed", error: err instanceof Error ? err.message : "Upload failed" });
         }
       }
     }
-    await Promise.all(Array.from({ length: Math.min(UPLOAD_CONCURRENCY, files.length) }, () => worker()));
+    await Promise.all(Array.from({ length: Math.min(UPLOAD_CONCURRENCY, uploadable.length) }, () => worker()));
     setUploadingBatch(false);
     void queryClient.invalidateQueries({ queryKey: ["legacy-report"] });
     void queryClient.invalidateQueries({ queryKey: ["documents"] });
@@ -259,13 +290,20 @@ export default function LegacyReview() {
         {/* Admin-only internal quoting helper */}
         {user?.isAdmin && <AdminLegacyQuote />}
 
-        {/* Upload zone */}
-        <div className="card p-6 space-y-4">
+        {/* Upload zone: the whole card accepts dropped files, same path as the button */}
+        <div
+          onDragOver={(e) => { e.preventDefault(); if (!uploadingBatch) setDragOver(true); }}
+          onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false); }}
+          onDrop={(e) => { e.preventDefault(); setDragOver(false); void handleFiles(e.dataTransfer.files); }}
+          className={`card p-6 space-y-4 transition-colors ${
+            dragOver ? "ring-2 ring-blue-500/60 bg-blue-500/5" : ""
+          }`}
+        >
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
-              <div className="text-sm font-semibold">Bulk upload</div>
+              <div className="text-sm font-semibold">{dragOver ? "Drop files to start the legacy extraction" : "Bulk upload"}</div>
               <p className="text-xs text-muted-foreground mt-1">
-                Up to {MAX_BATCH} files per batch. PDF or DOCX. Each contract runs a lightweight extraction of
+                Up to {MAX_BATCH} files per batch. Drag and drop PDF or DOCX here, or select files. Each contract runs a lightweight extraction of
                 parties, term, value, renewals, termination, liability cap, governing law, assignment, data protection.
               </p>
             </div>
@@ -286,6 +324,11 @@ export default function LegacyReview() {
               onChange={(e) => { void handleFiles(e.target.files); e.target.value = ""; }}
             />
           </div>
+
+          {/* Batch cap note */}
+          {batchNote && (
+            <div className="text-xs text-[#854F0B] bg-amber-50 border border-amber-200/70 rounded-lg px-3 py-2">{batchNote}</div>
+          )}
 
           {/* Client upload queue */}
           {queue.length > 0 && (

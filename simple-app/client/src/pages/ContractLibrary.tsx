@@ -307,6 +307,7 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
   const [uploading,      setUploading]      = useState(false);
   const [uploadError,    setUploadError]    = useState<string | null>(null);
   const [uploadSuccess,  setUploadSuccess]  = useState(false);
+  const [activeFileName, setActiveFileName] = useState<string | null>(null);
 
   // Form fields
   const [contractType,    setContractType]    = useState("SUPPLIER_AGREEMENT");
@@ -327,9 +328,45 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
 
   const reviewMutation = useMutation({ mutationFn: startReview });
 
+  // Mirrors the server's upload filter (server/upload.ts): pdf/docx/doc, 50MB.
+  // Drops bypass the file input's accept attribute, so both entry paths
+  // validate here before anything is sent.
+  const ACCEPTED_UPLOAD_EXTS = [".pdf", ".docx", ".doc"];
+  const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+
+  function validateUploadFile(file: File): string | null {
+    const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+    if (!ACCEPTED_UPLOAD_EXTS.includes(ext)) {
+      return `"${file.name}" is not a supported type. Only PDF and Word documents (.pdf, .docx) are accepted.`;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      return `"${file.name}" exceeds the 50 MB limit. Split large documents into sections before uploading.`;
+    }
+    return null;
+  }
+
+  function submitFiles(files: File[] | FileList) {
+    if (uploading) return;
+    const list = Array.from(files);
+    if (list.length === 0) return;
+    if (list.length > 1) {
+      setUploadSuccess(false);
+      setUploadError("Upload one contract at a time here. Use Bulk Review to upload multiple files together.");
+      return;
+    }
+    const rejection = validateUploadFile(list[0]);
+    if (rejection) {
+      setUploadSuccess(false);
+      setUploadError(rejection);
+      return;
+    }
+    void handleFile(list[0]);
+  }
+
   async function handleFile(file: File) {
     if (!file) return;
     setUploading(true);
+    setActiveFileName(file.name);
     setUploadError(null);
     setUploadSuccess(false);
     try {
@@ -368,16 +405,14 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
   }
 
   function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) void handleFile(file);
+    if (e.target.files) submitFiles(e.target.files);
     e.target.value = "";
   }
 
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) void handleFile(file);
+    submitFiles(e.dataTransfer.files);
   }
 
   return (
@@ -423,8 +458,8 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
 
       {/* Drop zone */}
       <div
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
+        onDragOver={(e) => { e.preventDefault(); if (!uploading) setDragOver(true); }}
+        onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false); }}
         onDrop={onDrop}
         onClick={() => !uploading && fileInputRef.current?.click()}
         className={`relative flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed py-10 px-6 cursor-pointer transition-colors select-none
@@ -434,7 +469,7 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          accept=".pdf,.docx,.doc,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           className="hidden"
           onChange={onFileChange}
           disabled={uploading}
@@ -443,8 +478,10 @@ function UploadZone({ onUploaded }: { onUploaded: () => void }) {
         {uploading ? (
           <>
             <Loader2 size={28} className="text-blue-600 animate-spin" />
-            <div className="text-sm font-medium text-foreground">Uploading and starting review…</div>
-            <div className="text-xs text-muted-foreground">This may take a moment</div>
+            <div className="text-sm font-medium text-foreground max-w-full truncate px-4">
+              {activeFileName ? `Uploading "${activeFileName}"…` : "Uploading and starting review…"}
+            </div>
+            <div className="text-xs text-muted-foreground">Review starts automatically. This may take a moment</div>
           </>
         ) : uploadSuccess ? (
           <>
