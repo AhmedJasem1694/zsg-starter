@@ -2647,11 +2647,14 @@ ${rawText}`,
       ESCALATED: "feedback_escalated",
       DISMISSED: "feedback_dismissed",
     };
+    // Carry the contract id so the per-contract audit view can link this entry
+    const fbResult = await pb.collection("review_results").getOne(req.params.resultId, { fields: "id,document,clauseCategory" }).catch(() => null);
     await audit({
       action: actionMap[parsed.data.userAction] ?? "feedback_accepted",
       entityType: "review_result",
       entityId: req.params.resultId,
       userId: req.user?.userId,
+      detail: { documentId: fbResult?.["document"] ?? "", clauseCategory: fbResult?.["clauseCategory"] ?? "", userAction: parsed.data.userAction },
     });
 
     // Decision data capture + significance assessment (reasoning capture, Section 1/2):
@@ -2748,12 +2751,14 @@ ${rawText}`,
       });
     }
 
+    // Carry the contract id so the per-contract audit view can link this entry
+    const tzResult = await pb.collection("review_results").getOne(req.params.resultId, { fields: "id,document,clauseCategory" }).catch(() => null);
     await audit({
       action: "teach_zane_correction",
       entityType: "review_result",
       entityId: req.params.resultId,
       userId: req.user?.userId,
-      detail: { correctOutputLength: parsed.data.correctOutput.length },
+      detail: { correctOutputLength: parsed.data.correctOutput.length, documentId: tzResult?.["document"] ?? "", clauseCategory: tzResult?.["clauseCategory"] ?? "" },
     });
 
     // Decision data capture: a Teach Zane correction is an override of Zane's analysis
@@ -2798,11 +2803,14 @@ ${rawText}`,
       });
     }
 
+    // Carry the contract id so the per-contract audit view can link this entry
+    const fpResult = await pb.collection("review_results").getOne(req.params.resultId, { fields: "id,document,clauseCategory" }).catch(() => null);
     await audit({
       action: "false_positive_marked",
       entityType: "review_result",
       entityId: req.params.resultId,
       userId: req.user?.userId,
+      detail: { documentId: fpResult?.["document"] ?? "", clauseCategory: fpResult?.["clauseCategory"] ?? "" },
     });
 
     // Decision data capture: marking a false positive overrides Zane's flag
@@ -3831,6 +3839,146 @@ Draft the complete clause.`;
     });
   }));
 
+  // ── Per-contract audit history ────────────────────────────────────────────────
+  // Chronological history of one agreement: pipeline events, RAG assignments,
+  // human decisions with captured reasons, escalations, outcome capture, and
+  // version movement. Aggregates audit_log entries linked to the document, its
+  // review results, or its extracted clauses (plus entries carrying the
+  // document id in their detail JSON), decision_events, and the version chain.
+  // The system-wide /api/audit endpoint is untouched.
+  app.get("/api/documents/:id/audit", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
+    if (!company) { sendError(res, 404, "No company configured"); return; }
+    const doc = await pb.collection("uploaded_documents").getOne(req.params.id).catch(() => null);
+    if (!doc || doc["company"] !== company.id) { sendError(res, 404, "Document not found"); return; }
+
+    const results: PBRecord[] = await pb.collection("review_results").getFullList({
+      filter: `document = "${req.params.id}"`,
+      fields: "id,clause,clauseCategory,ragStatus,recommendedAction,escalationRequired,escalationTrigger",
+    }).catch(() => [] as PBRecord[]);
+    const byResult = new Map(results.map((r) => [r.id, r]));
+    const byClause = new Map(results.filter((r) => r["clause"]).map((r) => [r["clause"] as string, r]));
+
+    const idFilters = [
+      `entityId = "${req.params.id}"`,
+      ...results.map((r) => `entityId = "${r.id}"`),
+      ...results.filter((r) => r["clause"]).map((r) => `entityId = "${r["clause"]}"`),
+      // Entries that carry this document's id as their documentId detail field.
+      // Matched structurally (key and value), not as a bare substring: other
+      // writers embed foreign document ids under keys like sourceDocumentId or
+      // matchedDocumentId, and a bare substring match would attribute those
+      // documents' events to this contract.
+      `detail ~ '"documentId":"${req.params.id}"'`,
+    ];
+    const entries: PBRecord[] = await pb.collection("audit_log").getFullList({
+      filter: idFilters.join(" || "),
+      sort: "+created",
+    }).catch(() => [] as PBRecord[]);
+
+    const auditEvents = entries.map((e) => {
+      const detail = (() => {
+        try { return JSON.parse((e["detail"] as string) || "{}"); } catch { return {}; }
+      })() as Record<string, unknown>;
+      const linked = byResult.get(e["entityId"] as string) ?? byClause.get(e["entityId"] as string);
+      return {
+        id: e.id,
+        at: e.created,
+        kind: "audit" as const,
+        action: e["action"] as string,
+        detail,
+        clauseCategory: (detail.clauseCategory as string) ?? (linked?.["clauseCategory"] as string) ?? null,
+        ragStatus: (detail.ragStatus as string) ?? (detail.overrideTo as string) ?? (linked?.["ragStatus"] as string) ?? null,
+        escalationTrigger: (linked?.["escalationTrigger"] as string) ?? null,
+      };
+    });
+
+    // Human decisions with captured reasoning
+    const decisions: PBRecord[] = await pb.collection("decision_events").getFullList({
+      filter: `contract = "${req.params.id}"`,
+      sort: "+created",
+    }).catch(() => [] as PBRecord[]);
+    const decisionEvents = decisions.map((d) => ({
+      id: d.id,
+      at: d.created,
+      kind: "decision" as const,
+      action: "decision_captured",
+      detail: {
+        zaneRecommendation: d["zane_recommendation"] ?? "",
+        humanAction: d["human_action"] ?? "",
+        finalPosition: d["human_final_position"] ?? "",
+        overrideReason: d["override_reason"] ?? "",
+        reasonCategory: d["reasoning_category"] ?? "",
+        reasonText: d["reasoning_text"] ?? "",
+      },
+      clauseCategory: (d["clause_category"] as string) || null,
+      ragStatus: null,
+      escalationTrigger: null,
+    }));
+
+    // Version movement from the document chain. Both directions are scoped to
+    // the caller's company so a forged parentDocumentId can never surface
+    // another tenant's document names in this timeline.
+    const versionEvents: Array<{ id: string; at: unknown; kind: "version"; action: string; detail: Record<string, unknown>; clauseCategory: null; ragStatus: null; escalationTrigger: null }> = [];
+    if (doc["parentDocumentId"]) {
+      const parent = await pb.collection("uploaded_documents").getOne(doc["parentDocumentId"] as string).catch(() => null);
+      if (parent && parent["company"] === company.id) {
+        versionEvents.push({
+          id: "version-parent",
+          at: doc.created,
+          kind: "version",
+          action: "uploaded_as_new_version",
+          detail: { parentName: parent["originalName"], parentId: doc["parentDocumentId"] },
+          clauseCategory: null, ragStatus: null, escalationTrigger: null,
+        });
+      }
+    }
+    const children: PBRecord[] = await pb.collection("uploaded_documents").getFullList({
+      filter: `parentDocumentId = "${req.params.id}" && company = "${company.id}"`,
+      fields: "id,originalName,created,reviewType",
+    }).catch(() => [] as PBRecord[]);
+    for (const c of children) {
+      versionEvents.push({
+        id: `version-${c.id}`,
+        at: c.created,
+        kind: "version",
+        action: "new_version_uploaded",
+        detail: { childName: c["originalName"], childId: c.id, reviewType: c["reviewType"] ?? "" },
+        clauseCategory: null, ragStatus: null, escalationTrigger: null,
+      });
+    }
+
+    // A single human action writes both an audit_log entry and a decision_events
+    // record. Pair them by clause category within a 10 minute window and keep
+    // one per pair: the decision event for plain feedback (it carries the
+    // recommendation and captured reason), the audit entry for overrides,
+    // corrections, and false positives (it carries the from/to specifics).
+    const PAIR_WINDOW_MS = 10 * 60 * 1000;
+    const paired = (a: { at: unknown; clauseCategory: string | null }, d: { at: unknown; clauseCategory: string | null }) =>
+      a.clauseCategory != null && a.clauseCategory === d.clauseCategory &&
+      Math.abs(new Date(String(a.at ?? 0)).getTime() - new Date(String(d.at ?? 0)).getTime()) < PAIR_WINDOW_MS;
+
+    const droppedAudit = new Set<string>();
+    const droppedDecision = new Set<string>();
+    const FEEDBACK_ACTIONS = new Set(["feedback_accepted", "feedback_edited", "feedback_escalated", "feedback_dismissed"]);
+    const OVERRIDE_ACTIONS = new Set(["teach_zane_correction", "false_positive_marked"]);
+    for (const a of auditEvents) {
+      const isOverrideRag = a.action === "rag_status_assigned" && typeof a.detail.overrideTo === "string";
+      if (!FEEDBACK_ACTIONS.has(a.action) && !OVERRIDE_ACTIONS.has(a.action) && !isOverrideRag) continue;
+      const match = decisionEvents.find((d) => !droppedDecision.has(d.id) && paired(a, d));
+      if (!match) continue;
+      if (FEEDBACK_ACTIONS.has(a.action)) droppedAudit.add(a.id);
+      else droppedDecision.add(match.id);
+    }
+
+    const events = [
+      ...auditEvents.filter((e) => !droppedAudit.has(e.id)),
+      ...decisionEvents.filter((e) => !droppedDecision.has(e.id)),
+      ...versionEvents,
+    ].sort((a, b) => String(a.at ?? "").localeCompare(String(b.at ?? "")));
+
+    res.json({ documentId: req.params.id, documentName: doc["originalName"], events });
+  }));
+
   // ── Contract library ──────────────────────────────────────────────────────────
 
   // GET /api/library - documents grouped by folder, with version chain resolution
@@ -3882,6 +4030,17 @@ Draft the complete clause.`;
   // PATCH /api/documents/:id/version - link to parent document version
   app.patch("/api/documents/:id/version", requireAuth, ah(async (req: Request, res: Response) => {
     const { parentDocumentId } = req.body as { parentDocumentId: string };
+    // Both ends of a version link must belong to the caller's company. Without
+    // this, an arbitrary parentDocumentId injects cross-tenant document names
+    // into version chains and the per-contract audit history.
+    const company = await getCompany(req.user?.email);
+    if (!company) { sendError(res, 404, "No company configured"); return; }
+    const child = await pb.collection("uploaded_documents").getOne(req.params.id).catch(() => null);
+    if (!child || child["company"] !== company.id) { sendError(res, 404, "Document not found"); return; }
+    if (parentDocumentId) {
+      const parent = await pb.collection("uploaded_documents").getOne(parentDocumentId).catch(() => null);
+      if (!parent || parent["company"] !== company.id) { sendError(res, 404, "Parent document not found"); return; }
+    }
     const updated = await pb.collection("uploaded_documents").update(req.params.id, { parentDocumentId });
     res.json(mapDoc(updated));
   }));
@@ -4261,7 +4420,7 @@ Draft the complete clause.`;
       entityId: req.params.resultId,
       companyId: doc["company"] as string,
       userId: req.user!.userId,
-      detail: { overrideFrom: result["ragStatus"], overrideTo: correctedStatus, reason },
+      detail: { overrideFrom: result["ragStatus"], overrideTo: correctedStatus, reason, documentId: result["document"], clauseCategory: result["clauseCategory"] },
     });
 
     // Decision data capture: RAG status override with the user's stated reason
@@ -4323,7 +4482,7 @@ Draft the complete clause.`;
       entityId: req.params.resultId,
       companyId: doc["company"] as string,
       userId: req.user!.userId,
-      detail: { errorType, clauseCategory: result["clauseCategory"] },
+      detail: { errorType, clauseCategory: result["clauseCategory"], documentId: result["document"] },
     });
 
     // Decision data capture: false-positive signal overrides Zane's flag

@@ -4,9 +4,10 @@ import { useNavigate, Link } from "react-router-dom";
 import {
   Library, Search, FileText, ExternalLink, GitBranch, Tag,
   CheckCircle, AlertTriangle, XCircle, Edit2, Check, X,
-  ArrowUpDown, Upload, ChevronDown, ChevronUp, Loader2, Mail,
+  ArrowUpDown, Upload, ChevronDown, ChevronUp, Loader2, Mail, History,
 } from "lucide-react";
 import AppLayout from "../components/layout/AppLayout";
+import ContractAuditModal from "../components/ContractAuditModal";
 import { getLibrary, setDocumentFolder, linkDocumentVersion, uploadDocument, startReview, getCompany } from "../lib/api";
 import type { UploadedDocument } from "../lib/types";
 
@@ -220,8 +221,9 @@ function VersionPickerCell({ doc, allDocs }: { doc: UploadedDocument; allDocs: U
 
 // ── Table row ─────────────────────────────────────────────────────────────────
 
-function TableRow({ doc, allDocs, onFolderChange }: {
+function TableRow({ doc, allDocs, onFolderChange, onAudit }: {
   doc: UploadedDocument; allDocs: UploadedDocument[]; onFolderChange: (id: string, folder: string) => void;
+  onAudit: (doc: UploadedDocument) => void;
 }) {
   return (
     <tr className="group hover:bg-slate-100 transition-colors">
@@ -269,6 +271,16 @@ function TableRow({ doc, allDocs, onFolderChange }: {
       </td>
       <td className="px-4 py-3 text-[11px] text-muted-foreground whitespace-nowrap">{formatDate(doc.uploadedAt)}</td>
       <td className="px-4 py-3"><VersionPickerCell doc={doc} allDocs={allDocs} /></td>
+      <td className="px-4 py-3 whitespace-nowrap">
+        <button
+          onClick={(e) => { e.stopPropagation(); onAudit(doc); }}
+          className="text-muted-foreground hover:text-[#0B1020] transition-colors"
+          title="Audit history"
+          aria-label={`Audit history for ${doc.originalName ?? "contract"}`}
+        >
+          <History size={13} />
+        </button>
+      </td>
     </tr>
   );
 }
@@ -524,6 +536,7 @@ export default function ContractLibrary() {
   const [sortDir, setSortDir]                 = useState<"asc" | "desc">("desc");
   const [view, setView]                       = useState<GroupView>("type");
   const [uploadOpen, setUploadOpen]           = useState(false);
+  const [auditDoc, setAuditDoc]               = useState<UploadedDocument | null>(null);
   const uploadRef                             = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
@@ -711,13 +724,14 @@ export default function ContractLibrary() {
                     <ColHeader label="Folder" />
                     <ColHeader label="Uploaded"      sortKey="uploadedAt"   current={sortKey} onSort={handleSort} />
                     <ColHeader label="" />
+                    <ColHeader label="" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/40">
                   {groups.flatMap((g) => [
                     view !== "all" ? (
                       <tr key={`group-${g.key}`} className="bg-card/40">
-                        <td colSpan={10} className="px-4 py-2.5 text-xs font-semibold text-foreground/70 border-y border-border">
+                        <td colSpan={11} className="px-4 py-2.5 text-xs font-semibold text-foreground/70 border-y border-border">
                           {view === "vendor" && g.key !== "__none" ? (
                             <Link
                               to={`/app/legal/vendor/${encodeURIComponent(g.label)}`}
@@ -738,6 +752,7 @@ export default function ContractLibrary() {
                         doc={doc}
                         allDocs={allDocs}
                         onFolderChange={(id, folder) => folderMutation.mutate({ id, folder })}
+                        onAudit={setAuditDoc}
                       />
                     )),
                   ])}
@@ -761,6 +776,14 @@ export default function ContractLibrary() {
         )}
 
       </div>
+
+      {auditDoc && (
+        <ContractAuditModal
+          documentId={auditDoc.id}
+          documentName={auditDoc.originalName}
+          onClose={() => setAuditDoc(null)}
+        />
+      )}
     </AppLayout>
   );
 }

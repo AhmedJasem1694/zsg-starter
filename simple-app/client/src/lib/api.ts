@@ -401,6 +401,22 @@ export const getMe = async (): Promise<{ userId: string; email: string; isAdmin?
   }
 };
 
+// Per-contract audit history
+export interface ContractAuditEvent {
+  id: string;
+  at: string;
+  kind: "audit" | "decision" | "version";
+  action: string;
+  detail: Record<string, unknown>;
+  clauseCategory: string | null;
+  ragStatus: string | null;
+  escalationTrigger: string | null;
+}
+export const getContractAudit = (documentId: string) =>
+  req<{ documentId: string; documentName: string; events: ContractAuditEvent[] }>(
+    "GET", `/api/documents/${documentId}/audit`
+  );
+
 // Portfolio
 export const getPortfolio = () => req<{
   groups: { label: string; icon: string; red: number; amber: number; green: number }[];

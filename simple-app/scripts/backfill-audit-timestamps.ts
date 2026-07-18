@@ -101,15 +101,19 @@ async function main() {
   const windowStart = serverNow - 60 * DAY;
   console.log(`window: ${toPBDate(windowStart)} .. ${toPBDate(windowEnd)}`);
 
-  // 1. Capture everything
+  // 1. Capture everything. Any entry that already has a timestamp is preserved
+  // exactly: after the one-time migration there is no reliable way to tell a
+  // genuine event time from earlier backfill output, so re-runs only ever fill
+  // gaps (entries with an empty created). This makes the script safe to re-run
+  // and a deliberate no-op once every entry is stamped.
   const entries = await pb.collection("audit_log").getFullList({
-    fields: "id,action,entityType,entityId,created",
+    fields: "id,action,entityType,entityId,detail,created",
   });
   const real = new Map<string, string>();
   for (const e of entries) {
     if (e.created) real.set(e.id, String(e.created));
   }
-  console.log(`entries: ${entries.length}, with real timestamps to preserve: ${real.size}`);
+  console.log(`entries: ${entries.length}, with existing timestamps preserved: ${real.size}`);
 
   // Live documents anchor their clusters to the real upload time
   const docs = await pb.collection("uploaded_documents").getFullList({ fields: "id,created" });
@@ -138,10 +142,18 @@ async function main() {
     console.log(`created field already type=${createdField.type}, skipping swap`);
   }
 
-  // 3. Cluster and compute timestamps
+  // 3. Cluster and compute timestamps. Entries carrying a documentId in their
+  // detail JSON (per-clause RAG assignments and result-scoped actions) join
+  // that document's cluster so a contract's whole story shares one anchor.
   const clusters = new Map<string, typeof entries>();
   for (const e of entries) {
-    const key = String(e.entityId || "") || `solo:${e.id}`;
+    const detailDocId = (() => {
+      try {
+        const d = JSON.parse(String(e.detail ?? "{}")) as { documentId?: string };
+        return typeof d.documentId === "string" && d.documentId ? d.documentId : null;
+      } catch { return null; }
+    })();
+    const key = detailDocId ?? (String(e.entityId || "") || `solo:${e.id}`);
     const arr = clusters.get(key) ?? [];
     arr.push(e);
     clusters.set(key, arr);

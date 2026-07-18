@@ -5,11 +5,12 @@ import {
   ArrowLeft, AlertTriangle, Clock, CheckCircle, Download, ChevronDown, ChevronUp,
   Mail, Copy, Loader2, GraduationCap, XCircle, BookOpen, Scale, Zap, Info,
   TrendingDown, Layers, CalendarClock, FileCheck, Users, BarChart2, ChevronRight,
-  MessageSquare, Shield, Edit2, Flag, Upload, Brain, Dot,
+  MessageSquare, Shield, Edit2, Flag, Upload, Brain, Dot, History,
 } from "lucide-react";
 import { getReview, saveFeedback, generateReply, generateAmendedClause, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany, getContractCounterpartyProfile, getContractCounterpartyJudgment, getCrossReferences, relinkCrossReferences } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import ReasoningPrompt from "../components/ReasoningPrompt";
+import ContractAuditModal from "../components/ContractAuditModal";
 import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, ConfidenceLabel, RegulatoryCitation, FeedbackResponse, SignificanceResult } from "../lib/types";
 import { CLAUSE_LABELS } from "../lib/types";
 import { resolveRegulationProminence, isCitationDirectlyRelevant, type RegulationProminence } from "../lib/regulationProminence";
@@ -135,6 +136,7 @@ export default function ReviewDetail() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<RagStatus | "ALL" | "GREY_CRITICAL" | "GREY_OPTIONAL">("ALL");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [showAuditHistory, setShowAuditHistory] = useState(false);
 
   // Demo mode - mock-1 served from local data, no API call needed
   const isMock = id === "mock-1";
@@ -534,8 +536,17 @@ export default function ReviewDetail() {
           counts={counts}
           renewalDaysUntil={renewalDaysUntil}
           onExport={handleExport}
+          onAudit={() => setShowAuditHistory(true)}
           isMock={isMock}
         />
+
+        {showAuditHistory && !isMock && (
+          <ContractAuditModal
+            documentId={doc.id}
+            documentName={doc.originalName}
+            onClose={() => setShowAuditHistory(false)}
+          />
+        )}
 
         {/* ── Section 3c: known counterparty negotiation patterns ──────── */}
         {counterpartyProfile && (
@@ -933,6 +944,7 @@ function ContractHeader({
   counts,
   renewalDaysUntil,
   onExport,
+  onAudit,
   isMock,
 }: {
   doc: UploadedDocument;
@@ -940,6 +952,7 @@ function ContractHeader({
   counts: ExtendedCounts;
   renewalDaysUntil: number | null;
   onExport: () => void;
+  onAudit: () => void;
   isMock: boolean;
 }) {
   const RISK_CONFIG = {
@@ -985,6 +998,14 @@ function ContractHeader({
             <div className={`w-1.5 h-1.5 rounded-full ${RAG_DOT[overallRag]}`} />
             {riskCfg.label}
           </div>
+          <button
+            onClick={onAudit}
+            className="btn-secondary flex items-center gap-1.5 text-xs px-3 py-1.5"
+            title={isMock ? "Demo - audit history disabled" : "Full chronological history of this agreement"}
+            disabled={isMock}
+          >
+            <History size={12} /> Audit history
+          </button>
           <button
             onClick={onExport}
             className="btn-secondary flex items-center gap-1.5 text-xs px-3 py-1.5"
