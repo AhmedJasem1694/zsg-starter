@@ -28,6 +28,8 @@ import ContractTimings from "./pages/ContractTimings";
 import BulkReview from "./pages/BulkReview";
 import Patterns from "./pages/Patterns";
 import AuditTrail from "./pages/AuditTrail";
+import Approvals from "./pages/Approvals";
+import ApprovalDecision from "./pages/ApprovalDecision";
 import FounderDashboard from "./pages/founder/FounderDashboard";
 import FounderReview from "./pages/founder/FounderReview";
 import ContractLibrary from "./pages/ContractLibrary";
@@ -189,6 +191,14 @@ function AppRoutes() {
       <Route
         path="/app/legal/audit"
         element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><AuditTrail /></RequireAuth>}
+      />
+      <Route
+        path="/app/legal/approvals"
+        element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><Approvals /></RequireAuth>}
+      />
+      <Route
+        path="/app/legal/approvals/:id"
+        element={!user ? <Navigate to="/login" replace /> : <RequireAuth company={company}><ApprovalDecision /></RequireAuth>}
       />
       <Route
         path="/app/legal/library"

@@ -126,6 +126,30 @@ function present(e: ContractAuditEvent): EventPresentation {
         ].filter(Boolean) as string[],
       };
     }
+    case "escalation_triggered":
+      return {
+        icon: <AlertTriangle size={13} className="text-[#854F0B]" />, iconBg: "bg-[#FAEEDA]",
+        title: `Routed to ${str(d.role) ?? "an approver"} for approval${clause ? `: ${clause}` : ""}`,
+        lines: [str(d.reason) ?? ""].filter(Boolean) as string[],
+      };
+    case "escalation_email_sent":
+      return {
+        icon: <MessageSquare size={13} className="text-[#64748B]" />, iconBg: "bg-[#F1F5F9]",
+        title: `Approval request sent to ${str(d.recipient) ?? "the approver"}`,
+        lines: [],
+      };
+    case "approval_granted":
+      return {
+        icon: <CheckCircle size={13} className="text-[#1B7A4B]" />, iconBg: "bg-[#E7F6EE]",
+        title: `Approved by ${str(d.approverName) ?? "approver"} (${str(d.role) ?? "approver"})${clause ? `: ${clause}` : ""}`,
+        lines: [str(d.reason) ? `Reason: ${str(d.reason)}` : ""].filter(Boolean) as string[],
+      };
+    case "approval_rejected":
+      return {
+        icon: <XCircle size={13} className="text-[#A32D2D]" />, iconBg: "bg-[#FCEBEB]",
+        title: `Rejected by ${str(d.approverName) ?? "approver"} (${str(d.role) ?? "approver"})${clause ? `: ${clause}` : ""}`,
+        lines: [str(d.reason) ? `Reason: ${str(d.reason)}` : ""].filter(Boolean) as string[],
+      };
     case "uploaded_as_new_version":
       return { icon: <GitBranch size={13} className="text-[#185FA5]" />, iconBg: "bg-[#E6F1FB]", title: `Uploaded as a new version of ${str(d.parentName) ?? "an earlier version"}`, lines: [] };
     case "new_version_uploaded":

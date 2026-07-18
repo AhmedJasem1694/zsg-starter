@@ -4,7 +4,7 @@ import { ZaneLogo } from "../ZaneLogo";
 import {
   LayoutDashboard, BookOpen, Settings, LogOut, Menu,
   PieChart, CalendarClock, LayoutGrid, Activity, ClipboardList, Library, Users,
-  AlertTriangle, Archive, Brain, ChevronDown, FolderOpen, Sparkles, Building2,
+  AlertTriangle, Archive, Brain, ChevronDown, FolderOpen, Sparkles, Building2, CheckSquare,
 } from "lucide-react";
 import { useAuth, useLogout } from "../../hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -38,6 +38,7 @@ const LEGAL_GROUPS: NavGroup[] = [
   },
   {
     label: "Workspace", icon: Building2, items: [
+      { to: "/app/legal/approvals",   icon: CheckSquare,   label: "Approvals" },
       { to: "/app/legal/team",        icon: Users,         label: "Team" },
       { to: "/app/legal/briefing",    icon: Brain,         label: "Joiner Briefing" },
       { to: "/app/legal/audit",       icon: ClipboardList, label: "Audit Trail" },

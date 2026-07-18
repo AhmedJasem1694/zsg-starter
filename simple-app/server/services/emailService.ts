@@ -213,3 +213,70 @@ export async function sendEscalationEmail(p: EscalationEmailParams): Promise<voi
 
   console.log(`[Zane] Escalation email sent to ${p.to.email} for clause: ${p.clauseLabel}`);
 }
+
+// ── Approval flow emails ──────────────────────────────────────────────────────
+// The content is built separately from sending so the notification structure
+// exists (and is inspectable) even before SMTP is configured; sending activates
+// automatically once SMTP_HOST / SMTP_USER / SMTP_PASS are set.
+
+export interface ApprovalRequestEmailParams {
+  to:              { name: string; email: string };
+  role:            string;   // CFO | BOARD | ...
+  contractName:    string;
+  counterpartyName: string;
+  contractValue:   number | null;
+  currency:        string;
+  reason:          string;   // why this was routed to this approver
+  approvalId:      string;
+}
+
+export function buildApprovalRequestEmail(p: ApprovalRequestEmailParams): { subject: string; text: string; approvalUrl: string } {
+  const approvalUrl = `${APP_URL}/app/legal/approvals/${p.approvalId}`;
+  const value = p.contractValue != null ? `${p.currency || "GBP"} ${p.contractValue.toLocaleString("en-GB")}` : "Not stated";
+  const subject = `Approval needed: ${p.contractName}`;
+  const text = [
+    `Hi ${p.to.name},`,
+    ``,
+    `A contract is waiting for your ${p.role} approval before the team can proceed.`,
+    ``,
+    `Contract:     ${p.contractName}`,
+    `Counterparty: ${p.counterpartyName || "Not identified"}`,
+    `Value:        ${value}`,
+    `Routed to you because: ${p.reason}`,
+    ``,
+    `Review and decide (sign-in required):`,
+    approvalUrl,
+    ``,
+    `Zane records your decision and reason in the contract's audit history.`,
+  ].join("\n");
+  return { subject, text, approvalUrl };
+}
+
+/** Sends the approval request notification. Returns true only if actually sent. */
+export async function sendApprovalRequestEmail(p: ApprovalRequestEmailParams): Promise<boolean> {
+  const { subject, text } = buildApprovalRequestEmail(p);
+  return sendPlainEmail({ to: p.to.email, subject, text });
+}
+
+/** Notifies the requester that a decision was made. Returns true only if sent. */
+export async function sendApprovalDecisionEmail(p: {
+  to: string;
+  contractName: string;
+  decision: "APPROVED" | "REJECTED";
+  deciderName: string;
+  deciderRole: string;
+  reason: string;
+  documentId: string;
+}): Promise<boolean> {
+  const reviewUrl = `${APP_URL}/app/legal/review/${p.documentId}`;
+  const verb = p.decision === "APPROVED" ? "approved" : "rejected";
+  const subject = `${p.decision === "APPROVED" ? "Approved" : "Rejected"}: ${p.contractName}`;
+  const text = [
+    `${p.deciderName} (${p.deciderRole}) has ${verb} the escalation on ${p.contractName}.`,
+    ``,
+    `Reason: ${p.reason}`,
+    ``,
+    `Full review: ${reviewUrl}`,
+  ].join("\n");
+  return sendPlainEmail({ to: p.to, subject, text });
+}

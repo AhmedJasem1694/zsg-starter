@@ -13,6 +13,7 @@ import {
   type BatchClauseInput,
 } from "./playbookComparison.js";
 import { withCostTracking } from "./costTracker.js";
+import { createApprovalRequest } from "./approvals.js";
 import { ensureLegacyFields } from "./legacyReview.js";
 import { detectContradictions } from "./contradictionDetector.js";
 import { getRegulationSummaryForLLM } from "./regulatoryDetection.js";
@@ -1241,6 +1242,17 @@ ${snippet}`;
       for (const esc of escalations) {
         const rule = playbookRules.find((r) => r.id === esc.ruleId);
         if (!rule?.["approvalRequired"]) continue;
+
+        // Route into the approvals queue. notify:false because the richer
+        // clause-level escalation email below covers the notification.
+        void createApprovalRequest({
+          documentId,
+          resultId: esc.resultId ?? undefined,
+          clauseCategory: esc.clauseCategory,
+          role: (rule["approvalRequired"] as string).toUpperCase(),
+          reason: esc.escalationTrigger ?? "Approval required per playbook rule.",
+          notify: false,
+        });
 
         const contact = contacts.find((c) => c["role"] === rule["approvalRequired"]);
         if (!contact?.["email"] || !contact?.["name"]) continue;

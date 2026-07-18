@@ -417,6 +417,53 @@ export const getContractAudit = (documentId: string) =>
     "GET", `/api/documents/${documentId}/audit`
   );
 
+// Approvals (end-to-end approval flow)
+export interface ApprovalListItem {
+  id: string;
+  documentId: string;
+  documentName: string;
+  counterpartyName: string;
+  contractValue: number | null;
+  currency: string;
+  contractType: string;
+  clauseCategory: string | null;
+  routedToRole: string;
+  reason: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  requestedBy: string;
+  createdAt: string;
+  decidedAt: string | null;
+  decidedByName: string;
+  deciderRole: string;
+  decisionReason: string;
+}
+export interface ApprovalDetail {
+  id: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  routedToRole: string;
+  reason: string;
+  clauseCategory: string | null;
+  requestedBy: string;
+  createdAt: string;
+  decidedAt: string | null;
+  decidedByName: string;
+  deciderRole: string;
+  decisionReason: string;
+  document: { id: string; name: string; counterpartyName: string; contractValue: number | null; currency: string; contractType: string } | null;
+  clause: { ragStatus: string; plainEnglish: string; recommendedAction: string; escalationTrigger: string } | null;
+  playbookPosition: { preferred: string; redLine: string } | null;
+}
+export const getApprovals = (opts?: { role?: string; status?: string }) => {
+  const params = new URLSearchParams();
+  if (opts?.role) params.set("role", opts.role);
+  if (opts?.status) params.set("status", opts.status);
+  const qs = params.toString();
+  return req<{ approvals: ApprovalListItem[] }>("GET", `/api/approvals${qs ? `?${qs}` : ""}`);
+};
+export const getApproval = (id: string) => req<ApprovalDetail>("GET", `/api/approvals/${id}`);
+export const decideApproval = (id: string, decision: "APPROVED" | "REJECTED", reason: string) =>
+  req<{ id: string; status: string; decidedAt: string }>("POST", `/api/approvals/${id}/decide`, { decision, reason });
+
 // Portfolio
 export const getPortfolio = () => req<{
   groups: { label: string; icon: string; red: number; amber: number; green: number }[];

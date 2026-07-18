@@ -12,7 +12,8 @@ import {
   getAuthorisedSenders, normaliseEmail, logRejection,
 } from "./services/inboundEmail.js";
 import { parseEmailIntent, UNCLEAR_REPLY_TEXT } from "./services/emailIntentParser.js";
-import { sendPlainEmail } from "./services/emailService.js";
+import { sendPlainEmail, sendApprovalDecisionEmail } from "./services/emailService.js";
+import { createApprovalRequest } from "./services/approvals.js";
 import { processReviewByEmail, type InboundAttachment } from "./services/emailReview.js";
 import { processDraftByEmail } from "./services/draftGenerator.js";
 import { processQuestionByEmail } from "./services/emailQuestion.js";
@@ -2648,7 +2649,7 @@ ${rawText}`,
       DISMISSED: "feedback_dismissed",
     };
     // Carry the contract id so the per-contract audit view can link this entry
-    const fbResult = await pb.collection("review_results").getOne(req.params.resultId, { fields: "id,document,clauseCategory" }).catch(() => null);
+    const fbResult = await pb.collection("review_results").getOne(req.params.resultId, { fields: "id,document,clauseCategory,rule,escalationTrigger" }).catch(() => null);
     await audit({
       action: actionMap[parsed.data.userAction] ?? "feedback_accepted",
       entityType: "review_result",
@@ -2656,6 +2657,30 @@ ${rawText}`,
       userId: req.user?.userId,
       detail: { documentId: fbResult?.["document"] ?? "", clauseCategory: fbResult?.["clauseCategory"] ?? "", userAction: parsed.data.userAction },
     });
+
+    // Escalating a clause routes it into the approvals queue: the playbook
+    // rule's approvalRequired names the role, defaulting to GC when unset.
+    // Guarded by ownership: the result's document must belong to the caller's
+    // company, otherwise a foreign resultId would inject requests (and leak
+    // decision notifications) across tenants.
+    if (parsed.data.userAction === "ESCALATED" && fbResult) {
+      const requesterCompany = await getCompany(req.user?.email);
+      const fbDoc = await pb.collection("uploaded_documents").getOne(fbResult["document"] as string, { fields: "id,company" }).catch(() => null);
+      if (requesterCompany && fbDoc && fbDoc["company"] === requesterCompany.id) {
+        const fbRule = fbResult["rule"]
+          ? await pb.collection("playbook_rules").getOne(fbResult["rule"] as string, { fields: "id,approvalRequired" }).catch(() => null)
+          : null;
+        const role = ((fbRule?.["approvalRequired"] as string) || "GC").toUpperCase();
+        void createApprovalRequest({
+          documentId: fbResult["document"] as string,
+          resultId: fbResult.id,
+          clauseCategory: (fbResult["clauseCategory"] as string) || undefined,
+          role: role === "NONE" ? "GC" : role,
+          reason: (fbResult["escalationTrigger"] as string) || "Escalated by the reviewing lawyer for approval.",
+          requestedBy: req.user?.email,
+        });
+      }
+    }
 
     // Decision data capture + significance assessment (reasoning capture, Section 1/2):
     // ACCEPTED  → accepted Zane's recommendation as-is
@@ -3977,6 +4002,224 @@ Draft the complete clause.`;
     ].sort((a, b) => String(a.at ?? "").localeCompare(String(b.at ?? "")));
 
     res.json({ documentId: req.params.id, documentName: doc["originalName"], events });
+  }));
+
+  // ── Approvals queue (end-to-end approval flow) ────────────────────────────────
+
+  // GET /api/approvals - the company's approval requests, newest first.
+  // Optional ?role=CFO and ?status=PENDING filters for the per-role queue.
+  app.get("/api/approvals", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
+    if (!company) { res.json({ approvals: [] }); return; }
+
+    const filters = [`company = "${company.id}"`];
+    // role and status are user-controlled query strings interpolated into a
+    // PocketBase filter: restrict to the uppercase token shape real values
+    // take so quote characters can never alter the filter.
+    const { role, status } = req.query as Record<string, string>;
+    if (role && /^[A-Z_]{1,24}$/.test(role)) filters.push(`routedToRole = "${role}"`);
+    if (status && /^[A-Z]{1,12}$/.test(status)) filters.push(`status = "${status}"`);
+    const records = await pb.collection("approval_requests").getFullList({
+      filter: filters.join(" && "),
+      sort: "-created",
+    }).catch(() => [] as PBRecord[]);
+
+    // Enrich with document metadata in one pass
+    const docIds = Array.from(new Set(records.map((r) => r["document"] as string)));
+    const docs = await Promise.all(docIds.map((id) =>
+      pb.collection("uploaded_documents").getOne(id, { fields: "id,originalName,counterpartyName,contractValue,currency,contractType" }).catch(() => null)
+    ));
+    const docById = new Map(docs.filter(Boolean).map((d) => [d!.id, d!]));
+
+    res.json({
+      approvals: records.map((r) => {
+        const d = docById.get(r["document"] as string);
+        return {
+          id: r.id,
+          documentId: r["document"],
+          documentName: d?.["originalName"] ?? "Contract no longer in the library",
+          counterpartyName: d?.["counterpartyName"] ?? "",
+          contractValue: d?.["contractValue"] ?? null,
+          currency: d?.["currency"] ?? "GBP",
+          contractType: d?.["contractType"] ?? "",
+          clauseCategory: r["clauseCategory"] || null,
+          routedToRole: r["routedToRole"],
+          reason: r["reason"] ?? "",
+          status: r["status"],
+          requestedBy: r["requestedBy"] ?? "",
+          createdAt: r.created,
+          decidedAt: r["decidedAt"] ?? null,
+          decidedByName: r["decidedByName"] ?? "",
+          deciderRole: r["deciderRole"] ?? "",
+          decisionReason: r["decisionReason"] ?? "",
+        };
+      }),
+    });
+  }));
+
+  // GET /api/approvals/:id - the focused decision view payload: the request,
+  // contract facts, the flagged clause in plain English, and the relevant
+  // playbook position.
+  app.get("/api/approvals/:id", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
+    if (!company) { sendError(res, 404, "No company configured"); return; }
+    const rec = await pb.collection("approval_requests").getOne(req.params.id).catch(() => null);
+    if (!rec || rec["company"] !== company.id) { sendError(res, 404, "Approval request not found"); return; }
+
+    const doc = await pb.collection("uploaded_documents").getOne(rec["document"] as string).catch(() => null);
+    const result = rec["result"]
+      ? await pb.collection("review_results").getOne(rec["result"] as string).catch(() => null)
+      : null;
+    // clauseCategory can be user-authored text on custom playbook rules:
+    // strip quote characters so the stored value cannot alter the filter and
+    // escape the company scope.
+    const safeCat = String(rec["clauseCategory"] ?? "").replace(/["'\\]/g, "");
+    const rules = safeCat
+      ? await pb.collection("playbook_rules").getFullList({
+          filter: `company = "${company.id}" && clauseCategory = "${safeCat}"`,
+        }).catch(() => [] as PBRecord[])
+      : [];
+    const rule = rules[0] ?? null;
+
+    res.json({
+      id: rec.id,
+      status: rec["status"],
+      routedToRole: rec["routedToRole"],
+      reason: rec["reason"] ?? "",
+      clauseCategory: rec["clauseCategory"] || null,
+      requestedBy: rec["requestedBy"] ?? "",
+      createdAt: rec.created,
+      decidedAt: rec["decidedAt"] ?? null,
+      decidedByName: rec["decidedByName"] ?? "",
+      deciderRole: rec["deciderRole"] ?? "",
+      decisionReason: rec["decisionReason"] ?? "",
+      document: doc ? {
+        id: doc.id,
+        name: doc["originalName"],
+        counterpartyName: doc["counterpartyName"] ?? "",
+        contractValue: doc["contractValue"] ?? null,
+        currency: doc["currency"] ?? "GBP",
+        contractType: doc["contractType"] ?? "",
+      } : null,
+      clause: result ? {
+        ragStatus: result["ragStatus"],
+        plainEnglish: (result["businessSummary"] as string) || (result["whyItMatters"] as string) || (result["clauseSummary"] as string) || "",
+        recommendedAction: result["recommendedAction"] ?? "",
+        escalationTrigger: result["escalationTrigger"] ?? "",
+      } : null,
+      playbookPosition: rule ? {
+        preferred: rule["preferredPosition"] ?? "",
+        redLine: rule["hardRedLine"] ?? "",
+      } : null,
+    });
+  }));
+
+  // POST /api/approvals/:id/decide - resolve a pending request. Both decisions
+  // require a typed reason. Writes the immutable audit entry (approver name,
+  // role, decision, reason, timestamp), updates the escalation state, and
+  // notifies the requester (email sends once SMTP is configured).
+  app.post("/api/approvals/:id/decide", requireAuth, ah(async (req: Request, res: Response) => {
+    const { decision, reason } = req.body as { decision?: string; reason?: string };
+    if (decision !== "APPROVED" && decision !== "REJECTED") { sendError(res, 400, "decision must be APPROVED or REJECTED"); return; }
+    if (!reason || !reason.trim()) { sendError(res, 400, "A reason is required for the audit record"); return; }
+
+    const company = await getCompany(req.user?.email);
+    if (!company) { sendError(res, 404, "No company configured"); return; }
+    const rec = await pb.collection("approval_requests").getOne(req.params.id).catch(() => null);
+    if (!rec || rec["company"] !== company.id) { sendError(res, 404, "Approval request not found"); return; }
+    if (rec["status"] !== "PENDING") { sendError(res, 409, "This request has already been decided"); return; }
+
+    // Pilot-stage authorization model: the queue is shared within the company
+    // and any signed-in member can record a decision (lean teams act on each
+    // other's behalf). The audit entry therefore records who actually decided
+    // and their own configured role alongside the role the request was routed
+    // to, so the record never asserts a role the decider does not hold.
+    const approver = req.user?.userId
+      ? await pb.collection("users").getOne(req.user.userId).catch(() => null)
+      : null;
+    const approverName = ((approver?.["name"] as string) || req.user?.email || "Unknown").trim();
+    const approverActualRole = ((approver?.["role"] as string) || "").trim();
+    const decidedAt = new Date().toISOString().replace("T", " ");
+
+    // Re-check just before writing: the PENDING guard above is not atomic, so
+    // narrow the double-decide window to the final read.
+    const fresh = await pb.collection("approval_requests").getOne(rec.id).catch(() => null);
+    if (!fresh || fresh["status"] !== "PENDING") { sendError(res, 409, "This request has already been decided"); return; }
+
+    const updated = await pb.collection("approval_requests").update(rec.id, {
+      status: decision,
+      decidedByName: approverName,
+      decidedByEmail: req.user?.email ?? "",
+      deciderRole: rec["routedToRole"],
+      decisionReason: reason.trim(),
+      decidedAt,
+    });
+
+    await audit({
+      action: decision === "APPROVED" ? "approval_granted" : "approval_rejected",
+      entityType: "approval_request",
+      entityId: rec.id,
+      companyId: company.id,
+      userId: req.user?.userId,
+      detail: {
+        documentId: rec["document"],
+        clauseCategory: rec["clauseCategory"] ?? "",
+        role: rec["routedToRole"],
+        decision,
+        reason: reason.trim(),
+        approverName,
+        approverEmail: req.user?.email ?? "",
+        approverActualRole,
+      },
+    });
+
+    // An approval resolves the open escalation on the linked clause: record
+    // the escalation as acted on so pending counts clear. A rejection leaves
+    // the clause blocked on purpose - the contract must be renegotiated.
+    if (decision === "APPROVED" && rec["result"]) {
+      const existing = await pb.collection("user_feedback").getFullList({
+        filter: `result = "${rec["result"]}"`,
+      }).catch(() => [] as PBRecord[]);
+      const approvalNote = `Approved by ${approverName} (${rec["routedToRole"]}): ${reason.trim()}`;
+      if (existing.length > 0) {
+        // Preserve any prior reviewer notes; append the approval record. If
+        // the lawyer already resolved the clause another way (accepted,
+        // edited, dismissed) after this request was raised, keep their
+        // recorded action and only append the note: a stale approval must not
+        // rewrite the reviewer's decision.
+        const priorNotes = ((existing[0]["notes"] as string) || "").trim();
+        const priorAction = ((existing[0]["userAction"] as string) || "").trim();
+        const keepAction = priorAction && priorAction !== "ESCALATED";
+        await pb.collection("user_feedback").update(existing[0].id, {
+          ...(keepAction ? {} : { userAction: "ESCALATED" }),
+          notes: priorNotes ? `${priorNotes}\n${approvalNote}` : approvalNote,
+        }).catch(() => null);
+      } else {
+        await pb.collection("user_feedback").create({
+          result: rec["result"],
+          feedbackType: "STANDARD",
+          userAction: "ESCALATED",
+          notes: approvalNote,
+        }).catch(() => null);
+      }
+    }
+
+    // Notify the requester (no-op until SMTP is configured)
+    const requestedBy = (rec["requestedBy"] as string) ?? "";
+    if (requestedBy) {
+      const doc = await pb.collection("uploaded_documents").getOne(rec["document"] as string, { fields: "id,originalName" }).catch(() => null);
+      void sendApprovalDecisionEmail({
+        to: requestedBy,
+        contractName: (doc?.["originalName"] as string) ?? "Contract",
+        decision,
+        deciderName: approverName,
+        deciderRole: rec["routedToRole"] as string,
+        reason: reason.trim(),
+        documentId: rec["document"] as string,
+      });
+    }
+
+    res.json({ id: updated.id, status: updated["status"], decidedAt: updated["decidedAt"] });
   }));
 
   // ── Contract library ──────────────────────────────────────────────────────────

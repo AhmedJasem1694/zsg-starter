@@ -26,9 +26,11 @@ export type AuditAction =
   | "pii_anonymisation_started"
   | "pii_anonymisation_completed"
   | "pii_entities_detected"
-  // Escalation
+  // Escalation and approval
   | "escalation_triggered"
   | "escalation_email_sent"
+  | "approval_granted"
+  | "approval_rejected"
   // Feedback
   | "feedback_accepted"
   | "feedback_edited"

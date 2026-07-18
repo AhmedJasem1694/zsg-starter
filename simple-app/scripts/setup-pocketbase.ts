@@ -1053,6 +1053,28 @@ async function main() {
   ]);
 
   // ── decision_events (the moat layer: structured human-judgment capture) ───
+  // ── approval_requests (end-to-end approval flow) ──────────────────────────
+  // One record per routed escalation awaiting an approver's decision. company
+  // and document are plain text ids (matching decision_events) so records
+  // survive document deletion for the audit record.
+  await ensureCollection("approval_requests", [
+    textField("company", { required: true }),
+    textField("document", { required: true }),
+    textField("result"),
+    textField("clauseCategory"),
+    textField("routedToRole", { required: true }),   // CFO | BOARD | GC | ...
+    textField("reason"),                             // why this was routed, plain English
+    textField("requestedBy"),                        // requester email
+    textField("status", { required: true }),         // PENDING | APPROVED | REJECTED
+    textField("decidedByName"),
+    textField("decidedByEmail"),
+    textField("deciderRole"),
+    textField("decisionReason"),
+    dateField("decidedAt"),
+    { name: "created", type: "autodate", onCreate: true, onUpdate: false },
+    { name: "updated", type: "autodate", onCreate: true, onUpdate: true },
+  ]);
+
   await ensureCollection("decision_events", [
     textField("company", { required: true }),
     textField("user"),
