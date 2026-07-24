@@ -804,6 +804,26 @@ async function main() {
     textField("frameworkName"),
     textField("description"),
     textField("appliesTo"),
+    // Verifiable source data. A framework is only surfaced when all of these
+    // are present (official instrument name, reference number, citation link).
+    textField("code"),
+    textField("officialName"),
+    textField("referenceNumber"),
+    textField("issuingBody"),
+    textField("citationUrl"),
+  ]);
+
+  // ── regulatory_framework_verifications ────────────────────────────────────
+  // Per-framework verification status (global, keyed by framework code). A
+  // framework with no row here is unverified by default. A named reviewer
+  // sets it to verified with the date they checked the source.
+  await ensureCollection("regulatory_framework_verifications", [
+    textField("code", { required: true }),
+    textField("status", { required: true }),   // "verified" (absence = unverified)
+    textField("verifiedBy"),
+    dateField("verifiedAt"),
+    { name: "created", type: "autodate", onCreate: true, onUpdate: false },
+    { name: "updated", type: "autodate", onCreate: true, onUpdate: true },
   ]);
 
   // ── playbook_rules ────────────────────────────────────────────────────────

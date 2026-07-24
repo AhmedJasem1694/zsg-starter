@@ -847,6 +847,16 @@ export interface CompanyRegulation {
   frameworkName: string;
   description: string;
   appliesTo: string;
+  // Verifiable source data (present for every surfaced framework)
+  code?: string;
+  officialName?: string;
+  referenceNumber?: string;
+  issuingBody?: string;
+  citationUrl?: string;
+  // Verification status
+  verificationStatus?: "verified" | "unverified";
+  verifiedBy?: string;
+  verifiedAt?: string | null;
 }
 
 export interface AuthUser {

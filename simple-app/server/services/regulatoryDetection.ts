@@ -5,6 +5,7 @@ import {
   REGULATORY_FRAMEWORKS,
   type Jurisdiction,
 } from "../data/regulatoryFrameworks.js";
+import { getRegulatorySource, hasRegulatorySource } from "../data/regulatorySources.js";
 
 // Map jurisdiction strings from onboarding to our codes
 function mapJurisdiction(jurisdiction: string): Jurisdiction[] {
@@ -87,7 +88,10 @@ Example: ["GB_FCA_CONSUMER_DUTY", "EU_AI_ACT"]`,
   const aiFrameworks = REGULATORY_FRAMEWORKS.filter(
     (f) => aiCodes.includes(f.code) && !keywordMatches.find((k) => k.code === f.code)
   );
-  const allFrameworks = [...keywordMatches, ...aiFrameworks];
+  // Only persist frameworks that have verifiable source data. Without an
+  // official instrument name, reference number, issuing body, and citation
+  // link, a framework is never surfaced as review context or displayed.
+  const allFrameworks = [...keywordMatches, ...aiFrameworks].filter((f) => hasRegulatorySource(f.code));
 
   // Clear existing regulations for this company.
   // Use individual .catch(() => {}) so concurrent detection runs (e.g. the async
@@ -102,16 +106,22 @@ Example: ["GB_FCA_CONSUMER_DUTY", "EU_AI_ACT"]`,
   // Save new regulations
   if (allFrameworks.length > 0) {
     await Promise.all(
-      allFrameworks.map((f) =>
-        pb.collection("company_regulations").create({
+      allFrameworks.map((f) => {
+        const src = getRegulatorySource(f.code)!;
+        return pb.collection("company_regulations").create({
           company: companyId,
           jurisdiction: f.jurisdiction,
           regulator: f.regulator,
           frameworkName: f.frameworkName,
           description: f.description,
           appliesTo: f.sectorTags.join(", "),
-        })
-      )
+          code: f.code,
+          officialName: src.officialName,
+          referenceNumber: src.referenceNumber,
+          issuingBody: src.issuingBody,
+          citationUrl: src.citationUrl,
+        });
+      })
     );
   }
 }
@@ -122,13 +132,16 @@ export async function getRegulationSummaryForLLM(companyId: string): Promise<str
     sort: "+jurisdiction",
   });
 
-  if (regs.length === 0) return "";
+  // Only frameworks with verifiable source data are used as review context.
+  const sourced = regs.filter((r) => hasRegulatorySource(r["code"] as string));
+  if (sourced.length === 0) return "";
 
-  const lines = regs.map((r) => {
+  const lines = sourced.map((r) => {
     const framework = REGULATORY_FRAMEWORKS.find((f) => f.frameworkName === r["frameworkName"]);
     const obligations = framework?.keyObligations.slice(0, 3).join("; ") ?? "";
-    return `- ${r["frameworkName"]} (${r["regulator"]}, ${r["jurisdiction"]}): ${r["description"]} Key obligations: ${obligations}`;
+    const ref = r["referenceNumber"] ? `, ${r["referenceNumber"]}` : "";
+    return `- ${r["frameworkName"]} (${r["issuingBody"] || r["regulator"]}, ${r["jurisdiction"]}${ref}): ${r["description"]} Key obligations: ${obligations} [Source: ${r["citationUrl"]}]`;
   });
 
-  return `\n\nApplicable regulatory frameworks for this company:\n${lines.join("\n")}`;
+  return `\n\nApplicable regulatory frameworks for this company (curated, source-cited context only):\n${lines.join("\n")}`;
 }

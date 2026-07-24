@@ -1220,151 +1220,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
       filter: `company = "${company.id}"`,
       sort: "+jurisdiction",
     });
-    res.json(regs.map(mapRegulation));
+
+    // Only surface frameworks that carry complete verifiable source data.
+    const sourced = regs.filter((r) =>
+      r["code"] && r["officialName"] && r["referenceNumber"] && r["issuingBody"] && r["citationUrl"]
+    );
+
+    // Join per-framework verification status (absence of a row = unverified).
+    const codes = Array.from(new Set(sourced.map((r) => r["code"] as string)));
+    const verifications = codes.length > 0
+      ? await pb.collection("regulatory_framework_verifications").getFullList({
+          filter: codes.map((c) => `code = "${c.replace(/"/g, "")}"`).join(" || "),
+          sort: "+created",
+        }).catch(() => [] as PBRecord[])
+      : [];
+    const verById = new Map(verifications.map((v) => [v["code"] as string, v]));
+
+    res.json(sourced.map((r) => {
+      const v = verById.get(r["code"] as string);
+      return {
+        ...mapRegulation(r),
+        verificationStatus: (v?.["status"] as string) === "verified" ? "verified" : "unverified",
+        verifiedBy: (v?.["verifiedBy"] as string) ?? "",
+        verifiedAt: (v?.["verifiedAt"] as string) ?? null,
+      };
+    }));
   }));
 
-  // ── Regulatory synthesis ──────────────────────────────────────────────────────
-  // Synthesises an in-depth interpretation of a regulation for this company's
-  // context. Uses LLM; result cached in regulatory_synthesis_pages collection.
+  // POST /api/regulatory/frameworks/:code/verify - a named reviewer records that
+  // they have checked a framework's source. Admin-gated. Body: { status, verifiedBy }.
+  app.post("/api/regulatory/frameworks/:code/verify", requireAuth, ah(async (req: Request, res: Response) => {
+    if (!(await isAdminRequest(req))) { sendError(res, 403, "Only an administrator can verify frameworks"); return; }
+    const code = String(req.params.code).replace(/[^A-Za-z0-9_]/g, "");
+    if (!code) { sendError(res, 400, "Invalid framework code"); return; }
+    const { status, verifiedBy } = req.body as { status?: string; verifiedBy?: string };
+    const nextStatus = status === "verified" ? "verified" : "unverified";
+    if (nextStatus === "verified" && !verifiedBy?.trim()) { sendError(res, 400, "A reviewer name is required to verify"); return; }
 
-  app.post("/api/regulatory/synthesise/:regulationId", requireAuth, ah(async (req: Request, res: Response) => {
-    const { regulationId } = req.params as { regulationId: string };
-    const company = await getCompany(req.user?.email);
-    if (!company) { sendError(res, 404, "No company configured"); return; }
-
-    // Load the regulation
-    let reg: Record<string, unknown>;
-    try {
-      reg = await pb.collection("company_regulations").getOne(regulationId);
-    } catch {
-      sendError(res, 404, "Regulation not found"); return;
+    // Sorted so the same (oldest) row is always the one updated; any duplicates
+    // from a prior race are collapsed onto it and the extras removed.
+    const existing = await pb.collection("regulatory_framework_verifications").getFullList({ filter: `code = "${code}"`, sort: "+created" }).catch(() => [] as PBRecord[]);
+    for (const dupe of existing.slice(1)) {
+      await pb.collection("regulatory_framework_verifications").delete(dupe.id).catch(() => {});
     }
+    const payload = {
+      code,
+      status: nextStatus,
+      verifiedBy: nextStatus === "verified" ? (verifiedBy as string).trim() : "",
+      verifiedAt: nextStatus === "verified" ? new Date().toISOString().replace("T", " ") : "",
+    };
+    if (existing.length > 0) await pb.collection("regulatory_framework_verifications").update(existing[0].id, payload);
+    else await pb.collection("regulatory_framework_verifications").create(payload);
 
-    // Check for existing fresh synthesis (< 7 days old)
-    const existing = await pb.collection("regulatory_synthesis_pages").getFullList({
-      filter: `companyId = "${company.id}" && topic = "${regulationId}"`,
-      sort: "-id",
-    }).catch(() => []);
-    if (existing.length > 0) {
-      const age = Date.now() - new Date(existing[0]["created"] as string).getTime();
-      if (age < 7 * 24 * 60 * 60 * 1000) {
-        res.json({ synthesis: existing[0]["content"] as string, cached: true, createdAt: existing[0]["created"] });
-        return;
-      }
-    }
-
-    // Generate synthesis via LLM
-    const prompt = `You are a specialist legal intelligence analyst. Generate a concise but substantive synthesis (400 to 600 words) of how the regulation below applies specifically to this company's context.
-
-Never use em dashes or en dashes in any output. Use a comma or a full stop instead.
-
-Regulation: ${reg["frameworkName"] as string} (${reg["jurisdiction"] as string})
-Regulator: ${reg["regulator"] as string}
-Description: ${reg["description"] as string}
-Applies to: ${reg["appliesTo"] as string || "general"}
-
-Company context:
-- Name: ${company.name as string}
-- Sector: ${company.sector as string}
-- Industry: ${(company as Record<string, unknown>)["industry"] as string || "not specified"}
-- Jurisdiction: ${(company as Record<string, unknown>)["jurisdiction"] as string || "not specified"}
-- Workflow: ${(company as Record<string, unknown>)["workflowType"] as string || "COMMERCIAL_CONTRACT"}
-
-Structure your synthesis as:
-1. **Key obligations** (2-3 bullet points of the most material requirements)
-2. **Contract clause implications** (how this regulation should shape their standard contract positions)
-3. **Practical risk areas** (specific risk watch-points for this company type)
-4. **Recommended next steps** (1-2 actionable steps)
-
-Be precise, practical, and legally accurate. This is advisory context, not legal advice.`;
-
-    let synthesis = "";
-    try {
-      const result = await chatComplete([{ role: "user", content: prompt }], 800);
-      synthesis = result.trim();
-    } catch (err) {
-      sendError(res, 500, "Failed to generate synthesis"); return;
-    }
-
-    // Cache the synthesis
-    await pb.collection("regulatory_synthesis_pages").create({
-      companyId: company.id,
-      topic: regulationId,
-      jurisdiction: reg["jurisdiction"] as string,
-      sector: company.sector as string,
-      content: synthesis,
-      version: 1,
-    }).catch(() => null);
-
-    await audit({ action: "regulatory_profile_updated", entityType: "regulation", entityId: regulationId, companyId: company.id, detail: { action: "synthesise", frameworkName: reg["frameworkName"] } });
-    res.json({ synthesis, cached: false, createdAt: new Date().toISOString() });
-  }));
-
-  // ── Regulatory updates digest ─────────────────────────────────────────────────
-  // Returns a digest of recent regulatory developments for the company's
-  // active frameworks. Uses LLM simulation (no live API key required).
-
-  app.get("/api/regulatory/updates", requireAuth, ah(async (req: Request, res: Response) => {
-    const company = await getCompany(req.user?.email);
-    if (!company) { res.json({ updates: [] }); return; }
-
-    const regs = await pb.collection("company_regulations").getFullList({
-      filter: `company = "${company.id}"`,
+    await audit({
+      action: "regulatory_profile_updated",
+      entityType: "regulatory_framework",
+      entityId: code,
+      companyId: (await getCompany(req.user?.email))?.id,
+      userId: req.user?.userId,
+      detail: { action: nextStatus === "verified" ? "verified" : "unverified", verifiedBy: payload.verifiedBy },
     });
-    if (regs.length === 0) { res.json({ updates: [] }); return; }
+    res.json({ code, verificationStatus: nextStatus, verifiedBy: payload.verifiedBy, verifiedAt: payload.verifiedAt || null });
+  }));
 
-    // Check for cached digest (< 24h old)
-    const existing = await pb.collection("regulatory_synthesis_pages").getFullList({
-      filter: `companyId = "${company.id}" && topic = "DIGEST"`,
-      sort: "-id",
-    }).catch(() => []);
-    if (existing.length > 0) {
-      const age = Date.now() - new Date(existing[0]["created"] as string).getTime();
-      if (age < 24 * 60 * 60 * 1000) {
-        const updates = JSON.parse(existing[0]["content"] as string);
-        res.json({ updates, cached: true });
-        return;
-      }
-    }
+  // ── Regulatory synthesis (disabled) ───────────────────────────────────────────
+  // This endpoint used an LLM to free-generate a regulatory interpretation,
+  // including obligations, for a framework. That is unsafe for regulated buyers,
+  // so it is disabled: Zane surfaces only curated, source-cited framework data
+  // and never free-generates regulatory obligations.
+  app.post("/api/regulatory/synthesise/:regulationId", requireAuth, ah(async (_req: Request, res: Response) => {
+    sendError(res, 410, "Regulatory synthesis is disabled. Zane surfaces only curated, source-cited framework data and does not generate regulatory obligations.");
+  }));
 
-    const frameworkList = regs.slice(0, 6).map((r) => `${r["frameworkName"] as string} (${r["jurisdiction"] as string})`).join(", ");
-    const prompt = `You are a legal regulatory intelligence system. Generate a JSON array of 4-6 recent regulatory developments relevant to these frameworks: ${frameworkList}.
-
-Company context: ${company.sector as string} sector, ${(company as Record<string, unknown>)["jurisdiction"] as string || "GB"} jurisdiction.
-
-Return ONLY a valid JSON array. Each item must have:
-- "framework": framework name (string)
-- "jurisdiction": jurisdiction code (string, e.g. "GB")
-- "title": brief title of the update (string, max 80 chars)
-- "summary": 1-2 sentence plain-English summary (string)
-- "impact": "HIGH" | "MEDIUM" | "LOW"
-- "date": approximate date in YYYY-MM format (within the last 12 months)
-- "actionRequired": boolean
-
-Ensure updates are realistic, plausible, and specific (not generic).`;
-
-    let updates: unknown[] = [];
-    try {
-      const result = await chatComplete([{ role: "user", content: prompt }], 700);
-      const match = result.match(/\[[\s\S]*\]/);
-      if (match) updates = JSON.parse(match[0]) as unknown[];
-    } catch {
-      // Return empty - non-fatal
-    }
-
-    // Cache for 24h
-    if (updates.length > 0) {
-      await pb.collection("regulatory_synthesis_pages").create({
-        companyId: company.id,
-        topic: "DIGEST",
-        jurisdiction: "ALL",
-        sector: company.sector as string,
-        content: JSON.stringify(updates),
-        version: 1,
-      }).catch(() => null);
-    }
-
-    res.json({ updates, cached: false });
+  // ── Regulatory updates digest (disabled) ──────────────────────────────────────
+  // Disabled: this endpoint used an LLM to fabricate "recent regulatory
+  // developments" (the prompt explicitly asked for plausible-sounding updates),
+  // which is unsafe to present to regulated buyers as regulatory fact. Zane does
+  // not generate regulatory news or obligations. Returns an empty set.
+  app.get("/api/regulatory/updates", requireAuth, ah(async (_req: Request, res: Response) => {
+    res.json({ updates: [], disabled: true });
   }));
 
   // ── Playbook Rules ───────────────────────────────────────────────────────────

@@ -7,11 +7,12 @@ import {
   TrendingDown, Layers, CalendarClock, FileCheck, Users, BarChart2, ChevronRight,
   MessageSquare, Shield, Edit2, Flag, Upload, Brain, Dot, History, Columns2,
 } from "lucide-react";
-import { getReview, saveFeedback, generateReply, generateAmendedClause, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany, getContractCounterpartyProfile, getContractCounterpartyJudgment, getCrossReferences, relinkCrossReferences } from "../lib/api";
+import { getReview, saveFeedback, generateReply, generateAmendedClause, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany, getContractCounterpartyProfile, getContractCounterpartyJudgment, getCrossReferences, relinkCrossReferences, getRegulations } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import ReasoningPrompt from "../components/ReasoningPrompt";
 import ContractAuditModal from "../components/ContractAuditModal";
 import DocumentPane from "../components/DocumentPane";
+import RegulatoryDisclaimer from "../components/RegulatoryDisclaimer";
 import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, ConfidenceLabel, RegulatoryCitation, FeedbackResponse, SignificanceResult } from "../lib/types";
 import { CLAUSE_LABELS } from "../lib/types";
 import { resolveRegulationProminence, isCitationDirectlyRelevant, type RegulationProminence } from "../lib/regulationProminence";
@@ -171,6 +172,16 @@ export default function ReviewDetail() {
   const { data: companyData } = useQuery({
     queryKey: ["company"],
     queryFn:  getCompany,
+    staleTime: 300_000,
+  });
+
+  // Verified, source-cited frameworks. Per-clause regulatory citations are
+  // constrained to these so a clause can never surface a regulation that is
+  // not a verified framework with stored source data.
+  const { data: verifiedRegulations } = useQuery({
+    queryKey: ["regulations"],
+    queryFn:  getRegulations,
+    retry: false,
     staleTime: 300_000,
   });
 
@@ -469,7 +480,21 @@ export default function ReviewDetail() {
     ? /\b(signed|executed|final|countersigned|esigned|e-signed)\b/i.test(doc.originalName)
     : false;
 
-  const results = (doc.reviewResults ?? []).map(sanitiseResult);
+  // A regulation string on an LLM citation is only shown if it resolves to a
+  // verified, source-cited framework (bidirectional name match). This keeps the
+  // regulatory references constrained to the curated, cited framework set.
+  const verifiedHaystacks = (verifiedRegulations ?? []).map((f) =>
+    `${f.frameworkName} ${f.officialName ?? ""} ${f.referenceNumber ?? ""}`.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()
+  );
+  const citationIsVerified = (regulation: string): boolean => {
+    const needle = (regulation ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    if (!needle || verifiedHaystacks.length === 0) return false;
+    return verifiedHaystacks.some((hay) => hay.includes(needle) || needle.includes(hay));
+  };
+  const results = (doc.reviewResults ?? []).map(sanitiseResult).map((r) => ({
+    ...r,
+    regulatoryCitations: (r.regulatoryCitations ?? []).filter((c) => citationIsVerified(c.regulation)),
+  }));
   const counts = {
     RED:           results.filter((r) => r.ragStatus === "RED").length,
     AMBER:         results.filter((r) => r.ragStatus === "AMBER").length,
@@ -914,6 +939,13 @@ export default function ReviewDetail() {
                 </button>
               )}
             </div>
+
+            {/* Regulatory disclaimer for the per-clause references shown on cards
+                (the HIGH summary panel and LOW accordion carry their own; this
+                covers MEDIUM prominence, where neither renders). */}
+            {regProminence !== "LOW" && results.some((r) => (r.regulatoryCitations?.length ?? 0) > 0) && (
+              <RegulatoryDisclaimer />
+            )}
 
             {/* Clause cards */}
             <div className="space-y-2 card-enter-stagger">
@@ -2488,6 +2520,7 @@ function RegulatorySummaryPanel({ results }: { results: ReviewResult[] }) {
         <Shield size={11} />
         Regulatory summary
       </div>
+      <RegulatoryDisclaimer />
       <div className="space-y-1.5">
         {Array.from(counts.entries()).sort((a, b) => b[1] - a[1]).map(([regulation, n]) => (
           <div key={regulation} className="flex items-center justify-between gap-3 text-xs">
@@ -2521,6 +2554,7 @@ function RegulatoryReferencesAccordion({ results }: { results: ReviewResult[] })
       </button>
       {open && (
         <div className="border-t border-card-border px-4 py-3 space-y-3">
+          <RegulatoryDisclaimer />
           {items.map(({ citation, clauseCategory }, i) => (
             <div key={i} className="flex items-start gap-2.5 text-xs">
               <BookOpen size={11} className="text-muted-foreground shrink-0 mt-0.5" />

@@ -15,10 +15,14 @@ import {
   Mail,
   Copy,
   Check,
+  Shield,
+  BadgeCheck,
+  ExternalLink,
 } from "lucide-react";
 import AppLayout from "../components/layout/AppLayout";
 import IntegrationStatusBadge from "../components/IntegrationStatusBadge";
-import { req, clearAllContracts, getCompany, updateCompanySettings, getReviewCosts } from "../lib/api";
+import RegulatoryDisclaimer from "../components/RegulatoryDisclaimer";
+import { req, clearAllContracts, getCompany, updateCompanySettings, getReviewCosts, getRegulations } from "../lib/api";
 import {
   deriveRegulationProminence,
   PROMINENCE_TO_SETTING,
@@ -714,8 +718,79 @@ function RegulatoryAnalysisSettings() {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["company"] }),
   });
 
+  const { data: regulations } = useQuery({ queryKey: ["regulations"], queryFn: getRegulations, retry: false });
+  const frameworks = regulations ?? [];
+
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
+      <RegulatoryDisclaimer />
+
+      {/* Applicable frameworks with verifiable source data + verification status */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <Shield size={12} />
+          Applicable regulatory frameworks {frameworks.length > 0 && `(${frameworks.length})`}
+        </div>
+        <p className="text-xs text-muted-foreground -mt-1">
+          Only frameworks with a verifiable official source are surfaced. Each shows its official
+          instrument, reference number, issuing body, and citation, plus whether a reviewer has
+          verified the source.
+        </p>
+        {frameworks.length === 0 ? (
+          <div className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-6 text-center text-sm text-muted-foreground">
+            No source-cited frameworks are configured for your profile yet.
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {frameworks.map((f) => {
+              const verified = f.verificationStatus === "verified";
+              return (
+                <div key={f.id} className="rounded-xl border border-[#E2E8F0] bg-white shadow-sm p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-[#0B1020]">{f.officialName || f.frameworkName}</div>
+                      <div className="text-xs text-[#64748B] mt-0.5">
+                        {f.referenceNumber}
+                        {f.referenceNumber && (f.issuingBody || f.regulator) ? " · " : ""}
+                        {f.issuingBody || f.regulator}
+                        {" · "}{f.jurisdiction}
+                      </div>
+                    </div>
+                    <span
+                      className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded ${
+                        verified ? "bg-[#E7F6EE] text-[#1B7A4B]" : "bg-[#F1F5F9] text-[#64748B]"
+                      }`}
+                      title={verified && f.verifiedAt ? `Verified ${new Date(f.verifiedAt).toLocaleDateString("en-GB")}` : undefined}
+                    >
+                      {verified ? <BadgeCheck size={11} /> : <AlertCircle size={11} />}
+                      {verified ? "Verified" : "Unverified"}
+                    </span>
+                  </div>
+                  {verified && f.verifiedBy && (
+                    <div className="text-[11px] text-[#1B7A4B] mt-1.5">
+                      Source verified by {f.verifiedBy}
+                      {f.verifiedAt ? ` on ${new Date(f.verifiedAt).toLocaleDateString("en-GB")}` : ""}
+                    </div>
+                  )}
+                  {f.citationUrl && (
+                    <a
+                      href={f.citationUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-[#2563EB] hover:underline mt-2"
+                    >
+                      <ExternalLink size={11} /> Official source
+                    </a>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="h-px bg-[#E2E8F0]" />
+
       <p className="text-sm text-muted-foreground">
         How prominently regulatory citations appear in contract reviews. The default
         is derived from your sector
