@@ -5,12 +5,13 @@ import {
   ArrowLeft, AlertTriangle, Clock, CheckCircle, Download, ChevronDown, ChevronUp,
   Mail, Copy, Loader2, GraduationCap, XCircle, BookOpen, Scale, Zap, Info,
   TrendingDown, Layers, CalendarClock, FileCheck, Users, BarChart2, ChevronRight,
-  MessageSquare, Shield, Edit2, Flag, Upload, Brain, Dot, History,
+  MessageSquare, Shield, Edit2, Flag, Upload, Brain, Dot, History, Columns2,
 } from "lucide-react";
 import { getReview, saveFeedback, generateReply, generateAmendedClause, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany, getContractCounterpartyProfile, getContractCounterpartyJudgment, getCrossReferences, relinkCrossReferences } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import ReasoningPrompt from "../components/ReasoningPrompt";
 import ContractAuditModal from "../components/ContractAuditModal";
+import DocumentPane from "../components/DocumentPane";
 import type { ReviewResult, RagStatus, FeedbackAction, UploadedDocument, ConfidenceLabel, RegulatoryCitation, FeedbackResponse, SignificanceResult } from "../lib/types";
 import { CLAUSE_LABELS } from "../lib/types";
 import { resolveRegulationProminence, isCitationDirectlyRelevant, type RegulationProminence } from "../lib/regulationProminence";
@@ -137,6 +138,7 @@ export default function ReviewDetail() {
   const [filter, setFilter] = useState<RagStatus | "ALL" | "GREY_CRITICAL" | "GREY_OPTIONAL">("ALL");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAuditHistory, setShowAuditHistory] = useState(false);
+  const [splitView, setSplitView] = useState(true);
 
   // Demo mode - mock-1 served from local data, no API call needed
   const isMock = id === "mock-1";
@@ -499,6 +501,14 @@ export default function ReviewDetail() {
     ? Math.ceil((new Date(doc.renewalDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null;
 
+  // Split review view: document text beside the findings. Suppressed for the
+  // mock demo document (no real backend text). Selecting (expanding) a finding
+  // scrolls the document pane to the clause it refers to.
+  const splitActive = splitView && !isMock;
+  const activeClauseCategory = expandedId
+    ? results.find((r) => r.id === expandedId)?.clauseCategory ?? null
+    : null;
+
   return (
     <AppLayout>
       <div className="px-6 py-6 max-w-6xl mx-auto space-y-5">
@@ -765,7 +775,10 @@ export default function ReviewDetail() {
         )}
 
         {/* ── Two-column layout ────────────────────────────────────────── */}
-        <div className="grid lg:grid-cols-[1fr_300px] gap-5 items-start">
+        {/* In split view the intelligence sidebar drops below so the document
+            pane and findings get the full width; otherwise the classic
+            content + sticky-sidebar grid. */}
+        <div className={splitActive ? "space-y-5" : "grid lg:grid-cols-[1fr_300px] gap-5 items-start"}>
 
           {/* Left - main content */}
           <div className="space-y-4 min-w-0">
@@ -812,6 +825,25 @@ export default function ReviewDetail() {
             {doc.auditFindings && doc.auditFindings.totalFindings > 0 && (
               <DocumentAuditPanel audit={doc.auditFindings} />
             )}
+
+            {/* ── Document beside findings (split view) ─────────────────── */}
+            <div className={splitActive ? "grid lg:grid-cols-2 gap-5 items-start" : ""}>
+              {splitActive && (
+                <DocumentPane documentId={doc.id} activeCategory={activeClauseCategory} />
+              )}
+              <div className="min-w-0 space-y-4">
+
+            {/* Split view toggle */}
+            <div className="flex items-center justify-end">
+              <button
+                onClick={() => setSplitView((v) => !v)}
+                disabled={isMock}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg px-2.5 py-1.5 transition-colors disabled:opacity-40"
+                title={isMock ? "Demo document" : "Show the contract text beside the findings"}
+              >
+                <Columns2 size={13} /> {splitActive ? "Hide document" : "Split view"}
+              </button>
+            </div>
 
             {/* Filter pills */}
             <div className="flex flex-wrap gap-2">
@@ -920,10 +952,15 @@ export default function ReviewDetail() {
 
             {/* LOW prominence: all regulatory content lives here, collapsed */}
             {regProminence === "LOW" && <RegulatoryReferencesAccordion results={results} />}
+              </div>
+            </div>
           </div>
 
-          {/* Right - sticky sidebar */}
-          <div className="space-y-4 lg:sticky lg:top-4 slide-in-left">
+          {/* Right - intelligence. Sticky sidebar in classic view; a full-width
+              row below the split when the document pane is shown. */}
+          <div className={splitActive
+            ? "grid md:grid-cols-3 gap-4 items-start"
+            : "space-y-4 lg:sticky lg:top-4 slide-in-left"}>
             <SignOffTracker doc={doc} results={results} />
             <IntelligenceSignals doc={doc} results={results} isMock={isMock} companyName={companyData?.name} />
             <RiskDistribution counts={counts} total={results.length} />

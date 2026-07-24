@@ -4222,6 +4222,100 @@ Draft the complete clause.`;
     res.json({ id: updated.id, status: updated["status"], decidedAt: updated["decidedAt"] });
   }));
 
+  // ── Document text (for the split review view) ─────────────────────────────────
+  // Returns the contract text as ordered blocks for the document pane beside the
+  // findings. No full document text or per-clause character offsets are stored at
+  // review time, so this reconstructs the text: the original file is re-parsed
+  // when still on disk (source "parsed"), otherwise the stored extracted clause
+  // passages are used (source "clauses"). Each block is tagged with the clause
+  // categories it carries so the client can scroll to and highlight the passage
+  // for a selected finding without offsets. Read-only; changes no analysis.
+  // A reviewed document's source file and extracted clauses are immutable, so
+  // the reconstructed blocks are cached per process. This avoids re-parsing the
+  // file (mammoth / pdf-parse, up to ~30s for large PDFs) on every page load and
+  // for every viewer; the tenant check still runs on each request before serving.
+  const documentTextCache = new Map<string, { source: string; blocks: unknown[]; documentName: unknown }>();
+  const DOCUMENT_TEXT_CACHE_MAX = 200;
+
+  app.get("/api/documents/:id/text", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
+    if (!company) { sendError(res, 404, "No company configured"); return; }
+    const doc = await pb.collection("uploaded_documents").getOne(req.params.id).catch(() => null);
+    if (!doc || doc["company"] !== company.id) { sendError(res, 404, "Document not found"); return; }
+
+    const cached = documentTextCache.get(req.params.id);
+    if (cached) { res.json({ documentId: req.params.id, ...cached }); return; }
+
+    const clauses = await pb.collection("extracted_clauses").getFullList({
+      filter: `document = "${req.params.id}"`,
+      fields: "id,clauseCategory,rawText",
+      sort: "+id",
+    }).catch(() => [] as PBRecord[]);
+
+    type Block = { id: string; text: string; clauseCategories: string[] };
+
+    // Full text from the file on disk when it is still present.
+    let fullText = "";
+    const filename = doc["filename"] as string | undefined;
+    if (filename) {
+      const filePath = path.join(process.cwd(), "uploads", filename);
+      if (fs.existsSync(filePath)) {
+        try {
+          const parsed = await parseDocument(filePath);
+          if (parsed.text.trim().length > 20) fullText = parsed.text;
+        } catch { /* fall through to clause reconstruction */ }
+      }
+    }
+
+    let blocks: Block[] = [];
+    let source: "parsed" | "clauses" | "empty" = "empty";
+
+    if (fullText) {
+      source = "parsed";
+      const paras = fullText.split(/\n{2,}/).map((p) => p.replace(/\s+\n/g, "\n").trim()).filter((p) => p.length > 0);
+      blocks = paras.map((text, i) => ({ id: `b${i}`, text, clauseCategories: [] as string[] }));
+      // Tag paragraphs by finding the clause passage inside them (best-effort,
+      // no offsets exist). Use a normalised prefix of the clause text.
+      for (const c of clauses) {
+        const raw = String(c["rawText"] ?? "").trim();
+        if (!raw) continue;
+        const needle = raw.slice(0, 60).toLowerCase().replace(/\s+/g, " ");
+        const hit = blocks.find((b) => b.text.toLowerCase().replace(/\s+/g, " ").includes(needle));
+        if (hit && !hit.clauseCategories.includes(c["clauseCategory"] as string)) {
+          hit.clauseCategories.push(c["clauseCategory"] as string);
+        }
+      }
+    } else if (clauses.length > 0) {
+      source = "clauses";
+      // Deduplicate by passage text: the classifier stores one chunk per clause
+      // category and categories can share a chunk, so group them into one block.
+      const byText = new Map<string, Block>();
+      for (const c of clauses) {
+        const text = String(c["rawText"] ?? "").trim();
+        if (!text) continue;
+        const key = text.slice(0, 200);
+        const existing = byText.get(key);
+        if (existing) {
+          if (!existing.clauseCategories.includes(c["clauseCategory"] as string)) {
+            existing.clauseCategories.push(c["clauseCategory"] as string);
+          }
+        } else {
+          byText.set(key, { id: `c${byText.size}`, text, clauseCategories: [c["clauseCategory"] as string] });
+        }
+      }
+      blocks = Array.from(byText.values());
+    }
+
+    // Cache the reconstructed blocks (bounded, oldest evicted first).
+    if (documentTextCache.size >= DOCUMENT_TEXT_CACHE_MAX) {
+      const oldest = documentTextCache.keys().next().value;
+      if (oldest !== undefined) documentTextCache.delete(oldest);
+    }
+    documentTextCache.set(req.params.id, { source, blocks, documentName: doc["originalName"] });
+
+    res.json({ documentId: req.params.id, documentName: doc["originalName"], source, blocks });
+  }));
+
   // ── Contract library ──────────────────────────────────────────────────────────
 
   // GET /api/library - documents grouped by folder, with version chain resolution

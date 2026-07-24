@@ -401,6 +401,17 @@ export const getMe = async (): Promise<{ userId: string; email: string; isAdmin?
   }
 };
 
+// Document text (split review view)
+export interface DocumentTextBlock {
+  id: string;
+  text: string;
+  clauseCategories: string[];
+}
+export const getDocumentText = (documentId: string) =>
+  req<{ documentId: string; documentName: string; source: "parsed" | "clauses" | "empty"; blocks: DocumentTextBlock[] }>(
+    "GET", `/api/documents/${documentId}/text`
+  );
+
 // Per-contract audit history
 export interface ContractAuditEvent {
   id: string;
