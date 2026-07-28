@@ -1201,7 +1201,7 @@ export default function Dashboard() {
             {[
               {
                 label: "Contracts reviewed this month",
-                value: stats ? stats.totalContracts.toString() : "-",
+                value: stats ? (stats.reviewedThisMonth ?? 0).toString() : "-",
                 highlight: false,
               },
               {

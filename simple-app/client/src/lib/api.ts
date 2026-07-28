@@ -210,10 +210,11 @@ export async function getDocumentStats(): Promise<{
   totalValue: number;
   redContracts: number;
   renewalsDue: number;
+  reviewedThisMonth: number;
 }> {
-  return req<{ totalContracts: number; totalValue: number; redContracts: number; renewalsDue: number }>(
+  return req<{ totalContracts: number; totalValue: number; redContracts: number; renewalsDue: number; reviewedThisMonth: number }>(
     "GET", "/api/documents/stats"
-  ).catch(() => ({ totalContracts: 0, totalValue: 0, redContracts: 0, renewalsDue: 0 }));
+  ).catch(() => ({ totalContracts: 0, totalValue: 0, redContracts: 0, renewalsDue: 0, reviewedThisMonth: 0 }));
 }
 
 export const deleteDocument = (id: string) =>

@@ -2232,7 +2232,7 @@ ${rawText}`,
   app.get("/api/documents/stats", requireAuth, ah(async (req: Request, res: Response) => {
     const company = await getCompany(req.user?.email);
     if (!company) {
-      res.json({ totalContracts: 0, totalValue: 0, redContracts: 0, renewalsDue: 0 });
+      res.json({ totalContracts: 0, totalValue: 0, redContracts: 0, renewalsDue: 0, reviewedThisMonth: 0 });
       return;
     }
 
@@ -2268,7 +2268,16 @@ ${rawText}`,
       return rd >= now && rd <= in90;
     }).length;
 
-    res.json({ totalContracts, totalValue, redContracts, renewalsDue });
+    // Same definition as the monthly report export (client/src/lib/monthlyReport.ts):
+    // completed reviews uploaded in the current calendar month.
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const reviewedThisMonth = docs.filter((d) => {
+      if (d["status"] !== "COMPLETE") return false;
+      const at = new Date(d["created"] as string);
+      return !isNaN(at.getTime()) && at >= monthStart && at <= now;
+    }).length;
+
+    res.json({ totalContracts, totalValue, redContracts, renewalsDue, reviewedThisMonth });
   }));
 
   // ── Missing document check ────────────────────────────────────────────────────
