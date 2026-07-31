@@ -121,14 +121,30 @@ function formatDate(iso?: string) {
 
 // ── Status pill ───────────────────────────────────────────────────────────────
 
+// Contracts store either a symbol or an ISO code in `currency`; render a symbol
+// so the value column never reads "GBP25,000".
+const CURRENCY_SYMBOLS: Record<string, string> = { GBP: "£", EUR: "€", USD: "$" };
+function currencySymbol(currency?: string): string {
+  const c = (currency ?? "").trim();
+  if (!c) return "£";
+  return CURRENCY_SYMBOLS[c.toUpperCase()] ?? c;
+}
+
 function StatusPill({ status }: { status?: string }) {
   if (!status || status === "COMPLETE") {
     return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-500/15 text-[#1B7A4B] border border-green-500/25">Complete</span>;
   }
+  // The pipeline reports granular stages; all of them read as Processing here,
+  // otherwise the Status column is blank for most of a review's lifetime.
+  const processing = { label: "Processing", cls: "bg-amber-500/15 text-[#854F0B] border-amber-500/25" };
   const map: Record<string, { label: string; cls: string }> = {
-    UPLOADED:   { label: "Uploaded",   cls: "bg-foreground/10 text-muted-foreground border-foreground/20" },
-    PROCESSING: { label: "Processing", cls: "bg-amber-500/15 text-[#854F0B] border-amber-500/25" },
-    FAILED:     { label: "Failed",     cls: "bg-red-500/15 text-[#A32D2D] border-red-500/25" },
+    UPLOADED:     { label: "Uploaded", cls: "bg-foreground/10 text-muted-foreground border-foreground/20" },
+    PROCESSING:   processing,
+    PARSING:      processing,
+    ANONYMISING:  processing,
+    CLASSIFYING:  processing,
+    COMPARING:    processing,
+    FAILED:       { label: "Failed",   cls: "bg-red-500/15 text-[#A32D2D] border-red-500/25" },
   };
   const entry = map[status];
   if (!entry) return null;
@@ -259,7 +275,7 @@ function TableRow({ doc, allDocs, onFolderChange, onAudit }: {
         {doc.contractType ? doc.contractType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : <span className="text-muted-foreground">-</span>}
       </td>
       <td className="px-4 py-3 text-xs text-foreground/60 whitespace-nowrap text-right">
-        {doc.contractValue != null ? `${doc.currency ?? "£"}${doc.contractValue.toLocaleString()}` : <span className="text-muted-foreground">-</span>}
+        {doc.contractValue != null ? `${currencySymbol(doc.currency)}${doc.contractValue.toLocaleString("en-GB")}` : <span className="text-muted-foreground">-</span>}
       </td>
       <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
         {doc.governingLaw || <span className="text-muted-foreground">-</span>}

@@ -682,7 +682,7 @@ export default function ReviewDetail() {
             <AlertTriangle size={14} className="text-[#A32D2D] shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <span className="text-sm font-semibold text-[#A32D2D]">
-                {counts.RED} clause{counts.RED !== 1 ? "s" : ""} require immediate attention before signing.
+                {counts.RED} clause{counts.RED !== 1 ? "s" : ""} {counts.RED === 1 ? "requires" : "require"} immediate attention before signing.
               </span>
               <span className="text-xs text-[#A32D2D]/60 ml-2">
                 {results.filter(r => r.ragStatus === "RED").map(r => CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory).join(" · ")}
@@ -929,14 +929,12 @@ export default function ReviewDetail() {
                 </span>
               </button>
 
-              {/* Immediate urgency filter */}
+              {/* Immediate urgency count. Not a filter: it sits with the filter
+                  pills as a read-only marker, so it is not clickable. */}
               {results.some(r => r.urgencyLevel === "IMMEDIATE") && (
-                <button
-                  onClick={() => setFilter("ALL")}
-                  className="px-3 py-1 rounded-full text-xs font-medium border border-[#FCEBEB] bg-[#FCEBEB] text-foreground hover:bg-[#FCEBEB]"
-                >
+                <span className="px-3 py-1 rounded-full text-xs font-medium border border-[#FCEBEB] bg-[#FCEBEB] text-foreground">
                   ⚡ {results.filter(r => r.urgencyLevel === "IMMEDIATE").length} Immediate
-                </button>
+                </span>
               )}
             </div>
 
@@ -1038,10 +1036,12 @@ function ContractHeader({
     "review":     { label: "Review needed",     color: "text-foreground", bg: "bg-[#FAEEDA] border-[#FAEEDA]" },
     "ready":      { label: "Ready to sign",     color: "text-foreground", bg: "bg-[#E7F6EE] border-[#E7F6EE]" },
   };
+  // A critically absent clause must never leave the contract reading "Ready to
+  // sign": the page flags it as Missing: Critical in the same view.
   const readiness: "not-ready" | "negotiate" | "review" | "ready" =
     counts.RED >= 2 ? "not-ready" :
     counts.RED === 1 ? "negotiate" :
-    counts.AMBER >= 2 ? "review" : "ready";
+    (counts.AMBER >= 2 || counts.GREY_CRITICAL > 0) ? "review" : "ready";
   const readinessCfg = READINESS_CONFIG[readiness];
 
   const date = formatDateShort(doc.uploadedAt);
@@ -1093,13 +1093,19 @@ function ContractHeader({
         {doc.contractTermMonths && (
           <MetaPill icon={<Clock size={11} />} label={`${doc.contractTermMonths}-month term`} />
         )}
-        {renewalDaysUntil !== null && renewalDaysUntil <= 90 && (
-          <MetaPill
-            icon={<CalendarClock size={11} />}
-            label={`Renewal notice in ${renewalDaysUntil} days`}
-            urgent={renewalDaysUntil <= 30}
-          />
-        )}
+        {renewalDaysUntil !== null && renewalDaysUntil <= 90 && (() => {
+          // The notice deadline is the renewal date less the notice period.
+          // Showing days-to-renewal here overstated the time left whenever a
+          // notice period was recorded.
+          const noticeDays = doc.noticePeriodDays ? renewalDaysUntil - doc.noticePeriodDays : renewalDaysUntil;
+          return (
+            <MetaPill
+              icon={<CalendarClock size={11} />}
+              label={noticeDays <= 0 ? "Renewal notice window passed" : `Renewal notice in ${noticeDays} days`}
+              urgent={noticeDays <= 30}
+            />
+          );
+        })()}
         {doc.autoRenewal && (
           <MetaPill icon={<ChevronRight size={11} />} label="Auto-renewal active" />
         )}
@@ -1284,9 +1290,13 @@ function IntelligenceSignals({
       color: "#A32D2D",
       bgColor: "#FCEBEB",
       borderColor: "#FCEBEB",
+      // Only assert an approval requirement when a clause actually escalated:
+      // otherwise this contradicted the sign-off tracker on the same screen.
       text: isMock
         ? `${redResults.length} clauses flagged RED across all prior Acme Corp reviews - consistent counterparty negotiation posture.`
-        : `These ${redResults.length} clause${redResults.length !== 1 ? "s" : ""} exceed ${co}'s accepted risk thresholds and trigger mandatory ${approverRole} approval before this contract can proceed.`,
+        : redResults.length === 1
+          ? `This clause exceeds ${co}'s accepted risk thresholds and ${results.some((r) => r.escalationRequired) ? `requires ${approverRole} approval` : "needs resolving"} before this contract can proceed.`
+          : `These ${redResults.length} clauses exceed ${co}'s accepted risk thresholds and ${results.some((r) => r.escalationRequired) ? `require ${approverRole} approval` : "need resolving"} before this contract can proceed.`,
     });
   }
 
@@ -2036,6 +2046,7 @@ function ClauseCard({
                     <p className="text-sm leading-relaxed whitespace-pre-wrap rounded-lg border border-card-border bg-card px-4 py-3">
                       {generatedReply}
                     </p>
+                    <p className="text-[11px] text-muted-foreground">AI-generated draft. Review before sending.</p>
                     <div className="flex gap-2">
                       <button className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1" onClick={copyReply}>
                         <Copy size={11} />{copiedReply ? "Copied!" : "Copy message"}
@@ -2073,7 +2084,7 @@ function ClauseCard({
                         <p className="text-[11px] text-muted-foreground italic">{redraft.explanation}</p>
                       )}
                       <p className="text-[11px] text-muted-foreground">
-                        A playbook-aligned clause you can paste straight into the contract. Any [TO CONFIRM] marker is a commercial decision for you to set.
+                        A playbook-aligned clause you can paste straight into the contract. Any [TO CONFIRM] marker is a commercial decision for you to set. AI-generated draft: review before use.
                       </p>
                       <div className="flex gap-2">
                         <button className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1" onClick={copyRedraft}>
@@ -2295,12 +2306,15 @@ function ClauseCard({
 
 const APPROVER_ORDER_FULL = ["Handler", "Legal", "GC", "CFO", "CEO", "Board"] as const;
 
+// Approvers are cumulative, matching getValueTier used by the sign-off tracker.
+// The two lists previously disagreed, so the same contract showed different
+// approvers in the tracker and the governance panel.
 function getValueTierFull(value: number): { label: string; approvers: string[] } | null {
   if (value < 10_000)    return null;
   if (value < 50_000)    return { label: "Legal sign-off required",  approvers: ["Legal"] };
-  if (value < 250_000)   return { label: "GC sign-off required",     approvers: ["GC"] };
-  if (value < 1_000_000) return { label: "CFO sign-off required",    approvers: ["CFO"] };
-  return                        { label: "Board approval required",   approvers: ["Board"] };
+  if (value < 250_000)   return { label: "GC sign-off required",     approvers: ["Legal", "GC"] };
+  if (value < 1_000_000) return { label: "CFO sign-off required",    approvers: ["Legal", "GC", "CFO"] };
+  return                        { label: "Board approval required",   approvers: ["Legal", "GC", "CFO", "Board"] };
 }
 
 function getGovernanceTriggers(

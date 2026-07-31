@@ -975,9 +975,11 @@ export default function Dashboard() {
   _actionBudget -= visibleEscDocs.length;
   const visibleRenewalDocs = showAllActions ? renewalActionDocs : renewalActionDocs.slice(0, Math.max(0, _actionBudget));
 
-  // Last 5 completed for Recent Reviews
+  // Last 5 finished for Recent Reviews. Failed reviews are included: hiding
+  // them left the dashboard claiming everything was up to date while a
+  // contract had silently failed, with its Retry action unreachable.
   const recentDocs = [...(realDocuments as UploadedDocument[])]
-    .filter((d) => d.status === "COMPLETE")
+    .filter((d) => d.status === "COMPLETE" || d.status === "FAILED")
     .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
     .slice(0, 5);
 
@@ -1059,7 +1061,7 @@ export default function Dashboard() {
             <div className="pt-4 border-t border-card-border space-y-3 text-left">
               <div className="text-xs text-muted-foreground text-center">Or connect your document storage to auto-review contracts as they arrive.</div>
               <div className="grid sm:grid-cols-2 gap-3">
-                <a href="/app/settings?tab=integrations&connect=google-drive"
+                <a href="/settings?tab=integrations&connect=google-drive"
                   className="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3 hover:border-primary/40 transition-colors">
                   <div className="w-8 h-8 rounded-md bg-[#E6F1FB] flex items-center justify-center shrink-0">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -1072,7 +1074,7 @@ export default function Dashboard() {
                     <div className="text-xs text-muted-foreground">Auto-review from a folder</div>
                   </div>
                 </a>
-                <a href="/app/settings?tab=integrations&connect=sharepoint"
+                <a href="/settings?tab=integrations&connect=sharepoint"
                   className="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3 hover:border-primary/40 transition-colors">
                   <div className="w-8 h-8 rounded-md bg-[#EEF2FF] flex items-center justify-center shrink-0">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -1114,7 +1116,7 @@ export default function Dashboard() {
               </div>
               <div className="flex-1 min-w-0 flex items-baseline gap-2">
                 <span className="text-sm font-bold text-[#0B1020] truncate">Acme Corp MSA</span>
-                <span className="text-xs text-[#64748B] truncate">Red clauses, do not sign yet · 3 red clauses · GC sign-off required</span>
+                <span className="text-xs text-[#64748B] truncate">Do not sign yet · 2 red clauses · GC sign-off required</span>
               </div>
               <span className="text-xs font-semibold text-[#A32D2D] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
             </a>
@@ -1123,6 +1125,10 @@ export default function Dashboard() {
           {visibleRedDocs.map((d) => {
             const redCount = (d.reviewResults ?? []).filter((r) => r.ragStatus === "RED").length;
             const cp = ((d as UploadedDocument & { counterpartyName?: string }).counterpartyName ?? "").trim();
+            // Use the shared readiness verdict so this row cannot contradict the
+            // readiness pill shown for the same contract under Recent Reviews
+            // (a single red clause reads "Negotiate first", not "Do not sign yet").
+            const rowReadiness = READINESS_CONFIG[getSignReadiness(d.reviewResults ?? [])].label;
             return (
               <a key={d.id} href={`/app/legal/review/${d.id}`}
                 className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-red-200/70 bg-red-500/[0.03] hover:bg-red-500/[0.06] transition-colors group shadow-sm">
@@ -1131,7 +1137,7 @@ export default function Dashboard() {
                 </div>
                 <div className="flex-1 min-w-0 flex items-baseline gap-2">
                   <span className="text-sm font-bold text-[#0B1020] truncate">{cp || d.originalName}</span>
-                  <span className="text-xs text-[#64748B] truncate">Red clauses, do not sign yet · {redCount} red clause{redCount !== 1 ? "s" : ""}</span>
+                  <span className="text-xs text-[#64748B] truncate">{rowReadiness} · {redCount} red clause{redCount !== 1 ? "s" : ""}</span>
                 </div>
                 <span className="text-xs font-semibold text-[#A32D2D] shrink-0 group-hover:translate-x-0.5 transition-transform">Review now →</span>
               </a>
@@ -1211,7 +1217,11 @@ export default function Dashboard() {
               },
               {
                 label: "Value at risk from red clauses",
-                value: redAtRisk > 0 ? `£${(redAtRisk / 1000).toFixed(0)}k` : "£0",
+                value: redAtRisk <= 0
+                  ? "£0"
+                  : redAtRisk < 1000
+                    ? `£${Math.round(redAtRisk).toLocaleString("en-GB")}`
+                    : `£${(redAtRisk / 1000).toFixed(0)}k`,
                 highlight: redAtRisk > 0,
               },
               {
@@ -1310,10 +1320,12 @@ export default function Dashboard() {
                             {red === 0 && amber === 0 && <span className="rag-green">All clear</span>}
                           </div>
                         )}
-                        <div className={`hidden md:flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border shrink-0 ${readinessBg} ${readinessColor}`}>
-                          <ReadinessIcon size={12} />
-                          {readinessLabel}
-                        </div>
+                        {doc.status !== "FAILED" && (
+                          <div className={`hidden md:flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md border shrink-0 ${readinessBg} ${readinessColor}`}>
+                            <ReadinessIcon size={12} />
+                            {readinessLabel}
+                          </div>
+                        )}
                         {isStuck ? (
                           <div className="text-xs text-[#A32D2D] text-right shrink-0">
                             <div>Stuck</div>
@@ -1360,7 +1372,7 @@ export default function Dashboard() {
                 <p className="text-xs text-muted-foreground mt-0.5">So Zane can review contracts automatically as they arrive, no manual upload needed.</p>
               </div>
               <div className="grid sm:grid-cols-2 gap-3">
-                <a href="/app/settings?tab=integrations&connect=google-drive"
+                <a href="/settings?tab=integrations&connect=google-drive"
                   className="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3 hover:border-primary/40 transition-colors">
                   <div className="w-8 h-8 rounded-md bg-[#E6F1FB] flex items-center justify-center shrink-0">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -1373,7 +1385,7 @@ export default function Dashboard() {
                     <div className="text-xs text-muted-foreground">Auto-review from a folder</div>
                   </div>
                 </a>
-                <a href="/app/settings?tab=integrations&connect=sharepoint"
+                <a href="/settings?tab=integrations&connect=sharepoint"
                   className="flex items-center gap-3 rounded-lg border border-border bg-card/50 px-4 py-3 hover:border-primary/40 transition-colors">
                   <div className="w-8 h-8 rounded-md bg-[#EEF2FF] flex items-center justify-center shrink-0">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none">

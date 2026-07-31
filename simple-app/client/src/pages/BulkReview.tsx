@@ -38,6 +38,10 @@ const RAG_SHORT: Record<string, string> = {
   RED: "R", AMBER: "A", GREEN: "G", GREY: "-",
 };
 
+// The review pipeline reports granular stages, never a bare "PROCESSING", so
+// polling and the in-progress banner must match all of them.
+const ACTIVE_STATUSES = ["PROCESSING", "PARSING", "ANONYMISING", "CLASSIFYING", "COMPARING"];
+
 const CONTRACT_TYPES = [
   { value: "SUPPLIER_AGREEMENT",  label: "Supplier Agreement" },
   { value: "CUSTOMER_AGREEMENT",  label: "Customer Agreement" },
@@ -230,7 +234,7 @@ export default function BulkReview() {
     queryFn: () => getDocuments(),
     refetchInterval: (query) => {
       const docs = query.state.data as DocWithResults[] | undefined;
-      return docs?.some((d) => d.status === "PROCESSING") ? 4000 : false;
+      return docs?.some((d) => ACTIVE_STATUSES.includes(d.status)) ? 4000 : false;
     },
   });
 
@@ -247,7 +251,7 @@ export default function BulkReview() {
     new Set(docs.flatMap((d) => d.reviewResults.map((r) => r.clauseCategory)))
   ) as ClauseCategory[];
 
-  const processingDocs = (allDocs as DocWithResults[]).filter((d) => d.status === "PROCESSING");
+  const processingDocs = (allDocs as DocWithResults[]).filter((d) => ACTIVE_STATUSES.includes(d.status));
 
   // Add files to queue
   const MAX_BULK_FILE_SIZE = 50 * 1024 * 1024; // 50MB per file
