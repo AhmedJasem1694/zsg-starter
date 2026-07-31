@@ -40,7 +40,7 @@ function AnswerCard({
         <Icon size={14} className={color} />
         <span className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">{question}</span>
       </div>
-      <div className={`text-2xl font-bold leading-tight ${color}`}>{answer}</div>
+      <div className={`t-metric ${color}`}>{answer}</div>
       {detail && <p className="text-xs text-muted-foreground leading-relaxed">{detail}</p>}
     </div>
   );
@@ -72,7 +72,7 @@ export default function Portfolio() {
       <div className="px-6 py-8 max-w-6xl mx-auto space-y-7">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-semibold">Portfolio Risk</h1>
+            <h1 className="t-page-title">Portfolio Risk</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               Commercial answers about your contract portfolio. Not analytics, not percentages.
             </p>

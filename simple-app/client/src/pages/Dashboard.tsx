@@ -664,7 +664,7 @@ function DashboardCapabilities({ inboundEmail }: { inboundEmail?: string }) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">What Zane can do</h2>
+      <h2 className="t-section-label">What Zane can do</h2>
 
       {/* Email Zane: the prominent, central new capability */}
       <div className="card shadow-sm p-5 sm:p-6 space-y-4">
@@ -674,7 +674,7 @@ function DashboardCapabilities({ inboundEmail }: { inboundEmail?: string }) {
           </div>
           <div className="min-w-0">
             <div className="text-sm font-semibold text-foreground">Email Zane</div>
-            <p className="text-xs text-muted-foreground/80 mt-1 leading-relaxed max-w-xl">
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed max-w-xl">
               CC or forward any contract to this address and Zane reviews it against your playbook and replies in the thread.
             </p>
           </div>
@@ -706,7 +706,7 @@ function DashboardCapabilities({ inboundEmail }: { inboundEmail?: string }) {
           </div>
           <div className="min-w-0">
             <div className="text-sm font-semibold text-foreground">Legacy review</div>
-            <p className="text-xs text-muted-foreground/80 mt-1 leading-relaxed">
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               Review your existing contract estate in bulk and get a structured map of terms, renewals, and risks.
             </p>
           </div>
@@ -718,7 +718,7 @@ function DashboardCapabilities({ inboundEmail }: { inboundEmail?: string }) {
           </div>
           <div className="min-w-0">
             <div className="text-sm font-semibold text-foreground">Counterparty intelligence</div>
-            <p className="text-xs text-muted-foreground/80 mt-1 leading-relaxed">
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
               Zane now tracks how each counterparty negotiates over time. See it on each clause in your playbook.
             </p>
           </div>
@@ -997,7 +997,7 @@ export default function Dashboard() {
         {/* Page header */}
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold">Dashboard</h1>
+            <h1 className="t-page-title">Dashboard</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               {useMock ? "Demo data" : `${company?.name ?? ""}`}
             </p>
@@ -1011,7 +1011,7 @@ export default function Dashboard() {
             )}
             <Link
               to="/app/legal/library"
-              className="btn-primary flex items-center gap-1.5 text-sm px-4 py-2"
+              className="btn-primary btn-cta flex items-center gap-1.5 text-sm px-4 py-2"
             >
               <Upload size={14} />
               Upload a contract
@@ -1097,7 +1097,7 @@ export default function Dashboard() {
 
         {/* ── Primary attention area: what needs you now ──────────────────── */}
         <div className="space-y-4">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Needs your attention</h2>
+          <h2 className="t-section-label">Needs your attention</h2>
 
           {!hasActions && !useMock && (
             <div className="card px-5 py-10 text-center space-y-2 shadow-sm">
@@ -1202,7 +1202,7 @@ export default function Dashboard() {
 
         {/* ── Section 2: Executive Overview ──────────────────────────────── */}
         <div className="space-y-4">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Overview</h2>
+          <h2 className="t-section-label">Overview</h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               {
@@ -1230,9 +1230,9 @@ export default function Dashboard() {
                 highlight: false,
               },
             ].map((s) => (
-              <div key={s.label} className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-xl shadow-sm px-4 py-4">
-                <div className={`text-2xl font-semibold tracking-tight ${s.highlight ? "text-[#A32D2D]" : "text-[#0B1020]"}`}>{s.value}</div>
-                <div className="text-[10px] uppercase tracking-wider text-[#64748B] leading-snug mt-1.5">{s.label}</div>
+              <div key={s.label} className="bg-[#FFFFFF] border border-[#E2E8F0] rounded-xl shadow-sm px-5 py-5">
+                <div className={`t-metric ${s.highlight ? "text-[#A32D2D]" : ""}`}>{s.value}</div>
+                <div className="t-section-label leading-snug mt-1.5">{s.label}</div>
               </div>
             ))}
           </div>
@@ -1241,7 +1241,7 @@ export default function Dashboard() {
         {/* ── Section 3: Recent Reviews ───────────────────────────────────── */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Recent Reviews</h2>
+            <h2 className="t-section-label">Recent Reviews</h2>
             <Link to="/app/legal/library" className="text-xs text-muted-foreground hover:text-foreground transition-colors">View all →</Link>
           </div>
 

@@ -394,7 +394,7 @@ export default function Patterns() {
         <div className="flex items-center gap-3">
           <Activity size={22} className="text-primary" />
           <div>
-            <h1 className="text-2xl font-semibold">Negotiation Intelligence</h1>
+            <h1 className="t-page-title">Negotiation Intelligence</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               Patterns, counterparty behaviour and negotiation drift detected from your review history.
             </p>

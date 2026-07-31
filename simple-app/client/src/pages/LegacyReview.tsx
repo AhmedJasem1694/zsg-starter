@@ -273,7 +273,7 @@ export default function LegacyReview() {
           <div className="flex items-center gap-3">
             <Archive size={22} className="text-primary" />
             <div>
-              <h1 className="text-2xl font-semibold">Legacy Review</h1>
+              <h1 className="t-page-title">Legacy Review</h1>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Map your historical contract estate, terms, renewals, and risks, with a cost-controlled extraction pipeline.
               </p>

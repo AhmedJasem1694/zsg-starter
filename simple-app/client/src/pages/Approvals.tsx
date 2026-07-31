@@ -78,8 +78,8 @@ function ResolvedRow({ a }: { a: ApprovalListItem }) {
           {approved ? "Approved" : "Rejected"} by {a.decidedByName || "unknown"} ({roleLabel(a.deciderRole || a.routedToRole)})
         </span>
       </div>
-      <span className="text-[11px] text-[#94A3B8] font-mono shrink-0">{a.decidedAt ? formatDateTime(a.decidedAt) : ""}</span>
-      <ChevronRight size={13} className="text-[#94A3B8] shrink-0" />
+      <span className="text-[11px] text-[#64748B] font-mono shrink-0">{a.decidedAt ? formatDateTime(a.decidedAt) : ""}</span>
+      <ChevronRight size={13} className="text-[#64748B] shrink-0" />
     </Link>
   );
 }
@@ -107,7 +107,7 @@ export default function Approvals() {
           <div className="flex items-center gap-3">
             <CheckSquare size={22} className="text-[#2563EB]" />
             <div>
-              <h1 className="text-2xl font-semibold">Approvals</h1>
+              <h1 className="t-page-title">Approvals</h1>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Contracts waiting on an approver's decision before they can proceed.
               </p>
@@ -133,7 +133,7 @@ export default function Approvals() {
 
           {/* Pending */}
           <div className="space-y-3">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            <h2 className="t-section-label">
               Awaiting decision {pending.length > 0 && `(${pending.length})`}
             </h2>
             {isLoading && (
@@ -157,7 +157,7 @@ export default function Approvals() {
           {/* Resolved */}
           {resolved.length > 0 && (
             <div className="space-y-3">
-              <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Decided</h2>
+              <h2 className="t-section-label">Decided</h2>
               <div className="space-y-2">
                 {resolved.map((a) => <ResolvedRow key={a.id} a={a} />)}
               </div>

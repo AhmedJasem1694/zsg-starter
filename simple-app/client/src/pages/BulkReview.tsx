@@ -247,8 +247,10 @@ export default function BulkReview() {
     (d) => d.status === "COMPLETE" && d.reviewResults?.length > 0
   );
 
+  // Drop blank categories: they become an undefined React key on the matrix
+  // header and body cells, which logs a duplicate-key warning.
   const allCategories = Array.from(
-    new Set(docs.flatMap((d) => d.reviewResults.map((r) => r.clauseCategory)))
+    new Set(docs.flatMap((d) => d.reviewResults.map((r) => r.clauseCategory).filter(Boolean)))
   ) as ClauseCategory[];
 
   const processingDocs = (allDocs as DocWithResults[]).filter((d) => ACTIVE_STATUSES.includes(d.status));
@@ -381,7 +383,7 @@ export default function BulkReview() {
         {/* Header */}
         <div className="flex items-start justify-between gap-4 max-w-6xl">
           <div>
-            <h1 className="text-2xl font-semibold">Bulk Review</h1>
+            <h1 className="t-page-title">Bulk Review</h1>
             <p className="text-sm text-muted-foreground mt-1">
               Upload and configure multiple contracts at once - enter metadata per file before starting review.
             </p>

@@ -197,7 +197,7 @@ export default function ContractAuditModal({
             <div className="text-sm font-semibold text-[#0B1020]">Audit history</div>
             <div className="text-xs text-[#64748B] mt-0.5 truncate">{data?.documentName ?? documentName ?? ""}</div>
           </div>
-          <button onClick={onClose} className="text-[#94A3B8] hover:text-[#64748B] transition-colors shrink-0" aria-label="Close">
+          <button onClick={onClose} className="text-[#64748B] hover:text-[#64748B] transition-colors shrink-0" aria-label="Close">
             <X size={16} />
           </button>
         </div>
@@ -236,7 +236,7 @@ export default function ContractAuditModal({
                     {p.lines.map((line, i) => (
                       <div key={i} className="text-xs text-[#64748B] mt-0.5 leading-relaxed">{line}</div>
                     ))}
-                    <div className="text-[11px] text-[#94A3B8] font-mono mt-1">{formatDateTime(e.at)}</div>
+                    <div className="text-[11px] text-[#64748B] font-mono mt-1">{formatDateTime(e.at)}</div>
                   </li>
                 );
               })}

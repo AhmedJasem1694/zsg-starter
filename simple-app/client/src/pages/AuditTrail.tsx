@@ -131,7 +131,7 @@ export default function AuditTrail() {
           <div className="flex items-center gap-3">
             <ClipboardList size={22} className="text-primary" />
             <div>
-              <h1 className="text-2xl font-semibold">Audit Trail</h1>
+              <h1 className="t-page-title">Audit Trail</h1>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Immutable log of all significant actions taken by Zane and your team.
               </p>

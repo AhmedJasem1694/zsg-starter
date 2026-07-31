@@ -243,7 +243,7 @@ function TableRow({ doc, allDocs, onFolderChange, onAudit }: {
 }) {
   return (
     <tr className="group hover:bg-slate-100 transition-colors">
-      <td className="px-4 py-3 max-w-0 w-[260px]">
+      <td className="px-4 py-3 w-[260px] min-w-[260px] max-w-[260px]">
         <Link to={`/app/legal/review/${doc.id}`} className="flex items-center gap-2 group/link">
           <FileText size={13} className="shrink-0 text-muted-foreground group-hover/link:text-foreground/60 transition-colors" />
           <span className="text-sm text-foreground/90 font-medium truncate group-hover/link:text-foreground transition-colors">
@@ -274,7 +274,7 @@ function TableRow({ doc, allDocs, onFolderChange, onAudit }: {
       <td className="px-4 py-3 text-xs text-foreground/60 whitespace-nowrap">
         {doc.contractType ? doc.contractType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) : <span className="text-muted-foreground">-</span>}
       </td>
-      <td className="px-4 py-3 text-xs text-foreground/60 whitespace-nowrap text-right">
+      <td className="px-4 py-3 text-xs text-foreground/60 whitespace-nowrap text-right tabular">
         {doc.contractValue != null ? `${currencySymbol(doc.currency)}${doc.contractValue.toLocaleString("en-GB")}` : <span className="text-muted-foreground">-</span>}
       </td>
       <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
@@ -638,7 +638,7 @@ export default function ContractLibrary() {
             )}
             <button
               onClick={openUpload}
-              className="btn-primary flex items-center gap-2 px-4 py-2 text-sm shrink-0"
+              className="btn-primary btn-cta flex items-center gap-2 px-4 py-2 text-sm shrink-0"
             >
               <Upload size={14} />
               Upload a contract

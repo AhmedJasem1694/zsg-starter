@@ -24,7 +24,7 @@ export default function ContractTimings() {
     <AppLayout>
       <div className="px-6 py-8 max-w-7xl mx-auto space-y-7">
         <div>
-          <h1 className="text-2xl font-semibold">Renewals & Notice Dates</h1>
+          <h1 className="t-page-title">Renewals & Notice Dates</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Renewal dates, notice periods, and termination windows across your reviewed contracts
           </p>

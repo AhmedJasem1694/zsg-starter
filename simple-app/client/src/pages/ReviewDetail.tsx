@@ -2575,7 +2575,7 @@ function RegulatoryReferencesAccordion({ results }: { results: ReviewResult[] })
               <div className="min-w-0">
                 <span className="font-semibold text-foreground/80">{citation.regulation} - {citation.article}</span>
                 <span className="text-muted-foreground"> · {CLAUSE_LABELS[clauseCategory] ?? clauseCategory}</span>
-                <div className="text-muted-foreground/80 mt-0.5 leading-relaxed">{citation.relevance}</div>
+                <div className="text-muted-foreground mt-0.5 leading-relaxed">{citation.relevance}</div>
               </div>
             </div>
           ))}

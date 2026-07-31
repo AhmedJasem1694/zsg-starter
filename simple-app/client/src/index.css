@@ -444,3 +444,125 @@
   }
   .hover-elevate:hover::after { background-color: var(--elevate-1); }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VISUAL EXCELLENCE LAYER
+   Micro-level finish applied uniformly across the app surface. Everything here
+   is scoped to .theme-light (the app shell) so the public dark pages are
+   untouched. Defined centrally rather than per screen so no screen can drift.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@layer components {
+  /* ── Type scale ────────────────────────────────────────────────────────
+     One scale, applied without exception. */
+  .t-page-title    { font-size: 24px; line-height: 1.25; font-weight: 600; letter-spacing: -0.02em; color: #0B1020; }
+  .t-section-label { font-size: 12px; line-height: 1.4;  font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: #64748B; }
+  .t-card-title    { font-size: 15px; line-height: 1.4;  font-weight: 600; color: #0B1020; }
+  .t-body          { font-size: 14px; line-height: 1.55; font-weight: 400; }
+  .t-meta          { font-size: 13px; line-height: 1.5;  color: #64748B; }
+  /* Metric figures: aligned digits so columns of numbers read cleanly. */
+  .t-metric {
+    font-size: 28px; line-height: 1.15; font-weight: 600;
+    letter-spacing: -0.02em; color: #0B1020;
+    font-variant-numeric: tabular-nums;
+  }
+  .tabular { font-variant-numeric: tabular-nums; }
+}
+
+/* ── Interactive states ──────────────────────────────────────────────────
+   Nothing interactive may feel inert. */
+
+/* Focus ring: one treatment for every focusable element. */
+.theme-light :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid rgb(37 99 235 / 0.4);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+/* Transitions on the properties that change on interaction. */
+.theme-light :is(a, button, .card, tr, [role="button"]) {
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, color 150ms ease;
+}
+
+/* Cards: resting shadow, border shift and lift on hover when interactive. */
+.theme-light .card { box-shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06); }
+.theme-light a.card:hover,
+.theme-light button.card:hover,
+.theme-light .card-interactive:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 2px 4px rgb(16 24 40 / 0.06), 0 4px 12px rgb(16 24 40 / 0.08);
+}
+
+/* Buttons: consistent height and a press state one shade darker. */
+.theme-light :is(.btn-primary, .btn-secondary, .btn-ghost, .btn-danger) {
+  min-height: 36px;
+  border-radius: 8px;
+}
+.theme-light .btn-primary {
+  box-shadow: 0 1px 2px rgb(16 24 40 / 0.06);
+}
+.theme-light .btn-primary:active:not(:disabled)   { background: #1E40AF; }
+.theme-light .btn-secondary:active:not(:disabled) { background: #E2E8F0; }
+.theme-light .btn-ghost:active:not(:disabled)     { background: #E2E8F0; }
+.theme-light .btn-danger:active:not(:disabled)    { background: #F5C2C2; }
+/* The single main CTA per screen sits one step taller. */
+.theme-light .btn-cta { min-height: 40px; }
+
+/* ── Borders and radii ───────────────────────────────────────────────────
+   One border colour, one radius per element class. */
+.theme-light .card { border-radius: 12px; border-color: #E2E8F0; }
+.theme-light .input { border-radius: 8px; min-height: 36px; }
+.theme-light .rag-pill,
+.theme-light :is(.rag-red, .rag-amber, .rag-green, .rag-grey) { border-radius: 6px; }
+.theme-light .card-header,
+.theme-light .card-body { padding-left: 20px; padding-right: 20px; }
+.theme-light .card-header { padding-top: 16px; padding-bottom: 16px; }
+.theme-light .card-body   { padding-top: 20px; padding-bottom: 20px; }
+
+/* ── Tables ──────────────────────────────────────────────────────────────
+   Library, Audit Trail, Bulk Review, Legacy Review and portfolio lists all
+   inherit the same header, row rhythm and hover from here. */
+.theme-light thead th {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748B;
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.theme-light tbody td {
+  font-size: 14px;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+.theme-light tbody tr:hover { background: #F8FAFC; }
+/* Consistent data-row height. Scoped to rows with real columns so single-cell
+   group-header rows stay compact. */
+.theme-light tbody tr:has(td:nth-child(2)) { height: 52px; }
+/* Numeric and date columns align on the digit. */
+.theme-light :is(td, th).num,
+.theme-light :is(td, th)[data-numeric] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Muted text floor ────────────────────────────────────────────────────
+   Muted text never goes lighter than #64748B on white. */
+.theme-light .text-muted-foreground\/80,
+.theme-light .text-muted-foreground\/70,
+.theme-light .text-muted-foreground\/60 { color: #64748B; }
+
+/* ── Skeleton shimmer for loading states ─────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #F1F5F9 25%, #E9EEF5 37%, #F1F5F9 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  border-radius: 6px;
+}
+@keyframes skeleton-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}

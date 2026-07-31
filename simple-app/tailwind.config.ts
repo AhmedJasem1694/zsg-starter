@@ -11,8 +11,9 @@ export default {
         sm: ".25rem", /* 4px */
       },
       boxShadow: {
-        /* One soft elevation level for the light canvas */
+        /* Two elevation levels only: resting and raised. Both subtle. */
         soft: "0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06)",
+        raised: "0 2px 4px rgb(16 24 40 / 0.06), 0 4px 12px rgb(16 24 40 / 0.08)",
       },
       colors: {
         // ── Zane design tokens (design elevation pass) ──────────────────

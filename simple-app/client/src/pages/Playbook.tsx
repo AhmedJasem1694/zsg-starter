@@ -1063,7 +1063,7 @@ export default function Playbook() {
       <div className="px-6 py-8 max-w-4xl mx-auto space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-semibold">Playbook</h1>
+            <h1 className="t-page-title">Playbook</h1>
             <p className="text-muted-foreground text-sm mt-1">
               Your legal positions for each clause type and how they compare to your actual negotiation outcomes.
             </p>
@@ -1303,7 +1303,7 @@ export default function Playbook() {
               {counterpartyData?.profiles && Object.keys(counterpartyData.profiles).length > 0 && (
                 <div className="rounded-lg border border-card-border bg-card p-5 space-y-3">
                   <div>
-                    <div className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Counterparty negotiation profiles</div>
+                    <div className="t-section-label">Counterparty negotiation profiles</div>
                     <p className="text-[11px] text-muted-foreground mt-1">Built automatically from negotiation threads emailed to Zane.</p>
                   </div>
                   <div className="grid sm:grid-cols-2 gap-3">

@@ -142,7 +142,7 @@ export default function ApprovalDecision() {
                   </div>
                 )}
 
-                <div className="text-[11px] text-[#94A3B8]">
+                <div className="text-[11px] text-[#64748B]">
                   Requested {formatDateTime(data.createdAt)}{data.requestedBy ? ` by ${data.requestedBy}` : ""}
                   {data.document && (
                     <>
@@ -167,7 +167,7 @@ export default function ApprovalDecision() {
                     </span>
                   </div>
                   <p className="text-sm text-[#64748B] leading-relaxed">{data.decisionReason}</p>
-                  <div className="text-[11px] text-[#94A3B8] font-mono">{data.decidedAt ? formatDateTime(data.decidedAt) : ""}</div>
+                  <div className="text-[11px] text-[#64748B] font-mono">{data.decidedAt ? formatDateTime(data.decidedAt) : ""}</div>
                 </div>
               ) : (
                 <div className="card p-6 space-y-4">
@@ -179,7 +179,7 @@ export default function ApprovalDecision() {
                       value={reason}
                       onChange={(e) => { setReason(e.target.value); setError(null); }}
                       placeholder="Why you are approving or rejecting this…"
-                      className="mt-1.5 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#0B1020] placeholder:text-[#94A3B8] focus:outline-none focus:border-[#2563EB] min-h-[72px] resize-y"
+                      className="mt-1.5 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[#0B1020] placeholder:text-[#64748B] focus:outline-none focus:border-[#2563EB] min-h-[72px] resize-y"
                     />
                   </div>
                   {error && (
@@ -204,7 +204,7 @@ export default function ApprovalDecision() {
                       <XCircle size={13} /> Reject
                     </button>
                     {!reason.trim() && (
-                      <span className="text-[11px] text-[#94A3B8]">Type a reason to enable the decision.</span>
+                      <span className="text-[11px] text-[#64748B]">Type a reason to enable the decision.</span>
                     )}
                   </div>
                 </div>

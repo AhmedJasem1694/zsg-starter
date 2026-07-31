@@ -51,7 +51,7 @@ export default function DocumentPane({
         <FileText size={13} className="text-[#64748B]" />
         <span className="text-xs font-semibold text-[#0B1020]">Document</span>
         {data?.source === "clauses" && (
-          <span className="text-[10px] text-[#94A3B8] ml-auto">Extracted passages</span>
+          <span className="text-[10px] text-[#64748B] ml-auto">Extracted passages</span>
         )}
       </div>
 
