@@ -66,7 +66,7 @@ const LANDING_FAQS = [
   { q: "Does Zane cover regulatory requirements?", a: "Zane surfaces relevant regulatory references where they matter for your sector, for example healthcare or financial services, and keeps them out of the way for straightforward commercial work." },
   { q: "What happens to my data if I cancel?", a: "Your data is yours. You can export everything before you cancel. We do not hold your data hostage." },
   { q: "Does Zane replace my lawyer?", a: "No. Zane handles the objective layer so your lawyer can focus on the judgment calls that actually require a lawyer. Every recommendation Zane makes requires a human decision before anything happens." },
-  { q: "What contract types does Zane support?", a: "Commercial contracts, supplier agreements, customer MSAs, NDAs, technology agreements, employment contracts, and more. Zane works for any contract type you configure it for, and remembers your decisions across all of them." },
+  { q: "What contract types does Zane support?", a: "Commercial contracts, supplier agreements, customer MSAs, NDAs, technology agreements and employment contracts. Zane works for any contract type you configure it for, and remembers your decisions across all of them." },
   { q: "Is there a minimum contract or commitment?", a: "No implementation fee. No setup cost. Pilot terms are agreed up front in conversation before you commit." },
 ];
 
@@ -187,7 +187,7 @@ export default function Landing() {
             className="text-4xl sm:text-6xl font-bold tracking-tight leading-[1.08] text-[#F8FAFC]"
             {...(shouldReduce ? {} : fadeUpHero(0.1))}
           >
-            Legal intelligence that{" "}<CyclingPhrase />
+            Contract review that{" "}<CyclingPhrase />
           </motion.h1>
 
           {/* Subline */}
@@ -203,7 +203,7 @@ export default function Landing() {
             className="mt-5 text-base text-slate-400 leading-relaxed max-w-xl mx-auto"
             {...(shouldReduce ? {} : fadeUpHero(0.35))}
           >
-            Your positions, your history, your counterparties, captured and working for you.
+            Your positions, your history, your counterparties, applied to every review.
           </motion.p>
 
           {/* Primary CTA: the hero's one cobalt accent */}
@@ -225,7 +225,7 @@ export default function Landing() {
           >
             {[
               { value: "11 minutes",     label: "Average review time" },
-              { value: "100%",           label: "Company-specific from day one" },
+              { value: "From day one",   label: "Reviews use your own positions" },
               { value: "1 to 5 lawyers", label: "The team size we are built for" },
             ].map(({ value, label }) => (
               <div key={label} className="space-y-0.5">
@@ -262,7 +262,7 @@ export default function Landing() {
               {[
                 { name: "Technology Services Agreement", cp: "Acme Technologies Ltd",  dot: "bg-red-400/80",   label: "Do not sign yet" },
                 { name: "Master Services Agreement",     cp: "Nexus Solutions Ltd",    dot: "bg-amber-400/80", label: "Negotiate first" },
-                { name: "Software Licence Agreement",    cp: "DataFlow Technologies",  dot: "bg-red-400/80",   label: "Review required" },
+                { name: "Software Licence Agreement",    cp: "DataFlow Technologies",  dot: "bg-red-400/80",   label: "Review needed" },
               ].map((item) => (
                 <motion.div key={item.name} className="px-4 py-3 flex items-center gap-3" {...(shouldReduce ? {} : { variants: rowReveal })}>
                   <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.dot}`} />
@@ -284,7 +284,7 @@ export default function Landing() {
           <motion.div className="space-y-6" {...headingReveal}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">The problem</p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
-              Most legal teams get this wrong every day.
+              Every contract carries decisions nobody wrote down.
             </h2>
           </motion.div>
           <motion.div className="mt-8 space-y-5 text-base text-slate-600 leading-relaxed" {...fadeUp(0.1)}>
@@ -321,7 +321,7 @@ export default function Landing() {
           <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">How Zane works</p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
-              From counterparty paper to a decision that compounds.
+              From counterparty paper to a decision you keep.
             </h2>
           </motion.div>
 
@@ -333,7 +333,7 @@ export default function Landing() {
               {
                 step: "01",
                 title: "Give Zane a contract",
-                body: "PDF or DOCX. Zane reads it and identifies every clause that matters.",
+                body: "PDF or DOCX. Zane reads it and identifies the clauses that matter.",
               },
               {
                 step: "02",
@@ -361,7 +361,7 @@ export default function Landing() {
         <div className="max-w-4xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <motion.div className="space-y-6" {...headingReveal}>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Email native</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">From your inbox</p>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
                 Zane works where you already work.
               </h2>
@@ -420,7 +420,7 @@ export default function Landing() {
       <section className="bg-navy-900 py-24 sm:py-36">
         <div className="max-w-4xl mx-auto px-6">
           <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">The intelligence that compounds</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">What compounds</p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F8FAFC]">
               Most legal AI starts from zero every time. Zane never forgets.
             </h2>
@@ -490,7 +490,7 @@ export default function Landing() {
         <div className="max-w-2xl mx-auto px-6">
           <motion.div className="rounded-xl border border-line-light bg-white px-8 py-10 text-center space-y-5 transition-shadow duration-300 hover:shadow-xl" {...headingReveal} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Legacy contract review</p>
-            <h2 className="text-2xl font-bold tracking-tight text-ink">Have hundreds of historical contracts nobody has reviewed?</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-ink">Hundreds of signed contracts nobody has read.</h2>
             <p className="text-sm text-slate-600 leading-relaxed max-w-lg mx-auto">
               Most companies are sitting on hundreds of signed contracts no one has looked at in years. Zane maps the whole estate, the terms, the renewal dates, the risks, so you know exactly what you are holding. Days, not months.
             </p>
@@ -510,7 +510,7 @@ export default function Landing() {
         <div className="max-w-2xl mx-auto px-6 text-center">
           <motion.div className="space-y-6" {...headingReveal}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pricing</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F8FAFC]">Pricing built around your team</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F8FAFC]">Priced for lean legal teams</h2>
             <p className="text-base text-slate-400 leading-relaxed max-w-xl mx-auto">
               Zane is priced for lean legal functions, not enterprise budgets. Every pilot starts with a conversation so we can configure Zane around your contracts, your sector, and your risk positions. Pricing is agreed before you commit to anything.
             </p>
@@ -640,7 +640,7 @@ function RequestAccessModal({ onClose }: { onClose: () => void }) {
       });
       setSubmitted(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong - please try again or email ahmed@zanelegal.ai.");
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again, or email ahmed@zanelegal.ai.");
     } finally {
       setSubmitting(false);
     }
