@@ -268,36 +268,53 @@ export function locatePassages(
   }
 
   const normalise = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
-  /** Locate one fragment, preferring the first hit at or after `from`. */
+  /**
+   * Locate one fragment, preferring the first hit at or after `from`.
+   *
+   * Short fragments are allowed so a clause heading like "3. LIABILITY" anchors
+   * the span and the heading highlights with its clause. They are only ever
+   * matched forward of the cursor, because a short string is not distinctive
+   * enough to search the whole document for without risking the wrong hit.
+   */
   const find = (fragment: string, from: number): number => {
     const needle = normalise(fragment);
-    if (needle.length < 20) return -1;
+    if (needle.length < 8) return -1;
     const at = norm.indexOf(needle, from);
-    // Fall back to a search from the start: the order categories are emitted in
-    // does not always follow the document. Still better than no offset at all.
-    return at === -1 ? norm.indexOf(needle) : at;
+    if (at !== -1) return at;
+    // Fall back to a search from the start only when the fragment is long
+    // enough to be distinctive: the order categories are emitted in does not
+    // always follow the document.
+    return needle.length >= 20 ? norm.indexOf(needle) : -1;
   };
 
   let cursor = 0;
   return passages.map((passage) => {
-    // A passage is a reassembled chunk, not a contiguous slice of the document:
-    // chunkText drops blocks under 50 characters, so numbered headings between
-    // paragraphs are missing. Searching for the whole passage therefore never
-    // matches. Anchor on its first and last blocks instead and span between
-    // them, which puts the dropped headings back inside the range.
-    const blocks = passage.split(/\n{2,}/).map((b) => b.trim()).filter((b) => normalise(b).length >= 20);
+    // A passage is a reassembled chunk, not necessarily a contiguous slice of
+    // the document: blocks are trimmed and rejoined, and boilerplate stripping
+    // may have removed text between them. Searching for the whole passage can
+    // therefore miss. Anchor on its first and last blocks instead and span
+    // between them, which restores anything dropped in between.
+    const blocks = passage.split(/\n{2,}/).map((b) => b.trim()).filter((b) => normalise(b).length >= 8);
     if (blocks.length === 0) return null;
 
-    const firstAt = find(blocks[0], cursor);
+    // Anchor on the first block that can be located. A leading heading is
+    // preferred so the highlight covers the clause heading too, but an
+    // unlocatable one must not lose the whole clause.
+    let firstAt = -1;
+    let firstBlock = blocks[0];
+    for (const block of blocks) {
+      const at = find(block, cursor);
+      if (at !== -1) { firstAt = at; firstBlock = block; break; }
+    }
     if (firstAt === -1) return null;
 
     const lastBlock = blocks[blocks.length - 1];
     const lastAt = blocks.length === 1 ? firstAt : find(lastBlock, firstAt);
     const endNorm = lastAt === -1
-      ? firstAt + normalise(blocks[0]).length
+      ? firstAt + normalise(firstBlock).length
       : lastAt + normalise(lastBlock).length;
 
-    cursor = Math.max(firstAt + normalise(blocks[0]).length, endNorm);
+    cursor = Math.max(firstAt + normalise(firstBlock).length, endNorm);
 
     const start = map[firstAt];
     const end = map[Math.min(endNorm - 1, map.length - 1)] + 1;
@@ -305,24 +322,86 @@ export function locatePassages(
   });
 }
 
+const MAX_CHUNK = 2000;
+/**
+ * A chunk below this absorbs the next clause rather than standing alone. Set
+ * low deliberately: it exists to stop a bare heading becoming its own chunk,
+ * not to pad a short clause with an unrelated neighbouring one, which would
+ * merge two clauses back into a single highlight.
+ */
+const MIN_CHUNK = 120;
+
+/**
+ * Whether a block opens a new top-level clause.
+ *
+ * Sub-numbering (8.1, 8.2) is deliberately NOT a boundary: splitting there
+ * would hand the comparison step half a liability clause and call it the whole
+ * position. Only top-level numbering, named divisions and short capitalised
+ * titles start a new clause.
+ */
+function isClauseStart(block: string): boolean {
+  const t = block.trim();
+  if (!t) return false;
+  if (/^\d+\.\d/.test(t)) return false;                                     // 8.1, sub-clause
+  if (/^\d+[.)]?\s+\S/.test(t)) return true;                                // "8." or "8) Liability"
+  if (/^(ARTICLE|CLAUSE|SECTION|SCHEDULE|APPENDIX|ANNEX|PART)\s+[\dIVXLC]/i.test(t)) return true;
+  if (t.length <= 80 && /^[A-Z][A-Z0-9 \-&,'()/.]{2,}$/.test(t)) return true; // ALL CAPS heading
+  return false;
+}
+
+/**
+ * Split document text into chunks aligned to clause boundaries.
+ *
+ * Chunks are the unit the classifier assigns a category to and the unit the
+ * split view highlights, so aligning them to clauses is what makes highlighting
+ * land on one clause rather than on a two thousand character window containing
+ * five. Headings are kept rather than discarded: they mark the boundaries, they
+ * tell the classifier what it is reading, and keeping them makes a chunk close
+ * to a contiguous slice of the source, which is what the offset scan needs.
+ *
+ * Falls back to size-based splitting for documents with no detectable clause
+ * structure, which is the previous behaviour.
+ */
 export function chunkText(text: string): string[] {
-  const raw = text
+  const blocks = text
     .split(/\n{2,}|\r\n{2,}/)
     .map((s) => s.trim())
-    .filter((s) => s.length > 50);
+    .filter(Boolean);
 
+  // Group blocks into clause units: a boundary block plus everything until the
+  // next boundary.
+  const units: string[][] = [];
+  for (const block of blocks) {
+    if (units.length === 0 || isClauseStart(block)) units.push([block]);
+    else units[units.length - 1].push(block);
+  }
+
+  // A unit longer than the cap (an unstructured document is one big unit) is
+  // split by size at block boundaries.
+  const sized: string[] = [];
+  for (const unit of units) {
+    let current = "";
+    for (const block of unit) {
+      if (current && (current.length + block.length + 2) > MAX_CHUNK) { sized.push(current); current = block; }
+      else current = current ? `${current}\n\n${block}` : block;
+    }
+    if (current) sized.push(current);
+  }
+
+  // Emit one chunk per clause, merging any that are too short to stand alone.
   const chunks: string[] = [];
   let current = "";
-
-  for (const block of raw) {
-    if ((current + " " + block).length > 2000) {
-      if (current) chunks.push(current.trim());
-      current = block;
+  for (const unit of sized) {
+    if (!current) { current = unit; continue; }
+    if (current.length < MIN_CHUNK && current.length + unit.length + 2 <= MAX_CHUNK) {
+      current = `${current}\n\n${unit}`;
     } else {
-      current = current ? current + "\n\n" + block : block;
+      chunks.push(current);
+      current = unit;
     }
   }
-  if (current) chunks.push(current.trim());
+  if (current) chunks.push(current);
 
-  return chunks;
+  // Drop chunks with no substantive content (a stray heading at the very end).
+  return chunks.filter((c) => c.replace(/\s+/g, " ").length > 50);
 }
