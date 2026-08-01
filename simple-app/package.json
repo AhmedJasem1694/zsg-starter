@@ -12,6 +12,7 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "email:test": "tsx scripts/check-smtp.ts",
     "smtp:check": "tsx scripts/check-smtp.ts",
     "pb:setup": "tsx scripts/setup-pocketbase.ts",
     "pb:collect": "tsx scripts/collect-collections.ts",

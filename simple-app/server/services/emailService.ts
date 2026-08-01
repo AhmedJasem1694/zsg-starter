@@ -1,11 +1,35 @@
 import nodemailer from "nodemailer";
 
+// Resend is the configured provider. Generic SMTP is retained so a different
+// provider can be used without a code change, but Resend takes precedence.
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const RESEND_ENDPOINT = "https://api.resend.com/emails";
+
 const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = parseInt(process.env.SMTP_PORT ?? "587", 10);
 const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
-const SMTP_FROM = process.env.SMTP_FROM ?? "Zane Legal <noreply@zanelegal.ai>";
-const APP_URL   = process.env.APP_URL   ?? "http://localhost:3000";
+const SMTP_FROM = process.env.SMTP_FROM ?? "Zane <approvals@zanelegal.ai>";
+const APP_URL   = process.env.APP_URL;
+
+/**
+ * Base URL for links in emails. Falls back to localhost so a development send
+ * still produces a usable link, and warns, because a production email carrying
+ * a localhost approval link is worse than one that never sent.
+ */
+function baseUrl(): string {
+  if (APP_URL) return APP_URL.replace(/\/+$/, "");
+  console.warn("[Zane] APP_URL is not set. Links in emails will point at localhost.");
+  return "http://localhost:3000";
+}
+
+/** Which transport will be used, if any. */
+export type EmailTransport = "resend" | "smtp" | "none";
+export function activeTransport(): EmailTransport {
+  if (RESEND_API_KEY) return "resend";
+  if (SMTP_HOST && SMTP_USER && SMTP_PASS) return "smtp";
+  return "none";
+}
 
 function getTransporter() {
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
@@ -18,22 +42,70 @@ function getTransporter() {
 }
 
 /**
+ * Send through the Resend HTTP API. Returns a specific error string rather than
+ * a boolean so the caller can log why a notification did not arrive.
+ */
+async function sendViaResend(p: {
+  to: string; subject: string; text: string; html?: string; from?: string; inReplyTo?: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const from = p.from
+    ? (p.from.includes("<") ? p.from : `Zane <${p.from}>`)
+    : SMTP_FROM;
+  try {
+    const res = await fetch(RESEND_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: [p.to],
+        subject: p.subject,
+        text: p.text,
+        ...(p.html ? { html: p.html } : {}),
+        ...(p.inReplyTo ? { headers: { "In-Reply-To": p.inReplyTo, "References": p.inReplyTo } } : {}),
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      // 403 here is almost always an unverified sending domain, which is the
+      // one failure a correct API key still produces.
+      const hint = res.status === 403
+        ? " (check that zanelegal.ai is verified in the Resend dashboard)"
+        : res.status === 401 ? " (RESEND_API_KEY rejected)" : "";
+      return { ok: false, error: `Resend ${res.status}${hint}: ${body.slice(0, 300)}` };
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: `Resend request failed: ${(err as Error)?.message ?? String(err)}` };
+  }
+}
+
+/**
  * Whether outbound email can be sent at all. Callers use this to distinguish
  * "we tried and it failed" from "this deployment was never configured to send",
  * so an undelivered approval is never mistaken for one that was never attempted.
  */
 export function isEmailConfigured(): boolean {
-  return Boolean(SMTP_HOST && SMTP_USER && SMTP_PASS);
+  return activeTransport() !== "none";
 }
 
-/** Which required settings are missing, for startup and preflight reporting. */
+/** Which required settings are missing, for startup, preflight and the UI. */
 export function missingEmailConfig(): string[] {
   const missing: string[] = [];
-  if (!SMTP_HOST) missing.push("SMTP_HOST");
-  if (!SMTP_USER) missing.push("SMTP_USER");
-  if (!SMTP_PASS) missing.push("SMTP_PASS");
-  if (!process.env.APP_URL) missing.push("APP_URL (links in emails will point at localhost)");
+  if (activeTransport() === "none") missing.push("RESEND_API_KEY");
+  if (!APP_URL) missing.push("APP_URL");
   return missing;
+}
+
+/**
+ * Whether notifications can be delivered, and why not when they cannot. Served
+ * to the approvals screen so a missing send is visible to the person waiting on
+ * it rather than only in a server log.
+ */
+export function emailStatus(): { configured: boolean; transport: EmailTransport; missing: string[] } {
+  return { configured: isEmailConfigured(), transport: activeTransport(), missing: missingEmailConfig() };
 }
 
 /**
@@ -41,8 +113,25 @@ export function missingEmailConfig(): string[] {
  * preflight script so credentials can be proven before a live approval is run.
  */
 export async function verifyEmailTransport(): Promise<{ ok: boolean; error?: string }> {
-  const transporter = getTransporter();
-  if (!transporter) return { ok: false, error: `Not configured. Missing: ${missingEmailConfig().join(", ")}` };
+  const transport = activeTransport();
+  if (transport === "none") return { ok: false, error: `Not configured. Missing: ${missingEmailConfig().join(", ")}` };
+
+  if (transport === "resend") {
+    // Resend has no verify endpoint; listing domains proves the key works and
+    // is the cheapest call that distinguishes a bad key from an unverified one.
+    try {
+      const res = await fetch("https://api.resend.com/domains", {
+        headers: { "Authorization": `Bearer ${RESEND_API_KEY}` },
+      });
+      if (res.status === 401) return { ok: false, error: "RESEND_API_KEY was rejected (401)" };
+      if (!res.ok) return { ok: false, error: `Resend ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}` };
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: `Could not reach Resend: ${(err as Error)?.message}` };
+    }
+  }
+
+  const transporter = getTransporter()!;
   try {
     await transporter.verify();
     return { ok: true };
@@ -52,15 +141,16 @@ export async function verifyEmailTransport(): Promise<{ ok: boolean; error?: str
 }
 
 /** Host and sender in use, for preflight output. Never returns the password. */
-export function emailConfigSummary(): { host: string; port: number; user: string; from: string; appUrl: string } {
-  return {
-    host: SMTP_HOST ?? "(unset)",
-    port: SMTP_PORT,
-    // Mask the account: enough to confirm which mailbox, not enough to reuse.
-    user: SMTP_USER ? `${SMTP_USER.slice(0, 2)}***@${SMTP_USER.split("@")[1] ?? "***"}` : "(unset)",
-    from: SMTP_FROM,
-    appUrl: APP_URL,
-  };
+export function emailConfigSummary(): { transport: string; detail: string; from: string; appUrl: string } {
+  const transport = activeTransport();
+  const detail = transport === "resend"
+    // Never print the key. The last four characters are enough to confirm which
+    // key is loaded without exposing a usable secret.
+    ? `api.resend.com, key ...${String(RESEND_API_KEY).slice(-4)}`
+    : transport === "smtp"
+      ? `${SMTP_HOST}:${SMTP_PORT} as ${SMTP_USER ? `${SMTP_USER.slice(0, 2)}***` : "(unset)"}`
+      : "(none)";
+  return { transport, detail, from: SMTP_FROM, appUrl: APP_URL ?? "(unset)" };
 }
 
 /**
@@ -78,11 +168,29 @@ export async function sendPlainEmail(p: {
   from?: string;
   inReplyTo?: string;
 }): Promise<boolean> {
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.warn(`[Zane] SMTP not configured - skipping email to ${p.to} ("${p.subject}")`);
+  const transport = activeTransport();
+
+  // No silent skip. A notification that never left must say so, and say which
+  // variable is missing, because the failure is otherwise invisible until an
+  // approver asks why they were never told.
+  if (transport === "none") {
+    console.error(
+      `[Zane] EMAIL NOT SENT to ${p.to} ("${p.subject}"). No transport configured. ` +
+      `Set RESEND_API_KEY (and APP_URL) in the environment. Missing: ${missingEmailConfig().join(", ")}`,
+    );
     return false;
   }
+
+  if (transport === "resend") {
+    const result = await sendViaResend(p);
+    if (!result.ok) {
+      console.error(`[Zane] EMAIL NOT SENT to ${p.to} ("${p.subject}"). ${result.error}`);
+      return false;
+    }
+    return true;
+  }
+
+  const transporter = getTransporter()!;
   const from = p.from
     ? (p.from.includes("<") ? p.from : `Zane <${p.from}>`)
     : SMTP_FROM;
@@ -93,7 +201,7 @@ export async function sendPlainEmail(p: {
     await transporter.sendMail({ from, to: p.to, subject: p.subject, text: p.text, headers });
     return true;
   } catch (err) {
-    console.error(`[Zane] Failed to send email to ${p.to}:`, (err as Error)?.message);
+    console.error(`[Zane] EMAIL NOT SENT to ${p.to} ("${p.subject}"). SMTP error: ${(err as Error)?.message}`);
     return false;
   }
 }
@@ -111,11 +219,22 @@ export async function sendHtmlEmail(p: {
   inReplyTo?: string;
   attachments?: Array<{ filename: string; path?: string; content?: Buffer; contentType?: string }>;
 }): Promise<boolean> {
-  const transporter = getTransporter();
-  if (!transporter) {
-    console.warn(`[Zane] SMTP not configured - skipping HTML email to ${p.to} ("${p.subject}")`);
+  const transport = activeTransport();
+  if (transport === "none") {
+    console.error(
+      `[Zane] EMAIL NOT SENT to ${p.to} ("${p.subject}"). No transport configured. ` +
+      `Missing: ${missingEmailConfig().join(", ")}`,
+    );
     return false;
   }
+  if (transport === "resend") {
+    // Attachments are not supported on this path; the review email body carries
+    // the link instead.
+    const result = await sendViaResend({ to: p.to, subject: p.subject, text: p.text, html: p.html, from: p.from, inReplyTo: p.inReplyTo });
+    if (!result.ok) console.error(`[Zane] EMAIL NOT SENT to ${p.to} ("${p.subject}"). ${result.error}`);
+    return result.ok;
+  }
+  const transporter = getTransporter()!;
   const from = p.from
     ? (p.from.includes("<") ? p.from : `Zane <${p.from}>`)
     : SMTP_FROM;
@@ -153,7 +272,7 @@ export async function sendEscalationEmail(p: EscalationEmailParams): Promise<voi
     return;
   }
 
-  const reviewUrl = `${APP_URL}/review/${p.documentId}`;
+  const reviewUrl = `${baseUrl()}/review/${p.documentId}`;
   const accent    = p.ragStatus === "RED" ? "#dc2626" : "#d97706";
   const accentBg  = p.ragStatus === "RED" ? "#fef2f2" : "#fffbeb";
   const accentBorder = p.ragStatus === "RED" ? "#fecaca" : "#fde68a";
@@ -261,9 +380,8 @@ export async function sendEscalationEmail(p: EscalationEmailParams): Promise<voi
 }
 
 // ── Approval flow emails ──────────────────────────────────────────────────────
-// The content is built separately from sending so the notification structure
-// exists (and is inspectable) even before SMTP is configured; sending activates
-// automatically once SMTP_HOST / SMTP_USER / SMTP_PASS are set.
+// The content is built separately from sending so the notification can be
+// inspected and tested without delivering anything.
 
 export interface ApprovalRequestEmailParams {
   to:              { name: string; email: string };
@@ -277,23 +395,34 @@ export interface ApprovalRequestEmailParams {
 }
 
 export function buildApprovalRequestEmail(p: ApprovalRequestEmailParams): { subject: string; text: string; approvalUrl: string } {
-  const approvalUrl = `${APP_URL}/app/legal/approvals/${p.approvalId}`;
-  const value = p.contractValue != null ? `${p.currency || "GBP"} ${p.contractValue.toLocaleString("en-GB")}` : "Not stated";
-  const subject = `Approval needed: ${p.contractName}`;
+  const approvalUrl = `${baseUrl()}/app/legal/approvals/${p.approvalId}`;
+  const CURRENCY_SYMBOLS: Record<string, string> = { GBP: "\u00a3", USD: "$", EUR: "\u20ac" };
+  const symbol = CURRENCY_SYMBOLS[p.currency || "GBP"] ?? "";
+  const value = p.contractValue != null && p.contractValue > 0
+    ? `${symbol}${p.contractValue.toLocaleString("en-GB")}`
+    : "Not recorded";
+  const counterparty = p.counterpartyName || "Not identified";
+
+  // Subject names both the contract and the counterparty so the approver can
+  // triage from the inbox list without opening anything.
+  const subject = `Approval needed: ${p.contractName} (${counterparty})`;
+
   const text = [
     `Hi ${p.to.name},`,
     ``,
     `A contract is waiting for your ${p.role} approval before the team can proceed.`,
     ``,
-    `Contract:     ${p.contractName}`,
-    `Counterparty: ${p.counterpartyName || "Not identified"}`,
-    `Value:        ${value}`,
-    `Routed to you because: ${p.reason}`,
+    `Contract      ${p.contractName}`,
+    `Counterparty  ${counterparty}`,
+    `Value         ${value}`,
+    `Reason        ${p.reason}`,
     ``,
-    `Review and decide (sign-in required):`,
+    `Review the findings and record your decision here (sign-in required):`,
     approvalUrl,
     ``,
-    `Zane records your decision and reason in the contract's audit history.`,
+    `Your decision and the reason you give are written to the contract audit history.`,
+    ``,
+    `Zane`,
   ].join("\n");
   return { subject, text, approvalUrl };
 }
@@ -314,7 +443,7 @@ export async function sendApprovalDecisionEmail(p: {
   reason: string;
   documentId: string;
 }): Promise<boolean> {
-  const reviewUrl = `${APP_URL}/app/legal/review/${p.documentId}`;
+  const reviewUrl = `${baseUrl()}/app/legal/review/${p.documentId}`;
   const verb = p.decision === "APPROVED" ? "approved" : "rejected";
   const subject = `${p.decision === "APPROVED" ? "Approved" : "Rejected"}: ${p.contractName}`;
   const text = [

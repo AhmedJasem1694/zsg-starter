@@ -12,7 +12,7 @@ import {
   getAuthorisedSenders, normaliseEmail, logRejection,
 } from "./services/inboundEmail.js";
 import { parseEmailIntent, UNCLEAR_REPLY_TEXT } from "./services/emailIntentParser.js";
-import { sendPlainEmail, sendApprovalDecisionEmail } from "./services/emailService.js";
+import { sendPlainEmail, sendApprovalDecisionEmail, emailStatus } from "./services/emailService.js";
 import { createApprovalRequest } from "./services/approvals.js";
 import { processReviewByEmail, type InboundAttachment } from "./services/emailReview.js";
 import { processDraftByEmail } from "./services/draftGenerator.js";
@@ -4219,6 +4219,9 @@ Draft the complete clause.`;
           decisionReason: r["decisionReason"] ?? "",
         };
       }),
+      // Served so the approvals screen can warn that approvers are not being
+      // notified, rather than the failure living only in a server log.
+      emailStatus: emailStatus(),
     });
   }));
 

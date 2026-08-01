@@ -464,12 +464,19 @@ export interface ApprovalDetail {
   clause: { ragStatus: string; plainEnglish: string; recommendedAction: string; escalationTrigger: string } | null;
   playbookPosition: { preferred: string; redLine: string } | null;
 }
+/** Whether approver notifications can actually be delivered. */
+export interface EmailStatus {
+  configured: boolean;
+  transport: "resend" | "smtp" | "none";
+  missing: string[];
+}
+
 export const getApprovals = (opts?: { role?: string; status?: string }) => {
   const params = new URLSearchParams();
   if (opts?.role) params.set("role", opts.role);
   if (opts?.status) params.set("status", opts.status);
   const qs = params.toString();
-  return req<{ approvals: ApprovalListItem[] }>("GET", `/api/approvals${qs ? `?${qs}` : ""}`);
+  return req<{ approvals: ApprovalListItem[]; emailStatus: EmailStatus }>("GET", `/api/approvals${qs ? `?${qs}` : ""}`);
 };
 export const getApproval = (id: string) => req<ApprovalDetail>("GET", `/api/approvals/${id}`);
 export const decideApproval = (id: string, decision: "APPROVED" | "REJECTED", reason: string) =>

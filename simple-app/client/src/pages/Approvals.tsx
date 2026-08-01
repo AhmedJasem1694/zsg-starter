@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { CheckSquare, CheckCircle, XCircle, ChevronRight, Clock } from "lucide-react";
+import { CheckSquare, CheckCircle, XCircle, ChevronRight, Clock, AlertTriangle } from "lucide-react";
 import AppLayout from "../components/layout/AppLayout";
 import { getApprovals, type ApprovalListItem } from "../lib/api";
 import { formatDateTime } from "../lib/dateUtils";
@@ -113,6 +113,23 @@ export default function Approvals() {
               </p>
             </div>
           </div>
+
+          {/* Notification status. An approval nobody was told about is the one
+              failure mode that looks identical to everything working. */}
+          {data?.emailStatus && !data.emailStatus.configured && (
+            <div className="rounded-xl border border-[#FAEEDA] bg-[#FAEEDA] px-4 py-3">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle size={15} className="text-[#854F0B] shrink-0 mt-0.5" />
+                <div className="text-xs leading-relaxed">
+                  <span className="font-semibold text-[#854F0B]">Email notification is not configured.</span>
+                  <span className="text-[#854F0B]/90">
+                    {" "}Approvals below are recorded and audited, but no approver has been emailed.
+                    Set {data.emailStatus.missing.join(" and ")} in the server environment to enable sending.
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Role filter */}
           <div className="flex items-center gap-1.5">
