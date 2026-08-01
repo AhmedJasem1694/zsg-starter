@@ -369,7 +369,7 @@ ${classifySnippet}`,
         const cpResponse = await chatComplete([{
           role: "user",
           content: `Extract the counterparty company or individual name from this contract. Look in: (1) the opening "between X and Y" parties clause, (2) definitions of "Supplier", "Vendor", "Customer", "Client", "Service Provider", (3) the agreement title/header, (4) the signature block. Return ONLY the full legal entity name (e.g. "Attio Limited"), no explanation, no JSON, just the name. If genuinely not identifiable return the single word: unknown\n\n${snippet}`,
-        }], 60, 25_000, gpt4oModel);
+        }], 60, 25_000, gpt4oModel, { preserveVerbatim: true }); // returns a party name verbatim
         const extracted = cpResponse.trim().replace(/^["']|["']$/g, "");
         if (extracted && extracted.toLowerCase() !== "unknown" && extracted.length < 120) {
           resolvedCounterpartyName = extracted;

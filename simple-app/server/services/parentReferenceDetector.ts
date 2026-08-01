@@ -117,6 +117,7 @@ Return ONLY this JSON:
       maxTokens: 2500,
       timeoutMs: 60_000,
       description: "parent-reference detection",
+      preserveVerbatim: true, // quotes clause references from the contract
     });
   } catch (err) {
     console.warn("[parentRef] detection failed (non-fatal):", (err as Error)?.message);

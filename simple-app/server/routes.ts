@@ -3140,7 +3140,6 @@ Write the negotiation email paragraph.`;
 
     const systemPrompt = `You are helping a founder draft a negotiation email to a counterparty about a contract.
 
-Never use em dashes or en dashes in any output. Use a comma or a full stop instead.
 
 Write a ${tonePhrase} email that:
 - Opens by thanking them for sending the agreement and noting you have reviewed it

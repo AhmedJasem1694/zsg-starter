@@ -601,7 +601,7 @@ If you don't recognise the company at all, return an empty array [].
 Return ONLY the JSON array, no other text.`;
 
   try {
-    const raw = await chatComplete([{ role: "user", content: prompt }], 800);
+    const raw = await chatComplete([{ role: "user", content: prompt }], 800, 60_000, undefined, { preserveVerbatim: true }); // returns registered company names verbatim
     const match = raw.match(/\[[\s\S]*\]/);
     if (!match) return [];
     const parsed = JSON.parse(match[0]) as Array<{

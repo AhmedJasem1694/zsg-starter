@@ -109,8 +109,7 @@ HARD RULES (follow exactly):
 2. Mark anything that requires a business decision as "[TO CONFIRM: <what to confirm>]" inline in the clause text (e.g. term length, fee amounts, scope of services, notice periods if not in the playbook).
 3. NEVER invent commercial terms, prices, fees, dates, quantities, durations, volumes, that were not given. Use a [TO CONFIRM: ...] placeholder instead.
 4. Governing law is ${governingLaw}. Use ${companyName} and ${cp} as the parties.
-5. Produce a complete, usable, professionally drafted document with numbered clauses.
-6. Never use em dashes or en dashes in any output. Use a comma or a full stop instead.`;
+5. Produce a complete, usable, professionally drafted document with numbered clauses.`;
 
   const user = `Draft a ${DRAFT_TYPE_LABEL[draftType]}.
 

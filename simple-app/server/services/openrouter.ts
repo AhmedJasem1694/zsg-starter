@@ -7,6 +7,7 @@
  */
 
 import { recordLlmUsage } from "./costTracker.js";
+import { NO_DASHES_RULE, stripDashes } from "./textStyle.js";
 
 const BASE_URL = "https://openrouter.ai/api/v1";
 
@@ -33,11 +34,28 @@ export async function chatComplete(
   maxTokens = 1024,
   timeoutMs = 60_000, // 60s per attempt; llmJsonCall may retry once, so total max ~90s
   modelOverride?: string,
+  opts?: {
+    /**
+     * Set for calls that return content lifted verbatim from a contract, an
+     * email, or a company register (party names, governing law, quoted clause
+     * references). The house-style post-processor is skipped so source
+     * material is never rewritten. Leave unset for anything Zane writes.
+     */
+    preserveVerbatim?: boolean;
+  },
 ): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error("OPENROUTER_API_KEY is not set");
 
   const resolvedModel = modelOverride ?? MODEL;
+
+  // Layer one: every call inherits the house style rule from the shared
+  // constant. Appended to the existing system message when there is one,
+  // otherwise added as its own, so no call site has to remember it.
+  const firstSystem = messages.findIndex((m) => m.role === "system");
+  messages = firstSystem >= 0
+    ? messages.map((m, i) => (i === firstSystem ? { ...m, content: `${m.content}\n\n${NO_DASHES_RULE}` } : m))
+    : [{ role: "system" as const, content: NO_DASHES_RULE }, ...messages];
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -83,7 +101,12 @@ export async function chatComplete(
     );
   }
 
-  return data.choices[0]?.message?.content ?? "";
+  const content = data.choices[0]?.message?.content ?? "";
+
+  // Layer two: enforcement, because models ignore instructions occasionally.
+  // Skipped for verbatim-extraction calls so contract and register content is
+  // returned exactly as written.
+  return opts?.preserveVerbatim ? content : stripDashes(content);
 }
 
 /**

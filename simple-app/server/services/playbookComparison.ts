@@ -164,8 +164,7 @@ Error category rules:
 - MECHANICAL_ERROR: typographical or transcription error that may be legally material (inconsistent numbers, ambiguous date formats, party name errors).`;
 
 const RECOMMENDATION_DISCIPLINE = `RECOMMENDATION DISCIPLINE: Never give a conclusion that says it could go either way without providing a view. Always commit to a recommendation while noting material uncertainty. Structure every conclusion as: "My recommendation is [X] because [Y]. The risk of this being wrong is [Z]. If [Z] materialises, the consequence is [W]." Remove any hedging that does not add specific information. Phrases like "it may" or "it could" or "depending on the circumstances" are only acceptable if followed immediately by the specific condition that would change the recommendation.
-
-HARD RULE: Never use em dashes or en dashes in any output. Use a comma or a full stop instead.`;
+`;
 
 export async function compareClauseToPlaybook(
   clauseText: string,

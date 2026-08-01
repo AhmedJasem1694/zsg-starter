@@ -300,7 +300,7 @@ export function formatRegulatoryContextForPrompt(docs: RegulatoryDocument[]): st
     `[${doc.regulationName} - ${doc.provision} (${doc.jurisdiction}, source: ${doc.source})]\n${doc.text}`
   );
 
-  return `\n\nREGULATORY CONTEXT (current as of ${today}):\n${snippets.join("\n\n")}\n\nWhen assessing this clause, consider whether it conflicts with or is constrained by the above regulatory provisions. Cite specific provisions in your output where relevant. Never use em dashes or en dashes in any output. Use a comma or a full stop instead.`;
+  return `\n\nREGULATORY CONTEXT (current as of ${today}):\n${snippets.join("\n\n")}\n\nWhen assessing this clause, consider whether it conflicts with or is constrained by the above regulatory provisions. Cite specific provisions in your output where relevant.`;
 }
 
 // Fetch latest updates from live government APIs.

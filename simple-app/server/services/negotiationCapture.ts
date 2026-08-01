@@ -184,6 +184,7 @@ Return ONLY this JSON:
     maxTokens: 4000,
     timeoutMs: 90_000,
     description: "email thread negotiation parse",
+    preserveVerbatim: true, // quotes positions from the counterparty emails
   });
 
   const moves = Array.isArray(raw?.moves) ? raw.moves : [];

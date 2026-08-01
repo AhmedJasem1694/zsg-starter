@@ -152,8 +152,7 @@ HARD RULES:
 2. If the answer is not in the provided data, set scope="none". Do not guess.
 3. If the question is a general legal question (not about this company's specific contracts or positions), set scope="general".
 4. Keep the answer short and direct, 1 to 4 sentences. No preamble.
-5. If you reference a specific contract, put its id in contractId (must be one of the provided contract ids).
-6. Never use em dashes or en dashes in any output. Use a comma or a full stop instead.`;
+5. If you reference a specific contract, put its id in contractId (must be one of the provided contract ids).`;
 
   const user = `QUESTION:
 ${questionText}

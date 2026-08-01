@@ -12,13 +12,19 @@ interface LLMJsonOptions {
   description?: string; // for logging
   /** Per-attempt timeout. Default 60s; batched calls with large outputs need more. */
   timeoutMs?: number;
+  /**
+   * Set when the call returns content lifted verbatim from a contract, an
+   * email, or a company register. Skips the house-style post-processor so
+   * source material is never rewritten. See textStyle.ts.
+   */
+  preserveVerbatim?: boolean;
 }
 
 export async function llmJsonCall<T>(opts: LLMJsonOptions): Promise<T> {
-  const { messages, model, maxTokens, description = "LLM call", timeoutMs = 60_000 } = opts;
+  const { messages, model, maxTokens, description = "LLM call", timeoutMs = 60_000, preserveVerbatim } = opts;
 
   // First attempt
-  const firstResponse = await chatComplete(messages, maxTokens, timeoutMs, model);
+  const firstResponse = await chatComplete(messages, maxTokens, timeoutMs, model, { preserveVerbatim });
   const firstResult = tryParseJson<T>(firstResponse);
   if (firstResult !== null) return firstResult;
 
@@ -38,7 +44,7 @@ export async function llmJsonCall<T>(opts: LLMJsonOptions): Promise<T> {
   ];
 
   // Retry with a shorter timeout than the first attempt to limit total wait
-  const secondResponse = await chatComplete(retryMessages, maxTokens, Math.max(30_000, Math.floor(timeoutMs / 2)), model);
+  const secondResponse = await chatComplete(retryMessages, maxTokens, Math.max(30_000, Math.floor(timeoutMs / 2)), model, { preserveVerbatim });
   const secondResult = tryParseJson<T>(secondResponse);
   if (secondResult !== null) return secondResult;
 

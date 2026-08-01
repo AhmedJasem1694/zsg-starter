@@ -158,7 +158,7 @@ ${rawText.slice(0, 3000)}`,
       messages: [
         {
           role: "system",
-          content: `You are a legal data extraction engine reviewing a historical contract for ${companyName}. Extract the key provisions below precisely. Use only what is in the text. Never invent figures, dates, or names. Where something is genuinely absent, use null (or false/empty as the schema indicates). Never use em dashes or en dashes in any output. Use a comma or a full stop instead.`,
+          content: `You are a legal data extraction engine reviewing a historical contract for ${companyName}. Extract the key provisions below precisely. Use only what is in the text. Never invent figures, dates, or names. Where something is genuinely absent, use null (or false/empty as the schema indicates).`,
         },
         {
           role: "user",
@@ -184,6 +184,7 @@ ${capForExtraction(anonymisedText)}`,
       timeoutMs: 90_000,
       description: `legacy key-provision extraction for ${documentId}`,
       model: extractionModel,
+      preserveVerbatim: true, // extracts party names, governing law and figures from the contract
     });
 
     // ── Normalise + de-anonymise ──────────────────────────────────────────────
