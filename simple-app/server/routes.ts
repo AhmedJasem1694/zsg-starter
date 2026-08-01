@@ -2792,7 +2792,7 @@ ${rawText}`,
 
     const docs = await pb.collection("uploaded_documents").getFullList({
       filter: `company = "${company.id}"`,
-      fields: "id,counterpartyName,contractType",
+      fields: "id,counterpartyName,contractType,contractValue,currency",
     });
 
     const docIds = docs.map((d) => d.id);
@@ -2816,13 +2816,24 @@ ${rawText}`,
     }).catch(() => [] as PBRecord[]);
 
     // Build doc → counterparty/type maps
-    const docMetaMap = new Map<string, { counterpartyName: string; contractType: string }>();
+    const docMetaMap = new Map<string, {
+      counterpartyName: string; contractType: string; contractValue: number;
+    }>();
     for (const d of docs) {
       docMetaMap.set(d.id, {
         counterpartyName: (d["counterpartyName"] as string) || "Unknown",
         contractType: (d["contractType"] as string) || "UNKNOWN",
+        contractValue: Number(d["contractValue"]) || 0,
       });
     }
+    // Most common currency across the portfolio, used to label aggregate figures.
+    const currencyCounts: Record<string, number> = {};
+    for (const d of docs) {
+      const c = (d["currency"] as string) || "GBP";
+      currencyCounts[c] = (currencyCounts[c] ?? 0) + 1;
+    }
+    const portfolioCurrency = Object.entries(currencyCounts)
+      .sort((a, b) => b[1] - a[1])[0]?.[0] ?? "GBP";
 
     const fbMap = new Map<string, PBRecord>();
     for (const f of feedbacks) fbMap.set(f["result"] as string, f);
@@ -2831,11 +2842,14 @@ ${rawText}`,
     const catStats: Record<string, {
       total: number; accepted: number; escalated: number; dismissed: number;
       ragCounts: Record<string, number>;
+      /** Documents where this clause was flagged RED, for impact and counterparty attribution. */
+      redDocIds: Set<string>;
     }> = {};
 
     for (const r of results) {
       const cat = r["clauseCategory"] as string;
-      if (!catStats[cat]) catStats[cat] = { total: 0, accepted: 0, escalated: 0, dismissed: 0, ragCounts: {} };
+      if (!catStats[cat]) catStats[cat] = { total: 0, accepted: 0, escalated: 0, dismissed: 0, ragCounts: {}, redDocIds: new Set() };
+      if (r["ragStatus"] === "RED") catStats[cat].redDocIds.add(r["document"] as string);
       catStats[cat].total++;
       catStats[cat].ragCounts[r["ragStatus"] as string] = (catStats[cat].ragCounts[r["ragStatus"] as string] ?? 0) + 1;
       const fb = fbMap.get(r.id);
@@ -2847,29 +2861,103 @@ ${rawText}`,
       }
     }
 
-    // Build Zane NOTICED insights
-    const patterns: { type: string; message: string; severity: "info" | "warn" | "good" }[] = [];
+    // Build Zane NOTICED insights.
+    //
+    // Every pattern below is derived from review outcomes and recorded feedback.
+    // Rules that depend only on review results fire from the first few contracts;
+    // rules that depend on feedback need decision history to accumulate. Each
+    // pattern carries the clause category, the counterparties involved and the
+    // value of the affected contracts, so the client never has to infer them.
+    //
+    // Messages embed a {clause} token rather than a clause name. The client
+    // substitutes the display label so wording matches the rest of the app
+    // ("Limitation of Liability", not "liability cap").
+    interface Pattern {
+      type: string;
+      message: string;
+      severity: "info" | "warn" | "good";
+      clauseCategory?: string;
+      counterparties: string[];
+      contractsAffected: number;
+      /** Value of the affected contracts, or null where no value is recorded. */
+      valueAffected: number | null;
+    }
+    const patterns: Pattern[] = [];
+
+    /** Counterparties and recorded value for a set of affected documents. */
+    const affected = (docIdSet: Set<string>) => {
+      const names = new Set<string>();
+      let value = 0;
+      let valued = 0;
+      for (const id of Array.from(docIdSet)) {
+        const meta = docMetaMap.get(id);
+        if (!meta) continue;
+        if (meta.counterpartyName !== "Unknown") names.add(meta.counterpartyName);
+        if (meta.contractValue > 0) { value += meta.contractValue; valued++; }
+      }
+      return {
+        counterparties: Array.from(names).sort(),
+        contractsAffected: docIdSet.size,
+        valueAffected: valued > 0 ? value : null,
+      };
+    };
 
     for (const [cat, stats] of Object.entries(catStats)) {
-      if (stats.accepted >= 3 && (stats.ragCounts["RED"] ?? 0) > 0) {
+      const red = stats.ragCounts["RED"] ?? 0;
+
+      // Recurring red position. Fires from review results alone.
+      if (red >= 2) {
+        const a = affected(stats.redDocIds);
+        const pct = Math.round((red / stats.total) * 100);
+        patterns.push({
+          type: "recurring_red",
+          message: `{clause} has been flagged RED in ${red} of ${stats.total} reviews (${pct}%). This position is being pushed back on repeatedly.`,
+          severity: "warn",
+          clauseCategory: cat,
+          ...a,
+        });
+      }
+
+      // Consistently clean position. Also independent of feedback.
+      if (red === 0 && stats.total >= 3) {
+        patterns.push({
+          type: "consistently_clean",
+          message: `{clause} has passed your playbook in all ${stats.total} reviews with no red flags.`,
+          severity: "good",
+          clauseCategory: cat,
+          counterparties: [],
+          contractsAffected: stats.total,
+          valueAffected: null,
+        });
+      }
+
+      if (stats.accepted >= 3 && red > 0) {
         patterns.push({
           type: "repeated_acceptance",
-          message: `You've accepted ${stats.ragCounts["RED"]} red-flagged ${cat.replace(/_/g, " ")} clause${stats.ragCounts["RED"] > 1 ? "s" : ""} - consider updating your playbook.`,
+          message: `You have accepted ${red} red-flagged {clause} clause${red > 1 ? "s" : ""}. Consider updating your playbook.`,
           severity: "warn",
+          clauseCategory: cat,
+          ...affected(stats.redDocIds),
         });
       }
       if (stats.escalated >= 2) {
         patterns.push({
           type: "repeated_escalation",
-          message: `${cat.replace(/_/g, " ")} has been escalated ${stats.escalated} times - this clause type consistently needs legal review.`,
+          message: `{clause} has been escalated ${stats.escalated} times. This clause type consistently needs legal review.`,
           severity: "info",
+          clauseCategory: cat,
+          ...affected(stats.redDocIds),
         });
       }
       if ((stats.ragCounts["GREY"] ?? 0) >= 3) {
         patterns.push({
           type: "frequently_absent",
-          message: `${cat.replace(/_/g, " ")} has been absent in ${stats.ragCounts["GREY"]} contracts - worth requesting this clause proactively.`,
+          message: `{clause} has been absent in ${stats.ragCounts["GREY"]} contracts. Worth requesting this clause proactively.`,
           severity: "warn",
+          clauseCategory: cat,
+          counterparties: [],
+          contractsAffected: stats.ragCounts["GREY"] ?? 0,
+          valueAffected: null,
         });
       }
     }
@@ -2885,17 +2973,24 @@ ${rawText}`,
     if (totalRed > 0 && acceptedRed / totalRed > 0.5) {
       patterns.push({
         type: "high_red_acceptance",
-        message: `You've accepted ${acceptedRed} out of ${totalRed} red-flagged clauses. Consider whether your playbook positions are realistic.`,
+        message: `You have accepted ${acceptedRed} out of ${totalRed} red-flagged clauses. Consider whether your playbook positions are realistic.`,
         severity: "warn",
+        counterparties: [],
+        contractsAffected: 0,
+        valueAffected: null,
       });
     }
 
+    // Portfolio-wide fallback, only when no clause category qualified on its own.
     const totalGreen = results.filter((r) => r["ragStatus"] === "GREEN").length;
-    if (totalGreen > 5 && acceptedRed === 0) {
+    if (totalGreen > 5 && acceptedRed === 0 && !patterns.some((p) => p.type === "consistently_clean")) {
       patterns.push({
         type: "clean_streak",
-        message: `${totalGreen} clauses have been green across your contracts - your playbook is working well.`,
+        message: `${totalGreen} clauses have been green across your contracts. Your playbook is holding.`,
         severity: "good",
+        counterparties: [],
+        contractsAffected: 0,
+        valueAffected: null,
       });
     }
 
@@ -2954,6 +3049,42 @@ ${rawText}`,
       }
     }
     counterpartyPatterns.sort((a, b) => b.redCount - a.redCount);
+
+    // A counterparty pushing back on the same clause across contracts is a
+    // negotiating position, not noise. Surfaced as a pattern in its own right.
+    for (const cp of counterpartyPatterns.slice(0, 3)) {
+      const cpDocIds = new Set(
+        results
+          .filter((r) =>
+            r["ragStatus"] === "RED" &&
+            r["clauseCategory"] === cp.clauseCategory &&
+            docMetaMap.get(r["document"] as string)?.counterpartyName === cp.counterparty)
+          .map((r) => r["document"] as string),
+      );
+      const a = affected(cpDocIds);
+      patterns.push({
+        type: "counterparty_concentration",
+        message: `${cp.counterparty} has been flagged RED on {clause} in ${cp.redCount} contracts. Expect the same position in the next negotiation.`,
+        severity: "info",
+        clauseCategory: cp.clauseCategory,
+        ...a,
+        counterparties: [cp.counterparty],
+      });
+    }
+
+    // Positives are worth showing but must not crowd out the actionable ones,
+    // so only the two highest-volume clean positions survive.
+    const cleanRanked = patterns
+      .filter((p) => p.type === "consistently_clean")
+      .sort((a, b) => b.contractsAffected - a.contractsAffected);
+    const cleanKept = new Set(cleanRanked.slice(0, 2));
+    const ranked = patterns.filter((p) => p.type !== "consistently_clean" || cleanKept.has(p));
+
+    // Warnings first, then monitors, then positives.
+    const SEVERITY_ORDER: Record<string, number> = { warn: 0, info: 1, good: 2 };
+    ranked.sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9));
+    patterns.length = 0;
+    patterns.push(...ranked);
 
     // ── Negotiation position drift ───────────────────────────────────────────
     // Clauses where RED was frequently accepted (lawyer accepted below red line)
@@ -3028,6 +3159,7 @@ ${rawText}`,
       counterpartyPatterns: counterpartyPatterns.slice(0, 10),
       negotiationDrift: driftEntries.slice(0, 6),
       decisionSummary,
+      currency: portfolioCurrency,
     });
   }));
 

@@ -585,6 +585,11 @@ export interface ZanePattern {
   type: string;
   message: string;
   severity: "info" | "warn" | "good";
+  clauseCategory?: string;
+  counterparties: string[];
+  contractsAffected: number;
+  /** Value of the affected contracts, null where none is recorded. */
+  valueAffected: number | null;
 }
 
 export interface CounterpartyPattern {
@@ -626,6 +631,7 @@ export const getFeedbackPatterns = () =>
     counterpartyPatterns: CounterpartyPattern[];
     negotiationDrift: NegotiationDrift[];
     decisionSummary: DecisionSummary | null;
+    currency: string;
   }>(
     "GET",
     "/api/feedback/patterns"

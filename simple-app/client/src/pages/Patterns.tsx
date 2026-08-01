@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
-import { getFeedbackPatterns, getOverrideTrend, getCompany } from "../lib/api";
+import { getFeedbackPatterns, getOverrideTrend } from "../lib/api";
 import type { ZanePattern, CounterpartyPattern, NegotiationDrift, OverrideTrendEntry, ClauseOutcome } from "../lib/api";
 import { CLAUSE_LABELS } from "../lib/types";
 import type { ClauseCategory } from "../lib/types";
@@ -29,122 +29,87 @@ interface EnrichedPattern {
   clauseCategory?: string;
 }
 
-// ── Demo patterns for Meridian account ────────────────────────────────────────
-
-const MERIDIAN_DEMO_PATTERNS: EnrichedPattern[] = [
-  {
-    severity: "warn",
-    name: "Liability cap erosion",
-    description: "Technology vendors are consistently pushing liability caps below 1x annual fees. You have accepted this position in 4 of 6 reviews without escalating.",
-    frequency: "4 of 6 contracts (67%) flagged RED",
-    commercialImpact: "Estimated £2.4M in uncapped exposure if any single vendor causes a material service failure.",
-    counterparties: ["Apex Systems Ltd", "DataFlow Technologies", "Vertex Cloud"],
-    suggestedAction: "Update playbook to require 2x annual fees as the minimum acceptable cap and add to red-line enforcement for all vendor agreements.",
-    clauseCategory: "LIABILITY_CAP",
-  },
-  {
-    severity: "warn",
-    name: "Auto-renewal without adequate notice period",
-    description: "4 contracts contain auto-renewal clauses with no notice period or a notice period shorter than 30 days. 2 have already renewed without commercial review.",
-    frequency: "4 of 6 contracts (67%) flagged RED",
-    commercialImpact: "£340k in committed spend renewed automatically. One contract includes a price escalation clause triggered at renewal.",
-    counterparties: ["Nexus Analytics", "CoreData Inc"],
-    suggestedAction: "Require a minimum 60-day notice period in all auto-renewal clauses and flag contracts renewing within 90 days in Timings and Obligations.",
-    clauseCategory: "AUTO_RENEWAL",
-  },
-  {
-    severity: "info",
-    name: "Indemnity scope consistently broad",
-    description: "Counterparties are requesting indemnity clauses covering consequential and indirect losses. These have been escalated 3 times without resolution.",
-    frequency: "3 of 4 contracts (75%) escalated for approval",
-    commercialImpact: "Uncapped consequential loss liability across 4 active contracts. Any claim could significantly exceed the contract value.",
-    counterparties: ["Apex Systems Ltd", "Meridian Supply Co"],
-    suggestedAction: "Narrow indemnity to direct losses only. Use the standard fallback wording in the Playbook for Indemnity clauses.",
-    clauseCategory: "INDEMNITY",
-  },
-  {
-    severity: "good",
-    name: "Governing law fully aligned",
-    description: "All 5 contracts reviewed contain English law and English courts jurisdiction, consistent with your playbook preferred position.",
-    frequency: "5 of 5 contracts (100%) GREEN",
-    commercialImpact: "No jurisdictional risk identified. Consistent governing law across the portfolio simplifies dispute resolution.",
-    counterparties: [],
-    suggestedAction: "No action required. Continue enforcing English law as a non-negotiable position.",
-    clauseCategory: "GOVERNING_LAW",
-  },
-];
-
 // ── Enrich real patterns from data ────────────────────────────────────────────
 
-const PATTERN_META: Record<string, { name: string; impact: string; action: string }> = {
+const PATTERN_META: Record<string, { name: string; action: string }> = {
+  recurring_red: {
+    name: "Recurring red position",
+    action: "Review your playbook position for this clause. Either tighten enforcement or move your stated red line to where you actually settle.",
+  },
+  counterparty_concentration: {
+    name: "Counterparty position",
+    action: "Prepare a fallback for this clause before the next negotiation with this counterparty.",
+  },
   repeated_acceptance: {
     name: "Repeated red-line acceptance",
-    impact: "Accumulated liability exposure from accepting terms below your stated red line.",
     action: "Review your playbook position for this clause type and consider tightening enforcement.",
   },
   repeated_escalation: {
     name: "Consistent escalation pattern",
-    impact: "Operational delays and approval bottlenecks are slowing contract execution.",
     action: "Delegate approval authority or clarify playbook guidance to reduce escalations.",
   },
   frequently_absent: {
     name: "Clause frequently missing",
-    impact: "Unprotected risk exposure where protective language should exist.",
     action: "Request this clause proactively in your standard template.",
   },
   high_red_acceptance: {
     name: "High red acceptance rate",
-    impact: "Systematic playbook erosion: your stated positions may not reflect actual practice.",
     action: "Recalibrate your playbook to reflect realistic negotiation positions.",
+  },
+  consistently_clean: {
+    name: "Position holding",
+    action: "No action required. Continue enforcing this position.",
   },
   clean_streak: {
     name: "Strong playbook alignment",
-    impact: "Reduced legal risk across your contract portfolio.",
     action: "Maintain current playbook positions. Continue monitoring.",
   },
 };
 
-function enrichPattern(
-  p: ZanePattern,
-  outcomes: ClauseOutcome[],
-  counterpartyPats: CounterpartyPattern[],
-): EnrichedPattern {
-  const meta = PATTERN_META[p.type] ?? { name: p.type.replace(/_/g, " "), impact: "Review required.", action: "Consult your playbook." };
+const CURRENCY_SYMBOLS: Record<string, string> = { GBP: "£", USD: "$", EUR: "€" };
 
-  // Try to extract a clause category from the message
-  let relatedOutcome: ClauseOutcome | undefined;
-  for (const o of outcomes) {
-    const clauseLabel = label(o.clauseCategory).toLowerCase();
-    if (p.message.toLowerCase().includes(clauseLabel)) {
-      relatedOutcome = o;
-      break;
-    }
-  }
+function enrichPattern(p: ZanePattern, outcomes: ClauseOutcome[], currency: string): EnrichedPattern {
+  const meta = PATTERN_META[p.type] ?? { name: p.type.replace(/_/g, " "), action: "Consult your playbook." };
+  const outcome = p.clauseCategory ? outcomes.find((o) => o.clauseCategory === p.clauseCategory) : undefined;
 
-  const frequency = relatedOutcome
-    ? (() => {
-        const { total, redCount } = relatedOutcome;
-        const pct = total > 0 ? Math.round((redCount / total) * 100) : 0;
-        return `${redCount} of ${total} contracts (${pct}%) flagged RED`;
-      })()
-    : "Multiple contracts reviewed";
+  // The server sends a {clause} token so the display label stays consistent
+  // with the rest of the app rather than the raw category name.
+  const description = p.clauseCategory
+    ? p.message.replace(/\{clause\}/g, label(p.clauseCategory))
+    : p.message.replace(/\{clause\}/g, "This clause");
 
-  const relatedCounterparties = relatedOutcome
-    ? counterpartyPats
-        .filter((cp) => cp.clauseCategory === relatedOutcome!.clauseCategory && cp.redCount > 0)
-        .slice(0, 3)
-        .map((cp) => cp.counterparty)
-    : [];
+  const plural = (n: number) => `${n} contract${n !== 1 ? "s" : ""}`;
+
+  // A counterparty pattern counts that counterparty's contracts, not every
+  // review of the clause, or the two numbers on the card contradict each other.
+  const frequency = p.type === "counterparty_concentration"
+    ? `${plural(p.contractsAffected)} with this counterparty`
+    : outcome
+      ? `${outcome.redCount} of ${outcome.total} reviews flagged RED`
+      : p.contractsAffected > 0
+        ? `${plural(p.contractsAffected)} affected`
+        : "Across your review history";
+
+  // Only ever states figures that exist in the data. Where no contract value is
+  // recorded, it says so rather than estimating an exposure.
+  const sym = CURRENCY_SYMBOLS[currency] ?? "";
+  const commercialImpact = p.severity === "good"
+    ? "No exposure identified from this position."
+    : p.valueAffected != null
+      ? `${sym}${p.valueAffected.toLocaleString("en-GB")} of contract value across ${plural(p.contractsAffected)} carrying this position.`
+      : p.contractsAffected > 0
+        ? `${plural(p.contractsAffected)} affected. No contract value recorded for these.`
+        : "No contract value recorded.";
 
   return {
     severity: p.severity,
     name: meta.name,
-    description: p.message,
+    description,
     frequency,
-    commercialImpact: meta.impact,
-    counterparties: relatedCounterparties,
+    commercialImpact,
+    counterparties: p.counterparties,
     suggestedAction: meta.action,
-    clauseCategory: relatedOutcome?.clauseCategory,
+    clauseCategory: p.clauseCategory,
   };
 }
 
@@ -201,9 +166,9 @@ function PatternCard({ pattern }: { pattern: EnrichedPattern }) {
           <div className="text-xs text-foreground/80 leading-relaxed">{pattern.frequency}</div>
         </div>
 
-        {/* Commercial impact */}
+        {/* Contract value affected */}
         <div className="rounded-lg bg-[#F8FAFC] border border-[#E2E8F0] px-3 py-2.5">
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Commercial impact</div>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">Contract value affected</div>
           <div className="text-xs text-foreground/80 leading-relaxed">{pattern.commercialImpact}</div>
         </div>
 
@@ -369,22 +334,18 @@ export default function Patterns() {
     queryFn: getFeedbackPatterns,
     staleTime: 5 * 60 * 1000,
   });
-  const { data: company } = useQuery({ queryKey: ["company"], queryFn: getCompany, retry: false });
   const { flags } = useFeatureFlags();
-
-  const isMeridianDemo = (company as { name?: string } | undefined)?.name?.toLowerCase().includes("meridian") ?? false;
 
   const patterns            = data?.patterns ?? [];
   const outcomes            = data?.clauseOutcomes ?? [];
   const counterpartyPats    = data?.counterpartyPatterns ?? [];
   const drift               = data?.negotiationDrift ?? [];
+  const currency            = data?.currency ?? "GBP";
 
-  const hasData = patterns.length > 0 || outcomes.length > 0 || isMeridianDemo;
+  const hasData = patterns.length > 0 || outcomes.length > 0;
 
   // Build enriched patterns for display
-  const enrichedPatterns: EnrichedPattern[] = isMeridianDemo
-    ? MERIDIAN_DEMO_PATTERNS
-    : patterns.map((p) => enrichPattern(p, outcomes, counterpartyPats));
+  const enrichedPatterns: EnrichedPattern[] = patterns.map((p) => enrichPattern(p, outcomes, currency));
 
   return (
     <AppLayout>
@@ -490,7 +451,7 @@ export default function Patterns() {
         )}
 
         {/* ── Counterparty patterns ──────────────────────────────────────────── */}
-        {!isMeridianDemo && counterpartyPats.length > 0 && (
+        {counterpartyPats.length > 0 && (
           <div className="space-y-3">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
               <Users size={13} /> Counterparty behaviour
@@ -507,7 +468,7 @@ export default function Patterns() {
         )}
 
         {/* ── Negotiation drift ──────────────────────────────────────────────── */}
-        {!isMeridianDemo && drift.length > 0 && (
+        {drift.length > 0 && (
           <div className="space-y-3">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
               <GitMerge size={13} /> Negotiation position drift
@@ -532,7 +493,7 @@ export default function Patterns() {
         )}
 
         {/* ── Clause outcome breakdown ──────────────────────────────────────── */}
-        {!isMeridianDemo && outcomes.length > 0 && (
+        {outcomes.length > 0 && (
           <div className="space-y-3">
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
               <TrendingUp size={14} /> Clause outcome breakdown
@@ -582,7 +543,7 @@ export default function Patterns() {
         )}
 
         {/* ── Override rate trend ────────────────────────────────────────────── */}
-        {!isMeridianDemo && <OverrideTrendSection />}
+        <OverrideTrendSection />
 
       </div>
     </AppLayout>
