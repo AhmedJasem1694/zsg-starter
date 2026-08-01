@@ -51,7 +51,7 @@ const LANDING_FAQS = [
   { q: "How do I get started?", a: "A pilot begins with a short onboarding conversation to set up your playbook positions and approval thresholds. From there you can be set up and reviewing your first contract within about twenty minutes. No implementation project. No technical setup. No long sales process." },
   { q: "Do I need a technical team to set this up?", a: "No. There is no technical setup and no implementation project. Your positions are configured during a short onboarding conversation, and all you need to use Zane day to day is a browser or your email." },
   { q: "Are my contracts used to train AI models?", a: "Never. Your contracts are anonymised before any AI model sees them and are never used for model training of any kind. Your data stays yours." },
-  { q: "How is Zane different from Claude for Legal or Harvey?", a: "Claude for Legal is a generic assistant that starts from zero every session. Harvey is built for Magic Circle law firms at six figures a year. Neither of them knows your company. Zane is built specifically for lean in-house teams and gets smarter about your company with every contract reviewed." },
+  { q: "How is Zane different from Claude for Legal or Harvey?", a: "Claude for Legal is a generic assistant that starts from zero every session. Harvey is built for large law firms at enterprise pricing. Neither of them knows your company. Zane is built specifically for lean in-house teams and gets smarter about your company with every contract reviewed." },
   { q: "Can I use Zane from my email?", a: "Yes. You can CC or forward any contract to your dedicated Zane address and it will review it against your playbook and reply in the thread, with everything filed in your library." },
   { q: "Does Zane cover regulatory requirements?", a: "Zane surfaces relevant regulatory references where they matter for your sector, for example healthcare or financial services, and keeps them out of the way for straightforward commercial work." },
   { q: "What happens to my data if I cancel?", a: "Your data is yours. You can export everything before you cancel. We do not hold your data hostage." },
@@ -214,7 +214,7 @@ export default function Landing() {
             {...(shouldReduce ? {} : fadeUpHero(0.6))}
           >
             {[
-              { value: "11 minutes",     label: "Average review time" },
+              { value: "Under five minutes", label: "For a typical contract" },
               { value: "From day one",   label: "Reviews use your own positions" },
               { value: "1 to 5 lawyers", label: "The team size we are built for" },
             ].map(({ value, label }) => (
@@ -270,7 +270,7 @@ export default function Landing() {
             {[
               { value: "2 to 4 hours",     label: "Manual review time per contract" },
               { value: "£800 to £1,600",   label: "The same review at outside counsel rates" },
-              { value: "11 minutes",    label: "Average review time with Zane" },
+              { value: "Under five minutes", label: "For a typical contract with Zane" },
             ].map(({ value, label }) => (
               <motion.div key={label} className="bg-paper px-6 py-7" variants={staggerItem}>
                 <div className="text-2xl font-bold tracking-tight text-ink">{value}</div>
