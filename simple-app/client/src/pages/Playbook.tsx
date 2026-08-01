@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, Save, BarChart2, BookOpen, Sparkles, Loader2, Plus, X, Star, TrendingUp, AlertOctagon, CheckCircle, Shield, AlertTriangle, FileText, Brain } from "lucide-react";
+import { ChevronDown, ChevronUp, Save, BarChart2, BookOpen, Sparkles, Loader2, Plus, X, Star, TrendingUp, AlertOctagon, CheckCircle, Shield, AlertTriangle, FileText, Brain, ArrowRight } from "lucide-react";
 import { getPlaybookRules, updatePlaybookRule, getFeedbackPatterns, generatePlaybookSuggestion, createPlaybookRule, getPlaybookDriftSuggestions, getCompanyRules, approveCompanyRule, rejectCompanyRule, updateCompanyRuleText, getClauseOutcomesExtended, getCompany, getCounterpartyIntelligence, generateBriefing, getSynthesis, generateSynthesis } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import { CLAUSE_LABELS, type ClauseCategory, type PlaybookRule, type ApprovalRole } from "../lib/types";
@@ -872,13 +872,35 @@ function PendingRulesView() {
 
 // ── Extended outcomes view ────────────────────────────────────────────────────
 
-function ExtendedOutcomesView({ outcomes, extendedOutcomes }: { outcomes: ClauseOutcome[]; extendedOutcomes: ExtendedClauseOutcome[] }) {
+function ExtendedOutcomesView({ outcomes, extendedOutcomes, reviewsAnalysed }: { outcomes: ClauseOutcome[]; extendedOutcomes: ExtendedClauseOutcome[]; reviewsAnalysed: number }) {
   const extMap = new Map(extendedOutcomes.map((o) => [o.clauseCategory, o]));
 
+  // Nothing is shown until real reviews exist. The count is stated so the gap
+  // reads as a stage in the process rather than a broken screen.
   if (outcomes.length === 0 && extendedOutcomes.length === 0) {
     return (
-      <div className="text-sm text-muted-foreground py-6 text-center">
-        No feedback data yet. Accept, escalate or dismiss clauses on your review pages to track outcomes here.
+      <div className="card p-14 text-center space-y-5">
+        <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center mx-auto">
+          <TrendingUp size={24} className="text-muted-foreground" />
+        </div>
+        <div className="space-y-2">
+          <div className="font-semibold">No outcomes recorded yet</div>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+            {reviewsAnalysed === 0
+              ? "Outcomes appear as reviews accumulate. Nothing has been reviewed yet."
+              : `Outcomes appear as reviews accumulate. ${reviewsAnalysed} contract${reviewsAnalysed !== 1 ? "s have" : " has"} been reviewed so far.`}
+          </p>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+            Accept, escalate or dismiss clauses on a review page and this table will show how each playbook
+            position actually performs.
+          </p>
+        </div>
+        <div className="flex items-center justify-center pt-1">
+          <Link to="/app/legal/library" className="btn-primary gap-2">
+            Review a contract
+            <ArrowRight size={14} />
+          </Link>
+        </div>
       </div>
     );
   }
@@ -952,18 +974,6 @@ function ExtendedOutcomesView({ outcomes, extendedOutcomes }: { outcomes: Clause
     </div>
   );
 }
-
-// ── Demo outcome data for Meridian Financial Technologies ────────────────────
-const MERIDIAN_DEMO_OUTCOMES: Record<string, ClauseOutcome> = {
-  LIABILITY_CAP:  { clauseCategory: "LIABILITY_CAP",   total: 6, greenCount: 3, amberCount: 2, redCount: 1, accepted: 1, escalated: 1, dismissed: 0 },
-  INDEMNITY:      { clauseCategory: "INDEMNITY",       total: 4, greenCount: 2, amberCount: 2, redCount: 0, accepted: 0, escalated: 0, dismissed: 0 },
-  PAYMENT_TERMS:  { clauseCategory: "PAYMENT_TERMS",   total: 5, greenCount: 1, amberCount: 3, redCount: 1, accepted: 1, escalated: 0, dismissed: 0 },
-  IP_OWNERSHIP:   { clauseCategory: "IP_OWNERSHIP",    total: 4, greenCount: 4, amberCount: 0, redCount: 0, accepted: 0, escalated: 0, dismissed: 0 },
-  CONFIDENTIALITY:{ clauseCategory: "CONFIDENTIALITY", total: 4, greenCount: 3, amberCount: 1, redCount: 0, accepted: 0, escalated: 0, dismissed: 0 },
-  GOVERNING_LAW:  { clauseCategory: "GOVERNING_LAW",   total: 5, greenCount: 5, amberCount: 0, redCount: 0, accepted: 0, escalated: 0, dismissed: 0 },
-  AUTO_RENEWAL:   { clauseCategory: "AUTO_RENEWAL",    total: 4, greenCount: 0, amberCount: 2, redCount: 2, accepted: 2, escalated: 0, dismissed: 0 },
-  TERMINATION:    { clauseCategory: "TERMINATION",     total: 4, greenCount: 3, amberCount: 1, redCount: 0, accepted: 0, escalated: 0, dismissed: 0 },
-};
 
 export default function Playbook() {
   const queryClient = useQueryClient();
@@ -1039,15 +1049,9 @@ export default function Playbook() {
   const [briefingText, setBriefingText] = useState("");
   const [briefingLoading, setBriefingLoading] = useState(false);
 
-  const isMeridianDemo = (company as { name?: string } | undefined)?.name?.toLowerCase().includes("meridian") ?? false;
-  const demoOutcomes: ClauseOutcome[] = isMeridianDemo
-    ? Object.entries(MERIDIAN_DEMO_OUTCOMES).map(([, o]) => ({ ...o }))
-    : [];
-
-  const rawOutcomes = (patternsData?.clauseOutcomes ?? []).length > 0
-    ? (patternsData?.clauseOutcomes ?? [])
-    : demoOutcomes;
-
+  // Outcomes come from real reviews only. Where there are none, the outcome
+  // column stays empty rather than falling back to invented counts.
+  const rawOutcomes = patternsData?.clauseOutcomes ?? [];
   const outcomeMap = new Map<string, ClauseOutcome>(
     rawOutcomes.map((o) => [o.clauseCategory, o])
   );
@@ -1347,6 +1351,7 @@ export default function Playbook() {
           <ExtendedOutcomesView
             outcomes={patternsData?.clauseOutcomes ?? []}
             extendedOutcomes={extendedOutcomes ?? []}
+            reviewsAnalysed={patternsData?.reviewsAnalysed ?? 0}
           />
         ) : tab === "rules" ? (
           <PendingRulesView />
