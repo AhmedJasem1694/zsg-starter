@@ -2881,8 +2881,30 @@ ${rawText}`,
       contractsAffected: number;
       /** Value of the affected contracts, or null where no value is recorded. */
       valueAffected: number | null;
+      /**
+       * Action phrased against the company's own playbook rule. Only set where a
+       * rule exists for the clause; the client falls back to generic wording.
+       */
+      suggestedAction?: string;
     }
     const patterns: Pattern[] = [];
+
+    // The company's own playbook, so suggested actions cite the position the
+    // reader actually wrote rather than generic advice.
+    const playbookRules = await pb.collection("playbook_rules").getFullList({
+      filter: `company = "${company.id}"`,
+      fields: "clauseCategory,preferredPosition,acceptableFallback,hardRedLine",
+    }).catch(() => [] as PBRecord[]);
+    const ruleByCat = new Map<string, PBRecord>();
+    for (const r of playbookRules) ruleByCat.set(r["clauseCategory"] as string, r);
+
+    /** First sentence of a playbook position, for quoting inside an action. */
+    const firstSentence = (s: unknown) => {
+      const t = String(s ?? "").trim();
+      if (!t) return "";
+      const m = t.match(/^.*?[.!?](\s|$)/);
+      return (m ? m[0] : t).trim();
+    };
 
     /** Counterparties and recorded value for a set of affected documents. */
     const affected = (docIdSet: Set<string>) => {
@@ -3072,6 +3094,93 @@ ${rawText}`,
       });
     }
 
+    // ── Decision events (structured human-judgment capture) ──────────────────
+    // The moat layer: every accept / override / modify / ignore decision feeds
+    // the negotiation intelligence view directly.
+    const decisionEvents = await pb.collection("decision_events").getFullList({
+      filter: `company = "${company.id}"`,
+      sort: "-created",
+    }).catch(() => [] as PBRecord[]);
+
+    // Repeated acceptance below the playbook position. A decision counts when
+    // Zane said do not accept as drafted and the human accepted anyway. This
+    // reads decision_events rather than user_feedback because the reasoning is
+    // captured there, and it is what the review flow writes on every decision.
+    const belowByCat = new Map<string, Set<string>>();
+    for (const e of decisionEvents) {
+      if (String(e["human_action"] ?? "") !== "accepted") continue;
+      const rec = String(e["zane_recommendation"] ?? "");
+      if (rec !== "reject" && rec !== "negotiate" && rec !== "escalate") continue;
+      const cat = String(e["clause_category"] ?? "");
+      const contract = String(e["contract"] ?? "");
+      if (!cat || !docMetaMap.has(contract)) continue;
+      let set = belowByCat.get(cat);
+      if (!set) { set = new Set(); belowByCat.set(cat, set); }
+      set.add(contract);
+    }
+    for (const [cat, docIdSet] of Array.from(belowByCat.entries())) {
+      if (docIdSet.size < 2) continue;
+      const a = affected(docIdSet);
+      const preferred = firstSentence(ruleByCat.get(cat)?.["preferredPosition"]);
+      patterns.push({
+        type: "below_playbook_acceptance",
+        message: `You have accepted {clause} below your playbook position in ${a.contractsAffected} contracts. Each one was flagged before it was signed.`,
+        severity: "warn",
+        clauseCategory: cat,
+        ...a,
+        suggestedAction: preferred
+          ? `Your playbook position is: ${preferred} Either hold that line at the next renewal, or move the stated position to where you actually settle.`
+          : undefined,
+      });
+    }
+
+    // Auto-renewal exposure. Renewal terms that were flagged and signed anyway
+    // roll over on their own, so they cost money without a further decision.
+    const autoRenewDocs = new Set(
+      results
+        .filter((r) => r["clauseCategory"] === "AUTO_RENEWAL" && (r["ragStatus"] === "RED" || r["ragStatus"] === "AMBER"))
+        .map((r) => r["document"] as string)
+        .filter((id) => docMetaMap.has(id)),
+    );
+    if (autoRenewDocs.size >= 2) {
+      const a = affected(autoRenewDocs);
+      const redline = firstSentence(ruleByCat.get("AUTO_RENEWAL")?.["hardRedLine"]);
+      patterns.push({
+        type: "auto_renewal_exposure",
+        message: `${a.contractsAffected} contracts renew automatically on notice periods that fall short of your playbook. They roll over unless someone acts before the window closes.`,
+        severity: "warn",
+        clauseCategory: "AUTO_RENEWAL",
+        ...a,
+        suggestedAction: redline
+          ? `Your red line is: ${redline} Diarise each renewal window now, and reopen the notice period at the next negotiation.`
+          : undefined,
+      });
+    }
+
+    // One card per clause type, the most specific one. Without this, a liability
+    // cap accepted below playbook three times would also produce a generic
+    // "flagged RED repeatedly" card saying less about the same contracts.
+    const SPECIFICITY: Record<string, number> = {
+      auto_renewal_exposure: 0,
+      below_playbook_acceptance: 1,
+      repeated_acceptance: 2,
+      recurring_red: 3,
+    };
+    const bestForCat = new Map<string, number>();
+    for (const p of patterns) {
+      const rank = SPECIFICITY[p.type];
+      if (rank === undefined || !p.clauseCategory) continue;
+      const current = bestForCat.get(p.clauseCategory);
+      if (current === undefined || rank < current) bestForCat.set(p.clauseCategory, rank);
+    }
+    const deduped = patterns.filter((p) => {
+      const rank = SPECIFICITY[p.type];
+      if (rank === undefined || !p.clauseCategory) return true;
+      return rank === bestForCat.get(p.clauseCategory);
+    });
+    patterns.length = 0;
+    patterns.push(...deduped);
+
     // Warnings first, then monitors, then positives. Clean positions are shown
     // in full: which of your positions are holding is part of the picture, and
     // ordering already keeps the actionable ones at the top.
@@ -3109,14 +3218,6 @@ ${rawText}`,
       }
     }
     driftEntries.sort((a, b) => b.driftPct - a.driftPct);
-
-    // ── Decision events (structured human-judgment capture) ──────────────────
-    // The moat layer: every accept / override / modify / ignore decision feeds
-    // the negotiation intelligence view directly.
-    const decisionEvents = await pb.collection("decision_events").getFullList({
-      filter: `company = "${company.id}"`,
-      sort: "-created",
-    }).catch(() => [] as PBRecord[]);
 
     const byAction: Record<string, number> = {};
     const byCategory: Record<string, { total: number; overridden: number }> = {};
@@ -3156,6 +3257,9 @@ ${rawText}`,
       negotiationDrift: driftEntries.slice(0, 6),
       decisionSummary,
       currency: portfolioCurrency,
+      // Drives the empty state, which reports how far off patterns are rather
+      // than padding the page with placeholders.
+      reviewsAnalysed: docs.length,
     });
   }));
 

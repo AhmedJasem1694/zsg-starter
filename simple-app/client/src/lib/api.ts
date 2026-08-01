@@ -590,6 +590,8 @@ export interface ZanePattern {
   contractsAffected: number;
   /** Value of the affected contracts, null where none is recorded. */
   valueAffected: number | null;
+  /** Action citing the company's own playbook rule, where one exists. */
+  suggestedAction?: string;
 }
 
 export interface CounterpartyPattern {
@@ -632,6 +634,7 @@ export const getFeedbackPatterns = () =>
     negotiationDrift: NegotiationDrift[];
     decisionSummary: DecisionSummary | null;
     currency: string;
+    reviewsAnalysed: number;
   }>(
     "GET",
     "/api/feedback/patterns"

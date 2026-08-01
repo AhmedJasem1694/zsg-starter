@@ -32,6 +32,14 @@ interface EnrichedPattern {
 // ── Enrich real patterns from data ────────────────────────────────────────────
 
 const PATTERN_META: Record<string, { name: string; action: string }> = {
+  below_playbook_acceptance: {
+    name: "Repeated acceptance below playbook",
+    action: "Review your playbook position for this clause. Either hold the line at the next renewal, or move the stated position to where you actually settle.",
+  },
+  auto_renewal_exposure: {
+    name: "Automatic renewal exposure",
+    action: "Diarise each renewal window now, and reopen the notice period at the next negotiation.",
+  },
   recurring_red: {
     name: "Recurring red position",
     action: "Review your playbook position for this clause. Either tighten enforcement or move your stated red line to where you actually settle.",
@@ -80,15 +88,20 @@ function enrichPattern(p: ZanePattern, outcomes: ClauseOutcome[], currency: stri
 
   const plural = (n: number) => `${n} contract${n !== 1 ? "s" : ""}`;
 
-  // A counterparty pattern counts that counterparty's contracts, not every
-  // review of the clause, or the two numbers on the card contradict each other.
-  const frequency = p.type === "counterparty_concentration"
-    ? `${plural(p.contractsAffected)} with this counterparty`
-    : outcome
+  // Frequency must count what the pattern actually detected. A counterparty
+  // pattern counts that counterparty's contracts and an acceptance pattern
+  // counts acceptances, otherwise the two numbers on the card contradict.
+  const FREQUENCY_BY_TYPE: Record<string, string> = {
+    counterparty_concentration: `${plural(p.contractsAffected)} with this counterparty`,
+    below_playbook_acceptance: `${plural(p.contractsAffected)} accepted below playbook`,
+    auto_renewal_exposure: `${plural(p.contractsAffected)} renewing automatically`,
+  };
+  const frequency = FREQUENCY_BY_TYPE[p.type]
+    ?? (outcome
       ? `${outcome.redCount} of ${outcome.total} reviews flagged RED`
       : p.contractsAffected > 0
         ? `${plural(p.contractsAffected)} affected`
-        : "Across your review history";
+        : "Across your review history");
 
   // Only ever states figures that exist in the data. Where no contract value is
   // recorded, it says so rather than estimating an exposure.
@@ -108,7 +121,9 @@ function enrichPattern(p: ZanePattern, outcomes: ClauseOutcome[], currency: stri
     frequency,
     commercialImpact,
     counterparties: p.counterparties,
-    suggestedAction: meta.action,
+    // The server sends an action citing the company's own playbook rule where
+    // one exists; the generic wording is only a fallback.
+    suggestedAction: p.suggestedAction ?? meta.action,
     clauseCategory: p.clauseCategory,
   };
 }
@@ -341,6 +356,7 @@ export default function Patterns() {
   const counterpartyPats    = data?.counterpartyPatterns ?? [];
   const drift               = data?.negotiationDrift ?? [];
   const currency            = data?.currency ?? "GBP";
+  const reviewsAnalysed     = data?.reviewsAnalysed ?? 0;
 
   const hasData = patterns.length > 0 || outcomes.length > 0;
 
@@ -378,17 +394,20 @@ export default function Patterns() {
             <div className="space-y-2">
               <div className="font-semibold">No patterns detected yet</div>
               <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
-                Zane builds memory from your review decisions. After you accept, negotiate, or escalate clauses across
-                5 or more contracts, patterns will surface here: recurring counterparty behaviour, clause types
-                that consistently fail your playbook, and drift between your stated positions and actual outcomes.
+                {reviewsAnalysed === 0
+                  ? "Patterns appear as reviews accumulate. Nothing has been reviewed yet."
+                  : `Patterns appear as reviews accumulate. ${reviewsAnalysed} contract${reviewsAnalysed !== 1 ? "s have" : " has"} been reviewed so far, which is not yet enough for the same position to repeat across contracts.`}
+              </p>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+                A pattern needs the same clause type to recur, so recurring counterparty behaviour, positions accepted
+                below your playbook, and automatic renewals will surface here once they do.
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-1">
+            <div className="flex items-center justify-center pt-1">
               <Link to="/app/legal/library" className="btn-primary gap-2">
                 Review a contract
                 <ArrowRight size={14} />
               </Link>
-              <p className="text-xs text-muted-foreground">Patterns emerge after feedback on 5+ reviews</p>
             </div>
           </div>
         )}

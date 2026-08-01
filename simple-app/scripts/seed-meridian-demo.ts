@@ -97,6 +97,12 @@ const PLAYBOOK: Array<{
     fallback: "Professional indemnity and cyber cover of at least 2 million pounds each, and public liability of at least 1 million pounds, with evidence on request.",
     redline: "No cyber or data-breach cover, professional indemnity below 1 million pounds, or cover that lapses on termination with no run-off period.",
   },
+  {
+    cat: "AUTO_RENEWAL", approval: "GC", weight: 4,
+    preferred: "No automatic renewal. Any extension is agreed in writing before the end of the term, with pricing reviewed at that point.",
+    fallback: "Automatic renewal for no more than 12 months, with at least 90 days' written notice of non-renewal and any uplift capped at CPI.",
+    redline: "Automatic renewal with no notice window, a notice window of 30 days or less, or an uncapped price increase taking effect on renewal.",
+  },
 ];
 
 // ─── Counterparty contracts + reviews + decision events ────────────────────────
@@ -119,6 +125,7 @@ const CONTRACTS: Contract[] = [
   { counterparty: "Acme Technologies Ltd", name: "Acme Technologies, SaaS Order Form 2025", type: "SaaS_AGREEMENT", value: 95_000, decisions: [
     { cat: "LIABILITY_CAP", rag: "AMBER", action: "modified", final: "18 months of fees, carve-outs retained", reason: "Counterparty pushed to 18 months on a lower-value order", summary: "Cap negotiated to 18 months of fees on this order, carve-outs retained." },
     { cat: "INDEMNITY", rag: "AMBER", action: "modified", final: "Mutual indemnity, capped except IP and data", reason: "Moved to a mutual indemnity", summary: "Indemnity became mutual, capped except IP and data limbs." },
+    { cat: "AUTO_RENEWAL", rag: "RED", action: "accepted", final: "Renews automatically for 12 months, 14 day notice window retained", reason: "Order form signed to hit the go-live date before the renewal terms were negotiated", summary: "Renews automatically for successive 12 month terms. Notice of non-renewal must be given in the 14 days before expiry, well inside our 90 day red line.", reasonCategory: "Commercial pressure", reasonText: "Go-live date drove the signature; the renewal window was accepted as drafted and needs reopening before the next term." },
   ] },
 
   // Nexus Solutions Ltd, consistently pushes back on liability, typical counter 12 months.
@@ -143,6 +150,7 @@ const CONTRACTS: Contract[] = [
   { counterparty: "DataFlow Technologies", name: "DataFlow Technologies, API Integration Agreement", type: "SaaS_AGREEMENT", value: 60_000, decisions: [
     { cat: "IP_OWNERSHIP", rag: "GREEN", action: "accepted", final: "Assignment of bespoke deliverables on payment", reason: "Accepted assignment", summary: "Counterparty assigned bespoke deliverables on payment." },
     { cat: "CONFIDENTIALITY", rag: "GREEN", action: "accepted", final: "Mutual, 5 year survival", reason: "Accepted confidentiality terms", summary: "Mutual confidentiality surviving 5 years." },
+    { cat: "AUTO_RENEWAL", rag: "RED", action: "accepted", final: "Renews automatically for 12 months, no notice window and no uplift cap", reason: "Renewal terms not challenged at signature", summary: "Renews automatically for successive 12 month terms with no notice window at all, and the fee uplift on renewal is uncapped.", reasonCategory: "Missed at review", reasonText: "The renewal clause was not raised during the review; it breaches both limbs of the auto-renewal red line." },
   ] },
 ];
 
