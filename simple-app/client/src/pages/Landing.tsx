@@ -39,16 +39,6 @@ const staggerItem = {
   show:   { opacity: 1, y: 0, transition: SPRING_SNAP },
 };
 
-// Slow, sequential reveal for the product-preview rows: elegant, one after another.
-const rowsReveal = {
-  hidden: {},
-  show:   { transition: { staggerChildren: 0.18, delayChildren: 0.2 } },
-};
-const rowReveal = {
-  hidden: { opacity: 0, y: 10 },
-  show:   { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as const } },
-};
-
 // ─── Type scale ───────────────────────────────────────────────────────────────
 // hero:     text-4xl sm:text-6xl font-bold tracking-tight leading-[1.05]
 // section:  text-3xl sm:text-4xl font-bold tracking-tight
@@ -195,7 +185,7 @@ export default function Landing() {
             className="mt-8 text-lg sm:text-xl text-slate-300 leading-relaxed max-w-2xl mx-auto"
             {...(shouldReduce ? {} : fadeUpHero(0.25))}
           >
-            Most legal AI forgets the moment you close the document. Zane remembers what your company decided, and gets smarter with every contract.
+            Zane records the reasoning behind every decision you make, at the moment you make it. Your next review starts from everything you have already decided.
           </motion.p>
 
           {/* Supporting line */}
@@ -237,62 +227,38 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── PRODUCT PREVIEW: Next actions, lifted out of the hero ───────────── */}
-      <section className="bg-navy-900 border-t border-line-dark py-24 sm:py-32">
-        <div className="max-w-3xl mx-auto px-6">
-          <motion.div className="text-center space-y-3" {...headingReveal}>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">The product</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F8FAFC]">
-              See what needs your attention.
-            </h2>
-          </motion.div>
-
-          {/* Clean framed product visual */}
-          <motion.div
-            className="mt-12 mx-auto max-w-xl text-left rounded-xl border border-line-dark bg-navy-800 shadow-2xl overflow-hidden"
-            {...(shouldReduce ? {} : fadeUp(0.1))}
-          >
-            <div className="px-4 py-2.5 border-b border-line-dark text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-              Next actions
-            </div>
-            <motion.div
-              className="divide-y divide-line-dark/60"
-              {...(shouldReduce ? {} : { variants: rowsReveal, initial: "hidden", whileInView: "show", viewport: { once: true, amount: 0.4 } })}
-            >
-              {[
-                { name: "Technology Services Agreement", cp: "Acme Technologies Ltd",  dot: "bg-red-400/80",   label: "Do not sign yet" },
-                { name: "Master Services Agreement",     cp: "Nexus Solutions Ltd",    dot: "bg-amber-400/80", label: "Negotiate first" },
-                { name: "Software Licence Agreement",    cp: "DataFlow Technologies",  dot: "bg-red-400/80",   label: "Review needed" },
-              ].map((item) => (
-                <motion.div key={item.name} className="px-4 py-3 flex items-center gap-3" {...(shouldReduce ? {} : { variants: rowReveal })}>
-                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.dot}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-medium text-[#F8FAFC] truncate">{item.name}</div>
-                    <div className="text-[11px] text-slate-500 truncate">{item.cp}</div>
-                  </div>
-                  <span className="text-[11px] text-slate-400 shrink-0">{item.label}</span>
-                </motion.div>
-              ))}
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ─── PROBLEM ─────────────────────────────────────────────────────────── */}
+      {/* ─── ONE: THE PROBLEM ────────────────────────────────────────────────── */}
       <section id="why-zane" className="bg-paper py-24 sm:py-36">
         <div className="max-w-2xl mx-auto px-6">
           <motion.div className="space-y-6" {...headingReveal}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">The problem</p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
-              Every contract carries decisions nobody wrote down.
+              Every contract you sign carries decisions nobody wrote down.
             </h2>
           </motion.div>
           <motion.div className="mt-8 space-y-5 text-base text-slate-600 leading-relaxed" {...fadeUp(0.1)}>
-            <p className="text-justify">
-              Every contract a company signs carries decisions that are never recorded. The same positions get renegotiated from scratch because no one captured how they were resolved last time. Paper often reaches the business before it reaches a lawyer, so deals get signed that should not be, or the legal team is buried in work that never needed them. And when a lawyer leaves, their judgment leaves too. Whoever inherits the relationship spends hours reconstructing what was already known.
+            <p>
+              You decide something, and the reasoning disappears with the thread. Paper reaches the business before it reaches you, so deals get signed that should not be, and you get buried in work that never needed you. When someone leaves, their judgment leaves with them, and whoever inherits the relationship spends hours reconstructing what was already known.
             </p>
             <p className="text-ink font-medium">
-              Most contracts are signed exactly as they arrive. Not because the terms are fair, but because there is no infrastructure to do anything else.
+              Most contracts get signed exactly as they arrive. Not because the terms are fair, but because you have no infrastructure to do anything else.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─── TWO: THE COST ───────────────────────────────────────────────────── */}
+      <section className="bg-paper border-t border-line-light py-24 sm:py-36">
+        <div className="max-w-2xl mx-auto px-6">
+          <motion.div className="space-y-6" {...headingReveal}>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">What it costs</p>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
+              You negotiate the same position twice.
+            </h2>
+          </motion.div>
+          <motion.div className="mt-8 space-y-5 text-base text-slate-600 leading-relaxed" {...fadeUp(0.1)}>
+            <p>
+              The concession you made last quarter gets made again, because nobody recorded why. The position you fought for gets reopened, because the reasoning was never written down. Every new joiner starts from zero and rebuilds what you already knew.
             </p>
           </motion.div>
 
@@ -315,7 +281,27 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── HOW ZANE WORKS: 3 steps ────────────────────────────────────────── */}
+      {/* ─── TWO (cont.): THE COST ALREADY ON YOUR SHELF ─────────────────────── */}
+      <section className="bg-paper border-t border-line-light py-24 sm:py-36">
+        <div className="max-w-2xl mx-auto px-6">
+          <motion.div className="rounded-xl border border-line-light bg-white px-8 py-10 text-center space-y-5 transition-shadow duration-300 hover:shadow-xl" {...headingReveal} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Legacy contract review</p>
+            <h2 className="text-2xl font-bold tracking-tight text-ink">You are holding hundreds of contracts nobody has read.</h2>
+            <p className="text-sm text-slate-600 leading-relaxed max-w-lg mx-auto">
+              Signed years ago, never looked at since. Zane maps the whole estate, the terms, the renewal dates, the risks, so you know exactly what you are holding. Days, not months.
+            </p>
+            <div className="pt-1">
+              <a href="https://calendly.com/ahmedljasem/30min"
+                target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-cobalt/25 motion-safe:hover:-translate-y-0.5 text-sm">
+                Book a conversation <ArrowRight size={15} />
+              </a>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ─── THREE: THE MECHANISM ───────────────────────────────────────────── */}
       <section id="how-it-works" className="bg-paper border-t border-line-light py-24 sm:py-36">
         <div className="max-w-4xl mx-auto px-6">
           <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
@@ -338,12 +324,12 @@ export default function Landing() {
               {
                 step: "02",
                 title: "See it against everything you know",
-                body: "Each clause is checked against your company's own positions and your history with this counterparty, not generic market standard. You get a Red, Amber, or Green verdict, the risk in plain English, and the exact wording to send back.",
+                body: "Each clause is checked against your own positions and your history with this counterparty, not generic market standard. You get a Red, Amber, or Green verdict, the risk in plain English, and the exact wording to send back.",
               },
               {
                 step: "03",
                 title: "Decide once. Zane remembers",
-                body: "You make the call and Zane records it, with the reasoning behind it. Every decision sharpens the next review, and stays with the company when people move on.",
+                body: "You make the call and Zane records it, with your reasoning attached. Every decision sharpens the next review, and stays behind when people move on.",
               },
             ].map(({ step, title, body }) => (
               <motion.div key={step} className="rounded-xl border border-line-light bg-white px-6 py-7 transition-shadow duration-300 hover:shadow-xl" variants={staggerItem} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
@@ -356,20 +342,20 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── EMAIL AGENT: works where you already work ──────────────────────── */}
+      {/* ─── FOUR: THE PROOF ─────────────────────────────────────────────────── */}
       <section id="email-agent" className="bg-paper border-t border-line-light py-24 sm:py-36">
         <div className="max-w-4xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <motion.div className="space-y-6" {...headingReveal}>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">From your inbox</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">What you get back</p>
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
-                Zane works where you already work.
+                The review comes back with the language to send.
               </h2>
               <p className="text-base text-slate-600 leading-relaxed">
-                You do not have to log in to use Zane. Copy it on an email and it reviews the attached
-                contract against your positions, replies in the thread, and files everything in your
-                library. Every review adds to what Zane knows about your counterparties. First drafts
-                of NDAs and routine agreements on request.
+                You never have to log in. Copy Zane on the email and it reviews the attachment against
+                your positions, replies in the thread, and files the result in your library. Every
+                clause it flags comes with the risk in plain English and the wording to send back.
+                First drafts of NDAs and routine agreements on request.
               </p>
             </motion.div>
 
@@ -416,16 +402,16 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── THE MEMORY STORY: dark ─────────────────────────────────────────── */}
+      {/* ─── FIVE: THE OBJECTION ─────────────────────────────────────────────── */}
       <section className="bg-navy-900 py-24 sm:py-36">
         <div className="max-w-4xl mx-auto px-6">
           <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">What compounds</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">The difference</p>
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F8FAFC]">
-              Most legal AI starts from zero every time. Zane never forgets.
+              Other tools remember documents. Zane remembers why you decided.
             </h2>
             <p className="text-base text-slate-400 leading-relaxed">
-              It reviews every contract against everything your company has already decided, remembers the reasoning behind your toughest calls, and even catches when a schedule points to the wrong clause in the master agreement. The review itself is becoming a commodity. The memory is what cannot be copied.
+              Any competent legal AI can read a contract and tell you what is in it. The question is what survives the review. Zane captures the decision and your reasoning at the moment you make it, from your own contracts and your own playbook, and holds both against the counterparty who pushed. That record belongs to your company, and it gets denser with every contract you sign.
             </p>
           </motion.div>
 
@@ -434,8 +420,8 @@ export default function Landing() {
             variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.25 }}
           >
             {[
-              { count: "01", title: "Inheritance",            body: "When someone leaves, the knowledge stays. A new joiner inherits the playbook, the decision history, and the counterparty patterns, instead of starting from zero." },
-              { count: "02", title: "Per vendor intelligence", body: "Zane aligns what it learns to each counterparty. The next contract from a known vendor surfaces how they negotiate, what they push on, and what you accepted before and why." },
+              { count: "01", title: "Inheritance",            body: "When someone leaves, what they knew stays. Whoever picks up the relationship inherits your playbook, your decision history and the counterparty patterns, instead of starting from zero." },
+              { count: "02", title: "Per vendor intelligence", body: "The next contract from a vendor you know shows how they negotiate, what they push on, and what you accepted last time and why." },
               { count: "03", title: "Portfolio risk",          body: "Across your whole contract estate, Zane shows your exposure, your open escalations, and your upcoming renewals. The view a head of legal needs for the board." },
             ].map(({ count, title, body }) => (
               <motion.div key={count} className="rounded-xl border border-line-dark bg-navy-800 px-6 py-7 transition-shadow duration-300 hover:shadow-lg" variants={staggerItem} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
@@ -448,71 +434,14 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── WHO IT IS FOR ───────────────────────────────────────────────────── */}
-      <section className="bg-paper py-24 sm:py-36">
-        <div className="max-w-4xl mx-auto px-6">
-          <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Who it is for</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
-              Whether you have a legal team or you are doing it yourself.
-            </h2>
-          </motion.div>
-
-          <motion.div
-            className="mt-14 grid sm:grid-cols-3 gap-5"
-            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.25 }}
-          >
-            {[
-              {
-                title: "In-house team of 1 to 5 lawyers",
-                body: "The team size Zane is built for. One shared playbook, approval thresholds enforced automatically, every review remembered and applied, and nothing lost when someone leaves.",
-              },
-              {
-                title: "Founder with contracts and no lawyer",
-                body: "A supplier sends you an MSA. You are not a lawyer, and outside counsel is not cheap. Upload it and know what to do in minutes.",
-              },
-              {
-                title: "Business team, before legal",
-                body: "Sales and procurement often touch contracts before legal does. Zane gives them guardrails, so routine paper keeps moving and only the real risks reach a lawyer. It is bowling with the bumpers up.",
-              },
-            ].map(({ title, body }) => (
-              <motion.div key={title} className="rounded-xl border border-line-light bg-white px-6 py-7 transition-shadow duration-300 hover:shadow-xl" variants={staggerItem} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
-                <h3 className="text-base font-semibold text-ink">{title}</h3>
-                <p className="mt-2 text-sm text-slate-600 leading-relaxed">{body}</p>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ─── LEGACY CONTRACT REVIEW ──────────────────────────────────────────── */}
-      <section className="bg-paper border-t border-line-light py-24 sm:py-36">
-        <div className="max-w-2xl mx-auto px-6">
-          <motion.div className="rounded-xl border border-line-light bg-white px-8 py-10 text-center space-y-5 transition-shadow duration-300 hover:shadow-xl" {...headingReveal} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Legacy contract review</p>
-            <h2 className="text-2xl font-bold tracking-tight text-ink">Hundreds of signed contracts nobody has read.</h2>
-            <p className="text-sm text-slate-600 leading-relaxed max-w-lg mx-auto">
-              Most companies are sitting on hundreds of signed contracts no one has looked at in years. Zane maps the whole estate, the terms, the renewal dates, the risks, so you know exactly what you are holding. Days, not months.
-            </p>
-            <div className="pt-1">
-              <a href="https://calendly.com/ahmedljasem/30min"
-                target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-cobalt/25 motion-safe:hover:-translate-y-0.5 text-sm">
-                Book a conversation <ArrowRight size={15} />
-              </a>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ─── PRICING: conversation-led ──────────────────────────────────────── */}
+      {/* ─── FIVE (cont.): THE OBJECTION ON PRICE ───────────────────────────── */}
       <section id="pricing" className="bg-navy-900 py-24 sm:py-36">
         <div className="max-w-2xl mx-auto px-6 text-center">
           <motion.div className="space-y-6" {...headingReveal}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pricing</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F8FAFC]">Priced for lean legal teams</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F8FAFC]">Priced for a team your size.</h2>
             <p className="text-base text-slate-400 leading-relaxed max-w-xl mx-auto">
-              Zane is priced for lean legal functions, not enterprise budgets. Every pilot starts with a conversation so we can configure Zane around your contracts, your sector, and your risk positions. Pricing is agreed before you commit to anything.
+              Zane is priced for lean legal functions, not enterprise budgets. Every pilot starts with a conversation, so Zane is configured around your contracts, your sector and your positions. You agree pricing before you commit to anything.
             </p>
             <div className="pt-2">
               <a href="https://calendly.com/ahmedljasem/30min"
@@ -530,7 +459,7 @@ export default function Landing() {
         <div className="max-w-2xl mx-auto px-6">
           <motion.div className="space-y-6" {...headingReveal}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Questions</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">Frequently asked questions</h2>
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">The questions you are about to ask.</h2>
           </motion.div>
           <div className="mt-12 border-t border-line-light">
             {LANDING_FAQS.map((faq, i) => {
@@ -559,7 +488,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── REQUEST ACCESS: final ──────────────────────────────────────────── */}
+      {/* ─── SIX: THE ASK ───────────────────────────────────────────────────── */}
       <section className="bg-navy-950 py-24 sm:py-36">
         <div className="max-w-2xl mx-auto px-6 text-center">
           <motion.div className="space-y-6" {...headingReveal}>
