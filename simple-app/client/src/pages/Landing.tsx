@@ -281,26 +281,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ─── TWO (cont.): THE COST ALREADY ON YOUR SHELF ─────────────────────── */}
-      <section className="bg-paper border-t border-line-light py-24 sm:py-36">
-        <div className="max-w-2xl mx-auto px-6">
-          <motion.div className="rounded-xl border border-line-light bg-white px-8 py-10 text-center space-y-5 transition-shadow duration-300 hover:shadow-xl" {...headingReveal} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Legacy contract review</p>
-            <h2 className="text-2xl font-bold tracking-tight text-ink">You are holding hundreds of contracts nobody has read.</h2>
-            <p className="text-sm text-slate-600 leading-relaxed max-w-lg mx-auto">
-              Signed years ago, never looked at since. Zane maps the whole estate, the terms, the renewal dates, the risks, so you know exactly what you are holding. Days, not months.
-            </p>
-            <div className="pt-1">
-              <a href="https://calendly.com/ahmedljasem/30min"
-                target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-cobalt/25 motion-safe:hover:-translate-y-0.5 text-sm">
-                Book a conversation <ArrowRight size={15} />
-              </a>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
       {/* ─── THREE: THE MECHANISM ───────────────────────────────────────────── */}
       <section id="how-it-works" className="bg-paper border-t border-line-light py-24 sm:py-36">
         <div className="max-w-4xl mx-auto px-6">
@@ -443,13 +423,6 @@ export default function Landing() {
             <p className="text-base text-slate-400 leading-relaxed max-w-xl mx-auto">
               Zane is priced for lean legal functions, not enterprise budgets. Every pilot starts with a conversation, so Zane is configured around your contracts, your sector and your positions. You agree pricing before you commit to anything.
             </p>
-            <div className="pt-2">
-              <a href="https://calendly.com/ahmedljasem/30min"
-                target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-cobalt/25 motion-safe:hover:-translate-y-0.5 text-sm">
-                Book a conversation <ArrowRight size={15} />
-              </a>
-            </div>
           </motion.div>
         </div>
       </section>
