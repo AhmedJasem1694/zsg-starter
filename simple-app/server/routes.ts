@@ -3072,19 +3072,14 @@ ${rawText}`,
       });
     }
 
-    // Positives are worth showing but must not crowd out the actionable ones,
-    // so only the two highest-volume clean positions survive.
-    const cleanRanked = patterns
-      .filter((p) => p.type === "consistently_clean")
-      .sort((a, b) => b.contractsAffected - a.contractsAffected);
-    const cleanKept = new Set(cleanRanked.slice(0, 2));
-    const ranked = patterns.filter((p) => p.type !== "consistently_clean" || cleanKept.has(p));
-
-    // Warnings first, then monitors, then positives.
+    // Warnings first, then monitors, then positives. Clean positions are shown
+    // in full: which of your positions are holding is part of the picture, and
+    // ordering already keeps the actionable ones at the top.
     const SEVERITY_ORDER: Record<string, number> = { warn: 0, info: 1, good: 2 };
-    ranked.sort((a, b) => (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9));
-    patterns.length = 0;
-    patterns.push(...ranked);
+    patterns.sort((a, b) => {
+      const bySeverity = (SEVERITY_ORDER[a.severity] ?? 9) - (SEVERITY_ORDER[b.severity] ?? 9);
+      return bySeverity !== 0 ? bySeverity : b.contractsAffected - a.contractsAffected;
+    });
 
     // ── Negotiation position drift ───────────────────────────────────────────
     // Clauses where RED was frequently accepted (lawyer accepted below red line)
@@ -3154,7 +3149,8 @@ ${rawText}`,
     };
 
     res.json({
-      patterns: patterns.slice(0, 8),
+      // Headroom so clean positions, which sort last, are not truncated away.
+      patterns: patterns.slice(0, 16),
       clauseOutcomes,
       counterpartyPatterns: counterpartyPatterns.slice(0, 10),
       negotiationDrift: driftEntries.slice(0, 6),
