@@ -905,6 +905,12 @@ async function main() {
     textField("rawText", { required: true }),
     textField("normalisedSummary"),
     numberField("confidence"),
+    // Character offsets of this clause within the parsed document text, so the
+    // split view anchors highlighting to a position rather than to a text match
+    // that lands on the wrong clause when boilerplate repeats. Absent on
+    // reviews created before offsets were captured.
+    numberField("startOffset"),
+    numberField("endOffset"),
   ]);
 
   // ── review_results ────────────────────────────────────────────────────────

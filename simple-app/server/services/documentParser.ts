@@ -233,6 +233,78 @@ export function stripBoilerplate(text: string, contractType: string = ""): Strip
   return { text: working, removedChars, removedSections };
 }
 
+/**
+ * Character offsets of each passage within the source document text.
+ *
+ * Passages must be supplied in document order. The scan is monotonic: each
+ * search starts where the previous match ended, so boilerplate that appears
+ * more than once resolves to the correct occurrence rather than always the
+ * first. That is the whole point of storing offsets, since matching a clause
+ * by its text alone highlights the wrong indemnity the moment a contract
+ * repeats itself, which contracts do constantly.
+ *
+ * Matching is whitespace-insensitive and case-insensitive, because clause text
+ * is reassembled from chunks and will not be byte-identical to the source.
+ * Returns null for any passage that cannot be located.
+ */
+export function locatePassages(
+  fullText: string,
+  passages: string[],
+): Array<{ start: number; end: number } | null> {
+  // Normalised copy plus a map back to original indices.
+  const map: number[] = [];
+  let norm = "";
+  let inWhitespace = false;
+  for (let i = 0; i < fullText.length; i++) {
+    const ch = fullText[i];
+    if (/\s/.test(ch)) {
+      if (!inWhitespace && norm.length > 0) { norm += " "; map.push(i); }
+      inWhitespace = true;
+    } else {
+      norm += ch.toLowerCase();
+      map.push(i);
+      inWhitespace = false;
+    }
+  }
+
+  const normalise = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
+  /** Locate one fragment, preferring the first hit at or after `from`. */
+  const find = (fragment: string, from: number): number => {
+    const needle = normalise(fragment);
+    if (needle.length < 20) return -1;
+    const at = norm.indexOf(needle, from);
+    // Fall back to a search from the start: the order categories are emitted in
+    // does not always follow the document. Still better than no offset at all.
+    return at === -1 ? norm.indexOf(needle) : at;
+  };
+
+  let cursor = 0;
+  return passages.map((passage) => {
+    // A passage is a reassembled chunk, not a contiguous slice of the document:
+    // chunkText drops blocks under 50 characters, so numbered headings between
+    // paragraphs are missing. Searching for the whole passage therefore never
+    // matches. Anchor on its first and last blocks instead and span between
+    // them, which puts the dropped headings back inside the range.
+    const blocks = passage.split(/\n{2,}/).map((b) => b.trim()).filter((b) => normalise(b).length >= 20);
+    if (blocks.length === 0) return null;
+
+    const firstAt = find(blocks[0], cursor);
+    if (firstAt === -1) return null;
+
+    const lastBlock = blocks[blocks.length - 1];
+    const lastAt = blocks.length === 1 ? firstAt : find(lastBlock, firstAt);
+    const endNorm = lastAt === -1
+      ? firstAt + normalise(blocks[0]).length
+      : lastAt + normalise(lastBlock).length;
+
+    cursor = Math.max(firstAt + normalise(blocks[0]).length, endNorm);
+
+    const start = map[firstAt];
+    const end = map[Math.min(endNorm - 1, map.length - 1)] + 1;
+    return end > start ? { start, end } : null;
+  });
+}
+
 export function chunkText(text: string): string[] {
   const raw = text
     .split(/\n{2,}|\r\n{2,}/)

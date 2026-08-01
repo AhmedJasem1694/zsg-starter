@@ -4413,7 +4413,7 @@ Draft the complete clause.`;
 
     const clauses = await pb.collection("extracted_clauses").getFullList({
       filter: `document = "${req.params.id}"`,
-      fields: "id,clauseCategory,rawText",
+      fields: "id,clauseCategory,rawText,startOffset,endOffset",
       sort: "+id",
     }).catch(() => [] as PBRecord[]);
 
@@ -4437,18 +4437,54 @@ Draft the complete clause.`;
 
     if (fullText) {
       source = "parsed";
-      const paras = fullText.split(/\n{2,}/).map((p) => p.replace(/\s+\n/g, "\n").trim()).filter((p) => p.length > 0);
-      blocks = paras.map((text, i) => ({ id: `b${i}`, text, clauseCategories: [] as string[] }));
-      // Tag paragraphs by finding the clause passage inside them (best-effort,
-      // no offsets exist). Use a normalised prefix of the clause text.
+      // Split into paragraphs while tracking where each one starts in the
+      // source text, so clause offsets can be resolved to a block by position.
+      const paras: Array<{ text: string; start: number; end: number }> = [];
+      {
+        const re = /\n{2,}/g;
+        let cursor = 0;
+        let m: RegExpExecArray | null;
+        const push = (from: number, to: number) => {
+          const slice = fullText.slice(from, to);
+          const trimmed = slice.replace(/\s+\n/g, "\n").trim();
+          if (!trimmed) return;
+          // Offset of the trimmed text within the original slice.
+          const lead = slice.length - slice.trimStart().length;
+          paras.push({ text: trimmed, start: from + lead, end: to });
+        };
+        while ((m = re.exec(fullText)) !== null) { push(cursor, m.index); cursor = m.index + m[0].length; }
+        push(cursor, fullText.length);
+      }
+      blocks = paras.map((p, i) => ({ id: `b${i}`, text: p.text, clauseCategories: [] as string[] }));
+
+      const addCategory = (idx: number, category: string) => {
+        if (idx < 0 || idx >= blocks.length) return;
+        if (!blocks[idx].clauseCategories.includes(category)) blocks[idx].clauseCategories.push(category);
+      };
+
       for (const c of clauses) {
+        const category = c["clauseCategory"] as string;
+        const start = Number(c["startOffset"]);
+        const end = Number(c["endOffset"]);
+
+        // Preferred: anchor by stored character offsets. A clause usually spans
+        // several paragraphs, so every paragraph it overlaps is tagged.
+        if (Number.isFinite(start) && Number.isFinite(end) && end > start) {
+          let tagged = false;
+          for (let i = 0; i < paras.length; i++) {
+            if (paras[i].start < end && paras[i].end > start) { addCategory(i, category); tagged = true; }
+          }
+          if (tagged) continue;
+        }
+
+        // Fallback for reviews created before offsets were captured. Matching on
+        // text alone lands on the first paragraph containing the passage, which
+        // is the wrong one whenever a contract repeats its boilerplate.
         const raw = String(c["rawText"] ?? "").trim();
         if (!raw) continue;
         const needle = raw.slice(0, 60).toLowerCase().replace(/\s+/g, " ");
-        const hit = blocks.find((b) => b.text.toLowerCase().replace(/\s+/g, " ").includes(needle));
-        if (hit && !hit.clauseCategories.includes(c["clauseCategory"] as string)) {
-          hit.clauseCategories.push(c["clauseCategory"] as string);
-        }
+        const hit = blocks.findIndex((b) => b.text.toLowerCase().replace(/\s+/g, " ").includes(needle));
+        addCategory(hit, category);
       }
     } else if (clauses.length > 0) {
       source = "clauses";

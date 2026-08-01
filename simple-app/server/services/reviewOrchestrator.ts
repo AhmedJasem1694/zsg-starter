@@ -2,7 +2,7 @@ import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 import { pb } from "../pb.js";
-import { parseDocument, chunkText, stripBoilerplate } from "./documentParser.js";
+import { parseDocument, chunkText, stripBoilerplate, locatePassages } from "./documentParser.js";
 import { classifyClauses } from "./clauseClassifier.js";
 import {
   compareClauseToPlaybook,
@@ -693,6 +693,28 @@ ${classifySnippet}`,
         results.push(r);
     });
 
+    // ── Clause offsets in the source document ────────────────────────────────
+    // Located once, in document order, against the original parsed text: the
+    // same text the split view re-parses to render. Passing them in chunk order
+    // lets the scan run monotonically, so a clause whose wording repeats
+    // elsewhere in the contract resolves to the right occurrence.
+    const offsetByCategory = new Map<string, { start: number; end: number }>();
+    try {
+      const ordered = presentRules
+        .map((rule) => {
+          const category = rule["clauseCategory"] as string;
+          const match = bestByCategory.get(category)!;
+          return { category, chunkIndex: match.chunkIndex ?? Number.MAX_SAFE_INTEGER, text: deanonymise(match.rawText, entityMap) };
+        })
+        .sort((a, b) => a.chunkIndex - b.chunkIndex);
+      const located = locatePassages(rawText, ordered.map((o) => o.text));
+      located.forEach((loc, i) => { if (loc) offsetByCategory.set(ordered[i].category, loc); });
+      console.log(`[review] Clause offsets located for ${offsetByCategory.size}/${ordered.length} clauses in ${documentId}`);
+    } catch (err) {
+      // Offsets are an enhancement. Losing them falls back to text matching.
+      console.warn(`[review] Clause offset location failed for ${documentId}:`, (err as Error)?.message);
+    }
+
     // ── Present clauses: prefetch PB writes + regulatory context in parallel ──
     // The PocketBase write (extracted_clauses) and the regulatory context lookup
     // are independent of each other but both must complete before comparison.
@@ -718,6 +740,12 @@ ${classifySnippet}`,
             clauseCategory: category,
             rawText: deanonymise(match.rawText, entityMap),
             confidence: match.confidence,
+            ...(offsetByCategory.has(category)
+              ? {
+                  startOffset: offsetByCategory.get(category)!.start,
+                  endOffset: offsetByCategory.get(category)!.end,
+                }
+              : {}),
           }).catch((err: unknown) => {
             console.error(`[review] extracted_clauses.create FAILED for ${documentId}/${category}:`, (err as any)?.message, JSON.stringify((err as any)?.response));
             throw err;

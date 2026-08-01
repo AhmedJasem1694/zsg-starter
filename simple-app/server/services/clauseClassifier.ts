@@ -186,6 +186,12 @@ export interface ClassifiedChunk {
   presenceState: "PRESENT" | "INDIRECT";
   /** Brief location reference, e.g. "clause 16", "general obligations section", "expressly excluded in clause 3" */
   clauseReference?: string;
+  /**
+   * Index of the source chunk. Ordering clauses by this gives document order,
+   * which is what lets the offset scan resolve repeated boilerplate to the
+   * right occurrence. Absent on clauses assembled outside the classifier.
+   */
+  chunkIndex?: number;
 }
 
 export async function classifyClauses(
@@ -312,5 +318,8 @@ NEVER mark a category as absent. Simply omit it if genuinely not found anywhere.
       confidence: item.confidence,
       presenceState: item.presenceState === "INDIRECT" ? "INDIRECT" as const : "PRESENT" as const,
       clauseReference: item.clauseReference,
+      // Kept so clauses can be ordered by position in the document, which is
+      // what makes the offset scan resolve repeated boilerplate correctly.
+      chunkIndex: item.chunkIndex,
     }));
 }
