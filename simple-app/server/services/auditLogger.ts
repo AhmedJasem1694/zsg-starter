@@ -29,6 +29,7 @@ export type AuditAction =
   // Escalation and approval
   | "escalation_triggered"
   | "escalation_email_sent"
+  | "escalation_email_failed"
   | "approval_granted"
   | "approval_rejected"
   // Feedback

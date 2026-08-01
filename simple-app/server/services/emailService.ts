@@ -18,6 +18,52 @@ function getTransporter() {
 }
 
 /**
+ * Whether outbound email can be sent at all. Callers use this to distinguish
+ * "we tried and it failed" from "this deployment was never configured to send",
+ * so an undelivered approval is never mistaken for one that was never attempted.
+ */
+export function isEmailConfigured(): boolean {
+  return Boolean(SMTP_HOST && SMTP_USER && SMTP_PASS);
+}
+
+/** Which required settings are missing, for startup and preflight reporting. */
+export function missingEmailConfig(): string[] {
+  const missing: string[] = [];
+  if (!SMTP_HOST) missing.push("SMTP_HOST");
+  if (!SMTP_USER) missing.push("SMTP_USER");
+  if (!SMTP_PASS) missing.push("SMTP_PASS");
+  if (!process.env.APP_URL) missing.push("APP_URL (links in emails will point at localhost)");
+  return missing;
+}
+
+/**
+ * Opens a connection and authenticates without sending anything. Used by the
+ * preflight script so credentials can be proven before a live approval is run.
+ */
+export async function verifyEmailTransport(): Promise<{ ok: boolean; error?: string }> {
+  const transporter = getTransporter();
+  if (!transporter) return { ok: false, error: `Not configured. Missing: ${missingEmailConfig().join(", ")}` };
+  try {
+    await transporter.verify();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: (err as Error)?.message ?? String(err) };
+  }
+}
+
+/** Host and sender in use, for preflight output. Never returns the password. */
+export function emailConfigSummary(): { host: string; port: number; user: string; from: string; appUrl: string } {
+  return {
+    host: SMTP_HOST ?? "(unset)",
+    port: SMTP_PORT,
+    // Mask the account: enough to confirm which mailbox, not enough to reuse.
+    user: SMTP_USER ? `${SMTP_USER.slice(0, 2)}***@${SMTP_USER.split("@")[1] ?? "***"}` : "(unset)",
+    from: SMTP_FROM,
+    appUrl: APP_URL,
+  };
+}
+
+/**
  * Generic plain-text email send, used by the inbound "Email Zane" flow to
  * reply to a sender. `from` defaults to the company's inbound address when
  * provided (so replies thread naturally and the user can reply again), else

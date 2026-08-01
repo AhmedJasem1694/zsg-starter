@@ -9,6 +9,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initPocketBase } from "./pb";
 import { startIntegrationRenewalLoop } from "./services/integrationRenewal";
+import { missingEmailConfig } from "./services/emailService";
 
 // Prevent unhandled promise rejections from crashing the server.
 // In Node 20, the default behaviour is to exit(1) on unhandled rejections,
@@ -117,6 +118,15 @@ async function recoverStuckDocuments() {
   fs.mkdirSync(path.join(process.cwd(), "uploads"), { recursive: true });
 
   await initPocketBase();
+
+  // Outbound email is optional, but silently missing it means approvers are
+  // never notified while the app looks like it worked. Say so once, at boot.
+  {
+    const missing = missingEmailConfig();
+    if (missing.length) {
+      console.warn(`[Zane] Outbound email is NOT configured (missing ${missing.join(", ")}). Approval requests will be created and audited, but no one will be notified. Run: npx tsx scripts/check-smtp.ts`);
+    }
+  }
 
   // Run recovery on startup
   recoverStuckDocuments().catch(console.error);

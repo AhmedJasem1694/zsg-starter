@@ -1,6 +1,6 @@
 import { pb } from "../pb.js";
 import { audit } from "./auditLogger.js";
-import { sendApprovalRequestEmail } from "./emailService.js";
+import { sendApprovalRequestEmail, isEmailConfigured } from "./emailService.js";
 
 // ── Approval request creation ─────────────────────────────────────────────────
 // One PENDING approval_requests record per routed escalation. Called from the
@@ -91,15 +91,26 @@ export async function createApprovalRequest(p: CreateApprovalParams): Promise<st
         reason: p.reason,
         approvalId: rec.id,
       });
-      if (sent) {
-        await audit({
-          action: "escalation_email_sent",
-          entityType: "approval_request",
-          entityId: rec.id,
-          companyId,
-          detail: { documentId: p.documentId, role: p.role, recipient: contact["email"] },
-        });
+      // Record the outcome either way. A silently undelivered approval request
+      // is worse than a visible failure: the approver waits for an email that
+      // never came and the audit trail implies nothing was ever attempted.
+      await audit({
+        action: sent ? "escalation_email_sent" : "escalation_email_failed",
+        entityType: "approval_request",
+        entityId: rec.id,
+        companyId,
+        detail: {
+          documentId: p.documentId,
+          role: p.role,
+          recipient: contact["email"],
+          ...(sent ? {} : { reason: isEmailConfigured() ? "send failed" : "SMTP not configured" }),
+        },
+      });
+      if (!sent) {
+        console.warn(`[approvals] Approval ${rec.id} created but the ${p.role} was NOT notified (${isEmailConfigured() ? "send failed" : "SMTP not configured"})`);
       }
+    } else {
+      console.warn(`[approvals] Approval ${rec.id} created but no ${p.role} contact is configured, so nobody was notified`);
     }
 
     return rec.id;
