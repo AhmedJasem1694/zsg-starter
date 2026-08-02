@@ -870,6 +870,10 @@ async function main() {
     boolField("autoRenewal"),
     numberField("noticePeriodDays"),
     dateField("renewalDate"),
+    // When the review actually happened. `created` is an autodate field and
+    // silently ignores writes, so seeded and imported history needs its own
+    // column or every contract appears to have been reviewed today.
+    dateField("reviewedAt"),
     textField("contractTags"),
     textField("folder"),
     textField("parentDocumentId"),

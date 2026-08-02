@@ -143,7 +143,9 @@ function mapDoc(d: PBRecord) {
     if (!raw) return null;
     try { return typeof raw === "string" ? JSON.parse(raw) : raw; } catch { return null; }
   })();
-  return { ...d, companyId: d.company, uploadedAt: d.created, contradictions, auditFindings };
+  // reviewedAt carries seeded and imported history; `created` is autodate and
+  // always reads as today for anything not created live.
+  return { ...d, companyId: d.company, uploadedAt: d.reviewedAt || d.created, contradictions, auditFindings };
 }
 
 function mapResult(r: PBRecord) {
@@ -1740,7 +1742,7 @@ Each field should be 1-3 sentences of clear, practical legal language.
       outcome: (d["outcome"] as string) ?? "",
       contractValue: (d["contractValue"] as number) ?? null,
       currency: (d["currency"] as string) ?? "",
-      uploadedAt: d["created"] as string,
+      uploadedAt: (d["reviewedAt"] || d["created"]) as string,
     }));
     const docNames = new Map<string, string>(docs.map((d) => [d.id as string, (d["originalName"] as string) ?? ""]));
     const docIds = new Set(docs.map((d) => d.id as string));
@@ -3835,7 +3837,7 @@ Draft the complete clause.`;
             clauseCategory: r["clauseCategory"] as string,
             ragStatus:     r["ragStatus"] as string,
             summary:       r["clauseSummary"] as string,
-            uploadedAt:    d["created"] as string,
+            uploadedAt:    (d["reviewedAt"] || d["created"]) as string,
           }))
       )
       .sort((a, b) => (a.ragStatus === "RED" && b.ragStatus !== "RED" ? -1 : 1));
