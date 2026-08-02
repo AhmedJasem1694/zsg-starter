@@ -31,6 +31,14 @@ export const REGULATORY_SOURCES: Record<string, RegulatorySource> = {
     issuingBody: "Financial Conduct Authority",
     citationUrl: "https://www.fca.org.uk/publications/policy-statements/ps22-9-new-consumer-duty",
   },
+  GB_UK_GDPR: {
+    officialName: "Regulation (EU) 2016/679 as it forms part of assimilated law (UK GDPR)",
+    referenceNumber: "Regulation (EU) 2016/679 (assimilated)",
+    issuingBody: "UK Parliament, assimilated law (enforced by the Information Commissioner's Office)",
+    citationUrl: "https://www.legislation.gov.uk/eur/2016/679/contents",
+  },
+  // Key retained for continuity. The instrument is the Data Protection Act
+  // 2018, which sits alongside the UK GDPR rather than restating it.
   GB_ICO_UK_GDPR: {
     officialName: "Data Protection Act 2018",
     referenceNumber: "2018 c.12",
@@ -62,10 +70,10 @@ export const REGULATORY_SOURCES: Record<string, RegulatorySource> = {
     citationUrl: "https://www.legislation.gov.uk/ukpga/2010/23/contents",
   },
   GB_MODERN_SLAVERY_ACT_2015: {
-    officialName: "Modern Slavery Act 2015",
-    referenceNumber: "2015 c.30",
+    officialName: "Modern Slavery Act 2015, section 54 (Transparency in supply chains etc)",
+    referenceNumber: "2015 c.30, s.54",
     issuingBody: "UK Parliament (Home Office)",
-    citationUrl: "https://www.legislation.gov.uk/ukpga/2015/30/contents",
+    citationUrl: "https://www.legislation.gov.uk/ukpga/2015/30/section/54",
   },
   GB_EMPLOYMENT_RIGHTS_ACT_1996: {
     officialName: "Employment Rights Act 1996",
@@ -90,6 +98,24 @@ export const REGULATORY_SOURCES: Record<string, RegulatorySource> = {
     referenceNumber: "SI 2002/2013",
     issuingBody: "UK Parliament (Department for Science, Innovation and Technology)",
     citationUrl: "https://www.legislation.gov.uk/uksi/2002/2013/contents/made",
+  },
+  GB_FCA_SYSC8: {
+    officialName: "Senior Management Arrangements, Systems and Controls sourcebook, Chapter 8: Outsourcing",
+    referenceNumber: "FCA Handbook SYSC 8",
+    issuingBody: "Financial Conduct Authority",
+    citationUrl: "https://www.handbook.fca.org.uk/handbook/SYSC/8/",
+  },
+  GB_LATE_PAYMENT_1998: {
+    officialName: "Late Payment of Commercial Debts (Interest) Act 1998",
+    referenceNumber: "1998 c.20",
+    issuingBody: "UK Parliament (Department for Business and Trade)",
+    citationUrl: "https://www.legislation.gov.uk/ukpga/1998/20/contents",
+  },
+  EU_GDPR: {
+    officialName: "General Data Protection Regulation",
+    referenceNumber: "Regulation (EU) 2016/679",
+    issuingBody: "European Parliament and Council (European Data Protection Board)",
+    citationUrl: "https://eur-lex.europa.eu/eli/reg/2016/679/oj",
   },
   EU_DORA: {
     officialName: "Digital Operational Resilience Act",

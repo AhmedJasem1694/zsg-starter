@@ -37,18 +37,11 @@ async function main() {
   }
   console.log(`backfilled source data: ${filled}, left unsourced (won't surface): ${skipped}`);
 
-  // Verification seed: mark a couple as verified by a named reviewer, leave the rest unverified.
-  const VERIFIED: Array<{ code: string; by: string; at: string }> = [
-    { code: "GB_ICO_UK_GDPR", by: "Priya Nair, Head of Compliance", at: "2026-06-18 09:30:00.000Z" },
-    { code: "GB_FCA_CONSUMER_DUTY", by: "Priya Nair, Head of Compliance", at: "2026-06-18 09:34:00.000Z" },
-  ];
-  for (const v of VERIFIED) {
-    const existing = await pb.collection("regulatory_framework_verifications").getFullList({ filter: `code = "${v.code}"` }).catch(() => []);
-    const payload = { code: v.code, status: "verified", verifiedBy: v.by, verifiedAt: v.at };
-    if (existing.length > 0) await pb.collection("regulatory_framework_verifications").update(existing[0].id, payload);
-    else await pb.collection("regulatory_framework_verifications").create(payload);
-    console.log(`verified ${v.code} by ${v.by}`);
-  }
+  // No verification is seeded. Verification is an attestation that a named
+  // human checked the source, so seeding one fabricates a compliance sign-off
+  // that never happened. Frameworks default to unverified and a real reviewer
+  // records their name through POST /api/regulatory/frameworks/:code/verify.
+
   process.exit(0);
 }
 
