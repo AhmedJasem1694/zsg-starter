@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from "re
 import { motion, useReducedMotion } from "framer-motion";
 import { ZaneLogo } from "../components/ZaneLogo";
 import { requestAccess } from "../lib/api";
+import { ClauseFindingCard, DecisionRecordCard, PatternCard, ApprovalEmailCard } from "../components/ProductProof";
 
 // ─── Motion presets ───────────────────────────────────────────────────────────
 // Restrained register: content rises 14px over 450ms on a gentle ease-out,
@@ -254,22 +255,48 @@ export default function Landing() {
       </section>
 
       {/* ─── ONE: THE PROBLEM ────────────────────────────────────────────────── */}
+      {/* Three beats, one idea each, with the product alongside. The wall of
+          prose that used to sit here said the same thing and was skimmed. */}
       <section id="why-zane" className="bg-paper py-24 sm:py-36">
-        <div className="max-w-2xl mx-auto px-6">
-          <motion.div className="space-y-6" {...headingReveal}>
+        <div className="max-w-5xl mx-auto px-6">
+          <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">The problem</p>
             <h2 className="t-display text-3xl sm:text-4xl tracking-tight text-ink">
               Every contract you sign carries decisions nobody wrote down.
             </h2>
           </motion.div>
-          <motion.div className="mt-8 space-y-5 text-base text-slate-600 leading-relaxed" {...fadeUp(0.1)}>
-            <p>
-              You decide something, and the reasoning disappears with the thread. Paper reaches the business before it reaches you, so deals get signed that should not be, and you get buried in work that never needed you. When someone leaves, their judgment leaves with them, and whoever inherits the relationship spends hours reconstructing what was already known.
-            </p>
-            <p className="text-ink font-medium">
-              Most contracts get signed exactly as they arrive. Not because the terms are fair, but because you have no infrastructure to do anything else.
-            </p>
-          </motion.div>
+
+          <div className="mt-14 grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+            {/* The three beats. Generous spacing so the eye lands on each in turn. */}
+            <motion.div
+              className="space-y-10"
+              variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
+            >
+              {[
+                "You decide something, and the reasoning disappears with the thread.",
+                "Paper reaches the business before it reaches you, so deals get signed that should not be.",
+                "When someone leaves, their judgment leaves with them.",
+              ].map((beat) => (
+                <motion.p key={beat} className="text-lg sm:text-xl text-slate-600 leading-relaxed" variants={staggerItem}>
+                  {beat}
+                </motion.p>
+              ))}
+            </motion.div>
+
+            {/* The finding that proves it: flagged, in plain English, before signature. */}
+            <motion.div {...fadeUp(0.16)}>
+              <ClauseFindingCard />
+            </motion.div>
+          </div>
+
+          {/* The section's full stop, standing alone. */}
+          <motion.p
+            className="mt-20 max-w-3xl text-xl sm:text-2xl text-ink font-medium leading-snug"
+            {...fadeUp(0.08)}
+          >
+            Most contracts get signed exactly as they arrive. Not because the terms are fair, but
+            because you have no infrastructure to do anything else.
+          </motion.p>
         </div>
       </section>
 
@@ -345,6 +372,12 @@ export default function Landing() {
               </motion.div>
             ))}
           </motion.div>
+
+          {/* Step three, as it is actually stored. The reasoning is the part
+              that survives the person who gave it. */}
+          <motion.div className="mt-10 max-w-md" {...fadeUp(0.16)}>
+            <DecisionRecordCard />
+          </motion.div>
         </div>
       </section>
 
@@ -368,11 +401,8 @@ export default function Landing() {
             {/* Simple email-thread visual */}
             <motion.div {...fadeUp(0.16)}>
               <div className="rounded-xl border border-line-light bg-white shadow-sm overflow-hidden transition-[border-color,box-shadow] duration-200 ease-out hover:border-slate-300 hover:shadow-lg">
-                <div className="border-b border-line-light px-5 py-3 flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
-                  <span className="ml-2 text-xs text-slate-400 truncate">Re: Acme MSA, for review</span>
+                <div className="border-b border-line-light px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                  Re: Acme MSA, for review
                 </div>
                 <div className="divide-y divide-line-light">
                   <div className="px-5 py-4">
@@ -405,6 +435,15 @@ export default function Landing() {
               </div>
             </motion.div>
           </div>
+
+          {/* What accumulates from those reviews, and what it sets in motion. */}
+          <motion.div
+            className="mt-12 grid lg:grid-cols-2 gap-6"
+            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
+          >
+            <motion.div variants={staggerItem}><PatternCard /></motion.div>
+            <motion.div variants={staggerItem}><ApprovalEmailCard /></motion.div>
+          </motion.div>
         </div>
       </section>
 
