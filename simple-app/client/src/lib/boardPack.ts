@@ -81,15 +81,26 @@ export function exportBoardPack(opts: {
   const html = `<!doctype html>
 <html><head><meta charset="utf-8"><title>${esc(companyName)} Board Risk Pack</title>
 <style>
+  /* Source Serif 4, self-hosted. The export is written into a blank window, so
+     the URL must be absolute or it resolves against about:blank and silently
+     falls back. */
+  @font-face {
+    font-family: 'Source Serif 4';
+    src: url('${window.location.origin}/fonts/SourceSerif4-Variable.woff2') format('woff2-variations');
+    font-weight: 200 900;
+    font-style: normal;
+    font-display: swap;
+  }
+
   @page { margin: 18mm; }
   * { box-sizing: border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #0B1220; margin: 0; line-height: 1.5; }
   .wrap { max-width: 760px; margin: 0 auto; padding: 8px 0 40px; }
   header { border-bottom: 2px solid #2563EB; padding-bottom: 14px; margin-bottom: 22px; }
   .brand { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #2563EB; font-weight: 700; }
-  h1 { font-size: 22px; margin: 6px 0 2px; font-weight: 700; }
+  h1 { font-family: 'Source Serif 4', Georgia, serif; font-size: 24px; margin: 6px 0 2px; font-weight: 600; letter-spacing: -0.01em; }
   .sub { color: #64748B; font-size: 13px; }
-  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: #334155; margin: 26px 0 10px; font-weight: 700; }
+  h2 { font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; text-transform: none; letter-spacing: 0; color: #334155; margin: 26px 0 10px; font-weight: 600; }
   .stats { display: flex; flex-wrap: wrap; gap: 14px; }
   .stat { flex: 1; min-width: 130px; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px 14px; }
   .stat-v { font-size: 20px; font-weight: 700; }

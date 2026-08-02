@@ -5,43 +5,49 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ZaneLogo } from "../components/ZaneLogo";
 import { requestAccess } from "../lib/api";
 
-// ─── Animation presets ────────────────────────────────────────────────────────
-const SPRING_SNAP  = { type: "spring", damping: 100, mass: 3, stiffness: 500 } as const;
-const SPRING_SOFT  = { type: "spring", damping: 27,  mass: 0.3, stiffness: 121 } as const;
-const EASE_OUT_EXPO = { type: "tween", ease: [0.22, 1, 0.36, 1], duration: 0.9 } as const;
+// ─── Motion presets ───────────────────────────────────────────────────────────
+// Restrained register: content rises 14px over 450ms on a gentle ease-out,
+// children 70ms apart, fired once at 20 percent visibility and never again on
+// scroll-back. Only transform and opacity animate, so every entrance stays on
+// the compositor. Reduced motion is honoured at each call site and again by a
+// global rule in index.css.
 
-const fadeUp = (delay = 0) => ({
-  initial:    { opacity: 0, y: 32 },
-  whileInView:{ opacity: 1, y: 0 },
-  viewport:   { once: true, amount: 0.3 },
-  transition: { ...SPRING_SNAP, delay },
+const EASE_OUT = [0.22, 1, 0.36, 1] as const;
+const ENTER = { duration: 0.45, ease: EASE_OUT } as const;
+/** Once only. amount 0.2 fires when a fifth of the block is on screen. */
+const VIEWPORT = { once: true, amount: 0.2 } as const;
+
+/** Section entrance. Order within a section is set by the delay: headline 0,
+ *  body 0.08, visual or CTA 0.16. */
+const rise = (delay = 0) => ({
+  initial:     { opacity: 0, y: 14 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport:    VIEWPORT,
+  transition:  { ...ENTER, delay },
 });
 
+const headingReveal = rise(0);
+const fadeUp = (delay = 0.08) => rise(delay);
+
+/** Hero entrance runs on mount rather than on scroll, since it starts in view. */
 const fadeUpHero = (delay = 0) => ({
-  initial:   { opacity: 0, y: 24 },
-  animate:   { opacity: 1, y: 0 },
-  transition:{ ...SPRING_SOFT, delay },
+  initial:    { opacity: 0, y: 14 },
+  animate:    { opacity: 1, y: 0 },
+  transition: { ...ENTER, delay },
 });
-
-const headingReveal = {
-  initial:    { opacity: 0, y: 40 },
-  whileInView:{ opacity: 1, y: 0 },
-  viewport:   { once: true, amount: 0.5 },
-  transition: EASE_OUT_EXPO,
-};
 
 const staggerContainer = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.1, delayChildren: 0.1 } },
+  show: { transition: { staggerChildren: 0.07, delayChildren: 0.08 } },
 };
 const staggerItem = {
-  hidden: { opacity: 0, y: 16 },
-  show:   { opacity: 1, y: 0, transition: SPRING_SNAP },
+  hidden: { opacity: 0, y: 12 },
+  show:   { opacity: 1, y: 0, transition: ENTER },
 };
 
 // ─── Type scale ───────────────────────────────────────────────────────────────
-// hero:     text-4xl sm:text-6xl font-bold tracking-tight leading-[1.05]
-// section:  text-3xl sm:text-4xl font-bold tracking-tight
+// hero:     t-display text-4xl sm:text-6xl tracking-tight leading-[1.08]
+// section:  t-display text-3xl sm:text-4xl tracking-tight
 // card:     text-base font-semibold
 // body:     text-base leading-relaxed, muted colour
 // caption:  text-xs font-semibold uppercase tracking-[0.18em], muted colour
@@ -64,10 +70,12 @@ const LANDING_FAQS = [
 const PHRASES = ["remembers.", "learns.", "compounds.", "inherits."];
 
 function CyclingPhrase() {
+  const shouldReduce = useReducedMotion();
   const [index, setIndex] = useState(0);
   const [phase, setPhase] = useState<"in" | "out">("in");
 
   useEffect(() => {
+    if (shouldReduce) return; // settle on the first phrase and stay there
     const tick = setInterval(() => {
       setPhase("out");
       setTimeout(() => {
@@ -76,7 +84,7 @@ function CyclingPhrase() {
       }, 150);
     }, 1800);
     return () => clearInterval(tick);
-  }, []);
+  }, [shouldReduce]);
 
   return (
     // Fixed min-width = width of the longest cycling phrase at the headline
@@ -99,20 +107,38 @@ export default function Landing() {
   const [showRequestAccess, setShowRequestAccess] = useState(false);
   const lenisRef = useRef<import("@studio-freight/lenis").default | null>(null);
 
-  // Lenis smooth scroll
+  // Lenis smooth scroll.
+  //
+  // The frame loop must be cancelled on unmount. Previously destroy() was
+  // called but the recursive requestAnimationFrame was left running, so every
+  // visit to this page leaked another permanent loop driving a destroyed
+  // instance. Enough of them and the main thread has nothing left for the
+  // entrance animations, which then stall part way through.
+  //
+  // Smooth scroll is itself non-essential motion, so it is skipped entirely
+  // when the reader has asked for reduced motion.
   useEffect(() => {
+    if (shouldReduce) return;
     let lenis: import("@studio-freight/lenis").default | null = null;
-    import("@studio-freight/lenis").then(({ default: Lenis }) => {
+    let frame = 0;
+    let cancelled = false;
+    void import("@studio-freight/lenis").then(({ default: Lenis }) => {
+      if (cancelled) return;
       lenis = new Lenis({ duration: 1.1, smoothWheel: true });
       lenisRef.current = lenis;
-      function raf(time: number) {
-        lenis!.raf(time);
-        requestAnimationFrame(raf);
-      }
-      requestAnimationFrame(raf);
+      const raf = (time: number) => {
+        lenis?.raf(time);
+        frame = requestAnimationFrame(raf);
+      };
+      frame = requestAnimationFrame(raf);
     });
-    return () => { lenis?.destroy(); lenisRef.current = null; };
-  }, []);
+    return () => {
+      cancelled = true;
+      if (frame) cancelAnimationFrame(frame);
+      lenis?.destroy();
+      lenisRef.current = null;
+    };
+  }, [shouldReduce]);
 
   // Smooth-scroll for in-page anchor links; offset clears the sticky header
   const scrollToSection = (e: MouseEvent<HTMLAnchorElement>, href: string) => {
@@ -152,7 +178,7 @@ export default function Landing() {
           <div className="flex items-center gap-2">
             <Link to="/login" className="px-4 py-1.5 text-sm text-slate-400 hover:text-white transition-colors duration-300">Sign in</Link>
             <button onClick={() => setShowRequestAccess(true)}
-              className="flex items-center gap-1.5 px-4 py-1.5 bg-cobalt hover:bg-cobalt-hover text-white text-sm font-medium rounded-lg transition-colors">
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-cobalt hover:bg-cobalt-hover text-white text-sm font-medium rounded-lg transition-[background-color,box-shadow] duration-150 ease-out">
               Request access <ArrowRight size={13} />
             </button>
           </div>
@@ -174,8 +200,8 @@ export default function Landing() {
         <div className="relative max-w-3xl mx-auto px-6 pt-16 pb-20 sm:pt-24 sm:pb-28 text-center">
           {/* Headline: carries the rolling text */}
           <motion.h1
-            className="text-4xl sm:text-6xl font-bold tracking-tight leading-[1.08] text-[#F8FAFC]"
-            {...(shouldReduce ? {} : fadeUpHero(0.1))}
+            className="t-display text-4xl sm:text-6xl tracking-tight leading-[1.08] text-[#F8FAFC]"
+            {...(shouldReduce ? {} : fadeUpHero(0))}
           >
             Contract review that{" "}<CyclingPhrase />
           </motion.h1>
@@ -183,7 +209,7 @@ export default function Landing() {
           {/* Subline */}
           <motion.p
             className="mt-8 text-lg sm:text-xl text-slate-300 leading-relaxed max-w-2xl mx-auto"
-            {...(shouldReduce ? {} : fadeUpHero(0.25))}
+            {...(shouldReduce ? {} : fadeUpHero(0.08))}
           >
             Zane records the reasoning behind every decision you make, at the moment you make it. Your next review starts from everything you have already decided.
           </motion.p>
@@ -191,7 +217,7 @@ export default function Landing() {
           {/* Supporting line */}
           <motion.p
             className="mt-5 text-base text-slate-400 leading-relaxed max-w-xl mx-auto"
-            {...(shouldReduce ? {} : fadeUpHero(0.35))}
+            {...(shouldReduce ? {} : fadeUpHero(0.16))}
           >
             Your positions, your history, your counterparties, applied to every review.
           </motion.p>
@@ -199,10 +225,10 @@ export default function Landing() {
           {/* Primary CTA: the hero's one cobalt accent */}
           <motion.div
             className="mt-12 flex flex-col items-center gap-3"
-            {...(shouldReduce ? {} : fadeUpHero(0.5))}
+            {...(shouldReduce ? {} : fadeUpHero(0.24))}
           >
             <button onClick={() => setShowRequestAccess(true)}
-              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-cobalt/25 motion-safe:hover:-translate-y-0.5 text-sm">
+              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-[background-color,box-shadow,transform] duration-150 ease-out hover:shadow-lg hover:shadow-cobalt/25 motion-safe:hover:-translate-y-0.5 motion-safe:active:translate-y-0 motion-safe:active:shadow-md text-sm cta-pulse">
               Request access <ArrowRight size={15} />
             </button>
             <p className="text-xs text-slate-500">No implementation. No enterprise contract. Working in 20 minutes.</p>
@@ -211,7 +237,7 @@ export default function Landing() {
           {/* Quiet stats row, part of the hero group, directly under the supporting line */}
           <motion.div
             className="mt-10 flex flex-wrap items-start justify-center gap-x-10 sm:gap-x-16 gap-y-5 text-center"
-            {...(shouldReduce ? {} : fadeUpHero(0.6))}
+            {...(shouldReduce ? {} : fadeUpHero(0.32))}
           >
             {[
               { value: "Under five minutes", label: "For a typical contract" },
@@ -219,7 +245,7 @@ export default function Landing() {
               { value: "1 to 5 lawyers", label: "The team size we are built for" },
             ].map(({ value, label }) => (
               <div key={label} className="space-y-0.5">
-                <div className="text-base sm:text-lg font-semibold text-[#F8FAFC]">{value}</div>
+                <div className="text-base sm:text-lg font-semibold text-[#F8FAFC] tabular">{value}</div>
                 <div className="text-[11px] text-slate-500 leading-snug">{label}</div>
               </div>
             ))}
@@ -232,7 +258,7 @@ export default function Landing() {
         <div className="max-w-2xl mx-auto px-6">
           <motion.div className="space-y-6" {...headingReveal}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">The problem</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
+            <h2 className="t-display text-3xl sm:text-4xl tracking-tight text-ink">
               Every contract you sign carries decisions nobody wrote down.
             </h2>
           </motion.div>
@@ -252,7 +278,7 @@ export default function Landing() {
         <div className="max-w-2xl mx-auto px-6">
           <motion.div className="space-y-6" {...headingReveal}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">What it costs</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
+            <h2 className="t-display text-3xl sm:text-4xl tracking-tight text-ink">
               You negotiate the same position twice.
             </h2>
           </motion.div>
@@ -273,7 +299,7 @@ export default function Landing() {
               { value: "Under five minutes", label: "For a typical contract with Zane" },
             ].map(({ value, label }) => (
               <motion.div key={label} className="bg-paper px-6 py-7" variants={staggerItem}>
-                <div className="text-2xl font-bold tracking-tight text-ink">{value}</div>
+                <div className="t-display text-2xl tracking-tight text-ink tabular">{value}</div>
                 <div className="mt-1.5 text-xs text-slate-500 leading-relaxed">{label}</div>
               </motion.div>
             ))}
@@ -286,7 +312,7 @@ export default function Landing() {
         <div className="max-w-4xl mx-auto px-6">
           <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">How Zane works</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
+            <h2 className="t-display text-3xl sm:text-4xl tracking-tight text-ink">
               From counterparty paper to a decision you keep.
             </h2>
           </motion.div>
@@ -312,7 +338,7 @@ export default function Landing() {
                 body: "You make the call and Zane records it, with your reasoning attached. Every decision sharpens the next review, and stays behind when people move on.",
               },
             ].map(({ step, title, body }) => (
-              <motion.div key={step} className="rounded-xl border border-line-light bg-white px-6 py-7 transition-shadow duration-300 hover:shadow-xl" variants={staggerItem} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
+              <motion.div key={step} className="rounded-xl border border-line-light bg-white px-6 py-7 transition-[border-color,box-shadow] duration-200 ease-out hover:border-slate-300 hover:shadow-lg" variants={staggerItem}>
                 <div className="text-xs font-semibold tracking-[0.18em] text-slate-400">{step}</div>
                 <h3 className="mt-4 text-base font-semibold text-ink">{title}</h3>
                 <p className="mt-2 text-sm text-slate-600 leading-relaxed">{body}</p>
@@ -328,7 +354,7 @@ export default function Landing() {
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <motion.div className="space-y-6" {...headingReveal}>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">What you get back</p>
-              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
+              <h2 className="t-display text-3xl sm:text-4xl tracking-tight text-ink">
                 The review comes back with the language to send.
               </h2>
               <p className="text-base text-slate-600 leading-relaxed">
@@ -340,8 +366,8 @@ export default function Landing() {
             </motion.div>
 
             {/* Simple email-thread visual */}
-            <motion.div {...fadeUp(0.1)}>
-              <div className="rounded-xl border border-line-light bg-white shadow-sm overflow-hidden">
+            <motion.div {...fadeUp(0.16)}>
+              <div className="rounded-xl border border-line-light bg-white shadow-sm overflow-hidden transition-[border-color,box-shadow] duration-200 ease-out hover:border-slate-300 hover:shadow-lg">
                 <div className="border-b border-line-light px-5 py-3 flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
                   <span className="w-2.5 h-2.5 rounded-full bg-slate-200" />
@@ -387,7 +413,7 @@ export default function Landing() {
         <div className="max-w-4xl mx-auto px-6">
           <motion.div className="max-w-2xl space-y-6" {...headingReveal}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">The difference</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F8FAFC]">
+            <h2 className="t-display text-3xl sm:text-4xl tracking-tight text-[#F8FAFC]">
               Other tools remember documents. Zane remembers why you decided.
             </h2>
             <p className="text-base text-slate-400 leading-relaxed">
@@ -404,8 +430,8 @@ export default function Landing() {
               { count: "02", title: "Per vendor intelligence", body: "The next contract from a vendor you know shows how they negotiate, what they push on, and what you accepted last time and why." },
               { count: "03", title: "Portfolio risk",          body: "Across your whole contract estate, Zane shows your exposure, your open escalations, and your upcoming renewals. The view a head of legal needs for the board." },
             ].map(({ count, title, body }) => (
-              <motion.div key={count} className="rounded-xl border border-line-dark bg-navy-800 px-6 py-7 transition-shadow duration-300 hover:shadow-lg" variants={staggerItem} whileHover={shouldReduce ? undefined : { y: -4, transition: { duration: 0.3, ease: "easeOut" } }}>
-                <div className="text-2xl font-bold tracking-tight text-[#F8FAFC]">{count}</div>
+              <motion.div key={count} className="rounded-xl border border-line-dark bg-navy-800 px-6 py-7 transition-[border-color,box-shadow] duration-200 ease-out hover:border-slate-600 hover:shadow-xl" variants={staggerItem}>
+                <div className="t-display text-2xl tracking-tight text-[#F8FAFC]">{count}</div>
                 <h3 className="mt-4 text-base font-semibold text-[#F8FAFC]">{title}</h3>
                 <p className="mt-2 text-sm text-slate-400 leading-relaxed">{body}</p>
               </motion.div>
@@ -419,7 +445,7 @@ export default function Landing() {
         <div className="max-w-2xl mx-auto px-6 text-center">
           <motion.div className="space-y-6" {...headingReveal}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Pricing</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F8FAFC]">Priced for a team your size.</h2>
+            <h2 className="t-display text-3xl sm:text-4xl tracking-tight text-[#F8FAFC]">Priced for a team your size.</h2>
             <p className="text-base text-slate-400 leading-relaxed max-w-xl mx-auto">
               Zane is priced for lean legal functions, not enterprise budgets. Every pilot starts with a conversation, so Zane is configured around your contracts, your sector and your positions. You agree pricing before you commit to anything.
             </p>
@@ -432,7 +458,7 @@ export default function Landing() {
         <div className="max-w-2xl mx-auto px-6">
           <motion.div className="space-y-6" {...headingReveal}>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Questions</p>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink">The questions you are about to ask.</h2>
+            <h2 className="t-display text-3xl sm:text-4xl tracking-tight text-ink">The questions you are about to ask.</h2>
           </motion.div>
           <div className="mt-12 border-t border-line-light">
             {LANDING_FAQS.map((faq, i) => {
@@ -465,7 +491,7 @@ export default function Landing() {
       <section className="bg-navy-950 py-24 sm:py-36">
         <div className="max-w-2xl mx-auto px-6 text-center">
           <motion.div className="space-y-6" {...headingReveal}>
-            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#F8FAFC]">
+            <h2 className="t-display text-3xl sm:text-4xl tracking-tight text-[#F8FAFC]">
               The first contract shows you what Zane does. Every one after shows you why it is different.
             </h2>
             <p className="text-base text-slate-400 leading-relaxed max-w-lg mx-auto">
@@ -473,7 +499,7 @@ export default function Landing() {
             </p>
             <div className="pt-2">
               <button onClick={() => setShowRequestAccess(true)}
-                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-cobalt/25 motion-safe:hover:-translate-y-0.5 text-sm">
+                className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg transition-[background-color,box-shadow,transform] duration-150 ease-out hover:shadow-lg hover:shadow-cobalt/25 motion-safe:hover:-translate-y-0.5 motion-safe:active:translate-y-0 motion-safe:active:shadow-md text-sm cta-pulse">
                 Request access <ArrowRight size={15} />
               </button>
             </div>

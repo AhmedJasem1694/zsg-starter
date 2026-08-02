@@ -18,7 +18,7 @@ function fmtUSD(v: number): string {
 function MetricCard({ value, label, sub }: { value: string | number; label: string; sub?: string }) {
   return (
     <div className="card p-4">
-      <div className="text-2xl font-bold">{value}</div>
+      <div className="text-2xl font-bold tabular">{value}</div>
       <div className="text-xs text-muted-foreground mt-1">{label}</div>
       {sub && <div className="text-[11px] text-muted-foreground mt-0.5">{sub}</div>}
     </div>

@@ -2,11 +2,60 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Self-hosted typefaces ──────────────────────────────────────────────────
+   Every face is served from /fonts on our own origin. No request leaves for a
+   third party font host, which keeps the page free of an external dependency
+   on first paint and out of scope for third party data questions from
+   regulated buyers.
+
+   Satoshi      Indian Type Foundry, ITF Free Font License (see Satoshi-LICENSE.txt)
+   Source Serif 4, JetBrains Mono, Syncopate   SIL Open Font License 1.1
+
+   font-display: swap so text paints immediately in the fallback and reflows
+   once, rather than blocking on the font.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/Satoshi-Variable.woff2') format('woff2-variations');
+  font-weight: 300 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/Satoshi-VariableItalic.woff2') format('woff2-variations');
+  font-weight: 300 900;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  src: url('/fonts/SourceSerif4-Variable.woff2') format('woff2-variations');
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/JetBrainsMono-Variable.woff2') format('woff2-variations');
+  font-weight: 100 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Syncopate';
+  src: url('/fonts/Syncopate-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ─── Zane Design System ─────────────────────────────────────────────────────
    Brand: Refined Split-Path Symbol + Wordmark
    Palette: #080E1C deep navy · #060A14 near-black · #2563EB cobalt accent
             (used sparingly) · #F8FAFC text on dark · hairline #1E293B borders
-   Typography: Inter (UI) · JetBrains Mono (clauses)
+   Typography: Satoshi (UI) · Source Serif 4 (display headings) · JetBrains Mono (clauses)
    Radius: 12px cards (rounded-xl) · 8px buttons (rounded-lg)
    Shadows: one soft elevation level — no glows
    ─────────────────────────────────────────────────────────────────────────── */
@@ -66,9 +115,12 @@
   --popover-border: 217 33% 17%;
 
   /* ── Typography ──────────────────────────────────────────────────────── */
-  --font-sans: 'Inter', sans-serif;
-  --font-display: 'Syncopate', sans-serif;
-  --font-serif: Georgia, serif;
+  --font-sans: 'Satoshi', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  /* Display headings only: homepage headlines and the PDF exports. Never used
+     anywhere inside the app interface. */
+  --font-serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  /* Wordmark only. */
+  --font-display: 'Syncopate', -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Roboto Mono', monospace;
   --radius: 0.75rem;                   /* 12px cards                         */
 
@@ -565,4 +617,64 @@
 @keyframes skeleton-shimmer {
   0%   { background-position: 100% 50%; }
   100% { background-position: 0 50%; }
+}
+
+/* ─── Display headings ───────────────────────────────────────────────────────
+   Source Serif 4, used in exactly three places: the homepage headlines, the
+   monthly report export and the board pack export. Never inside the app
+   interface, where Satoshi carries everything.
+
+   Capped at 600. The serif already reads heavier than the sans at the same
+   nominal weight, so 700 and above turns a headline into a masthead. */
+.t-display {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+.t-display-medium {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* ─── Homepage motion ────────────────────────────────────────────────────────
+   Restrained register. Everything here animates transform or opacity only, so
+   it stays on the compositor and cannot move layout. */
+
+/* Attention cue on the request-demo CTA. A ring that fades and expands once
+   every 4.5s, felt rather than seen. The box-shadow is static on the pseudo
+   element; only opacity and transform animate, so this is not a shadow
+   repaint on every frame. */
+.cta-pulse { position: relative; }
+.cta-pulse::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.35);
+  opacity: 0;
+  transform: scale(1);
+  animation: cta-pulse 4.5s ease-out infinite;
+  pointer-events: none;
+}
+@keyframes cta-pulse {
+  0%   { opacity: 0;    transform: scale(1); }
+  6%   { opacity: 0.45; transform: scale(1); }
+  20%  { opacity: 0;    transform: scale(1.05); }
+  100% { opacity: 0;    transform: scale(1.05); }
+}
+/* Never compete with a hover or a press. */
+.cta-pulse:hover::after,
+.cta-pulse:active::after { animation: none; opacity: 0; }
+
+/* Reduced motion: stop everything non-essential. Entrances are neutralised at
+   their call sites too, so content is never left mid-transition and invisible. */
+@media (prefers-reduced-motion: reduce) {
+  .cta-pulse::after { animation: none; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

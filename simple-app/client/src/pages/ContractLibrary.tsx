@@ -623,11 +623,11 @@ export default function ContractLibrary() {
             {data && (
               <div className="flex items-center gap-5 text-right">
                 <div>
-                  <div className="text-xl font-bold text-foreground">{data.total}</div>
+                  <div className="text-xl font-bold text-foreground tabular">{data.total}</div>
                   <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Total</div>
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-foreground">{completeCount}</div>
+                  <div className="text-xl font-bold text-foreground tabular">{completeCount}</div>
                   <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Reviewed</div>
                 </div>
                 <div>

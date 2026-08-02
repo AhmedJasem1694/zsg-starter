@@ -420,19 +420,19 @@ export default function Patterns() {
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="card p-4">
-                <div className="text-2xl font-bold">{data.decisionSummary.total}</div>
+                <div className="text-2xl font-bold tabular">{data.decisionSummary.total}</div>
                 <div className="text-xs text-muted-foreground mt-1">Decisions captured</div>
               </div>
               <div className="card p-4">
-                <div className="text-2xl font-bold">{data.decisionSummary.agreementRate}%</div>
+                <div className="text-2xl font-bold tabular">{data.decisionSummary.agreementRate}%</div>
                 <div className="text-xs text-muted-foreground mt-1">Recommendations accepted</div>
               </div>
               <div className="card p-4">
-                <div className="text-2xl font-bold">{data.decisionSummary.overrideRate}%</div>
+                <div className="text-2xl font-bold tabular">{data.decisionSummary.overrideRate}%</div>
                 <div className="text-xs text-muted-foreground mt-1">Overridden</div>
               </div>
               <div className="card p-4">
-                <div className="text-2xl font-bold">{data.decisionSummary.byAction["modified"] ?? 0}</div>
+                <div className="text-2xl font-bold tabular">{data.decisionSummary.byAction["modified"] ?? 0}</div>
                 <div className="text-xs text-muted-foreground mt-1">Language edited before use</div>
               </div>
             </div>
