@@ -342,6 +342,11 @@ export default function Landing() {
             <h2 className="t-display text-3xl sm:text-4xl tracking-tight text-ink">
               From counterparty paper to a decision you keep.
             </h2>
+            <p className="text-base text-slate-600 leading-relaxed">
+              You never have to log in. Copy Zane on the email and it reviews the attachment against
+              your positions, replies in the thread, and files the result in your library. First
+              drafts of NDAs and routine agreements on request.
+            </p>
           </motion.div>
 
           <motion.div
@@ -391,15 +396,14 @@ export default function Landing() {
         <div className="max-w-4xl mx-auto px-6">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
             <motion.div className="space-y-6 lg:sticky lg:top-28" {...headingReveal}>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">What you get back</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">What accumulates</p>
               <h2 className="t-display text-3xl sm:text-4xl tracking-tight text-ink">
-                The review comes back with the language to send.
+                Zane notices what you keep conceding.
               </h2>
               <p className="text-base text-slate-600 leading-relaxed">
-                You never have to log in. Copy Zane on the email and it reviews the attachment against
-                your positions, replies in the thread, and files the result in your library. Every
-                clause it flags comes with the risk in plain English and the wording to send back.
-                First drafts of NDAs and routine agreements on request.
+                Every decision is recorded with the reasoning behind it, so a position you have given
+                away repeatedly surfaces before it quietly becomes your standard. When a contract
+                crosses the thresholds you set, the approval routes itself with the reason attached.
               </p>
             </motion.div>
 
