@@ -9,7 +9,7 @@
  *   liability caps accepted below playbook   4 contracts, 1,062,000, Nexus Solutions Ltd
  *   the clause that broke the red line       Nexus Statement of Work Q2, 95,000
  *
- * All four share one frame. No browser chrome, no tilt, no collage: the point
+ * All five share one frame. No browser chrome, no tilt, no collage: the point
  * is the content, and a window dressing around it would read as a mock rather
  * than the thing itself.
  */
@@ -166,6 +166,46 @@ export function ApprovalEmailCard() {
           ))}
         </dl>
         <div className="pt-1 text-xs font-medium text-blue-600">Review and decide &rarr;</div>
+      </div>
+    </ProductFrame>
+  );
+}
+
+/**
+ * The contract going in by email and the review coming back. This is steps one
+ * and two of the mechanism as they actually happen for someone who never opens
+ * the app.
+ */
+export function ReviewEmailCard() {
+  return (
+    <ProductFrame label="Re: Acme MSA, for review">
+      <div className="divide-y divide-line-light">
+        <div className="px-5 py-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-ink">You</span>
+            <span className="text-xs text-slate-400">9:02</span>
+          </div>
+          <p className="mt-1 text-sm text-slate-600 leading-relaxed">
+            Cc&rsquo;ing zane@. Can you take a look at the attached MSA before I reply?
+          </p>
+          <div className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-line-light px-2 py-1 text-xs text-slate-500">
+            Acme_MSA_v2.pdf
+          </div>
+        </div>
+        <div className="px-5 py-4 bg-paper">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-ink">Zane</span>
+            <span className="text-xs text-slate-400">9:04</span>
+          </div>
+          <p className="mt-1 text-sm text-slate-600 leading-relaxed">
+            Reviewed against your positions: <span className="font-semibold text-ink">2 amber, 1 red</span>.
+            Liability cap is below your 24 month floor and the indemnity is one sided. Suggested
+            fallback language is in the full review. Filed to your library.
+          </p>
+          <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-blue-600">
+            View full review &rarr;
+          </div>
+        </div>
       </div>
     </ProductFrame>
   );

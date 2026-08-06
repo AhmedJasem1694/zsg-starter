@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from "re
 import { motion, useReducedMotion } from "framer-motion";
 import { ZaneLogo } from "../components/ZaneLogo";
 import { requestAccess } from "../lib/api";
-import { ClauseFindingCard, DecisionRecordCard, PatternCard, ApprovalEmailCard } from "../components/ProductProof";
+import { ClauseFindingCard, DecisionRecordCard, ReviewEmailCard, PatternCard, ApprovalEmailCard } from "../components/ProductProof";
 
 // ─── Motion presets ───────────────────────────────────────────────────────────
 // Restrained register: content rises 14px over 450ms on a gentle ease-out,
@@ -373,10 +373,15 @@ export default function Landing() {
             ))}
           </motion.div>
 
-          {/* Step three, as it is actually stored. The reasoning is the part
-              that survives the person who gave it. */}
-          <motion.div className="mt-10 max-w-md" {...fadeUp(0.16)}>
-            <DecisionRecordCard />
+          {/* The three steps, as they actually happen: the contract goes in by
+              email and the review comes back, then the decision is stored with
+              the reasoning that survives the person who gave it. */}
+          <motion.div
+            className="mt-10 grid lg:grid-cols-2 gap-6 items-start"
+            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
+          >
+            <motion.div variants={staggerItem}><ReviewEmailCard /></motion.div>
+            <motion.div variants={staggerItem}><DecisionRecordCard /></motion.div>
           </motion.div>
         </div>
       </section>
@@ -384,8 +389,8 @@ export default function Landing() {
       {/* ─── FOUR: THE PROOF ─────────────────────────────────────────────────── */}
       <section id="email-agent" className="bg-paper border-t border-line-light py-24 sm:py-36">
         <div className="max-w-4xl mx-auto px-6">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-            <motion.div className="space-y-6" {...headingReveal}>
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+            <motion.div className="space-y-6 lg:sticky lg:top-28" {...headingReveal}>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">What you get back</p>
               <h2 className="t-display text-3xl sm:text-4xl tracking-tight text-ink">
                 The review comes back with the language to send.
@@ -398,52 +403,15 @@ export default function Landing() {
               </p>
             </motion.div>
 
-            {/* Simple email-thread visual */}
-            <motion.div {...fadeUp(0.16)}>
-              <div className="rounded-xl border border-line-light bg-white shadow-sm overflow-hidden transition-[border-color,box-shadow] duration-200 ease-out hover:border-slate-300 hover:shadow-lg">
-                <div className="border-b border-line-light px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400">
-                  Re: Acme MSA, for review
-                </div>
-                <div className="divide-y divide-line-light">
-                  <div className="px-5 py-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-ink">You</span>
-                      <span className="text-xs text-slate-400">9:02</span>
-                    </div>
-                    <p className="mt-1 text-sm text-slate-600 leading-relaxed">
-                      Cc’ing zane@. Can you take a look at the attached MSA before I reply?
-                    </p>
-                    <div className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-line-light px-2 py-1 text-xs text-slate-500">
-                      📎 Acme_MSA_v2.pdf
-                    </div>
-                  </div>
-                  <div className="px-5 py-4 bg-paper">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-ink">Zane</span>
-                      <span className="text-xs text-slate-400">9:04</span>
-                    </div>
-                    <p className="mt-1 text-sm text-slate-600 leading-relaxed">
-                      Reviewed against your positions: <span className="font-semibold text-ink">2 amber, 1 red</span>.
-                      Liability cap is below your 24-month floor; indemnity is one-sided. Suggested
-                      fallback language is in the full review. Filed to your library.
-                    </p>
-                    <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-blue-600">
-                      View full review →
-                    </div>
-                  </div>
-                </div>
-              </div>
+            {/* What accumulates from those reviews, and what it sets in motion. */}
+            <motion.div
+              className="space-y-6"
+              variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
+            >
+              <motion.div variants={staggerItem}><PatternCard /></motion.div>
+              <motion.div variants={staggerItem}><ApprovalEmailCard /></motion.div>
             </motion.div>
           </div>
-
-          {/* What accumulates from those reviews, and what it sets in motion. */}
-          <motion.div
-            className="mt-12 grid lg:grid-cols-2 gap-6"
-            variants={staggerContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.2 }}
-          >
-            <motion.div variants={staggerItem}><PatternCard /></motion.div>
-            <motion.div variants={staggerItem}><ApprovalEmailCard /></motion.div>
-          </motion.div>
         </div>
       </section>
 
