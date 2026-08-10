@@ -3,11 +3,12 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   ArrowLeft, AlertTriangle, Clock, CheckCircle, Download, ChevronDown, ChevronUp,
-  Mail, Copy, Loader2, GraduationCap, XCircle, BookOpen, Scale, Zap, Info,
-  TrendingDown, Layers, CalendarClock, FileCheck, Users, BarChart2, ChevronRight,
+  Mail, Copy, Loader2, GraduationCap, BookOpen, Scale, Zap, Info,
+  TrendingDown, Layers, CalendarClock, FileCheck,  BarChart2, ChevronRight,
   MessageSquare, Shield, Edit2, Flag, Upload, Brain, Dot, History, Columns2,
 } from "lucide-react";
-import { getReview, saveFeedback, generateReply, generateAmendedClause, teachZane, markFalsePositive, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany, getContractCounterpartyProfile, getContractCounterpartyJudgment, getCrossReferences, relinkCrossReferences, getRegulations } from "../lib/api";
+import { getReview, saveFeedback,
+  clearFeedback, generateReply, generateAmendedClause, teachZane, captureOutcome, uploadFinalVersion, getOutcomeDeltas, overrideRagStatus, markFalsePositiveSignal, getSignalsSummary, getCompany, getContractCounterpartyProfile, getContractCounterpartyJudgment, getCrossReferences, relinkCrossReferences, getRegulations } from "../lib/api";
 import AppLayout from "../components/layout/AppLayout";
 import ReasoningPrompt from "../components/ReasoningPrompt";
 import ContractAuditModal from "../components/ContractAuditModal";
@@ -250,9 +251,9 @@ export default function ReviewDetail() {
     // avoided; outcomeCaptured just defaults to false and updates via query invalidation.
   }
 
-  async function handleFeedback(resultId: string, action: FeedbackAction, finalClauseText?: string): Promise<FeedbackResponse | void> {
+  async function handleFeedback(resultId: string, action: FeedbackAction, finalClauseText?: string, notes?: string): Promise<FeedbackResponse | void> {
     if (isMock) return; // no-op in demo
-    const res = await saveFeedback(resultId, { userAction: action, finalClauseText });
+    const res = await saveFeedback(resultId, { userAction: action, finalClauseText, notes });
     await queryClient.invalidateQueries({ queryKey: ["review", id] });
     return res;
   }
@@ -676,21 +677,6 @@ export default function ReviewDetail() {
           </div>
         )}
 
-        {/* ── Urgency strip (RED only) ─────────────────────────────────── */}
-        {counts.RED > 0 && (
-          <div className="flex items-start gap-3 rounded-xl border border-[#FCEBEB] bg-[#FCEBEB] px-4 py-3">
-            <AlertTriangle size={14} className="text-[#A32D2D] shrink-0 mt-0.5" />
-            <div className="flex-1 min-w-0">
-              <span className="text-sm font-semibold text-[#A32D2D]">
-                {counts.RED} clause{counts.RED !== 1 ? "s" : ""} {counts.RED === 1 ? "requires" : "require"} immediate attention before signing.
-              </span>
-              <span className="text-xs text-[#A32D2D]/60 ml-2">
-                {results.filter(r => r.ragStatus === "RED").map(r => CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory).join(" · ")}
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* ── Outcome capture banner ───────────────────────────────────── */}
         {!outcomeDismissed && !outcomeCaptured && (looksLikeSigned || doc?.outcome === undefined) && !isMock && (
           <div className="rounded-xl border border-[#E7F6EE] bg-[#E7F6EE] px-4 py-3 space-y-2">
@@ -964,7 +950,7 @@ export default function ReviewDetail() {
                         index={i}
                         expanded={expandedId === result.id}
                         onToggle={() => setExpandedId(expandedId === result.id ? null : result.id)}
-                        onFeedback={(action, finalClauseText) => handleFeedback(result.id, action, finalClauseText)}
+                        onFeedback={(action, finalClauseText, notes) => handleFeedback(result.id, action, finalClauseText, notes)}
                         isMock={isMock}
                         regulationProminence={regProminence}
                         companyIndustry={companyData?.industry}
@@ -991,7 +977,6 @@ export default function ReviewDetail() {
           <div className={splitActive
             ? "grid md:grid-cols-3 gap-4 items-start"
             : "space-y-4 lg:sticky lg:top-4 slide-in-left"}>
-            <SignOffTracker doc={doc} results={results} />
             <IntelligenceSignals doc={doc} results={results} isMock={isMock} companyName={companyData?.name} />
             <RiskDistribution counts={counts} total={results.length} />
             {/* HIGH prominence: standalone regulatory summary panel */}
@@ -1136,109 +1121,6 @@ function MetaPill({
     >
       {icon}
       {label}
-    </div>
-  );
-}
-
-// ─── Sign-off Workflow Tracker ────────────────────────────────────────────────
-
-const APPROVER_ORDER = ["Handler", "Legal", "GC", "CFO", "CEO", "Board"] as const;
-
-function getValueTier(value: number): string[] {
-  if (value < 10_000)    return [];
-  if (value < 50_000)    return ["Legal"];
-  if (value < 250_000)   return ["Legal", "GC"];
-  if (value < 1_000_000) return ["Legal", "GC", "CFO"];
-  return                        ["Legal", "GC", "CFO", "Board"];
-}
-
-function SignOffTracker({ doc, results }: { doc: UploadedDocument; results: ReviewResult[] }) {
-  const escalationRequired = results.some((r) => r.escalationRequired);
-  const required = new Set<string>();
-
-  if (escalationRequired) required.add("Legal");
-  if (doc.contractValue) {
-    getValueTier(doc.contractValue).forEach((a) => required.add(a));
-  }
-  if (doc.counterpartyType === "RELATED_PARTY") { required.add("GC"); required.add("Board"); }
-  if (doc.counterpartyType === "INVESTOR")       { required.add("GC"); required.add("CFO"); }
-  if (doc.counterpartyType === "COMPETITOR")     { required.add("GC"); required.add("CEO"); }
-
-  type StepStatus = "done" | "required" | "skipped";
-
-  const steps: Array<{ label: string; status: StepStatus; detail?: string }> = [
-    {
-      label: "Zane analysis complete",
-      status: "done",
-      detail: `${results.length} clauses reviewed`,
-    },
-    {
-      label: "Legal review",
-      status: required.has("Legal") ? "required" : "skipped",
-      detail: required.has("Legal") ? "Required - clause risk flags raised" : undefined,
-    },
-    {
-      label: "GC sign-off",
-      status: required.has("GC") ? "required" : "skipped",
-      detail: required.has("GC") ? (doc.contractValue ? `Required - value threshold (£${doc.contractValue.toLocaleString("en-GB")})` : "Required") : undefined,
-    },
-    {
-      label: "CFO approval",
-      status: required.has("CFO") ? "required" : "skipped",
-    },
-    {
-      label: "Board approval",
-      status: required.has("Board") ? "required" : "skipped",
-    },
-  ];
-
-  const hasEscalation = steps.some((s) => s.status === "required");
-
-  return (
-    <div className="card p-4 space-y-3">
-      <div className="flex items-center gap-2">
-        <Users size={13} className="text-muted-foreground shrink-0" />
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Sign-off workflow
-        </span>
-      </div>
-      <div className="space-y-2.5">
-        {steps.map((step) => (
-          <div key={step.label} className="flex items-start gap-2.5">
-            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all
-              ${step.status === "done"     ? "bg-[#E7F6EE] border-[#BBE6CC]" : ""}
-              ${step.status === "required" ? "bg-[#FAEEDA] border-[#854F0B]" : ""}
-              ${step.status === "skipped"  ? "bg-transparent border-[#E2E8F0]" : ""}`}
-            >
-              {step.status === "done"     && <CheckCircle size={9} className="text-[#1B7A4B]" />}
-              {step.status === "required" && <span className="w-1.5 h-1.5 rounded-full bg-[#854F0B]" />}
-            </div>
-            <div className="min-w-0">
-              <div className={`text-xs font-medium leading-none
-                ${step.status === "done"     ? "text-[#1B7A4B]" : ""}
-                ${step.status === "required" ? "text-[#854F0B]" : ""}
-                ${step.status === "skipped"  ? "text-muted-foreground/35" : ""}`}
-              >
-                {step.label}
-              </div>
-              {step.detail && (
-                <div className={`text-[10px] mt-1 leading-tight
-                  ${step.status === "done"     ? "text-muted-foreground" : ""}
-                  ${step.status === "required" ? "text-[#854F0B]/55" : ""}
-                  ${step.status === "skipped"  ? "text-muted-foreground" : ""}`}
-                >
-                  {step.detail}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-      {!hasEscalation && (
-        <div className="text-[10px] text-muted-foreground pt-1 border-t border-border">
-          No sign-off required based on current flags and contract value.
-        </div>
-      )}
     </div>
   );
 }
@@ -1456,6 +1338,13 @@ function DocumentAuditPanel({ audit }: { audit: import("../lib/types").DocumentA
 
 type ExtendedCounts = Record<RagStatus, number> & { GREY_CRITICAL: number; GREY_OPTIONAL: number };
 
+/**
+ * Below this, a bar chart is a worse read than a sentence: one bar at 100% of
+ * one clause states nothing the count does not, and it implies a distribution
+ * where none exists.
+ */
+const RISK_CHART_MIN_CLAUSES = 5;
+
 function RiskDistribution({ counts, total }: { counts: ExtendedCounts; total: number }) {
   if (total === 0) return null;
 
@@ -1466,6 +1355,24 @@ function RiskDistribution({ counts, total }: { counts: ExtendedCounts; total: nu
     { label: "Missing (critical)", count: counts.GREY_CRITICAL, color: "#A32D2D", bg: "bg-[#A32D2D]/60" },
     { label: "Missing (optional)", count: counts.GREY_OPTIONAL, color: "#64748B", bg: "bg-[#64748B]" },
   ].filter((b) => b.count > 0);
+
+  // Too few clauses to distribute: say what was found in one line instead.
+  if (total < RISK_CHART_MIN_CLAUSES) {
+    const summary = bars.map((b) => `${b.count} ${b.label.toLowerCase()}`).join(", ");
+    return (
+      <div className="card p-4 space-y-2">
+        <div className="flex items-center gap-2">
+          <BarChart2 size={13} className="text-muted-foreground shrink-0" />
+          <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+            Risk distribution
+          </span>
+        </div>
+        <p className="text-xs text-foreground/80">
+          {total} clause{total !== 1 ? "s" : ""} reviewed{summary ? `: ${summary}` : "."}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="card p-4 space-y-3">
@@ -1499,6 +1406,18 @@ function RiskDistribution({ counts, total }: { counts: ExtendedCounts; total: nu
 }
 
 // ─── Clause Card ──────────────────────────────────────────────────────────────
+
+/** How long Undo stays offered after an outcome is recorded. */
+const UNDO_WINDOW_MS = 60_000;
+
+/** What a recorded outcome is called once it is a fact rather than a button. */
+const OUTCOME_CHIP: Record<string, string> = {
+  ACCEPTED:  "Accepted",
+  ESCALATED: "Escalated internally",
+  DISMISSED: "Dismissed",
+  EDITED:    "Edited before use",
+};
+
 
 // ── Learning indicator (per-clause) ──────────────────────────────────────────
 
@@ -1737,7 +1656,7 @@ function ClauseCard({
   index: number;
   expanded: boolean;
   onToggle: () => void;
-  onFeedback: (action: FeedbackAction, finalClauseText?: string) => Promise<FeedbackResponse | void>;
+  onFeedback: (action: FeedbackAction, finalClauseText?: string, notes?: string) => Promise<FeedbackResponse | void>;
   isMock: boolean;
   regulationProminence: RegulationProminence;
   companyIndustry?: string;
@@ -1757,10 +1676,17 @@ function ClauseCard({
   const [correctOutput, setCorrectOutput] = useState("");
   const [teachSubmitting, setTeachSubmitting] = useState(false);
   const [teachDone, setTeachDone] = useState(false);
-  const [fpSubmitting, setFpSubmitting] = useState(false);
-  const [fpDone, setFpDone] = useState(result.feedback?.feedbackType === "FALSE_POSITIVE");
   // Section 18 - override + FP signal panels
   const [showOverridePanel, setShowOverridePanel] = useState(false);
+  // Accept and Dismiss are confirmed before they are recorded, so a stray click
+  // never writes an outcome. Escalate stays one click: it is reversible by its
+  // nature and it is the safe direction to move in.
+  const [pendingAction, setPendingAction] = useState<FeedbackAction | null>(null);
+  const [pendingReason, setPendingReason] = useState("");
+  // Undo stays available for a window after recording rather than the button row
+  // vanishing, which is what made a misclick unrecoverable.
+  const [undoUntil, setUndoUntil] = useState<number | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [showFpSignalPanel, setShowFpSignalPanel] = useState(false);
   const [overrideDone, setOverrideDone] = useState(false);
   const [fpSignalDone, setFpSignalDone] = useState(false);
@@ -1798,15 +1724,27 @@ function ClauseCard({
     });
   }
 
-  async function handle(action: FeedbackAction, finalClauseText?: string) {
+  async function handle(action: FeedbackAction, finalClauseText?: string, notes?: string) {
     if (isMock) return;
     setSubmitting(action);
     try {
-      const res = await onFeedback(action, finalClauseText);
+      const res = await onFeedback(action, finalClauseText, notes);
       // Prompt for reasoning only when this decision was flagged significant.
       if (res && res.significance?.significant && res.decisionEventId) {
         setReasoningPrompt({ decisionEventId: res.decisionEventId, significance: res.significance });
       }
+    } finally { setSubmitting(null); }
+  }
+
+  /** Withdraw a recorded outcome. The record goes, and the withdrawal is audited. */
+  async function handleUndo() {
+    if (isMock) return;
+    setSubmitting("ACCEPTED");
+    try {
+      await clearFeedback(result.id);
+      setUndoUntil(null);
+      setPendingReason("");
+      await queryClient.invalidateQueries({ queryKey: ["review"] });
     } finally { setSubmitting(null); }
   }
 
@@ -1819,16 +1757,6 @@ function ClauseCard({
       setShowTeachZane(false);
     } finally {
       setTeachSubmitting(false);
-    }
-  }
-
-  async function handleFalsePositive() {
-    setFpSubmitting(true);
-    try {
-      await markFalsePositive(result.id);
-      setFpDone(true);
-    } finally {
-      setFpSubmitting(false);
     }
   }
 
@@ -1939,7 +1867,6 @@ function ClauseCard({
                   <p className="text-xs leading-relaxed text-foreground/80 font-mono whitespace-pre-line">
                     {result.suggestedFallback}
                   </p>
-                  <FallbackCopyButton text={result.suggestedFallback} />
                 </div>
               ) : (
                 <p className="text-xs text-muted-foreground">No fallback wording available for this clause.</p>
@@ -2028,19 +1955,15 @@ function ClauseCard({
 
               {/* ── Output 1: Message to counterparty ──────────────────────── */}
               <div className="space-y-2">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-[#2563EB]/70">Message to counterparty</div>
+                {(generatedReply || replyMutation.isPending) && (
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#2563EB]/70">Message to counterparty</div>
+                )}
                 {!generatedReply ? (
-                  <button
-                    className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
-                    onClick={() => replyMutation.mutate()}
-                    disabled={replyMutation.isPending}
-                  >
-                    {replyMutation.isPending ? (
-                      <><Loader2 size={11} className="animate-spin" /> Drafting message…</>
-                    ) : (
-                      <><MessageSquare size={11} /> Draft message to counterparty</>
-                    )}
-                  </button>
+                  replyMutation.isPending ? (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Loader2 size={11} className="animate-spin" /> Drafting message…
+                    </span>
+                  ) : null
                 ) : (
                   <div className="space-y-2">
                     <p className="text-sm leading-relaxed whitespace-pre-wrap rounded-lg border border-card-border bg-card px-4 py-3">
@@ -2062,19 +1985,15 @@ function ClauseCard({
               {/* ── Output 2: Redrafted clause (clean drop-in) ─────────────── */}
               {result.suggestedFallback && (
                 <div className="space-y-2">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-[#1B7A4B]/70">Redrafted clause</div>
+                  {(redraft || redraftMutation.isPending) && (
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-[#1B7A4B]/70">Redrafted clause</div>
+                  )}
                   {!redraft ? (
-                    <button
-                      className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
-                      onClick={() => redraftMutation.mutate()}
-                      disabled={redraftMutation.isPending}
-                    >
-                      {redraftMutation.isPending ? (
-                        <><Loader2 size={11} className="animate-spin" /> Redrafting clause…</>
-                      ) : (
-                        <><FileCheck size={11} /> Generate redrafted clause</>
-                      )}
-                    </button>
+                    redraftMutation.isPending ? (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <Loader2 size={11} className="animate-spin" /> Redrafting clause…
+                      </span>
+                    ) : null
                   ) : (
                     <div className="space-y-2">
                       <p className="text-xs leading-relaxed whitespace-pre-wrap rounded-lg border border-[#E7F6EE] bg-[#E7F6EE] px-4 py-3 font-mono text-foreground/90">
@@ -2101,29 +2020,68 @@ function ClauseCard({
             </div>
           )}
 
-          {/* ── Section 18: Override + FP signal capture ─────────────── */}
+          {/* ── Secondary actions ─────────────────────────────────────────
+              Everything that is not one of the three decisions lives here, so
+              the card presents a choice rather than a toolbar. */}
           {!isMock && !showOverridePanel && !showFpSignalPanel && (
-            <div className="flex flex-wrap items-center gap-2 pt-2">
-              {!overrideDone ? (
-                <button
-                  onClick={() => { setShowOverridePanel(true); setShowFpSignalPanel(false); }}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#E2E8F0] hover:border-[#2563EB] hover:text-[#2563EB] transition-colors"
-                >
-                  <Edit2 size={11} /> Override status
-                </button>
-              ) : (
-                <span className="text-xs text-[#2563EB] flex items-center gap-1"><CheckCircle size={11} /> Status overridden</span>
+            <div className="relative pt-2">
+              <button
+                onClick={() => setMoreOpen((v) => !v)}
+                aria-expanded={moreOpen}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#E2E8F0] hover:border-[#64748B] transition-colors"
+              >
+                More {moreOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+              </button>
+
+              {moreOpen && (
+                <div className="mt-2 w-72 rounded-lg border border-[#E2E8F0] bg-white shadow-lg overflow-hidden">
+                  {([
+                    result.suggestedFallback && !redraft ? {
+                      key: "redraft", icon: <FileCheck size={12} />, label: "Generate redrafted clause",
+                      run: () => redraftMutation.mutate(),
+                    } : null,
+                    !generatedReply ? {
+                      key: "reply", icon: <MessageSquare size={12} />, label: "Draft message to counterparty",
+                      run: () => replyMutation.mutate(),
+                    } : null,
+                    result.suggestedFallback ? {
+                      key: "copy", icon: <Copy size={12} />, label: "Copy fallback language",
+                      run: () => { void navigator.clipboard.writeText(result.suggestedFallback ?? ""); },
+                    } : null,
+                    !overrideDone ? {
+                      key: "override", icon: <Edit2 size={12} />, label: "Override status",
+                      run: () => { setShowOverridePanel(true); setShowFpSignalPanel(false); },
+                    } : null,
+                    // One entry, one label. Previously this was three: two
+                    // false-positive buttons and a separate "Mark as incorrect".
+                    // One entry for reporting a wrong analysis. It opens the
+                    // structured report and the correction fields together,
+                    // which were previously three separate buttons.
+                    !fpSignalDone && !teachDone ? {
+                      key: "incorrect", icon: <Flag size={12} />, label: "Report incorrect analysis",
+                      run: () => { setShowFpSignalPanel(true); setShowTeachZane(true); setShowOverridePanel(false); },
+                    } : null,
+                  ].filter(Boolean) as Array<{ key: string; icon: React.ReactNode; label: string; run: () => void }>).map((item) => (
+                    <button
+                      key={item.key}
+                      onClick={() => { item.run(); setMoreOpen(false); }}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-left text-foreground/80 hover:bg-[#F8FAFC] transition-colors border-b border-[#E2E8F0] last:border-b-0"
+                    >
+                      {item.icon} {item.label}
+                    </button>
+                  ))}
+                </div>
               )}
-              {!fpSignalDone ? (
-                <button
-                  onClick={() => { setShowFpSignalPanel(true); setShowOverridePanel(false); }}
-                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-[#E2E8F0] hover:border-[#FAEEDA] hover:text-[#854F0B] transition-colors"
-                >
-                  <Flag size={11} /> Flag as false positive
-                </button>
-              ) : (
-                <span className="text-xs text-[#854F0B] flex items-center gap-1"><CheckCircle size={11} /> False positive flagged</span>
-              )}
+
+              {/* Completed secondary actions read as state, not buttons. */}
+              <div className="flex flex-wrap items-center gap-3 mt-2">
+                {overrideDone && (
+                  <span className="text-xs text-[#2563EB] flex items-center gap-1"><CheckCircle size={11} /> Status overridden</span>
+                )}
+                {fpSignalDone && (
+                  <span className="text-xs text-[#854F0B] flex items-center gap-1"><CheckCircle size={11} /> Reported as incorrect</span>
+                )}
+              </div>
             </div>
           )}
           {showOverridePanel && !isMock && (
@@ -2149,31 +2107,89 @@ function ClauseCard({
           )}
 
           {/* ── Record outcome ─────────────────────────────────────────── */}
-          <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[#E2E8F0]">
-            <span className="text-xs text-muted-foreground">Record outcome:</span>
-            {([
-              { action: "ACCEPTED",  label: "Accept",           icon: <CheckCircle size={12} /> },
-              { action: "ESCALATED", label: "Escalate internally", icon: <AlertTriangle size={12} /> },
-              { action: "DISMISSED", label: "Dismiss",            icon: <Clock size={12} /> },
-            ] as { action: FeedbackAction; label: string; icon: React.ReactNode }[]).map(({ action, label: btnLabel, icon }) => (
-              <button
-                key={action}
-                disabled={!!submitting || isMock}
-                onClick={() => {
-                  if (action === "ACCEPTED") { setShowWhatAgreed(true); return; }
-                  void handle(action);
-                }}
-                className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
-                  feedback?.userAction === action
-                    ? "bg-[#2563EB] text-white border-[#2563EB]"
-                    : "border-border hover:border-[#64748B]"
-                }`}
-              >
-                {submitting === action ? "…" : <>{icon} {btnLabel}</>}
-              </button>
-            ))}
-            {isMock && (
-              <span className="text-[10px] text-muted-foreground">Demo - outcomes disabled</span>
+          {/* Three decisions, not ten buttons. Everything else is behind More. */}
+          <div className="pt-3 border-t border-[#E2E8F0] space-y-2.5">
+            {feedback?.userAction ? (
+              /* Recorded. Shows as a chip with Undo, rather than the row
+                 disappearing and leaving no way back. */
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-md bg-[#EEF2F8] text-[#334155] border border-[#E2E8F0]">
+                  <CheckCircle size={11} />
+                  {OUTCOME_CHIP[feedback.userAction] ?? feedback.userAction}
+                </span>
+                {undoUntil && Date.now() < undoUntil && !isMock && (
+                  <button
+                    className="text-xs text-[#2563EB] hover:underline disabled:opacity-50"
+                    disabled={!!submitting}
+                    onClick={() => void handleUndo()}
+                  >
+                    Undo
+                  </button>
+                )}
+              </div>
+            ) : pendingAction ? (
+              /* Confirmation step, with an optional reason that feeds the playbook. */
+              <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3 space-y-2.5">
+                <div className="text-xs font-semibold text-foreground">
+                  {pendingAction === "ACCEPTED" ? "Record this clause as accepted?" : "Dismiss this finding?"}
+                </div>
+                <input
+                  className="input text-xs w-full"
+                  placeholder="Why? Optional, strengthens your playbook"
+                  value={pendingReason}
+                  onChange={(e) => setPendingReason(e.target.value)}
+                  autoFocus
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    className="btn-primary text-xs px-3 py-1.5"
+                    disabled={!!submitting}
+                    onClick={() => {
+                      const action = pendingAction;
+                      setPendingAction(null);
+                      if (action === "ACCEPTED") { setShowWhatAgreed(true); setPendingReason(""); return; }
+                      void handle(action, undefined, pendingReason || undefined);
+                      setPendingReason("");
+                      setUndoUntil(Date.now() + UNDO_WINDOW_MS);
+                    }}
+                  >
+                    {submitting ? "…" : "Confirm"}
+                  </button>
+                  <button
+                    className="btn-ghost text-xs px-3 py-1.5 text-muted-foreground"
+                    onClick={() => { setPendingAction(null); setPendingReason(""); }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-muted-foreground">Record outcome:</span>
+                {([
+                  { action: "ACCEPTED",  label: "Accept",              icon: <CheckCircle size={12} />,   confirm: true  },
+                  { action: "ESCALATED", label: "Escalate internally", icon: <AlertTriangle size={12} />, confirm: false },
+                  { action: "DISMISSED", label: "Dismiss",             icon: <Clock size={12} />,         confirm: true  },
+                ] as { action: FeedbackAction; label: string; icon: React.ReactNode; confirm: boolean }[]).map(
+                  ({ action, label: btnLabel, icon, confirm }) => (
+                    <button
+                      key={action}
+                      disabled={!!submitting || isMock}
+                      onClick={() => {
+                        if (confirm) { setPendingAction(action); return; }
+                        void handle(action);
+                        setUndoUntil(Date.now() + UNDO_WINDOW_MS);
+                      }}
+                      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border hover:border-[#64748B] transition-colors disabled:opacity-50"
+                    >
+                      {submitting === action ? "…" : <>{icon} {btnLabel}</>}
+                    </button>
+                  ),
+                )}
+                {isMock && (
+                  <span className="text-[10px] text-muted-foreground">Demo, outcomes disabled</span>
+                )}
+              </div>
             )}
           </div>
 
@@ -2232,31 +2248,11 @@ function ClauseCard({
           {/* ── Improve analysis ──────────────────────────────────────── */}
           {!isMock && (
             <div className="pt-2 border-t border-[#E2E8F0] space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-muted-foreground">Improve this analysis:</span>
-                <button
-                  onClick={() => setShowTeachZane(!showTeachZane)}
-                  disabled={teachDone}
-                  className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors ${
-                    teachDone ? "bg-[#E7F6EE] border-[#E7F6EE] text-foreground" : "border-border hover:border-[#64748B]"
-                  }`}
-                >
-                  <GraduationCap size={11} />
-                  {teachDone ? "Saved. Zane will apply this in future reviews." : "Mark as incorrect"}
-                </button>
-                {!result.isAbsent && (
-                  <button
-                    onClick={() => void handleFalsePositive()}
-                    disabled={fpSubmitting || fpDone}
-                    className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border transition-colors disabled:opacity-50 ${
-                      fpDone ? "bg-[#FCEBEB] border-[#FCEBEB] text-foreground" : "border-border hover:border-[#64748B]"
-                    }`}
-                  >
-                    <XCircle size={11} />
-                    {fpDone ? "Marked false positive" : fpSubmitting ? "…" : "False positive"}
-                  </button>
-                )}
-              </div>
+              {teachDone && (
+                <span className="text-xs text-foreground flex items-center gap-1">
+                  <CheckCircle size={11} /> Saved. Zane will apply this in future reviews.
+                </span>
+              )}
 
               {showTeachZane && (
                 <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4 space-y-3">
@@ -2306,7 +2302,7 @@ function ClauseCard({
 
 const APPROVER_ORDER_FULL = ["Handler", "Legal", "GC", "CFO", "CEO", "Board"] as const;
 
-// Approvers are cumulative, matching getValueTier used by the sign-off tracker.
+// Approvers are cumulative: crossing a higher threshold keeps the lower ones.
 // The two lists previously disagreed, so the same contract showed different
 // approvers in the tracker and the governance panel.
 function getValueTierFull(value: number): { label: string; approvers: string[] } | null {
@@ -2333,7 +2329,7 @@ function getGovernanceTriggers(
 }
 
 function EscalationSummary({ doc, results }: { doc: UploadedDocument; results: ReviewResult[] }) {
-  const [showExplainer, setShowExplainer] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
 
   const tier1Clauses = results.filter((r) => r.escalationRequired);
   const valueTier    = doc.contractValue != null ? getValueTierFull(doc.contractValue) : null;
@@ -2348,81 +2344,117 @@ function EscalationSummary({ doc, results }: { doc: UploadedDocument; results: R
   govTriggers.forEach((t) => t.approvers.forEach((a) => requiredApprovers.add(a)));
   const signOffSequence = APPROVER_ORDER_FULL.filter((a) => requiredApprovers.has(a));
 
+  // One line naming why this escalated, in the order a reader cares about:
+  // the clause that tripped it, then the value, then who the counterparty is.
+  const reasons: string[] = [];
+  if (tier1Clauses.length > 0) {
+    const names = tier1Clauses.map((r) => CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory);
+    const shown = names.slice(0, 2).join(", ");
+    reasons.push(`clause risk (${shown}${names.length > 2 ? ` and ${names.length - 2} more` : ""})`);
+  }
+  if (valueTier && doc.contractValue != null) {
+    reasons.push(`value threshold (£${doc.contractValue.toLocaleString("en-GB")})`);
+  }
+  if (govTriggers.length > 0) reasons.push("counterparty type");
+
+  // Nothing here tracks completion yet, so the first approver is the blocker
+  // and the rest are queued. Steps that do not apply are not rendered at all.
+  const blocking = signOffSequence[0];
+
   return (
     <div className="card overflow-hidden border border-[#FCEBEB]">
-      <div className="bg-[#FCEBEB] px-5 py-3 flex items-center gap-3 border-b border-[#FCEBEB]">
+      <div className="bg-[#FCEBEB] px-5 py-3 flex items-center gap-2.5 border-b border-[#FCEBEB]">
         <AlertTriangle size={14} className="text-foreground shrink-0" />
-        <span className="text-sm font-semibold text-foreground flex-1">
-          Escalation required - {tiersActive} tier{tiersActive !== 1 ? "s" : ""} triggered
-        </span>
+        <span className="text-sm font-semibold text-foreground">Escalation required</span>
       </div>
+
       <div className="p-4 space-y-3">
-        {tier1Clauses.length > 0 && (
-          <div className="rounded-lg bg-[#FCEBEB] border border-[#FCEBEB] p-4 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-foreground">Tier 1 - Clause Risk</div>
-            <ul className="space-y-1.5">
-              {tier1Clauses.map((r) => (
-                <li key={r.id} className="flex gap-2 text-sm text-foreground">
-                  <span className="shrink-0 mt-0.5">·</span>
-                  <span>
-                    <span className="font-semibold">{CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory}</span>
-                    {r.escalationTrigger && <span className="opacity-70">: {r.escalationTrigger}</span>}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {valueTier && (
-          <div className="rounded-lg bg-[#FAEEDA] border border-[#FAEEDA] p-4 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-[#854F0B]">Tier 2 - Contract Value</div>
-            <div className="text-sm text-[#854F0B]">
-              <span className="font-semibold">£{doc.contractValue!.toLocaleString("en-GB")}</span> - {valueTier.label}
-            </div>
-          </div>
-        )}
-        {govTriggers.length > 0 && (
-          <div className="rounded-lg bg-[#EEF2FF] border border-[#C7D2FE] p-4 space-y-2">
-            <div className="text-xs font-semibold uppercase tracking-wider text-[#185FA5]">Tier 3 - Governance</div>
-            <ul className="space-y-1.5">
-              {govTriggers.map((t, i) => (
-                <li key={i} className="flex gap-2 text-sm text-[#185FA5]">
-                  <span className="shrink-0 mt-0.5">·</span>
-                  <span>{t.label}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        {/* Line one: why. */}
+        <p className="text-sm text-foreground leading-relaxed">
+          <span className="text-muted-foreground">Escalation: </span>
+          {reasons.join(" and ")}.
+        </p>
+
+        {/* Line two: who is next, and whether it is blocking. */}
         {signOffSequence.length > 0 && (
-          <div className="pt-1">
-            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-              Sign-off sequence
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              {signOffSequence.map((approver, i) => (
-                <span key={approver} className="flex items-center gap-1.5">
-                  <span className="inline-flex items-center bg-[#2563EB] text-white text-xs font-semibold px-2.5 py-1 rounded-full">
-                    {approver}
-                  </span>
-                  {i < signOffSequence.length - 1 && <span className="text-muted-foreground text-xs">→</span>}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-sm text-muted-foreground mr-0.5">Sign-off:</span>
+            {signOffSequence.map((approver, i) => (
+              <span key={approver} className="flex items-center gap-1.5">
+                <span
+                  className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${
+                    approver === blocking
+                      ? "bg-[#2563EB] text-white"
+                      : "bg-[#EEF2F8] text-[#475569] border border-[#E2E8F0]"
+                  }`}
+                >
+                  {approver}
                 </span>
-              ))}
-            </div>
+                {i < signOffSequence.length - 1 && <span className="text-muted-foreground text-xs">→</span>}
+              </span>
+            ))}
+            <span className="text-xs text-muted-foreground ml-1">
+              pending with {blocking}
+            </span>
           </div>
         )}
+
+        {/* Everything tier by tier, for whoever wants it. */}
         <div className="pt-1 border-t border-border">
           <button
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            onClick={() => setShowExplainer((v) => !v)}
+            onClick={() => setShowDetail((v) => !v)}
+            aria-expanded={showDetail}
           >
-            {showExplainer ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-            What is this?
+            {showDetail ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            {showDetail ? "Hide detail" : "Why, in detail"}
           </button>
-          {showExplainer && (
-            <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
-              Zane uses three escalation tiers. <strong>Tier 1</strong> fires when individual clauses exceed your playbook thresholds and require sign-off. <strong>Tier 2</strong> fires when total contract value crosses an authority threshold set by your organisation. <strong>Tier 3</strong> fires based on the nature of the counterparty or contract type.
-            </p>
+
+          {showDetail && (
+            <div className="mt-3 space-y-3">
+              {tier1Clauses.length > 0 && (
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                    Clause risk
+                  </div>
+                  <ul className="space-y-1">
+                    {tier1Clauses.map((r) => (
+                      <li key={r.id} className="text-xs text-foreground/80 leading-relaxed">
+                        <span className="font-medium">{CLAUSE_LABELS[r.clauseCategory] ?? r.clauseCategory}</span>
+                        {r.escalationTrigger && <span className="text-muted-foreground">: {r.escalationTrigger}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {valueTier && doc.contractValue != null && (
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                    Contract value
+                  </div>
+                  <p className="text-xs text-foreground/80">
+                    £{doc.contractValue.toLocaleString("en-GB")}, {valueTier.label.toLowerCase()}
+                  </p>
+                </div>
+              )}
+              {govTriggers.length > 0 && (
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                    Counterparty and contract type
+                  </div>
+                  <ul className="space-y-1">
+                    {govTriggers.map((t, i) => (
+                      <li key={i} className="text-xs text-foreground/80">{t.label}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground leading-relaxed pt-1 border-t border-border">
+                Escalation fires when a clause exceeds your playbook threshold, when contract value
+                crosses an authority threshold, or on the nature of the counterparty or contract type.
+                Approvers are cumulative, so the sequence above runs in order.
+              </p>
+            </div>
           )}
         </div>
       </div>
@@ -2498,24 +2530,6 @@ function exportReviewAsText(doc: UploadedDocument) {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function FallbackCopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  function copy() {
-    void navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
-  return (
-    <button
-      onClick={copy}
-      className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-border hover:border-[#64748B] transition-colors"
-    >
-      <Copy size={11} />
-      {copied ? "Copied!" : "Copy fallback language"}
-    </button>
-  );
-}
 
 // ─── Contextual regulation layer components ───────────────────────────────────
 

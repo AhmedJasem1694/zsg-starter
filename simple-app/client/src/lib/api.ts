@@ -539,6 +539,10 @@ export async function deleteAncillaryDocument(ancillaryId: string) {
 }
 
 // Feedback
+/** Undo a recorded outcome. Removes the feedback row for this result. */
+export const clearFeedback = (resultId: string) =>
+  req<{ ok: boolean; cleared: number }>("DELETE", `/api/feedback/${resultId}`);
+
 export const saveFeedback = (
   resultId: string,
   data: {

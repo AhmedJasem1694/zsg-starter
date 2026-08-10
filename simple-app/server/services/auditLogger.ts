@@ -37,6 +37,7 @@ export type AuditAction =
   | "feedback_edited"
   | "feedback_escalated"
   | "feedback_dismissed"
+  | "feedback_undone"
   | "teach_zane_correction"
   | "false_positive_marked"
   // Playbook

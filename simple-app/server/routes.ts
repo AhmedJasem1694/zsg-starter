@@ -2680,6 +2680,54 @@ ${rawText}`,
   // Captures a lawyer correction: what Zane got wrong + what the correct analysis is.
   // Stored separately from standard feedback so it can train the knowledge layer.
 
+  // DELETE /api/feedback/:resultId - undo a recorded outcome.
+  //
+  // The clause card offers Undo for a short window after a decision, which is
+  // only honest if the record actually goes. Ownership is checked the same way
+  // the escalation path checks it: a foreign resultId must not be able to erase
+  // another tenant's decision.
+  app.delete("/api/feedback/:resultId", requireAuth, ah(async (req: Request, res: Response) => {
+    const company = await getCompany(req.user?.email);
+    if (!company) { sendError(res, 404, "No company configured"); return; }
+
+    const result = await pb.collection("review_results")
+      .getOne(req.params.resultId, { fields: "id,document,clauseCategory" }).catch(() => null);
+    if (!result) { sendError(res, 404, "Result not found"); return; }
+    const doc = await pb.collection("uploaded_documents")
+      .getOne(result["document"] as string, { fields: "id,company" }).catch(() => null);
+    if (!doc || doc["company"] !== company.id) { sendError(res, 404, "Result not found"); return; }
+
+    const existing = await pb.collection("user_feedback").getFullList({
+      filter: `result = "${req.params.resultId}"`,
+    }).catch(() => [] as PBRecord[]);
+    for (const f of existing) await pb.collection("user_feedback").delete(f.id).catch(() => {});
+
+    // The decision event goes with it. Leaving it behind would count a decision
+    // the user explicitly withdrew towards "decisions captured", inflating the
+    // one number the intelligence screen is judged on. decision_events has no
+    // result reference, so it is matched on contract and clause, newest first.
+    const cat = String(result["clauseCategory"] ?? "");
+    if (cat) {
+      const events = await pb.collection("decision_events").getFullList({
+        filter: `company = "${company.id}" && contract = "${result["document"]}" && clause_category = "${cat}"`,
+        sort: "-created",
+      }).catch(() => [] as PBRecord[]);
+      if (events.length > 0) await pb.collection("decision_events").delete(events[0].id).catch(() => {});
+    }
+
+    // The decision being withdrawn is itself part of the record.
+    await audit({
+      action: "feedback_undone",
+      entityType: "review_result",
+      entityId: req.params.resultId,
+      companyId: company.id,
+      userId: req.user?.userId,
+      detail: { documentId: result["document"] ?? "", clauseCategory: result["clauseCategory"] ?? "" },
+    });
+
+    res.json({ ok: true, cleared: existing.length });
+  }));
+
   app.post("/api/feedback/teach-zane/:resultId", requireAuth, ah(async (req: Request, res: Response) => {
     const parsed = z.object({
       incorrectOutput: z.string().min(1),
