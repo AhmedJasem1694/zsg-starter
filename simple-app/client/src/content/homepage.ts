@@ -1,33 +1,34 @@
 /**
  * Homepage copy, in one place.
  *
- * After this commit no copy is hardcoded inside a homepage component. Every
- * component imports from here, so the whole page can be read, reviewed and
- * rewritten without opening JSX.
+ * No copy is hardcoded inside a homepage component. Every component imports
+ * from here, so the whole page can be read, reviewed and rewritten without
+ * opening JSX.
  *
- * Sections are declared in the order they appear on the page. The ids match
- * the in-file section markers in client/src/pages/Landing.tsx and the anchors
- * the nav links to, so a reorder is a change in one list rather than a hunt
- * through markup.
+ * Sections are declared in the order they appear. The ids are the anchor
+ * targets the nav links to, so a reorder is a change to SECTION_ORDER rather
+ * than a hunt through markup.
  *
  * Every line that states what the product does must map to an entry in
- * ALLOWED_CLAIMS in ./claims. Where a line leans on a claim, name it in the
- * `claims` array on that section so the link survives a rewrite.
+ * ALLOWED_CLAIMS in ./claims. Where a section leans on a claim, name it in
+ * that section's `claims` array so the link survives a rewrite.
  *
- * Strings are intentionally empty at this stage. Later prompts fill them.
- * Empty means not yet written; it does not mean the section is cut.
+ * Positioning note: this page is written finance first. The reader is a CFO
+ * who wants to know what the company has committed to; the lean legal team is
+ * the second audience, not the first.
+ *
+ * Strings left empty are not yet written, not cut. Sections 3 and 5 to 11
+ * carry headings only at this stage.
  */
 
 import type { Claim } from "./claims";
 import { claimById } from "./claims";
 
-/** One stat in a stat row: a figure and the line that qualifies it. */
 export interface Stat {
   value: string;
   label: string;
 }
 
-/** One card in a three-across group. */
 export interface Card {
   /** Optional ordinal. Use only where the content is genuinely a sequence. */
   step?: string;
@@ -36,13 +37,13 @@ export interface Card {
 }
 
 export interface Section {
-  /** Stable id. Matches the section marker in Landing.tsx and any nav anchor. */
+  /** Stable id. The anchor target, and the key in SECTION_ORDER. */
   id: string;
   /** Small uppercase label above the headline. Empty where the section has none. */
   eyebrow: string;
-  /** The headline. Set in Source Serif 4 on this page only. */
+  /** The headline. Source Serif 4, this page only. */
   headline: string;
-  /** Supporting prose, in reading order. One entry per paragraph. */
+  /** Supporting prose in reading order, one entry per paragraph. */
   body: string[];
   /** A single line given its own weight, used as a section's full stop. */
   closingLine?: string;
@@ -50,183 +51,233 @@ export interface Section {
   claims?: string[];
 }
 
-// ── Nav ───────────────────────────────────────────────────────────────────────
+// ── 1. Nav ────────────────────────────────────────────────────────────────────
 
-export const NAV_LINKS: Array<{ href: string; label: string }> = [
-  { href: "#why-zane", label: "" },
-  { href: "#how-it-works", label: "" },
-  { href: "#pricing", label: "" },
-];
+export const NAV = {
+  /** Anchor links. Order is the order they appear. */
+  links: [
+    { href: "#how-it-works", label: "How it works" },
+    { href: "#for-finance", label: "For finance" },
+    { href: "#for-legal", label: "For legal" },
+    { href: "#security", label: "Security" },
+  ],
+  ctaLabel: "Book a conversation",
+  ctaHref: "#cta",
+  /** Kept as a quiet text link: /login is a live route rendering the Login page. */
+  signInLabel: "Sign in",
+  signInHref: "/login",
+  /** Accessible names for the mobile disclosure, which has no visible label. */
+  menuOpenLabel: "Open menu",
+  menuCloseLabel: "Close menu",
+};
 
-export const NAV_CTA = "";
-export const NAV_SIGN_IN = "";
-
-// ── 1. Hero ───────────────────────────────────────────────────────────────────
+// ── 2. Hero ───────────────────────────────────────────────────────────────────
 
 export const HERO = {
   id: "hero",
-  /** Static first half of the headline. The cycling word completes it. */
-  headlinePrefix: "",
-  /** Rotating words that finish the headline. Keep them the same part of speech. */
-  cyclingWords: [] as string[],
-  subline: "",
-  supportingLine: "",
-  ctaLabel: "",
-  /** Reassurance under the button. No time-to-value figure: see NOT_YET_CLAIMS. */
-  ctaCaption: "",
-  stats: [] as Stat[],
+  eyebrow: "For CFOs, and the lean legal teams who work with them",
+  headline: "Know what your company has signed, who approved it, and why.",
+  subheadline:
+    "Every supplier and customer contract through one door. Standard terms clear fast. Anything outside policy goes to the right approver, with the reason recorded, so the business can see what it has committed to and what it gave away.",
+  primaryCta: { label: "Book a conversation", href: "#cta" },
+  secondaryCta: { label: "See how it works", href: "#how-it-works" },
+  footnote:
+    "Built for teams of one to five lawyers carrying the contract load for a whole business.",
+  /**
+   * Alt text for the hero visual. Written as a description of the screen so it
+   * stays accurate when the placeholder is replaced by the real capture.
+   */
+  visualAlt:
+    "The Zane portfolio view, showing contract value under management, exposure by RAG band and the counterparties driving it.",
+  claims: ["intake", "escalation-routing", "approval-decision", "portfolio-exposure"],
 };
 
-// ── 2. The problem ────────────────────────────────────────────────────────────
+// ── 3. The problem ────────────────────────────────────────────────────────────
 
 export const PROBLEM: Section = {
-  id: "why-zane",
+  id: "problem",
   eyebrow: "",
-  headline: "",
-  /** Three short beats, one idea each. */
+  headline: "The ledger nobody keeps",
   body: [],
   closingLine: "",
 };
 
-// ── 3. What it costs ──────────────────────────────────────────────────────────
+// ── 4. How it works ───────────────────────────────────────────────────────────
 
-export const COST: Section & { stats: Stat[] } = {
-  id: "cost",
-  eyebrow: "",
-  headline: "",
-  body: [],
-  stats: [],
-};
-
-// ── 4. How Zane works ─────────────────────────────────────────────────────────
-
-export const MECHANISM: Section & { steps: Card[] } = {
+export const HOW_IT_WORKS: Section & { steps: Card[] } = {
   id: "how-it-works",
   eyebrow: "",
   headline: "",
   body: [],
-  /** A real sequence, so these are numbered. */
+  /** Four steps. A real sequence, so these are numbered. */
   steps: [],
-  claims: ["intake", "rag-verdict", "anonymisation"],
+  claims: ["intake", "anonymisation", "rag-verdict", "escalation-routing"],
 };
 
-// ── 5. What accumulates ───────────────────────────────────────────────────────
+// ── 5. For finance ────────────────────────────────────────────────────────────
 
-export const PROOF: Section = {
-  id: "proof",
+export const FOR_FINANCE: Section & { stats: Stat[] } = {
+  id: "for-finance",
   eyebrow: "",
-  headline: "",
+  headline: "What the CFO sees",
   body: [],
-  claims: ["negotiation-intelligence", "escalation-routing", "approval-decision"],
+  stats: [],
+  claims: ["portfolio-exposure", "monthly-report", "timings", "audit-trail"],
 };
 
-// ── 6. The difference ─────────────────────────────────────────────────────────
+// ── 6. For legal ──────────────────────────────────────────────────────────────
 
-export const OBJECTION: Section & { cards: Card[] } = {
-  id: "difference",
+export const FOR_LEGAL: Section & { cards: Card[] } = {
+  id: "for-legal",
   eyebrow: "",
-  headline: "",
+  headline: "What the legal team gets",
   body: [],
   cards: [],
-  claims: ["negotiation-intelligence", "portfolio-exposure", "audit-trail"],
+  claims: ["rag-verdict", "negotiation-intelligence", "approval-decision"],
 };
 
-// ── 7. Pricing ────────────────────────────────────────────────────────────────
+// ── 7. Why now ────────────────────────────────────────────────────────────────
 
-export const PRICING: Section = {
-  id: "pricing",
+export const WHY_NOW: Section = {
+  id: "why-now",
+  eyebrow: "",
+  headline: "Review is a commodity. The record is not.",
+  body: [],
+  claims: ["negotiation-intelligence", "model-routing"],
+};
+
+// ── 8. Start ──────────────────────────────────────────────────────────────────
+
+export const START: Section & { steps: Card[] } = {
+  id: "start",
+  eyebrow: "",
+  headline: "Begin with your signed contracts",
+  body: [],
+  steps: [],
+  claims: ["legacy-import"],
+};
+
+// ── 9. Security ───────────────────────────────────────────────────────────────
+
+export const SECURITY: Section & { points: Card[] } = {
+  id: "security",
+  eyebrow: "",
+  headline: "",
+  body: [],
+  points: [],
+  claims: ["anonymisation", "audit-trail"],
+};
+
+// ── 10. About ─────────────────────────────────────────────────────────────────
+
+/**
+ * Who is building this. House rule: "building Zane", never founder or CEO, and
+ * the employer is never named. If the day job is mentioned at all it is
+ * "in-house at a UK private healthcare group".
+ */
+export const ABOUT: Section = {
+  id: "about",
   eyebrow: "",
   headline: "",
   body: [],
 };
 
-// ── 8. Questions ──────────────────────────────────────────────────────────────
+// ── 11. CTA ───────────────────────────────────────────────────────────────────
 
-export interface Faq {
-  q: string;
-  a: string;
-  /** Claim ids the answer depends on. Empty for answers that make no product claim. */
-  claims?: string[];
-}
-
-export const FAQ: Section & { items: Faq[] } = {
-  id: "faq",
+export const CTA: Section & { ctaLabel: string; contactLine: string } = {
+  id: "cta",
   eyebrow: "",
   headline: "",
   body: [],
-  items: [],
-};
-
-// ── 9. The ask ────────────────────────────────────────────────────────────────
-
-export const ASK: Section & { ctaLabel: string; contactLine: string } = {
-  id: "ask",
-  eyebrow: "",
-  headline: "",
-  body: [],
-  ctaLabel: "",
+  ctaLabel: "Book a conversation",
   contactLine: "",
 };
 
-// ── Footer ────────────────────────────────────────────────────────────────────
+// ── 12. Footer ────────────────────────────────────────────────────────────────
 
-export const FOOTER_LINKS: Array<{ to: string; label: string }> = [
-  { to: "/case-study", label: "" },
-  { to: "/security", label: "" },
-  { to: "/resources", label: "" },
-];
-
-export const FOOTER_NOTE = "";
+export const FOOTER = {
+  links: [
+    { to: "/case-study", label: "Case study" },
+    { to: "/security", label: "Security" },
+    { to: "/resources", label: "Resources" },
+  ],
+  note: "",
+};
 
 // ── Request access modal ──────────────────────────────────────────────────────
 
+/**
+ * The only lead capture on the site. Labels are populated because the form has
+ * to be usable; the surrounding sales copy is still the CTA section's job.
+ *
+ * No time promise here. The old copy said "set you up within 24 hours", which
+ * is the kind of figure NOT_YET_CLAIMS.implementation-time exists to stop.
+ */
 export const REQUEST_ACCESS = {
-  heading: "",
-  body: "",
+  heading: "Book a conversation",
+  body: "Onboarding is done personally at this stage. Tell us what you deal with and we will come back to you.",
   fields: {
-    name: "",
-    email: "",
-    company: "",
-    role: "",
-    contracts: "",
+    name: "Name",
+    email: "Work email",
+    company: "Company",
+    role: "Role",
+    contracts: "What kind of contracts do you deal with?",
   },
-  submitLabel: "",
-  submittingLabel: "",
-  successHeading: "",
-  successBody: "",
+  placeholders: {
+    name: "Jane Smith",
+    email: "jane@company.com",
+    company: "Acme Ltd",
+    role: "e.g. General Counsel, Head of Legal, Finance Director",
+    contracts: "e.g. supplier MSAs, customer agreements, NDAs",
+  },
+  submitLabel: "Send",
+  submittingLabel: "Sending",
+  closeLabel: "Close",
+  successHeading: "Thank you. We will be in touch.",
+  errorFallback: "Something went wrong. Please try again, or email ahmed@zanelegal.ai.",
 };
 
 // ── Page order ────────────────────────────────────────────────────────────────
 
 /**
- * The page in order. Reordering here is the whole change: Landing.tsx renders
- * against these ids rather than fixing the sequence in markup.
+ * The page in order. Landing.tsx renders against this rather than fixing the
+ * sequence in markup, so a reorder is a change to this list.
  */
 export const SECTION_ORDER = [
   "hero",
-  "why-zane",
-  "cost",
+  "problem",
   "how-it-works",
-  "proof",
-  "difference",
-  "pricing",
-  "faq",
-  "ask",
+  "for-finance",
+  "for-legal",
+  "why-now",
+  "start",
+  "security",
+  "about",
+  "cta",
 ] as const;
 
 export type SectionId = (typeof SECTION_ORDER)[number];
 
+/** Every section keyed by id, so the page can map over SECTION_ORDER. */
+export const SECTIONS: Record<string, Section> = {
+  [PROBLEM.id]: PROBLEM,
+  [HOW_IT_WORKS.id]: HOW_IT_WORKS,
+  [FOR_FINANCE.id]: FOR_FINANCE,
+  [FOR_LEGAL.id]: FOR_LEGAL,
+  [WHY_NOW.id]: WHY_NOW,
+  [START.id]: START,
+  [SECURITY.id]: SECURITY,
+  [ABOUT.id]: ABOUT,
+  [CTA.id]: CTA,
+};
+
 /**
- * Every claim id referenced by any section, resolved. Throws at module load if
- * a section names a claim that is not in the register, so a copy change that
- * outruns the product fails fast rather than shipping.
+ * Every claim id referenced by the page, resolved. Throws at module load if a
+ * section names a claim that is not in the register, so copy that outruns the
+ * product fails fast rather than shipping.
  */
 export function referencedClaims(): Claim[] {
-  const sections: Array<Section | (Section & object)> = [
-    PROBLEM, COST, MECHANISM, PROOF, OBJECTION, PRICING, FAQ, ASK,
-  ];
-  const ids = new Set<string>();
-  for (const s of sections) for (const id of s.claims ?? []) ids.add(id);
-  for (const item of FAQ.items) for (const id of item.claims ?? []) ids.add(id);
+  const ids = new Set<string>(HERO.claims ?? []);
+  for (const s of Object.values(SECTIONS)) for (const id of s.claims ?? []) ids.add(id);
   return Array.from(ids).map(claimById);
 }
