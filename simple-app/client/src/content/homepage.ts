@@ -94,24 +94,83 @@ export const HERO = {
 
 // ── 3. The problem ────────────────────────────────────────────────────────────
 
-export const PROBLEM: Section = {
+/**
+ * Three scenes, not three arguments. Each one is something that has happened
+ * to a finance function, told without naming Zane. The section describes the
+ * status quo, so the scenes themselves need no claim; only the closing line
+ * says what the product does, and that is what `claims` covers.
+ */
+export const PROBLEM: Section & { cards: Card[] } = {
   id: "problem",
   eyebrow: "",
-  headline: "The ledger nobody keeps",
+  headline: "Every company keeps a ledger for money. Nobody keeps one for commitments.",
   body: [],
-  closingLine: "",
+  cards: [
+    {
+      title: "The cap that doubled.",
+      body: "A supplier contract arrives with liability capped at twice your policy. Someone says yes because the deal matters. Eighteen months later nobody can say who approved it or why.",
+    },
+    {
+      title: "The renewal nobody saw.",
+      body: "A three-year agreement renews automatically because the notice window passed in someone's inbox. The first the board hears of it is the invoice.",
+    },
+    {
+      title: "The answer that left with the person.",
+      body: "The contract is in the shared drive. The reasoning was in an email, or in the head of a lawyer who has since moved on.",
+    },
+  ],
+  closingLine: "Every tool records the document. Zane records the decision.",
+  claims: ["audit-trail", "approval-decision"],
 };
 
 // ── 4. How it works ───────────────────────────────────────────────────────────
 
-export const HOW_IT_WORKS: Section & { steps: Card[] } = {
+export const HOW_IT_WORKS: Section & { steps: Card[]; note: string } = {
   id: "how-it-works",
   eyebrow: "",
-  headline: "",
+  headline: "One door in. One record out.",
   body: [],
   /** Four steps. A real sequence, so these are numbered. */
-  steps: [],
-  claims: ["intake", "anonymisation", "rag-verdict", "escalation-routing"],
+  steps: [
+    {
+      step: "01",
+      title: "Arrive",
+      body: "Contracts come in by email, upload, or from a watched folder. Zane reads them, removes personal data before anything reaches a model, and checks each clause against your own positions.",
+    },
+    {
+      step: "02",
+      title: "Clear or route",
+      body: "Standard terms are cleared with a plain-English summary. Anything outside policy, above a value threshold, or from a flagged counterparty goes to the named approver.",
+    },
+    {
+      /**
+       * "sees ... in one screen or one email" is about what reaches the
+       * approver, which is true: buildApprovalRequestEmail() carries the
+       * context and a link. It is not a claim that the decision can be made
+       * by replying, which ALLOWED_CLAIMS.approval-decision explicitly rules
+       * out. Keep the verbs on the seeing, not the deciding, in any rewrite.
+       */
+      step: "03",
+      title: "Decide",
+      body: "The approver sees what matters and why in one screen or one email. The decision and the reason behind it are written to the record.",
+    },
+    {
+      step: "04",
+      title: "Remember",
+      body: "Every decision builds the company's own history: what was conceded, to whom, how often. The next negotiation starts from what you already know.",
+    },
+  ],
+  /** Quiet line under the steps. Positioning, not a product claim. */
+  note: "Review happens everywhere now. Zane is for what happens after it.",
+  claims: [
+    "intake",
+    "anonymisation",
+    "rag-verdict",
+    "escalation-routing",
+    "approval-decision",
+    "audit-trail",
+    "negotiation-intelligence",
+  ],
 };
 
 // ── 5. For finance ────────────────────────────────────────────────────────────

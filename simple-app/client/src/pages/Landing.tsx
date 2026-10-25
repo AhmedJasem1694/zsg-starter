@@ -25,12 +25,14 @@
  *     being quietly reinstated; if they return they return with evidence.
  */
 
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type ComponentType, type MouseEvent } from "react";
 import { ArrowRight } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { LandingNav } from "../components/landing/LandingNav";
 import { Hero } from "../components/landing/Hero";
 import { Section, type Tone } from "../components/landing/Section";
+import { ProblemSection } from "../components/landing/ProblemSection";
+import { HowItWorksSection } from "../components/landing/HowItWorksSection";
 import { LandingFooter } from "../components/landing/LandingFooter";
 import { RequestAccessModal } from "../components/landing/RequestAccessModal";
 import { rise } from "../components/landing/motion";
@@ -42,8 +44,6 @@ import { CTA, SECTION_ORDER, SECTIONS } from "../content/homepage";
  * and the join would otherwise be invisible.
  */
 const TONES: Record<string, { tone: Tone; divided?: boolean }> = {
-  "problem":      { tone: "light" },
-  "how-it-works": { tone: "light", divided: true },
   "for-finance":  { tone: "light", divided: true },
   "for-legal":    { tone: "light", divided: true },
   "why-now":      { tone: "dark" },
@@ -51,6 +51,16 @@ const TONES: Record<string, { tone: Tone; divided?: boolean }> = {
   "security":     { tone: "dark" },
   "about":        { tone: "light" },
   "cta":          { tone: "dark" },
+};
+
+/**
+ * Sections whose layout has outgrown the shared shell and moved to their own
+ * file. Each one owns its tone and divider, so it has no TONES entry. The rest
+ * still render through Section until a layout of their own arrives.
+ */
+const GRADUATED: Record<string, ComponentType> = {
+  "problem": ProblemSection,
+  "how-it-works": HowItWorksSection,
 };
 
 export default function Landing() {
@@ -118,6 +128,9 @@ export default function Landing() {
       <Hero onAnchorClick={scrollToSection} />
 
       {bodySections.map((id) => {
+        const Graduated = GRADUATED[id];
+        if (Graduated) return <Graduated key={id} />;
+
         const copy = SECTIONS[id];
         const { tone, divided } = TONES[id] ?? { tone: "light" };
 
