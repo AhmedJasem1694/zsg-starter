@@ -41,7 +41,7 @@ export function Hero({
           {/* Copy */}
           <div className="flex flex-col gap-6">
             <motion.p
-              className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500"
+              className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400"
               {...enter(0)}
             >
               {HERO.eyebrow}
@@ -78,7 +78,7 @@ export function Hero({
               </a>
             </motion.div>
 
-            <motion.p className="text-xs text-slate-500 leading-relaxed max-w-md" {...enter(0.32)}>
+            <motion.p className="text-xs text-slate-400 leading-relaxed max-w-md" {...enter(0.32)}>
               {HERO.footnote}
             </motion.p>
           </div>
@@ -91,6 +91,8 @@ export function Hero({
             <div className="rounded-xl border border-line-dark bg-navy-900 shadow-2xl overflow-hidden">
               <img
                 src="/images/hero-portfolio.webp"
+                srcSet="/images/hero-portfolio-1440.webp 1440w, /images/hero-portfolio.webp 2880w"
+                sizes="(min-width: 1024px) 580px, calc(100vw - 32px)"
                 alt={HERO.visualAlt}
                 width={1440}
                 height={900}

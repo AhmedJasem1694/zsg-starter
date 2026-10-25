@@ -35,7 +35,7 @@ export function SecuritySection() {
         ))}
       </motion.ul>
 
-      <motion.p className="mt-10 text-sm text-slate-500" {...rise(0.08)}>
+      <motion.p className="mt-10 text-sm text-slate-400" {...rise(0.08)}>
         <a
           href={`mailto:${SECURITY.contactEmail}`}
           className="text-slate-400 hover:text-white transition-colors underline underline-offset-4 decoration-slate-600 hover:decoration-slate-300"

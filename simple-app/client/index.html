@@ -1,18 +1,63 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-GB">
   <head>
     <meta charset="UTF-8" />
+    <!-- maximum-scale removed: it blocked pinch zoom, which fails WCAG 1.4.4. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Zane: know what your company has signed, who approved it, and why</title>
     <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1"
+      name="description"
+      content="Zane records what your company signs, who approved it and why, so the CFO and the legal team can see what the business has committed to and what it gave away."
     />
+    <!-- __SITE_URL__ is replaced at build time from APP_URL. See vite.config.ts. -->
+    <link rel="canonical" href="__SITE_URL__/" />
+
     <!-- Typefaces are self-hosted from /fonts and declared in index.css. No
-         third party font host is contacted at any point. Satoshi is preloaded
-         because it paints the entire interface; the rest load on demand. -->
+         third party font host is contacted at any point.
+
+         Three of the five faces are preloaded: the three that paint above the
+         fold. Satoshi is the interface, Source Serif 4 sets every headline,
+         Syncopate sets the wordmark. Satoshi Italic and JetBrains Mono are
+         not used on the public pages, and preloading all five would pull
+         191 kB before first paint to no benefit. -->
     <link rel="preload" href="/fonts/Satoshi-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/SourceSerif4-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/Syncopate-700.woff2" as="font" type="font/woff2" crossorigin />
+
+    <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" type="image/x-icon" href="/favicon.svg" />
-    <title>Zane · Legal Intelligence</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#080E1C" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Zane" />
+    <meta property="og:locale" content="en_GB" />
+    <meta property="og:url" content="__SITE_URL__/" />
+    <meta property="og:title" content="Zane: know what your company has signed, who approved it, and why" />
+    <meta
+      property="og:description"
+      content="Zane records what your company signs, who approved it and why, so the CFO and the legal team can see what the business has committed to and what it gave away."
+    />
+    <meta property="og:image" content="__SITE_URL__/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="The Zane wordmark on a deep navy ground, above the line: know what your company has signed, who approved it, and why."
+    />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Zane: know what your company has signed, who approved it, and why" />
+    <meta
+      name="twitter:description"
+      content="Zane records what your company signs, who approved it and why, so the CFO and the legal team can see what the business has committed to and what it gave away."
+    />
+    <meta name="twitter:image" content="__SITE_URL__/og-image.png" />
   </head>
   <body>
     <div id="root"></div>

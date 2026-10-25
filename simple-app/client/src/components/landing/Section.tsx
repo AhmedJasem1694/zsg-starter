@@ -26,20 +26,22 @@ const TONE = {
   light: {
     section: "bg-paper",
     divider: "border-t border-line-light",
+    // slate-500 on paper is 4.55:1, the lowest AA-passing step available here.
     eyebrow: "text-slate-500",
     headline: "text-ink",
     body: "text-slate-600",
     closing: "text-ink",
-    pending: "text-slate-400",
+    pending: "text-slate-500",
   },
   dark: {
     section: "bg-navy-900",
     divider: "",
-    eyebrow: "text-slate-500",
+    // slate-500 on navy is only 4.05:1. slate-400 is 7.51:1.
+    eyebrow: "text-slate-400",
     headline: "text-[#F8FAFC]",
     body: "text-slate-400",
     closing: "text-[#F8FAFC]",
-    pending: "text-slate-600",
+    pending: "text-slate-400",
   },
 } as const;
 

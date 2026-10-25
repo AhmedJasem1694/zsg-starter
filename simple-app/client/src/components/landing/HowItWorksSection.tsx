@@ -40,8 +40,8 @@ export function HowItWorksSection() {
               variants={staggerItem}
             >
               <div className="flex items-center justify-between">
-                {Icon && <Icon size={18} className="text-slate-400" aria-hidden="true" />}
-                <span className="text-xs font-semibold tracking-[0.18em] text-slate-400">
+                {Icon && <Icon size={18} className="text-slate-500" aria-hidden="true" />}
+                <span className="text-xs font-semibold tracking-[0.18em] text-slate-500">
                   {s.step}
                 </span>
               </div>

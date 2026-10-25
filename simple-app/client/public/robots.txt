@@ -1,0 +1,20 @@
+# The public marketing site is crawlable. Everything behind a login is not:
+# those routes render nothing without a session, so indexing them produces
+# empty results and leaks the shape of the application for no benefit.
+
+User-agent: *
+Allow: /$
+Allow: /privacy
+Allow: /terms
+Allow: /security
+Allow: /resources
+Allow: /case-study
+Disallow: /app/
+Disallow: /api/
+Disallow: /login
+Disallow: /register
+Disallow: /onboarding
+Disallow: /dashboard
+Disallow: /review/
+
+Sitemap: https://www.zanelegal.ai/sitemap.xml

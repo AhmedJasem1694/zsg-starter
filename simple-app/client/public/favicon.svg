@@ -1,13 +1,10 @@
+<!-- The Zane routing symbol: three paths enter, two cross and swap, one holds.
+     Matches ZaneSymbol in client/src/components/ZaneLogo.tsx. -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#4A6CF7"/>
-  <text
-    x="32"
-    y="46"
-    font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
-    font-size="42"
-    font-weight="700"
-    text-anchor="middle"
-    fill="#FFFFFF"
-    letter-spacing="-2"
-  >Z</text>
+  <rect width="64" height="64" rx="14" fill="#080E1C"/>
+  <g transform="translate(4 13) scale(1)" fill="none" stroke="#2563EB" stroke-width="3.5" stroke-linecap="round">
+    <path d="M2 6 L18 6 C26 6 30 19 38 19 C44 19 48 32 54 32"/>
+    <path d="M2 19 L18 19 C26 19 30 6 38 6 L54 6"/>
+    <path d="M2 32 L18 32 L54 32"/>
+  </g>
 </svg>

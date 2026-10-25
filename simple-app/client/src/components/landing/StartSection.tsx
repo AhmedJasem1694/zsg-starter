@@ -23,7 +23,7 @@ export function StartSection() {
       >
         {START.steps.map((s) => (
           <motion.li key={s.step} className="bg-paper px-6 py-7" variants={staggerItem}>
-            <span className="text-xs font-semibold tracking-[0.18em] text-slate-400">{s.step}</span>
+            <span className="text-xs font-semibold tracking-[0.18em] text-slate-500">{s.step}</span>
             <p className="mt-3 text-base font-semibold text-ink">{s.title}</p>
             {s.body && <p className="mt-2 text-sm text-slate-600 leading-relaxed">{s.body}</p>}
           </motion.li>

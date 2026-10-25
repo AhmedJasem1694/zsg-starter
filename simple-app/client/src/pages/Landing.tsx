@@ -125,6 +125,12 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen flex flex-col bg-paper">
+      {/* First tab stop: lets a keyboard reader jump the nav. Styled in
+          index.css, off screen until focused. */}
+      <a href="#hero" className="skip-link" onClick={(e) => scrollToSection(e, "#hero")}>
+        Skip to content
+      </a>
+
       <LandingNav onAnchorClick={scrollToSection} />
 
       <Hero onAnchorClick={scrollToSection} />

@@ -12,10 +12,17 @@ async function fetchMe(): Promise<AuthUser> {
   return getMe();
 }
 
-export function useAuth() {
+/**
+ * @param options.enabled  Set false on pages that never read `user`. The probe
+ *   answers 401 for a signed-out visitor, which is correct but shows up as a
+ *   console error, and on the public marketing pages it is a request made to
+ *   populate something nothing reads.
+ */
+export function useAuth(options: { enabled?: boolean } = {}) {
   const { data: user, isLoading, status } = useQuery({
     queryKey: ["auth-me"],
     queryFn: fetchMe,
+    enabled: options.enabled ?? true,
     retry: false,
     staleTime: 5 * 60_000,
     // Do NOT refetch when the window regains focus. The default refetchOnWindowFocus

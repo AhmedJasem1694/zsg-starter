@@ -1,47 +1,49 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
+import { FeatureFlagsProvider } from "./contexts/FeatureFlagsContext";
 import { useQuery } from "@tanstack/react-query";
 import { getCompany } from "./lib/api";
 import Landing from "./pages/Landing";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Onboarding from "./pages/Onboarding";
-import DocumentFirstDashboard from "./pages/DocumentFirstDashboard";
-import Dashboard from "./pages/Dashboard";
-import ReviewDetail from "./pages/ReviewDetail";
-import Playbook from "./pages/Playbook";
-import Security from "./pages/Security";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import Resources from "./pages/Resources";
-import FirstPlaybook from "./pages/resources/FirstPlaybook";
-import RagStatus from "./pages/resources/RagStatus";
-import ReviewTimeCaseStudy from "./pages/resources/ReviewTimeCaseStudy";
-import ApprovalMatrix from "./pages/resources/ApprovalMatrix";
-import PortfolioDashboard from "./pages/resources/PortfolioDashboard";
-import SraGuidance from "./pages/resources/SraGuidance";
-import CaseStudy from "./pages/CaseStudy";
-import ForFunds from "./pages/ForFunds";
-import Portfolio from "./pages/Portfolio";
-import ContractTimings from "./pages/ContractTimings";
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Onboarding = lazy(() => import("./pages/Onboarding"));
+const DocumentFirstDashboard = lazy(() => import("./pages/DocumentFirstDashboard"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const ReviewDetail = lazy(() => import("./pages/ReviewDetail"));
+const Playbook = lazy(() => import("./pages/Playbook"));
+const Security = lazy(() => import("./pages/Security"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Resources = lazy(() => import("./pages/Resources"));
+const FirstPlaybook = lazy(() => import("./pages/resources/FirstPlaybook"));
+const RagStatus = lazy(() => import("./pages/resources/RagStatus"));
+const ReviewTimeCaseStudy = lazy(() => import("./pages/resources/ReviewTimeCaseStudy"));
+const ApprovalMatrix = lazy(() => import("./pages/resources/ApprovalMatrix"));
+const PortfolioDashboard = lazy(() => import("./pages/resources/PortfolioDashboard"));
+const SraGuidance = lazy(() => import("./pages/resources/SraGuidance"));
+const CaseStudy = lazy(() => import("./pages/CaseStudy"));
+const ForFunds = lazy(() => import("./pages/ForFunds"));
+const Portfolio = lazy(() => import("./pages/Portfolio"));
+const ContractTimings = lazy(() => import("./pages/ContractTimings"));
 // Litigation disabled, commercial contracts focus.
 // import LitigationIntake from "./pages/LitigationIntake";
-import BulkReview from "./pages/BulkReview";
-import Patterns from "./pages/Patterns";
-import AuditTrail from "./pages/AuditTrail";
-import Approvals from "./pages/Approvals";
-import ApprovalDecision from "./pages/ApprovalDecision";
-import FounderDashboard from "./pages/founder/FounderDashboard";
-import FounderReview from "./pages/founder/FounderReview";
-import ContractLibrary from "./pages/ContractLibrary";
-import VendorIntelligence from "./pages/VendorIntelligence";
-import LegacyReview from "./pages/LegacyReview";
-import AdminMetrics from "./pages/AdminMetrics";
-import TeamManagement from "./pages/TeamManagement";
-import JoinerBriefing from "./pages/JoinerBriefing";
-import OutcomeConfirmation from "./pages/OutcomeConfirmation";
-import Settings from "./pages/Settings";
+const BulkReview = lazy(() => import("./pages/BulkReview"));
+const Patterns = lazy(() => import("./pages/Patterns"));
+const AuditTrail = lazy(() => import("./pages/AuditTrail"));
+const Approvals = lazy(() => import("./pages/Approvals"));
+const ApprovalDecision = lazy(() => import("./pages/ApprovalDecision"));
+const FounderDashboard = lazy(() => import("./pages/founder/FounderDashboard"));
+const FounderReview = lazy(() => import("./pages/founder/FounderReview"));
+const ContractLibrary = lazy(() => import("./pages/ContractLibrary"));
+const VendorIntelligence = lazy(() => import("./pages/VendorIntelligence"));
+const LegacyReview = lazy(() => import("./pages/LegacyReview"));
+const AdminMetrics = lazy(() => import("./pages/AdminMetrics"));
+const TeamManagement = lazy(() => import("./pages/TeamManagement"));
+const JoinerBriefing = lazy(() => import("./pages/JoinerBriefing"));
+const OutcomeConfirmation = lazy(() => import("./pages/OutcomeConfirmation"));
+const Settings = lazy(() => import("./pages/Settings"));
 import type { Persona } from "./lib/types";
 
 // ── PersonaRouter - redirect /dashboard to the right persona path ─────────────
@@ -72,9 +74,29 @@ function RequireAuth({ children, company }: { children: React.ReactNode; company
 
 // ── App routes ────────────────────────────────────────────────────────────────
 
+/**
+ * Shown while a route chunk loads. Deliberately blank: every page below is a
+ * separate chunk now, and a spinner that appears and vanishes inside 100ms
+ * reads as a flicker rather than as progress. The aria-busy region tells a
+ * screen reader that something is happening without drawing a box.
+ */
+function RouteFallback() {
+  return <div aria-busy="true" aria-live="polite" className="min-h-screen" />;
+}
+
+/**
+ * Pages that render the same thing signed in or out, and whose route elements
+ * never read `user`. The session probe is skipped on these: it would answer
+ * 401 for a visitor, which is correct behaviour but logs a console error and
+ * costs a request on the page most people land on first.
+ */
+const MARKETING_PATHS = ["/", "/privacy", "/terms", "/security", "/case-study", "/for-funds"];
+
 function AppRoutes() {
-  const { user, isLoading: authLoading } = useAuth();
   const { pathname } = useLocation();
+  const isMarketing =
+    MARKETING_PATHS.includes(pathname) || pathname.startsWith("/resources");
+  const { user, isLoading: authLoading } = useAuth({ enabled: !isMarketing });
   const { data: company, isPending: companyLoading } = useQuery({
     queryKey: ["company"],
     queryFn: getCompany,
@@ -97,6 +119,7 @@ function AppRoutes() {
   const isFounderPersona = persona === "FOUNDER";
 
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       {/* ── Public routes, always render, no auth guard ── */}
       <Route path="/"        element={<Landing />} />
@@ -264,8 +287,11 @@ function AppRoutes() {
       <Route path="/for-funds"  element={<ForFunds />} />
 
       {/* Fallback */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* A real 404 rather than a silent redirect home: a redirect hides the
+          broken link from the reader and tells crawlers the URL was valid. */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
+    </Suspense>
   );
 }
 
@@ -297,8 +323,13 @@ function ScrollToTop() {
 export default function App() {
   return (
     <BrowserRouter>
-      <ScrollToTop />
-      <AppRoutes />
+      {/* Inside the router on purpose: the provider skips its fetch on public
+          pages, which means it has to know the current path, and it must keep
+          knowing it across client-side navigation. */}
+      <FeatureFlagsProvider>
+        <ScrollToTop />
+        <AppRoutes />
+      </FeatureFlagsProvider>
     </BrowserRouter>
   );
 }

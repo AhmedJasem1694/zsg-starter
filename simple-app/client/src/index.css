@@ -678,3 +678,35 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* ── Focus visibility, site-wide ─────────────────────────────────────────────
+   Deliberately unscoped. The app's own focus ring lives inside .theme-light,
+   which the public pages are not inside, so they had no visible ring at all
+   once a component set focus:outline-none.
+
+   cobalt-light rather than cobalt: #3B82F6 is 5.24:1 on navy and 3.53:1 on
+   paper, so the indicator clears the 3:1 WCAG minimum against both grounds.
+   Plain cobalt is 3.73:1 on navy and would be marginal. */
+:is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Lets a keyboard user skip the nav. Off screen until focused. */
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -3rem;
+  z-index: 60;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  background: #2563EB;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: top 150ms ease;
+}
+.skip-link:focus {
+  top: 1rem;
+}

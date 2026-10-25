@@ -21,6 +21,8 @@ export function ForLegalSection() {
       <motion.div className="mt-14" {...rise(0.08)}>
         <img
           src="/images/review-clause-analysis.webp"
+                srcSet="/images/review-clause-analysis-1440.webp 1440w, /images/review-clause-analysis.webp 2880w"
+                sizes="(min-width: 1024px) 1024px, calc(100vw - 32px)"
           alt={FOR_LEGAL.visualAlt}
           width={1440}
           height={900}

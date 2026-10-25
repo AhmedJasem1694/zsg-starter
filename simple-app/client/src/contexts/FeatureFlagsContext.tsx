@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "react-router-dom";
 import { getFeatureFlags as fetchFeatureFlags } from "../lib/api";
 
 // ── Types (mirrored from server/services/featureFlags.ts) ─────────────────────
@@ -81,10 +82,22 @@ globalStore[CONTEXT_KEY] = FeatureFlagsContext;
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
+/**
+ * Public pages that never read a flag. /api/features requires a session, so on
+ * these it answers 401: correct, but it logs a console error on the page most
+ * visitors land on first and costs a request that populates nothing. The
+ * defaults below are what an unauthenticated caller would end up with anyway.
+ */
+const PUBLIC_PATHS = ["/", "/privacy", "/terms", "/security", "/case-study", "/for-funds"];
+
 export function FeatureFlagsProvider({ children }: { children: React.ReactNode }) {
+  const { pathname } = useLocation();
+  const isPublic = PUBLIC_PATHS.includes(pathname) || pathname.startsWith("/resources");
+
   const { data, isLoading } = useQuery({
     queryKey: ["feature-flags"],
     queryFn: fetchFeatureFlags,
+    enabled: !isPublic,
     staleTime: 5 * 60_000, // 5 minutes, tier rarely changes mid-session
     retry: false,
   });

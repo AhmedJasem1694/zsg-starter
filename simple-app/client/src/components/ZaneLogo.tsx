@@ -86,7 +86,10 @@ export function ZaneLogo({
 }: LogoProps) {
   const symbolColor = "#4A6CF7";
   const wordmarkColor = light ? "#E6E8EB" : "#0B1118";
-  const taglineColor = light ? "rgba(230,232,235,0.38)" : "rgba(11,17,24,0.45)";
+  // Alpha raised from 0.38 / 0.45: at those values the tagline measured
+  // 3.05:1 on navy and 3.03:1 on paper, failing AA for text. Lighthouse
+  // flagged both. These clear 4.5:1 against their respective grounds.
+  const taglineColor = light ? "rgba(230,232,235,0.72)" : "rgba(11,17,24,0.78)";
 
   const symbol = (
     <ZaneSymbol className={SYMBOL_SIZES[size]} color={symbolColor} />
@@ -110,7 +113,7 @@ export function ZaneLogo({
   const tagline = (
     <span
       style={{
-        fontFamily: "'Inter', sans-serif",
+        fontFamily: "'Satoshi', -apple-system, sans-serif",
         fontWeight: 500,
         fontSize: "7px",
         letterSpacing: "0.18em",

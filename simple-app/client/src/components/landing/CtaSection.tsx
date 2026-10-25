@@ -22,6 +22,9 @@ import { rise } from "./motion";
 
 const F = CTA.form;
 
+/** id of the error region, referenced by every field via aria-describedby. */
+const ERROR_ID = "cta-error";
+
 export function CtaSection() {
   const [form, setForm] = useState({ name: "", email: "", company: "", role: "", prompt: "", website: "" });
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
@@ -60,15 +63,15 @@ export function CtaSection() {
   }
 
   const input =
-    "w-full rounded-lg border border-line-dark bg-white/5 px-3.5 py-2.5 text-sm text-[#F8FAFC] placeholder:text-slate-600 focus:outline-none focus:border-cobalt focus:ring-2 focus:ring-cobalt/15 transition-colors";
-  const label = "block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 mb-1.5";
+    "w-full rounded-lg border border-line-dark bg-white/5 px-3.5 py-2.5 text-sm text-[#F8FAFC] placeholder:text-slate-400 focus:outline-none focus-visible:outline-none focus:border-cobalt focus:ring-2 focus:ring-cobalt transition-colors";
+  const label = "block text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400 mb-1.5";
 
   return (
     <Section copy={CTA} tone="dark">
       <motion.div className="mt-10 max-w-xl" {...rise(0.12)}>
         {state === "sent" ? (
           <div className="flex items-start gap-3 rounded-xl border border-line-dark bg-navy-800 px-5 py-6">
-            <CheckCircle2 size={18} className="text-cobalt shrink-0 mt-0.5" aria-hidden="true" />
+            <CheckCircle2 size={18} className="text-cobalt-light shrink-0 mt-0.5" aria-hidden="true" />
             <p className="text-base text-[#F8FAFC]">{F.successHeading}</p>
           </div>
         ) : (
@@ -76,19 +79,19 @@ export function CtaSection() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className={label} htmlFor="cta-name">{F.fields.name}</label>
-                <input id="cta-name" className={input} placeholder={F.placeholders.name} value={form.name} onChange={set("name")} autoComplete="name" />
+                <input id="cta-name" aria-describedby={state === "error" ? ERROR_ID : undefined} aria-invalid={state === "error" || undefined} className={input} placeholder={F.placeholders.name} value={form.name} onChange={set("name")} autoComplete="name" />
               </div>
               <div>
                 <label className={label} htmlFor="cta-email">{F.fields.email}</label>
-                <input id="cta-email" type="email" className={input} placeholder={F.placeholders.email} value={form.email} onChange={set("email")} autoComplete="email" />
+                <input id="cta-email" aria-describedby={state === "error" ? ERROR_ID : undefined} aria-invalid={state === "error" || undefined} type="email" className={input} placeholder={F.placeholders.email} value={form.email} onChange={set("email")} autoComplete="email" />
               </div>
               <div>
                 <label className={label} htmlFor="cta-company">{F.fields.company}</label>
-                <input id="cta-company" className={input} placeholder={F.placeholders.company} value={form.company} onChange={set("company")} autoComplete="organization" />
+                <input id="cta-company" aria-describedby={state === "error" ? ERROR_ID : undefined} aria-invalid={state === "error" || undefined} className={input} placeholder={F.placeholders.company} value={form.company} onChange={set("company")} autoComplete="organization" />
               </div>
               <div>
                 <label className={label} htmlFor="cta-role">{F.fields.role}</label>
-                <select id="cta-role" className={input} value={form.role} onChange={set("role")}>
+                <select id="cta-role" aria-describedby={state === "error" ? ERROR_ID : undefined} aria-invalid={state === "error" || undefined} className={input} value={form.role} onChange={set("role")}>
                   <option value="">{F.rolePlaceholder}</option>
                   {F.roleOptions.map((o) => (
                     <option key={o.value} value={o.value}>{o.label}</option>
@@ -99,7 +102,7 @@ export function CtaSection() {
 
             <div>
               <label className={label} htmlFor="cta-prompt">{F.fields.prompt}</label>
-              <input id="cta-prompt" className={input} placeholder={F.placeholders.prompt} value={form.prompt} onChange={set("prompt")} />
+              <input id="cta-prompt" aria-describedby={state === "error" ? ERROR_ID : undefined} aria-invalid={state === "error" || undefined} className={input} placeholder={F.placeholders.prompt} value={form.prompt} onChange={set("prompt")} />
             </div>
 
             {/* Honeypot. Hidden from people and from assistive technology, and
@@ -110,7 +113,7 @@ export function CtaSection() {
             </div>
 
             {state === "error" && (
-              <div role="alert" className="rounded-lg border border-red-900/50 bg-red-950/40 px-4 py-3 text-sm text-red-200">
+              <div id={ERROR_ID} role="alert" className="rounded-lg border border-red-900/50 bg-red-950/40 px-4 py-3 text-sm text-red-200">
                 <p>{F.errorPrefix} {error}</p>
                 <a
                   href={`mailto:${CTA.contact.email}`}
@@ -132,7 +135,7 @@ export function CtaSection() {
         )}
 
         {state !== "sent" && (
-          <p className="mt-5 text-xs text-slate-500">
+          <p className="mt-5 text-xs text-slate-400">
             {CTA.contact.before}{" "}
             <a
               href={`mailto:${CTA.contact.email}`}

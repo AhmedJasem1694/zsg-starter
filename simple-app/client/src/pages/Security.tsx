@@ -25,7 +25,7 @@ export default function Security() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
       <nav className="border-b border-border/40 px-6 py-4 flex flex-wrap items-center justify-between gap-4 max-w-7xl mx-auto">
-        <Link to="/" className="hover:opacity-80 transition-opacity" aria-label="Zane, home">
+        <Link to="/" className="hover:opacity-80 transition-opacity">
           <ZaneLogo size="sm" />
         </Link>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">

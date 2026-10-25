@@ -27,7 +27,7 @@ export function LandingFooter({
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
           {/* Identity */}
           <div>
-            <Link to="/" className="inline-block hover:opacity-80 transition-opacity" aria-label="Zane, home">
+            <Link to="/" className="inline-block hover:opacity-80 transition-opacity">
               <ZaneLogo size="sm" light={false} />
             </Link>
             <p className="mt-4 text-sm text-slate-600 leading-relaxed max-w-xs">{FOOTER.tagline}</p>

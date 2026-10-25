@@ -29,7 +29,7 @@ export function LegalLayout({ page }: { page: LegalPage }) {
       )}
 
       <nav className="border-b border-border/40 px-6 py-4 flex flex-wrap items-center justify-between gap-4 max-w-7xl mx-auto w-full">
-        <Link to="/" className="hover:opacity-80 transition-opacity" aria-label="Zane, home">
+        <Link to="/" className="hover:opacity-80 transition-opacity">
           <ZaneLogo size="sm" />
         </Link>
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2">

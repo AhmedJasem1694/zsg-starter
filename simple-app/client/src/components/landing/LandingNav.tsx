@@ -10,7 +10,7 @@
  * with the one thing this page is asking for.
  */
 
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { ZaneLogo } from "../ZaneLogo";
@@ -41,6 +41,55 @@ export function LandingNav({
     return () => mq.removeEventListener("change", close);
   }, []);
 
+  /**
+   * While the disclosure is open it is the only thing on screen, so focus must
+   * stay inside it: Tab from the last item returns to the trigger, and Escape
+   * closes and hands focus back. Without this a keyboard reader tabs straight
+   * past the menu into the page behind it, which is still rendered.
+   */
+  const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const focusable = () => {
+      const panel = menuRef.current;
+      if (!panel) return [] as HTMLElement[];
+      return Array.from(
+        panel.querySelectorAll<HTMLElement>('a[href], button:not([disabled])'),
+      ).filter((el) => el.offsetParent !== null);
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setOpen(false);
+        triggerRef.current?.focus();
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      const items = focusable();
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      const active = document.activeElement;
+
+      if (e.shiftKey && (active === first || active === triggerRef.current)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        triggerRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    focusable()[0]?.focus();
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
   const handleAnchor = (e: MouseEvent<HTMLAnchorElement>, href: string) => {
     setOpen(false);
     onAnchorClick(e, href);
@@ -56,7 +105,7 @@ export function LandingNav({
       }}
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
-        <Link to="/" className="shrink-0 hover:opacity-80 transition-opacity" aria-label="Zane, home">
+        <Link to="/" className="shrink-0 hover:opacity-80 transition-opacity">
           <ZaneLogo size="sm" light={true} />
         </Link>
 
@@ -77,7 +126,7 @@ export function LandingNav({
         <div className="hidden md:flex items-center gap-2">
           <Link
             to={NAV.signInHref}
-            className="px-3 py-1.5 text-sm text-slate-500 hover:text-slate-300 transition-colors duration-300"
+            className="px-3 py-1.5 text-sm text-slate-400 hover:text-slate-300 transition-colors duration-300"
           >
             {NAV.signInLabel}
           </Link>
@@ -92,6 +141,7 @@ export function LandingNav({
 
         {/* Mobile trigger */}
         <button
+          ref={triggerRef}
           type="button"
           className="md:hidden p-2 -mr-2 text-slate-300 hover:text-white transition-colors"
           aria-expanded={open}
@@ -105,6 +155,7 @@ export function LandingNav({
 
       {/* Mobile menu. hidden keeps it out of the a11y tree when closed. */}
       <div
+        ref={menuRef}
         id="landing-menu"
         hidden={!open}
         className="md:hidden border-t border-line-dark/60 px-4 pb-4 pt-2"
@@ -130,7 +181,7 @@ export function LandingNav({
           </a>
           <Link
             to={NAV.signInHref}
-            className="mt-3 text-center py-2 text-sm text-slate-500 hover:text-slate-300 transition-colors"
+            className="mt-3 text-center py-2 text-sm text-slate-400 hover:text-slate-300 transition-colors"
           >
             {NAV.signInLabel}
           </Link>
