@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import { z } from "zod";
 import { pb, newPBClient } from "./pb.js";
+import { buildAuditFilter, InvalidAuditFilter } from "./lib/auditFilter.js";
 import multer from "multer";
 import { upload, uploadAncillary, classifyFileType, inboundUpload } from "./upload.js";
 import {
@@ -1091,6 +1092,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       action: "company_created",
       entityType: "company",
       entityId: company.id,
+      companyId: company.id,
       userId: req.user?.userId,
       detail: { name: company["name"], sector: company["sector"], workflowType: company["workflowType"] },
     });
@@ -1164,6 +1166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       action: "company_updated",
       entityType: "company",
       entityId: company.id,
+      companyId: company.id,
       userId: req.user?.userId,
       detail: { regulationProminence: parsed.data.regulationProminence },
     });
@@ -1337,6 +1340,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       action: "playbook_updated",
       entityType: "company",
       entityId: company.id,
+      // Also repairs the playbook version counter: GET /api/playbook/rules
+      // derives it by counting playbook_updated rows filtered on companyId,
+      // which this writer never set, so the version was always stuck at 1.
+      companyId: company.id,
       userId: req.user?.userId,
       detail: { rulesCount: created.length },
     });
@@ -2147,6 +2154,7 @@ ${rawText}`,
       action: "company_created",
       entityType: "company",
       entityId: company.id,
+      companyId: company.id,
       userId: req.user?.userId,
       detail: { name: company["name"], sector, persona, source: "document_first" },
     });
@@ -2586,10 +2594,13 @@ ${rawText}`,
     };
     // Carry the contract id so the per-contract audit view can link this entry
     const fbResult = await pb.collection("review_results").getOne(req.params.resultId, { fields: "id,document,clauseCategory,rule,escalationTrigger" }).catch(() => null);
+    // Tag the company, or this decision disappears from the scoped audit view.
+    const fbCompany = await getCompany(req.user?.email);
     await audit({
       action: actionMap[parsed.data.userAction] ?? "feedback_accepted",
       entityType: "review_result",
       entityId: req.params.resultId,
+      companyId: fbCompany?.id,
       userId: req.user?.userId,
       detail: { documentId: fbResult?.["document"] ?? "", clauseCategory: fbResult?.["clauseCategory"] ?? "", userAction: parsed.data.userAction },
     });
@@ -2762,10 +2773,13 @@ ${rawText}`,
 
     // Carry the contract id so the per-contract audit view can link this entry
     const tzResult = await pb.collection("review_results").getOne(req.params.resultId, { fields: "id,document,clauseCategory" }).catch(() => null);
+    // Tag the company, or this correction disappears from the scoped audit view.
+    const tzCompany = await getCompany(req.user?.email);
     await audit({
       action: "teach_zane_correction",
       entityType: "review_result",
       entityId: req.params.resultId,
+      companyId: tzCompany?.id,
       userId: req.user?.userId,
       detail: { correctOutputLength: parsed.data.correctOutput.length, documentId: tzResult?.["document"] ?? "", clauseCategory: tzResult?.["clauseCategory"] ?? "" },
     });
@@ -2814,10 +2828,13 @@ ${rawText}`,
 
     // Carry the contract id so the per-contract audit view can link this entry
     const fpResult = await pb.collection("review_results").getOne(req.params.resultId, { fields: "id,document,clauseCategory" }).catch(() => null);
+    // Tag the company, or this decision disappears from the scoped audit view.
+    const fpCompany = await getCompany(req.user?.email);
     await audit({
       action: "false_positive_marked",
       entityType: "review_result",
       entityId: req.params.resultId,
+      companyId: fpCompany?.id,
       userId: req.user?.userId,
       detail: { documentId: fpResult?.["document"] ?? "", clauseCategory: fpResult?.["clauseCategory"] ?? "" },
     });
@@ -4011,19 +4028,28 @@ Draft the complete clause.`;
     const page   = parseInt((req.query.page as string) ?? "1", 10);
     const format = req.query.format as string | undefined; // "csv" for export
 
-    // Build filter
-    const filters: string[] = [];
-    if (req.query.action)   filters.push(`action = "${req.query.action}"`);
-    if (req.query.from)     filters.push(`created >= "${req.query.from}"`);
-    if (req.query.to)       filters.push(`created <= "${req.query.to}"`);
-    if (req.query.entityId) filters.push(`entityId = "${req.query.entityId}"`);
-    const filterStr = filters.join(" && ");
+    // Tenant scope. This handler was the only audit reader that never resolved
+    // the caller's company, so both branches below returned every company's
+    // rows to any authenticated user, the CSV export included. The per-contract
+    // reader beneath this one has always been scoped; this now matches it.
+    const company = await getCompany(req.user?.email);
+    if (!company) { sendError(res, 404, "No company configured"); return; }
+
+    // Validated and scoped in one place. See server/lib/auditFilter.ts for why
+    // the caller's values are pattern-checked rather than interpolated raw.
+    let filterStr: string;
+    try {
+      filterStr = buildAuditFilter(company.id, req.query);
+    } catch (err) {
+      if (err instanceof InvalidAuditFilter) { sendError(res, 400, err.message); return; }
+      throw err;
+    }
 
     if (format === "csv") {
       // Full export - no pagination, max 5000 rows
       const rows = await pb.collection("audit_log").getFullList({
         sort: "-created",
-        filter: filterStr || undefined,
+        filter: filterStr,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
       const header = "id,action,entityType,entityId,companyId,userId,createdAt,detail\n";
@@ -4047,6 +4073,7 @@ Draft the complete clause.`;
       audit({
         action: "audit_log_exported",
         entityType: "audit_log",
+        companyId: company.id,
         userId: req.user?.userId,
         detail: { rows: rows.length, filters: filterStr },
       }).catch(() => {});
@@ -4059,7 +4086,7 @@ Draft the complete clause.`;
 
     const result = await pb.collection("audit_log").getList(page, limit, {
       sort: "-created",
-      filter: filterStr || undefined,
+      filter: filterStr,
     });
 
     res.json({
