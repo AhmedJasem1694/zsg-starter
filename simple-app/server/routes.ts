@@ -261,6 +261,39 @@ async function assertOwnsDocument(userId: string, documentId: string, userCompan
   }
 }
 
+/**
+ * Resolve the caller's company and confirm they own `documentId`.
+ *
+ * Returns the company on success. On failure the response has already been
+ * sent and null is returned, so a caller is just:
+ *
+ *   const company = await requireDocumentAccess(req, res, id);
+ *   if (!company) return;
+ *
+ * A document that does not exist and a document belonging to someone else both
+ * answer 403, deliberately. Distinguishing them turns the id space into an
+ * existence oracle, and the ids are the only thing protecting these records.
+ *
+ * Use this on any handler that reads or writes records hanging off a document
+ * (ancillary files, outcome deltas, clauses). The global error handler forces
+ * every thrown error to a 500, so ownership has to be checked here rather than
+ * by letting assertOwnsDocument's 403 propagate.
+ */
+async function requireDocumentAccess(
+  req: Request,
+  res: Response,
+  documentId: string,
+): Promise<PBRecord | null> {
+  const company = await getCompany(req.user?.email);
+  if (!company) { sendError(res, 404, "Company not found"); return null; }
+  try {
+    await assertOwnsDocument(req.user!.userId, documentId, company.id as string);
+  } catch {
+    sendError(res, 403, "Forbidden"); return null;
+  }
+  return company;
+}
+
 // Classify a verified inbound email's intent and act on it. Runs fire-and-forget
 // after the webhook has acknowledged Mailgun. Persists the parsed intent on the
 // inbound_emails record for downstream sections; for "unclear" it replies with a
@@ -3983,6 +4016,18 @@ Draft the complete clause.`;
       const file = req.file;
       if (!file) { sendError(res, 400, "No file uploaded"); return; }
 
+      // Was unguarded: any signed-in user could attach a file to any document
+      // by id, across companies. Multer has already written the upload to disk
+      // by the time this runs, so a rejected request has to clean up after
+      // itself or it leaves an orphan in uploads/.
+      const company = await requireDocumentAccess(req, res, req.params.documentId);
+      if (!company) {
+        fs.promises
+          .unlink(path.join(process.cwd(), "uploads", file.filename))
+          .catch(() => {});
+        return;
+      }
+
       const privilegeFlag = (req.body as { privilegeFlag?: string }).privilegeFlag === "true";
       const fileType = classifyFileType(file.originalname);
 
@@ -4009,6 +4054,11 @@ Draft the complete clause.`;
   );
 
   app.get("/api/ancillary/:documentId", requireAuth, ah(async (req: Request, res: Response) => {
+    // Was unguarded: any signed-in user could list any document's ancillary
+    // files by id, across companies.
+    const company = await requireDocumentAccess(req, res, req.params.documentId);
+    if (!company) return;
+
     const docs = await pb.collection("ancillary_documents").getFullList({
       filter: `document = "${req.params.documentId}"`,
       sort: "-id",
@@ -4017,6 +4067,20 @@ Draft the complete clause.`;
   }));
 
   app.delete("/api/ancillary/:ancillaryId", requireAuth, ah(async (req: Request, res: Response) => {
+    // Was unguarded, and destructive: any signed-in user could delete any
+    // ancillary record by id. The record is addressed by its own id rather
+    // than a document id, so the parent document has to be resolved first.
+    const record = await pb
+      .collection("ancillary_documents")
+      .getOne(req.params.ancillaryId)
+      .catch(() => null);
+    // A missing record answers 403 like a foreign one, so the two cannot be
+    // told apart from outside.
+    if (!record) { sendError(res, 403, "Forbidden"); return; }
+
+    const company = await requireDocumentAccess(req, res, record["document"] as string);
+    if (!company) return;
+
     await pb.collection("ancillary_documents").delete(req.params.ancillaryId);
     res.json({ ok: true });
   }));
@@ -4904,12 +4968,14 @@ Draft the complete clause.`;
 
   // Get outcome deltas for a document
   app.get("/api/documents/:id/outcome-delta", requireAuth, ah(async (req: Request, res: Response) => {
-    let doc: PBRecord;
-    try {
-      doc = await pb.collection("uploaded_documents").getOne(req.params.id);
-    } catch {
-      sendError(res, 404, "Document not found"); return;
-    }
+    // Was unguarded: the handler fetched the document but never compared its
+    // company to the caller's. Worse than a plain read leak, because the
+    // playbook lookup below used to key off the DOCUMENT's company, so reading
+    // a foreign contract also returned that company's preferred positions,
+    // fallbacks and red lines. It keys off the caller's company now, which is
+    // the same value once ownership is asserted.
+    const company = await requireDocumentAccess(req, res, req.params.id);
+    if (!company) return;
 
     const deltas = await pb.collection("outcome_deltas").getFullList({
       filter: `document = "${req.params.id}"`,
@@ -4918,7 +4984,7 @@ Draft the complete clause.`;
 
     // Load playbook rules for context
     const rules = await pb.collection("playbook_rules").getFullList({
-      filter: `company = "${doc["company"] as string}"`,
+      filter: `company = "${company.id as string}"`,
     });
     const ruleByCategory = new Map<string, PBRecord>();
     for (const r of rules) ruleByCategory.set(r["clauseCategory"] as string, r);
@@ -4949,11 +5015,24 @@ Draft the complete clause.`;
       sendError(res, 400, "confirmations array required"); return;
     }
 
-    let doc: PBRecord;
-    try {
-      doc = await pb.collection("uploaded_documents").getOne(req.params.id);
-    } catch {
-      sendError(res, 404, "Document not found"); return;
+    // Was unguarded, and this one writes: the document was fetched but its
+    // company never checked, so any signed-in user could confirm outcomes on
+    // another company's contract and trigger pattern detection against it.
+    const company = await requireDocumentAccess(req, res, req.params.id);
+    if (!company) return;
+
+    // The deltaIds arrive in the body and were previously updated as given,
+    // with nothing tying them to the document in the URL. Ownership of the
+    // document therefore proved nothing about the rows being written. Confine
+    // the write to deltas that actually belong to this contract.
+    const ownDeltas = await pb.collection("outcome_deltas").getFullList({
+      filter: `document = "${req.params.id}"`,
+      fields: "id",
+    });
+    const ownIds = new Set(ownDeltas.map((d) => d.id as string));
+    const foreign = confirmations.filter((c) => !ownIds.has(c.deltaId));
+    if (foreign.length > 0) {
+      sendError(res, 403, "Forbidden"); return;
     }
 
     await Promise.all(
@@ -4968,7 +5047,7 @@ Draft the complete clause.`;
     );
 
     // Fire-and-forget pattern detection
-    runPatternDetection(doc["company"] as string).catch(console.error);
+    runPatternDetection(company.id as string).catch(console.error);
 
     res.json({ ok: true });
   }));
