@@ -76,10 +76,49 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  // index:false matters. express.static otherwise answers "/" with index.html
+  // straight off disk, before the handler below that substitutes __SITE_URL__,
+  // so the homepage would ship the raw token while every other path resolved.
+  app.use(express.static(distPath, { index: false }));
+
+  /**
+   * The canonical and Open Graph URLs are resolved here, at boot, rather than
+   * baked in by the build.
+   *
+   * They have to be absolute, and the right value belongs to the deployment
+   * rather than to the source. Injecting it at build time meant a change to
+   * APP_URL only took effect on a full rebuild: setting the variable restarts
+   * the service, which re-runs this file against an artefact still carrying
+   * the old origin. That cost two deploys to spot and is the wrong coupling
+   * for a value that can change without the code changing.
+   *
+   * Vite leaves __SITE_URL__ in the built HTML for exactly this. The dev
+   * server still substitutes it through the plugin in vite.config.ts, so both
+   * paths produce absolute URLs.
+   *
+   * Read once: index.html is small and does not change between restarts.
+   */
+  const indexPath = path.resolve(distPath, "index.html");
+  const origin = (process.env.SITE_URL ?? process.env.APP_URL ?? "https://www.zanelegal.ai")
+    .replace(/\/+$/, "");
+  let indexHtml = "";
+  try {
+    indexHtml = fs.readFileSync(indexPath, "utf8").replaceAll("__SITE_URL__", origin);
+    if (!process.env.APP_URL && !process.env.SITE_URL) {
+      console.warn(
+        `[static] Neither APP_URL nor SITE_URL is set. Canonical and Open Graph URLs fall back to ${origin}.`,
+      );
+    }
+  } catch (err) {
+    console.error("[static] Could not read index.html:", (err as Error)?.message);
+  }
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+    if (indexHtml) {
+      res.type("html").send(indexHtml);
+      return;
+    }
+    res.sendFile(indexPath);
   });
 }

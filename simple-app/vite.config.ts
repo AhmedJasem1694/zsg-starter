@@ -23,7 +23,14 @@ function siteUrlPlugin(): Plugin {
   const origin = raw.replace(/\/+$/, "");
   return {
     name: "zane-site-url",
-    transformIndexHtml(html) {
+    /**
+     * Dev only. In a production build the token is left in place and the
+     * server substitutes it at boot (see serveStatic in server/vite.ts), so a
+     * change to APP_URL takes effect on restart instead of requiring a full
+     * rebuild.
+     */
+    apply: "serve",
+    transformIndexHtml(html: string) {
       return html.replaceAll("__SITE_URL__", origin);
     },
   };
