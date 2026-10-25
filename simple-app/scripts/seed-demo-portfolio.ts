@@ -35,7 +35,31 @@ const DEMO_USER = "demo@zanelegal.ai";
 
 // Reference point for the 90 day spread. Passed in rather than read from the
 // clock so a re-run produces the same dates.
-const TODAY = new Date(process.env.SEED_TODAY ?? "2026-08-02T09:00:00.000Z");
+/**
+ * Anchor for every relative date below. Defaults to now, so a re-seed always
+ * lands in the current month: the monthly report windows on the current month
+ * and a frozen anchor made it render zeros the moment that month passed.
+ * Set SEED_TODAY to pin it for a reproducible fixture.
+ */
+const TODAY = new Date(process.env.SEED_TODAY ?? Date.now());
+
+/**
+ * Renewal dates. The seed previously wrote none at all, so "Renewals due next
+ * quarter" and the Timings view were empty whatever the review dates said.
+ * Every fourth contract renews inside the 90 day window the dashboard and the
+ * monthly report both use; the rest sit six to eighteen months out.
+ */
+const daysAheadIso = (d: number) =>
+  new Date(TODAY.getTime() + d * 86_400_000).toISOString().replace("T", " ");
+function renewalFor(index: number): { renewalDate: string; autoRenewal: boolean; noticePeriodDays: number } {
+  const soon = index % 4 === 0;
+  const days = soon ? 12 + ((index * 7) % 75) : 190 + ((index * 23) % 360);
+  return {
+    renewalDate: daysAheadIso(days),
+    autoRenewal: index % 3 !== 0,
+    noticePeriodDays: [30, 60, 90][index % 3],
+  };
+}
 const daysAgoIso = (d: number) => {
   const t = new Date(TODAY.getTime() - d * 86_400_000);
   return t.toISOString().replace("T", " ");
@@ -335,8 +359,10 @@ async function main() {
   const resultIdByDocCat = new Map<string, string>();
   let rrCount = 0, deCount = 0, auditCount = 0;
 
+  let contractIndex = 0;
   for (const c of CONTRACTS) {
     const reviewedAt = daysAgoIso(c.daysAgo);
+    const renewal = renewalFor(contractIndex++);
     const doc = await pb.collection("uploaded_documents").create({
       company: cid,
       filename: `${SEED_TAG}_${c.name.replace(/[^a-z0-9]/gi, "_").slice(0, 40)}.pdf`,
@@ -350,6 +376,9 @@ async function main() {
       currency: "GBP",
       contractValue: c.value,
       reviewedAt,
+      renewalDate: renewal.renewalDate,
+      autoRenewal: renewal.autoRenewal,
+      noticePeriodDays: renewal.noticePeriodDays,
       source: SEED_TAG,
       draft: false,
     });
