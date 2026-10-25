@@ -61,29 +61,90 @@ Watch folder integrations that auto-review contracts dropped into a connected fo
 
 PocketBase runs as a **separate service** (Railway or local). The Express server communicates with it via the `pocketbase` JS SDK in admin mode.
 
-**Collections** (26 total):
+**Collections**: `npm run pb:setup` creates **55** — 54 via `ensureCollection()` plus `users`, which takes a dedicated auth-collection path in `scripts/setup-pocketbase.ts`. **36 of those are referenced by code**; the remaining 19 are listed at the end of this section.
+
+Recount after adding or removing a collection. The trailing quote matters: without it the function's own definition is counted too, which happens to give 55 today and would quietly drift.
+
+```bash
+grep -c 'ensureCollection("' scripts/setup-pocketbase.ts
+```
+
+That prints the `ensureCollection()` calls (54). Add 1 for `users` to get the total.
+
+*Core*
 
 | Collection | Purpose |
 |---|---|
 | `users` | Auth: email, passwordHash, name |
 | `companies` | Company profile (sector, jurisdiction, workflow type, risk appetite) |
 | `company_regulations` | Detected applicable regulations per company |
+| `team_invites` | Pending invitations, consumed at registration |
+| `access_requests` | Submissions from the public "Request access" form |
+
+*Playbook and governance*
+
+| Collection | Purpose |
+|---|---|
 | `playbook_rules` | Clause positions per company (preferred, fallback, red line) |
+| `company_rules` | Proposed company rules awaiting approve/reject via `/api/company-rules` |
+| `approval_thresholds` | Value thresholds that route a contract to an approver |
+| `governance_triggers` | Non-value conditions that force escalation |
 | `approval_contacts` | Escalation email recipients |
+
+*Documents and review*
+
+| Collection | Purpose |
+|---|---|
 | `uploaded_documents` | Contract documents with metadata |
 | `extracted_clauses` | Individual clauses parsed from documents |
 | `review_results` | RAG analysis output per clause |
-| `litigation_intakes` | Multi-stage litigation intake form state |
 | `ancillary_documents` | Supporting files (evidence, audio, etc.) |
+| `litigation_intakes` | Multi-stage litigation intake form state |
+| `pii_sessions` | Reversible entity maps from the PII anonymisation pipeline |
+
+*Decisions and approvals*
+
+| Collection | Purpose |
+|---|---|
+| `decision_events` | The moat layer: structured human-judgment capture |
+| `approval_requests` | One record per routed escalation awaiting an approver's decision |
 | `user_feedback` | User actions on review results |
-| `pii_sessions` | Reversible entity maps from PII anonymisation pipeline |
-| `audit_log` | Immutable audit trail for all significant Zane actions |
+| `override_signals` | Captured when a user overrides Zane's RAG verdict |
+| `false_positive_signals` | Captured when a user marks a finding a false positive |
+| `outcome_deltas` | Per-clause difference between what was advised and what was signed |
+
+*Email intake*
+
+| Collection | Purpose |
+|---|---|
+| `inbound_emails` | Accepted inbound mail, awaiting or after processing |
+| `inbound_rejections` | Silent log of unverified or unauthorised inbound mail |
+| `email_threads` | Thread persistence for contextual replies |
+| `negotiation_events` | Structured negotiation moves parsed from email threads |
+
+*Intelligence and synthesis*
+
+| Collection | Purpose |
+|---|---|
 | `detected_patterns` | L2 outcome memory: persisted patterns from lawyer feedback |
-| `regulatory_synthesis_pages` | L3 synthesis schema: regulatory knowledge pages (schema-only v1) |
-| `company_knowledge_pages` | L3 synthesis schema: company negotiation knowledge (schema-only v1) |
-| `playbook_synthesis_pages` | L3 synthesis schema: per-clause trend synthesis (schema-only v1) |
+| `playbook_synthesis_pages` | L3 synthesis: per-clause trend synthesis |
+| `company_knowledge_pages` | L3 synthesis: company negotiation knowledge |
+| `regulatory_synthesis_pages` | L3 synthesis: regulatory knowledge pages |
+| `regulatory_framework_verifications` | Per-framework verification status; no row means unverified |
+
+*Integrations, team, audit*
+
+| Collection | Purpose |
+|---|---|
 | `integration_configs` | OAuth tokens + watch folder config per provider (Google Drive, SharePoint) |
 | `integration_sync_log` | Per-file sync audit trail from watch integrations |
+| `team_briefing_documents` | Generated briefings for incoming team members |
+| `new_hire_context_periods` | Window during which a new joiner gets extra review context |
+| `audit_log` | Append-only trail of significant Zane actions. **Not immutable**: see the Tenancy section, and `ALLOWED_CLAIMS.audit-trail` in `client/src/content/claims.ts` for why that word must not be used |
+
+**Created but never referenced in code (19).** Schema that was provisioned ahead of features that did not land, or that moved elsewhere. Check before reusing a name, and do not assume a collection is wired up because `pb:setup` creates it:
+
+`claim_assessments`, `clause_analyses`, `contract_versions`, `contracts`, `contradiction_findings`, `counterparties`, `escalation_contacts`, `escalation_records`, `integration_connections`, `integration_events`, `outcomes`, `panel_firms`, `playbook_clauses`, `playbook_templates`, `playbook_update_suggestions`, `playbooks`, `privilege_vault`, `regulatory_provisions`, `regulatory_sources`
 
 **Field name conventions**: PocketBase auto-provides `id`, `created`, `updated`. API responses alias `created` → `uploadedAt`/`createdAt` and relation ID fields to `*Id` names (e.g. `company` → `companyId`) via the mapper functions in `routes.ts`.
 
