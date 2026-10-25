@@ -5,13 +5,13 @@
  * a single column beside the visual rather than in a card grid. A CFO scanning
  * the bold labels alone gets the whole section.
  *
- * The visual is a placeholder. See ScreenshotPlaceholder for the capture list.
+ * The visual is a real capture from the seeded demo account. Re-run
+ * scripts/capture-screenshots.ts rather than editing it by hand.
  */
 
 import { motion } from "framer-motion";
 import { FOR_FINANCE } from "../../content/homepage";
 import { Section } from "./Section";
-import { ScreenshotPlaceholder } from "./ScreenshotPlaceholder";
 import { rise, staggerContainer, staggerItem } from "./motion";
 
 export function ForFinanceSection() {
@@ -34,7 +34,15 @@ export function ForFinanceSection() {
         </motion.dl>
 
         <motion.div className="lg:sticky lg:top-28" {...rise(0.16)}>
-          <ScreenshotPlaceholder target="Portfolio view or board pack export, 1440 by 900, exported as WebP." />
+          <img
+            src="/images/finance-portfolio.webp"
+            alt={FOR_FINANCE.visualAlt}
+            width={1440}
+            height={900}
+            loading="lazy"
+            decoding="async"
+            className="block w-full h-auto rounded-xl border border-line-light shadow-sm"
+          />
         </motion.div>
       </div>
     </Section>

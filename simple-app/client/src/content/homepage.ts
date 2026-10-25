@@ -263,8 +263,9 @@ export const FOR_LEGAL: Section & { cards: Card[]; visualAlt: string } = {
       body: "Every recommendation, decision and approval on a contract in one timeline.",
     },
   ],
+  /** Written against the actual capture, not the intention. */
   visualAlt:
-    "A Zane contract review, showing the clause text beside its Red, Amber or Green verdict, the risk in plain English and the fallback wording.",
+    "A Zane contract review, showing the counterparty's known negotiating patterns, the escalation routed to Legal with its reason, and a clause flagged Red with the wording that triggered it.",
   claims: [
     "playbook-baseline",
     "rag-verdict",

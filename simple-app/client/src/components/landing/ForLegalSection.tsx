@@ -6,20 +6,28 @@
  * stages of anything. The visual leads on desktop so the section reads as the
  * mirror of the finance one above it rather than a repeat of its layout.
  *
- * The visual is a placeholder. See ScreenshotPlaceholder for the capture list.
+ * The visual is a real capture from the seeded demo account. Re-run
+ * scripts/capture-screenshots.ts rather than editing it by hand.
  */
 
 import { motion } from "framer-motion";
 import { FOR_LEGAL } from "../../content/homepage";
 import { Section } from "./Section";
-import { ScreenshotPlaceholder } from "./ScreenshotPlaceholder";
 import { rise, staggerContainer, staggerItem } from "./motion";
 
 export function ForLegalSection() {
   return (
     <Section copy={FOR_LEGAL} tone="light" divided>
       <motion.div className="mt-14" {...rise(0.08)}>
-        <ScreenshotPlaceholder target="Contract review, split view, 1440 by 900, exported as WebP." />
+        <img
+          src="/images/legal-review.webp"
+          alt={FOR_LEGAL.visualAlt}
+          width={1440}
+          height={900}
+          loading="lazy"
+          decoding="async"
+          className="block w-full h-auto rounded-xl border border-line-light shadow-sm"
+        />
       </motion.div>
 
       <motion.div

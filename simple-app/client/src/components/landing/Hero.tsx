@@ -9,21 +9,20 @@
  * column with the visual below the copy, so the proposition is read before
  * anything is looked at.
  *
- * TODO (hero visual): no product screenshot exists in the repository. The
- * placeholder below must be replaced before this page goes near a customer.
- * Capture /app/legal/portfolio signed in as the seeded demo account. See
- * ScreenshotPlaceholder for the full capture list and the export settings.
+ * The hero visual is a real capture of /app/legal/portfolio from the seeded
+ * demo account, produced by scripts/capture-screenshots.ts. Re-run that script
+ * rather than editing the file by hand, so the image and the alt text stay
+ * tied to what the screen actually shows.
  *
- * An earlier version of this note said that screen shows "4,200,000 under
- * management". It does not: Portfolio.tsx renders red-flag exposure only and
- * never reads totalValue. The board pack is the screen that prints a total.
+ * Note for whoever changes the alt text: that screen shows red-flag exposure,
+ * not total value under management. Portfolio.tsx never reads totalValue; the
+ * board pack is the screen that prints a total.
  */
 
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import type { MouseEvent } from "react";
 import { HERO } from "../../content/homepage";
-import { ScreenshotPlaceholder } from "./ScreenshotPlaceholder";
 import { riseOnMount } from "./motion";
 
 export function Hero({
@@ -84,10 +83,21 @@ export function Hero({
             </motion.p>
           </div>
 
-          {/* Visual. Placeholder until the capture exists. */}
+          {/* The portfolio view, captured from the seeded demo account by
+              scripts/capture-screenshots.ts. width and height are the
+              intrinsic ratio, so the slot reserves its space before the file
+              arrives and nothing shifts on load. */}
           <motion.div {...enter(0.4)}>
             <div className="rounded-xl border border-line-dark bg-navy-900 shadow-2xl overflow-hidden">
-              <ScreenshotPlaceholder target="Portfolio view, 1440 by 900, exported as WebP." dark />
+              <img
+                src="/images/hero-portfolio.webp"
+                alt={HERO.visualAlt}
+                width={1440}
+                height={900}
+                loading="eager"
+                decoding="async"
+                className="block w-full h-auto"
+              />
             </div>
           </motion.div>
 
