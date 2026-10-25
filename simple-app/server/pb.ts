@@ -1,4 +1,5 @@
 import PocketBase from "pocketbase";
+import { resolvePbCredentials } from "./lib/pbCredentials.js";
 
 const POCKETBASE_URL = process.env.POCKETBASE_URL ?? "http://localhost:8090";
 
@@ -24,8 +25,13 @@ let _adminEmail = "";
 let _adminPassword = "";
 
 export async function initPocketBase(): Promise<void> {
-  _adminEmail = process.env.POCKETBASE_ADMIN_EMAIL ?? "admin@zane.local";
-  _adminPassword = process.env.POCKETBASE_ADMIN_PASSWORD ?? "changeme1234";
+  // Resolved by server/lib/pbCredentials.ts, which refuses to produce a value
+  // in production unless both variables are set to something other than the
+  // published development pair. There are deliberately no fallback constants
+  // here: these credentials are full access to every row in the database.
+  const { email, password } = resolvePbCredentials();
+  _adminEmail = email;
+  _adminPassword = password;
 
   await pb.admins.authWithPassword(_adminEmail, _adminPassword);
   console.log("[PocketBase] Admin authenticated");

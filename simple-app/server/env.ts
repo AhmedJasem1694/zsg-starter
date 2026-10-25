@@ -1,31 +1,40 @@
 import { config } from "dotenv";
 import { resolveJwtSecret, JwtSecretUnset } from "./lib/jwtSecret.js";
+import { resolvePbCredentials, PbCredentialsUnset } from "./lib/pbCredentials.js";
 
 config();
 
-// Resolved here, first thing after dotenv, so a missing production secret stops
-// the process before anything binds a port. Doing it at this point also means
-// the failure is a clear message rather than a stack trace surfacing from
-// whichever module happened to import the auth middleware first.
-try {
-  resolveJwtSecret();
-} catch (err) {
-  if (err instanceof JwtSecretUnset) {
-    console.error(`\n${err.message}\n`);
-    process.exit(1);
+// Resolved here, first thing after dotenv, so a credential that is unsafe in
+// production stops the process before anything binds a port. Doing it at this
+// point also means the failure is a clear message rather than a stack trace
+// surfacing from whichever module happened to be imported first.
+//
+// Both are checked before either is reported, so a misconfigured deployment
+// learns about every problem in one run instead of one per restart.
+const secretErrors: string[] = [];
+for (const resolve of [resolveJwtSecret, resolvePbCredentials]) {
+  try {
+    resolve();
+  } catch (err) {
+    if (err instanceof JwtSecretUnset || err instanceof PbCredentialsUnset) {
+      secretErrors.push(err.message);
+    } else {
+      throw err;
+    }
   }
-  throw err;
+}
+if (secretErrors.length > 0) {
+  console.error(`\n${secretErrors.join("\n\n")}\n`);
+  process.exit(1);
 }
 
 if (!process.env.POCKETBASE_URL) {
   console.warn("Warning: POCKETBASE_URL is not set - defaulting to http://localhost:8090");
 }
 
-if (!process.env.POCKETBASE_ADMIN_EMAIL || !process.env.POCKETBASE_ADMIN_PASSWORD) {
-  console.warn(
-    "Warning: POCKETBASE_ADMIN_EMAIL or POCKETBASE_ADMIN_PASSWORD not set - using insecure defaults"
-  );
-}
+// PocketBase admin credentials are handled above, at the top of this file:
+// production refuses to boot without them, development warns and falls back to
+// the documented local pair.
 
 if (!process.env.OPENROUTER_API_KEY) {
   console.warn("Warning: OPENROUTER_API_KEY is not set - LLM features will fail");
