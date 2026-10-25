@@ -413,30 +413,92 @@ export const CTA: Section & {
   ctaLabel: string;
   /** Split so the address is a real mailto rather than text that looks like one. */
   contact: { before: string; email: string; after: string };
+  form: {
+    fields: { name: string; email: string; company: string; role: string; prompt: string };
+    placeholders: { name: string; email: string; company: string; prompt: string };
+    rolePlaceholder: string;
+    roleOptions: Array<{ value: string; label: string }>;
+    /** Hidden from people. Anything in it is a bot. */
+    honeypotLabel: string;
+    submitLabel: string;
+    submittingLabel: string;
+    successHeading: string;
+    errorPrefix: string;
+    errorFallbackLabel: string;
+  };
 } = {
   id: "cta",
   eyebrow: "",
-  headline: "Bring one contract.",
+  headline: "Book a conversation.",
   body: [
-    "A conversation first: what the business signs, who approves it, and where that record lives today.",
-    "Onboarding is done personally while Zane is early, so your positions are set up with you rather than left as a form to fill in.",
+    "Zane is working with a small number of design customers before general release. If you want to know what your company has signed before someone else asks, let's talk.",
   ],
-  ctaLabel: "Book a conversation",
+  ctaLabel: "Request a conversation",
   contact: {
     before: "Or email",
     email: "ahmed@zanelegal.ai",
     after: "with a question first.",
   },
+  form: {
+    fields: {
+      name: "Name",
+      email: "Work email",
+      company: "Company",
+      role: "Role",
+      prompt: "What prompted you to get in touch?",
+    },
+    placeholders: {
+      name: "Jane Smith",
+      email: "jane@company.com",
+      company: "Acme Ltd",
+      prompt: "Optional",
+    },
+    rolePlaceholder: "Select one",
+    roleOptions: [
+      { value: "FINANCE", label: "CFO or finance" },
+      { value: "LEGAL", label: "General Counsel or legal" },
+      { value: "OPERATIONS", label: "Operations" },
+      { value: "OTHER", label: "Other" },
+    ],
+    honeypotLabel: "Website",
+    submitLabel: "Request a conversation",
+    submittingLabel: "Sending",
+    successHeading: "Thanks. You will hear from us within two working days.",
+    errorPrefix: "That did not send.",
+    errorFallbackLabel: "Email us instead",
+  },
 };
 
 // ── 12. Footer ────────────────────────────────────────────────────────────────
 
+/**
+ * Footer. Three columns, then a legal line.
+ *
+ * `social` is empty: no LinkedIn or other profile URL exists anywhere in the
+ * repository or the environment, and inventing one would point people at a
+ * page that is not ours. Add the real URL here and the column renders itself.
+ */
 export const FOOTER = {
-  links: [
-    { to: "/case-study", label: "Case study" },
-    { to: "/security", label: "Security" },
-    { to: "/resources", label: "Resources" },
+  tagline: "The record of what your company signs, and why.",
+  /** In-page anchors. Same ids as SECTION_ORDER. */
+  sectionLinks: [
+    { href: "#how-it-works", label: "How it works" },
+    { href: "#for-finance", label: "For finance" },
+    { href: "#for-legal", label: "For legal" },
+    { href: "#security", label: "Security" },
   ],
+  /** Routed pages. */
+  pageLinks: [
+    { to: "/case-study", label: "Case study" },
+    { to: "/resources", label: "Resources" },
+    { to: "/privacy", label: "Privacy" },
+    { to: "/terms", label: "Terms" },
+  ],
+  contactLabel: "Contact",
+  contactEmail: "ahmed@zanelegal.ai",
+  social: [] as Array<{ href: string; label: string }>,
+  /** The year is computed at render. Only the wording lives here. */
+  legalSuffix: "Zane. All rights reserved.",
   note: "",
 };
 

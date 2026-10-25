@@ -357,12 +357,14 @@ export const updateCompanySettings = (data: { regulationProminence: string }) =>
   req<{ id: string; regulationProminence?: string }>("PATCH", "/api/company", data);
 
 // Manual onboarding: landing-page "Request access" form (no auth required)
+/** `website` is the honeypot: always send it, always empty for real people. */
 export const requestAccess = (data: {
   name: string;
   email: string;
   company: string;
   role: string;
   contractsDescription: string;
+  website?: string;
 }) => req<{ ok: boolean }>("POST", "/api/access-request", data);
 
 export const login = async (data: { email: string; password: string }) => {

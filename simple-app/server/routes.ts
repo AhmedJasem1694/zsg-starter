@@ -13,7 +13,8 @@ import {
   getAuthorisedSenders, normaliseEmail, logRejection,
 } from "./services/inboundEmail.js";
 import { parseEmailIntent, UNCLEAR_REPLY_TEXT } from "./services/emailIntentParser.js";
-import { sendPlainEmail, sendApprovalDecisionEmail, emailStatus } from "./services/emailService.js";
+import { sendPlainEmail, sendApprovalDecisionEmail, emailStatus, activeTransport, missingEmailConfig } from "./services/emailService.js";
+import { rateLimit } from "./lib/rateLimit.js";
 import { createApprovalRequest } from "./services/approvals.js";
 import { processReviewByEmail, type InboundAttachment } from "./services/emailReview.js";
 import { processDraftByEmail } from "./services/draftGenerator.js";
@@ -216,6 +217,9 @@ const DEMO_COMPANY_MAP: Record<string, string> = {
 // issues with custom fields (ownerEmail) that PocketBase silently ignores
 // when not present in the collection schema.
 const OWNER_FIELD = "role_in_contracts";
+
+/** Where public form submissions are sent. Matches the address on the site. */
+const CONTACT_EMAIL = "ahmed@zanelegal.ai";
 
 async function getCompany(ownerEmail?: string): Promise<PBRecord | null> {
   // Fetch ALL companies once and filter in-memory. More reliable than PB filters
@@ -609,16 +613,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public endpoint backing the landing-page "Request access" form. Stores the
   // submission in the access_requests collection for Ahmed to onboard manually.
   app.post("/api/access-request", ah(async (req: Request, res: Response) => {
+    // Five per hour per IP. The form is unauthenticated and sends mail, so it
+    // is the one place on the site worth metering.
+    const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
+    const limited = rateLimit(`access-request:${ip}`, 5, 60 * 60 * 1000);
+    if (!limited.allowed) {
+      res.setHeader("Retry-After", String(limited.retryAfterSeconds));
+      sendError(res, 429, "Too many requests from this address. Please try again later, or email ahmed@zanelegal.ai.");
+      return;
+    }
+
     const parsed = z.object({
       name: z.string().min(1).max(200),
       email: z.string().email(),
       company: z.string().min(1).max(200),
       role: z.string().min(1).max(200),
       contractsDescription: z.string().max(2000).optional().default(""),
+      /**
+       * Honeypot. Hidden from people, so anything in it is a bot. Answer 200
+       * rather than an error: a crawler that learns which submissions were
+       * rejected learns how to pass next time.
+       */
+      website: z.string().max(200).optional().default(""),
     }).safeParse(req.body);
     if (!parsed.success) { sendError(res, 400, "Please fill in your name, work email, company, and role."); return; }
 
     const { name, email, company, role, contractsDescription } = parsed.data;
+
+    if (parsed.data.website.trim() !== "") {
+      console.warn(`[access-request] honeypot filled from ${ip}, discarded`);
+      res.json({ ok: true });
+      return;
+    }
+
     const record = {
       name,
       email,
@@ -651,6 +678,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw err;
       }
     }
+
+    // Notify, and report the truth about it.
+    //
+    // The submission is stored before this runs, so nothing is lost either
+    // way. But telling someone "you will hear from us" when no notification
+    // left the building is the silent failure this form exists to avoid, so a
+    // failed send is a failed request as far as the browser is concerned. The
+    // row is still there for whoever reads the collection.
+    const sent = await sendPlainEmail({
+      to: CONTACT_EMAIL,
+      subject: `Zane: conversation request from ${name}${company ? ` (${company})` : ""}`,
+      text: [
+        `Name:    ${name}`,
+        `Email:   ${email}`,
+        `Company: ${company}`,
+        `Role:    ${role}`,
+        "",
+        "What prompted them to get in touch:",
+        contractsDescription.trim() || "(not given)",
+        "",
+        `Received: ${new Date().toISOString()}`,
+        `From IP:  ${ip}`,
+      ].join("\n"),
+    }).catch(() => false);
+
+    if (!sent) {
+      console.error(
+        `[access-request] stored but NOT emailed (${email}). Transport: ${activeTransport()}. Missing: ${missingEmailConfig().join(", ") || "none"}`,
+      );
+      sendError(
+        res,
+        502,
+        "Your details were received but our notification system is not reachable. Please email ahmed@zanelegal.ai so this is not missed.",
+      );
+      return;
+    }
+
     res.json({ ok: true });
   }));
 

@@ -25,9 +25,8 @@
  *     being quietly reinstated; if they return they return with evidence.
  */
 
-import { useEffect, useRef, useState, type ComponentType, type MouseEvent } from "react";
-import { ArrowRight } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useRef, type ComponentType, type MouseEvent } from "react";
+import { useReducedMotion } from "framer-motion";
 import { LandingNav } from "../components/landing/LandingNav";
 import { Hero } from "../components/landing/Hero";
 import { Section, type Tone } from "../components/landing/Section";
@@ -37,10 +36,9 @@ import { ForFinanceSection } from "../components/landing/ForFinanceSection";
 import { ForLegalSection } from "../components/landing/ForLegalSection";
 import { StartSection } from "../components/landing/StartSection";
 import { SecuritySection } from "../components/landing/SecuritySection";
+import { CtaSection } from "../components/landing/CtaSection";
 import { LandingFooter } from "../components/landing/LandingFooter";
-import { RequestAccessModal } from "../components/landing/RequestAccessModal";
-import { rise } from "../components/landing/motion";
-import { CTA, SECTION_ORDER, SECTIONS } from "../content/homepage";
+import { SECTION_ORDER, SECTIONS } from "../content/homepage";
 
 /**
  * Background per section. Alternating paper and deep navy gives the page its
@@ -65,11 +63,11 @@ const GRADUATED: Record<string, ComponentType> = {
   "for-legal": ForLegalSection,
   "start": StartSection,
   "security": SecuritySection,
+  "cta": CtaSection,
 };
 
 export default function Landing() {
   const shouldReduce = useReducedMotion();
-  const [showRequestAccess, setShowRequestAccess] = useState(false);
   const lenisRef = useRef<import("@studio-freight/lenis").default | null>(null);
 
   // Lenis smooth scroll.
@@ -138,39 +136,10 @@ export default function Landing() {
         const copy = SECTIONS[id];
         const { tone, divided } = TONES[id] ?? { tone: "light" };
 
-        // The ask carries the page's one conversion point, so it gets the
-        // button as a child of the shell.
-        if (id === "cta") {
-          return (
-            <Section key={id} copy={copy} tone={tone} divided={divided}>
-              <motion.div className="mt-8" {...rise(0.16)}>
-                <button
-                  onClick={() => setShowRequestAccess(true)}
-                  className="inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-cobalt hover:bg-cobalt-hover text-white font-semibold rounded-lg text-sm transition-[background-color,box-shadow,transform] duration-150 ease-out hover:shadow-lg hover:shadow-cobalt/25 motion-safe:hover:-translate-y-0.5 motion-safe:active:translate-y-0"
-                >
-                  {CTA.ctaLabel} <ArrowRight size={15} />
-                </button>
-                <p className="mt-4 text-xs text-slate-500">
-                  {CTA.contact.before}{" "}
-                  <a
-                    href={`mailto:${CTA.contact.email}`}
-                    className="text-slate-400 hover:text-white transition-colors underline underline-offset-2 decoration-slate-600 hover:decoration-slate-300"
-                  >
-                    {CTA.contact.email}
-                  </a>{" "}
-                  {CTA.contact.after}
-                </p>
-              </motion.div>
-            </Section>
-          );
-        }
-
         return <Section key={id} copy={copy} tone={tone} divided={divided} />;
       })}
 
-      <LandingFooter />
-
-      {showRequestAccess && <RequestAccessModal onClose={() => setShowRequestAccess(false)} />}
+      <LandingFooter onAnchorClick={scrollToSection} />
     </div>
   );
 }
