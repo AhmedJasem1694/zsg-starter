@@ -82,6 +82,24 @@ export const ALLOWED_CLAIMS: Claim[] = [
       "server/routes.ts GET /api/portfolio: byContractType :3788, byCounterparty :3809, valueAtRisk :3830; client/src/pages/Portfolio.tsx",
   },
   {
+    id: "portfolio-total-value",
+    claim:
+      "Total contract value under management is computed across the portfolio and printed in the board pack.",
+    provenBy:
+      "server/routes.ts:3764 totalValue (sums contractValue over COMPLETE documents); :3830 valueAtRisk.total (reviewed documents only); printed at client/src/lib/boardPack.ts:131",
+    limit:
+      "The Portfolio page does not render a total. client/src/pages/Portfolio.tsx shows valueAtRisk.RED only and never reads totalValue, so do not caption a Portfolio screenshot as showing value under management. The board pack is the screen that prints it, and it prefers valueAtRisk.total (reviewed docs) with totalValue (all complete docs) as a fallback, so the two can differ.",
+  },
+  {
+    id: "playbook-baseline",
+    claim:
+      "Playbook positions are pre-filled from a market-standard baseline, a preferred position, an acceptable fallback and a hard line per clause, and can be edited.",
+    provenBy:
+      "client/src/lib/types.ts:881 PLAYBOOK_DEFAULTS, seeded by client/src/pages/Onboarding.tsx:263 initPlaybook and edited at Step4Playbook :1362; server/data/marketStandardPlaybook.ts:16 MARKET_STANDARD_PLAYBOOK, copied by POST /api/quick-setup server/routes.ts:2125",
+    limit:
+      "Pre-filled, never generated. Both sets are hand-written literals copied into the company's rules. POST /api/playbook/generate-suggestion (server/routes.ts:1531) can draft one position on request from the Playbook page, but it writes nothing, is never called during onboarding, and is passed no company context. Do not write that the playbook is generated. Do not write that the system adjusts it to your behaviour on its own: GET /api/playbook/drift-suggestions (:1427) only proposes, and quick-setup and the FOUNDER onboarding path skip the editing step entirely.",
+  },
+  {
     id: "negotiation-intelligence",
     claim:
       "Negotiation Intelligence computes patterns from recorded decisions: repeated concessions, counterparty behaviour and renewal exposure.",

@@ -86,9 +86,14 @@ export const HERO = {
   /**
    * Alt text for the hero visual. Written as a description of the screen so it
    * stays accurate when the placeholder is replaced by the real capture.
+   *
+   * This previously said the portfolio view shows "contract value under
+   * management" and "exposure by RAG band". It shows neither: Portfolio.tsx
+   * renders valueAtRisk.RED only and never reads totalValue. Corrected to what
+   * is on the page.
    */
   visualAlt:
-    "The Zane portfolio view, showing contract value under management, exposure by RAG band and the counterparties driving it.",
+    "The Zane portfolio view, showing red-flag exposure, open escalations and the counterparties driving them.",
   claims: ["intake", "escalation-routing", "approval-decision", "portfolio-exposure"],
 };
 
@@ -175,24 +180,97 @@ export const HOW_IT_WORKS: Section & { steps: Card[]; note: string } = {
 
 // ── 5. For finance ────────────────────────────────────────────────────────────
 
-export const FOR_FINANCE: Section & { stats: Stat[] } = {
+export const FOR_FINANCE: Section & { items: Card[]; visualAlt: string } = {
   id: "for-finance",
-  eyebrow: "",
-  headline: "What the CFO sees",
-  body: [],
-  stats: [],
-  claims: ["portfolio-exposure", "monthly-report", "timings", "audit-trail"],
+  eyebrow: "For the CFO and the board",
+  headline: "See what the business has committed to, in plain English.",
+  body: [
+    "Zane gives the people who own the risk a view of the whole contract estate, without reading a single clause.",
+  ],
+  items: [
+    {
+      /**
+       * The total is real but it is not on the Portfolio page: routes.ts:3764
+       * computes it and boardPack.ts:131 prints it, while Portfolio.tsx shows
+       * red exposure only. See ALLOWED_CLAIMS.portfolio-total-value, which
+       * carries that split as a limit.
+       */
+      title: "Exposure",
+      body: "Total value under management and where the risk sits, by counterparty and by contract type.",
+    },
+    {
+      title: "Concessions",
+      body: "Where the company settled below its own positions, with whom, and how often.",
+    },
+    {
+      title: "Renewals",
+      body: "Dates, notice windows and dated obligations, so nothing rolls over unseen.",
+    },
+    {
+      title: "Approvals",
+      body: "What is waiting for a decision, who it is with, and the record of every decision made.",
+    },
+    {
+      title: "The monthly report",
+      body: "A plain-English summary built from live data, ready to forward.",
+    },
+  ],
+  visualAlt:
+    "The Zane portfolio view, showing red-flag exposure, open escalations and the counterparties driving them.",
+  claims: [
+    "portfolio-exposure",
+    "portfolio-total-value",
+    "negotiation-intelligence",
+    "timings",
+    "escalation-routing",
+    "approval-decision",
+    "audit-trail",
+    "monthly-report",
+  ],
 };
 
 // ── 6. For legal ──────────────────────────────────────────────────────────────
 
-export const FOR_LEGAL: Section & { cards: Card[] } = {
+export const FOR_LEGAL: Section & { cards: Card[]; visualAlt: string } = {
   id: "for-legal",
-  eyebrow: "",
-  headline: "What the legal team gets",
-  body: [],
-  cards: [],
-  claims: ["rag-verdict", "negotiation-intelligence", "approval-decision"],
+  eyebrow: "For the legal team",
+  headline: "Your positions, your history, applied to every contract.",
+  body: [
+    "Zane checks each contract against the company's own playbook, not a generic standard, and remembers what was decided last time.",
+  ],
+  cards: [
+    {
+      /**
+       * "pre-filled", not "generated". PLAYBOOK_DEFAULTS and
+       * MARKET_STANDARD_PLAYBOOK are hand-written literals copied into the
+       * company's rules; nothing is generated at setup. See
+       * ALLOWED_CLAIMS.playbook-baseline.
+       */
+      title: "Playbook",
+      body: "Preferred position, acceptable fallback and hard line per clause, pre-filled from a market-standard baseline and adjusted to how you actually work.",
+    },
+    {
+      title: "Review as intake",
+      body: "Red, Amber or Green per clause, the risk in plain English, and the wording to send back.",
+    },
+    {
+      /** Called counterparty memory, never "negotiation intelligence", here. */
+      title: "Counterparty memory",
+      body: "Patterns computed from real decisions: who pushes on what, where you have conceded before, which renewals are exposed.",
+    },
+    {
+      title: "Audit per contract",
+      body: "Every recommendation, decision and approval on a contract in one timeline.",
+    },
+  ],
+  visualAlt:
+    "A Zane contract review, showing the clause text beside its Red, Amber or Green verdict, the risk in plain English and the fallback wording.",
+  claims: [
+    "playbook-baseline",
+    "rag-verdict",
+    "negotiation-intelligence",
+    "audit-trail",
+  ],
 };
 
 // ── 7. Why now ────────────────────────────────────────────────────────────────

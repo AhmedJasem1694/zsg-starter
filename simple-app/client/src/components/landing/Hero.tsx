@@ -11,18 +11,19 @@
  *
  * TODO (hero visual): no product screenshot exists in the repository. The
  * placeholder below must be replaced before this page goes near a customer.
- * Capture the Portfolio view (/app/legal/portfolio) signed in as the seeded
- * demo account, which shows 4,200,000 under management and 340,000 at risk
- * across 35 contracts. Viewport 1440 by 900, no browser chrome, light theme.
- * Export WebP under 200 kB to client/public/images/hero-portfolio.webp, then
- * swap the placeholder for an <img> carrying HERO.visualAlt and explicit
- * width and height so the slot reserves its own space and nothing shifts.
+ * Capture /app/legal/portfolio signed in as the seeded demo account. See
+ * ScreenshotPlaceholder for the full capture list and the export settings.
+ *
+ * An earlier version of this note said that screen shows "4,200,000 under
+ * management". It does not: Portfolio.tsx renders red-flag exposure only and
+ * never reads totalValue. The board pack is the screen that prints a total.
  */
 
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import type { MouseEvent } from "react";
 import { HERO } from "../../content/homepage";
+import { ScreenshotPlaceholder } from "./ScreenshotPlaceholder";
 import { riseOnMount } from "./motion";
 
 export function Hero({
@@ -85,18 +86,8 @@ export function Hero({
 
           {/* Visual. Placeholder until the capture exists. */}
           <motion.div {...enter(0.4)}>
-            <div
-              className="rounded-xl border border-line-dark bg-navy-900 shadow-2xl overflow-hidden"
-              style={{ aspectRatio: "1440 / 900" }}
-            >
-              <div className="h-full w-full flex flex-col items-center justify-center gap-2 px-6 text-center">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-600">
-                  Screenshot pending
-                </span>
-                <span className="text-xs text-slate-500 max-w-xs leading-relaxed">
-                  Portfolio view, 1440 by 900, exported as WebP. See the TODO at the top of Hero.tsx.
-                </span>
-              </div>
+            <div className="rounded-xl border border-line-dark bg-navy-900 shadow-2xl overflow-hidden">
+              <ScreenshotPlaceholder target="Portfolio view, 1440 by 900, exported as WebP." dark />
             </div>
           </motion.div>
 

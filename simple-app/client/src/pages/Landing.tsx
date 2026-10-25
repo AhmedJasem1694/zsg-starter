@@ -33,6 +33,8 @@ import { Hero } from "../components/landing/Hero";
 import { Section, type Tone } from "../components/landing/Section";
 import { ProblemSection } from "../components/landing/ProblemSection";
 import { HowItWorksSection } from "../components/landing/HowItWorksSection";
+import { ForFinanceSection } from "../components/landing/ForFinanceSection";
+import { ForLegalSection } from "../components/landing/ForLegalSection";
 import { LandingFooter } from "../components/landing/LandingFooter";
 import { RequestAccessModal } from "../components/landing/RequestAccessModal";
 import { rise } from "../components/landing/motion";
@@ -44,8 +46,6 @@ import { CTA, SECTION_ORDER, SECTIONS } from "../content/homepage";
  * and the join would otherwise be invisible.
  */
 const TONES: Record<string, { tone: Tone; divided?: boolean }> = {
-  "for-finance":  { tone: "light", divided: true },
-  "for-legal":    { tone: "light", divided: true },
   "why-now":      { tone: "dark" },
   "start":        { tone: "light" },
   "security":     { tone: "dark" },
@@ -61,6 +61,8 @@ const TONES: Record<string, { tone: Tone; divided?: boolean }> = {
 const GRADUATED: Record<string, ComponentType> = {
   "problem": ProblemSection,
   "how-it-works": HowItWorksSection,
+  "for-finance": ForFinanceSection,
+  "for-legal": ForLegalSection,
 };
 
 export default function Landing() {
