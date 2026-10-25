@@ -16,7 +16,8 @@
     "smtp:check": "tsx scripts/check-smtp.ts",
     "pb:setup": "tsx scripts/setup-pocketbase.ts",
     "pb:collect": "tsx scripts/collect-collections.ts",
-    "railway:setup": "tsx scripts/railway-setup.ts"
+    "railway:setup": "tsx scripts/railway-setup.ts",
+    "check:scripts": "tsc -p tsconfig.scripts.json"
   },
   "dependencies": {
     "@studio-freight/lenis": "^1.0.42",
@@ -59,6 +60,7 @@
     "@types/pdf-parse": "^1.1.5",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
+    "@types/ws": "^8.18.2",
     "@vitejs/plugin-react": "^4.7.0",
     "@vitest/ui": "^3.2.4",
     "autoprefixer": "^10.4.20",
@@ -70,6 +72,7 @@
     "tsx": "^4.20.5",
     "typescript": "5.6.3",
     "vite": "^5.4.20",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "ws": "^8.22.0"
   }
 }

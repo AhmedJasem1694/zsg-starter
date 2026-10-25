@@ -1,0 +1,21 @@
+{
+  // Maintenance scripts are run with tsx, which targets modern Node and does
+  // not type-check. They were also outside tsconfig.json's include, so
+  // `npm run check` never looked at them: it passed while a script imported an
+  // undeclared package. This config checks them against the runtime they
+  // actually run on, without changing the app's more conservative target.
+  //
+  //   npm run check:scripts
+  "extends": "./tsconfig.json",
+  "include": ["scripts/**/*", "server/**/*"],
+  "exclude": ["node_modules", "dist", "build"],
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    "noEmit": true,
+    "incremental": false
+  }
+}
