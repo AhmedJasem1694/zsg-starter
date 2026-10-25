@@ -40,6 +40,45 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+
+    /**
+     * Vite gzips every emitted chunk just to print a size column. With one
+     * chunk that is free; after the route split there are dozens, and the
+     * Railway build ran out of heap doing it. The numbers are nice to have
+     * locally and not worth a failed deploy.
+     */
+    reportCompressedSize: false,
+
+    rollupOptions: {
+      output: {
+        /**
+         * Group third-party code into a handful of named chunks.
+         *
+         * Without this, tree-shaking lucide-react emitted one chunk per icon:
+         * 36 of the 81 chunks were under 1 kB. That costs build memory, and at
+         * runtime it is dozens of requests to fetch a few hundred bytes each.
+         *
+         * Route-level splitting (the lazy() imports in App.tsx) is untouched,
+         * so the homepage still does not download the authenticated app.
+         */
+        manualChunks(id: string) {
+          if (!id.includes("node_modules")) return;
+          // Dynamically imported and skipped under reduced motion. Keep it
+          // separate or it would be pulled into an eagerly loaded chunk.
+          if (id.includes("lenis")) return "lenis";
+          if (id.includes("react-router")) return "router";
+          if (id.includes("@tanstack")) return "query";
+          if (id.includes("framer-motion") || id.includes("@motionone") || id.includes("popmotion")) {
+            return "motion";
+          }
+          if (id.includes("lucide-react")) return "icons";
+          if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/scheduler/")) {
+            return "react";
+          }
+          return "vendor";
+        },
+      },
+    },
   },
   server: {
     fs: {
