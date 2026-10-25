@@ -73,6 +73,8 @@ export const ALLOWED_CLAIMS: Claim[] = [
       "Every upload, review, decision, escalation and approval is written to an audit trail, viewable system-wide and per contract.",
     provenBy:
       "server/services/auditLogger.ts (AuditAction registry); GET /api/audit server/routes.ts:4009 (system-wide); GET /api/documents/:id/audit :4089 (per contract)",
+    limit:
+      "Do not write 'immutable'. Nothing enforces it: no PocketBase API rules exist in the project, the shared client authenticates as superuser so it can update or delete any row, `created` on audit_log is a plain writable date field rather than an autodate (scripts/setup-pocketbase.ts:757), and scripts/backfill-audit-timestamps.ts:213 updates existing rows. Writes are also best-effort, swallowed on failure at auditLogger.ts:114, so the log is not guaranteed complete. Append-only by convention is the accurate description.",
   },
   {
     id: "portfolio-exposure",
@@ -125,9 +127,11 @@ export const ALLOWED_CLAIMS: Claim[] = [
   {
     id: "legacy-import",
     claim:
-      "Legacy Review imports already-signed contracts into the register.",
+      "Legacy Review imports already-signed contracts into the register, extracting parties, term, value, renewal date, notice period, liability cap and governing law, and flags uncapped liability, an open renewal notice window and missing governing law.",
     provenBy:
-      "server/services/legacyReview.ts (batches up to 100 files: parse, strip, classify, anonymise, one batched extraction call); client/src/pages/LegacyReview.tsx",
+      "server/services/legacyReview.ts (parse, strip, classify, anonymise, one extraction call); LegacyExtract shape :30; metadata promoted to the document :244; risk flags derived at server/routes.ts:672-686 in GET /api/legacy/report; client/src/pages/LegacyReview.tsx",
+    limit:
+      "Extraction and registration only. It runs NO playbook comparison (legacyReview.ts:1-12 says so outright), writes no review_results and no extracted_clauses, so it cannot show where the company sits against its own positions. It does not extract obligations: there is no obligations register in the schema, only the free-text terminationRights, assignment and dataProtection lines. No duration is measured anywhere, so state no timeframe.",
   },
   {
     id: "model-routing",

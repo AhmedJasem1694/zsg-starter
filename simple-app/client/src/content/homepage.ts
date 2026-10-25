@@ -275,34 +275,107 @@ export const FOR_LEGAL: Section & { cards: Card[]; visualAlt: string } = {
 
 // ── 7. Why now ────────────────────────────────────────────────────────────────
 
+/**
+ * Market position, not product. Only the last paragraph says what Zane does,
+ * and it says it in terms of the audit trail and the approval record.
+ */
 export const WHY_NOW: Section = {
   id: "why-now",
   eyebrow: "",
   headline: "Review is a commodity. The record is not.",
-  body: [],
-  claims: ["negotiation-intelligence", "model-routing"],
+  body: [
+    "Contract review is now built into the tools companies already pay for. That is good. It also means more contracts get reviewed, more decisions get made, and none of those tools record who decided what, or why.",
+    "Most legal software assumes a lawyer owns every exception. In lean businesses the exception is approved by a budget holder, a director, or a finance lead, and the reasoning lives in an email thread.",
+    "Zane sits where the decision is made. It does not compete with whoever read the contract. It records what the company did with it.",
+  ],
+  claims: ["audit-trail", "approval-decision"],
 };
 
 // ── 8. Start ──────────────────────────────────────────────────────────────────
 
+/**
+ * The brief for this section asked for "extracts renewals and obligations, and
+ * shows you where the company already sits against its own positions". Two
+ * thirds of that is not true of Legacy Review and is not written here.
+ *
+ *   Obligations: nothing extracts them. legacyReview.ts pulls term, value,
+ *   renewal, termination rights, liability cap, governing law, assignment and
+ *   data protection. There is no obligations register in the schema.
+ *
+ *   Position comparison: legacyReview.ts:1-12 states the design outright, "NO
+ *   full playbook comparison". The import writes no review_results and no
+ *   extracted_clauses, so it cannot say where you sit against your playbook.
+ *
+ * What it does do is extract renewal dates and notice windows, and the legacy
+ * report derives three risk flags from the extraction. That is what the copy
+ * claims. See ALLOWED_CLAIMS.legacy-import.
+ *
+ * No timeframe is stated. Nothing measures how long an import takes:
+ * legacyReview.ts has no timer, and the orchestrator's makeTiming() only
+ * console.logs. See NOT_YET_CLAIMS.implementation-time.
+ */
 export const START: Section & { steps: Card[] } = {
   id: "start",
   eyebrow: "",
-  headline: "Begin with your signed contracts",
-  body: [],
-  steps: [],
-  claims: ["legacy-import"],
+  headline: "Start with the contracts you have already signed.",
+  body: [
+    "Send Zane your executed contracts. It builds the register, extracts renewal dates and notice windows, and flags what is already exposed: liability left uncapped, a renewal window open now, governing law missing. No workflow change on day one.",
+  ],
+  steps: [
+    { step: "01", title: "Share your signed contracts", body: "" },
+    { step: "02", title: "Confirm your positions", body: "" },
+    { step: "03", title: "Read your first report", body: "" },
+  ],
+  claims: ["legacy-import", "timings"],
 };
 
 // ── 9. Security ───────────────────────────────────────────────────────────────
 
-export const SECURITY: Section & { points: Card[] } = {
+/**
+ * Four statements, each one provable. Three things the brief raised are
+ * deliberately absent:
+ *
+ *   "immutable" audit trail. Not written, because nothing enforces it. There
+ *   are no PocketBase API rules anywhere in the project, the shared client
+ *   authenticates as superuser, `created` on audit_log is a plain writable
+ *   date field rather than an autodate, and scripts/backfill-audit-timestamps
+ *   .ts:213 updates existing rows. Append-only by convention is the honest
+ *   description. ALLOWED_CLAIMS.audit-trail is correctly worded and does not
+ *   use the word; keep it that way.
+ *
+ *   "Export it at any time." Not written, because no account-level export
+ *   exists. The only exports are an audit-log CSV, a board pack and a monthly
+ *   report, all narrow. A user cannot retrieve their own uploaded files.
+ *   TODO: build a real export, then write this line.
+ *
+ *   Hosting region, ISO or SOC certifications, and "never used to train
+ *   models". Nothing in the codebase supports any of them. openrouter.ts
+ *   sends no data-policy header and no provider routing preferences, and no
+ *   region is pinned anywhere in config. See ALLOWED_CLAIMS.anonymisation,
+ *   whose limit says exactly this.
+ */
+export const SECURITY: Section & { items: string[]; note: string; contactEmail: string } = {
   id: "security",
   eyebrow: "",
-  headline: "",
+  headline: "Your contracts, handled carefully.",
   body: [],
-  points: [],
-  claims: ["anonymisation", "audit-trail"],
+  items: [
+    "Personal data and party names are removed before any text is sent to a model, and restored only inside your account.",
+    /**
+     * Precisely true: the classifier returns chunk indices, never text, and
+     * rawText is looked up locally (clauseClassifier.ts:317). extracted_clauses
+     * is only ever created or deleted, never updated. The dash post-processing
+     * in openrouter.ts:109 applies to model output alone, and textStyle.ts:10
+     * forbids calling it on contract text.
+     */
+    "Contract text is never rewritten by a model. The source wording stays as it was.",
+    "Every upload, review, decision, escalation and approval is written to an audit trail, viewable across the business and per contract.",
+    "Zane is not tied to a single model provider.",
+  ],
+  note: "Full data-processing details on request.",
+  /** Canonical public address: used on the Security page and every error path. */
+  contactEmail: "ahmed@zanelegal.ai",
+  claims: ["anonymisation", "audit-trail", "model-routing"],
 };
 
 // ── 10. About ─────────────────────────────────────────────────────────────────
@@ -315,8 +388,10 @@ export const SECURITY: Section & { points: Card[] } = {
 export const ABOUT: Section = {
   id: "about",
   eyebrow: "",
-  headline: "",
-  body: [],
+  headline: "Built by someone who carried the contracts.",
+  body: [
+    "Zane is being built by a UK commercial solicitor who has spent his career inside small legal teams carrying the contract load for an entire business: private equity backed and high-growth companies, and now a large UK private healthcare group. The problem Zane solves is the one he kept meeting: the decision was made, and nobody could later say by whom or why.",
+  ],
 };
 
 // ── 11. CTA ───────────────────────────────────────────────────────────────────

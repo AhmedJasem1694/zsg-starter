@@ -35,6 +35,8 @@ import { ProblemSection } from "../components/landing/ProblemSection";
 import { HowItWorksSection } from "../components/landing/HowItWorksSection";
 import { ForFinanceSection } from "../components/landing/ForFinanceSection";
 import { ForLegalSection } from "../components/landing/ForLegalSection";
+import { StartSection } from "../components/landing/StartSection";
+import { SecuritySection } from "../components/landing/SecuritySection";
 import { LandingFooter } from "../components/landing/LandingFooter";
 import { RequestAccessModal } from "../components/landing/RequestAccessModal";
 import { rise } from "../components/landing/motion";
@@ -47,9 +49,7 @@ import { CTA, SECTION_ORDER, SECTIONS } from "../content/homepage";
  */
 const TONES: Record<string, { tone: Tone; divided?: boolean }> = {
   "why-now":      { tone: "dark" },
-  "start":        { tone: "light" },
-  "security":     { tone: "dark" },
-  "about":        { tone: "light" },
+  "about":        { tone: "light", divided: true },
   "cta":          { tone: "dark" },
 };
 
@@ -63,6 +63,8 @@ const GRADUATED: Record<string, ComponentType> = {
   "how-it-works": HowItWorksSection,
   "for-finance": ForFinanceSection,
   "for-legal": ForLegalSection,
+  "start": StartSection,
+  "security": SecuritySection,
 };
 
 export default function Landing() {
