@@ -16,3 +16,6 @@ volume/
 
 # Locally generated development JWT signing secret (never committed)
 .jwt-secret.local
+
+# Pre-deletion snapshots written by scripts/cleanup-stale-data.ts
+cleanup-backup/
