@@ -13,3 +13,6 @@ volume/
 .env
 .env.local
 .env*.local
+
+# Locally generated development JWT signing secret (never committed)
+.jwt-secret.local

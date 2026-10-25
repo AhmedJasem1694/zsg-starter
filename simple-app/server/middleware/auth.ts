@@ -1,7 +1,12 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { resolveJwtSecret } from "../lib/jwtSecret.js";
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "zane-dev-secret-change-in-production";
+// Resolved by server/lib/jwtSecret.ts, which refuses to produce a value in
+// production unless JWT_SECRET is set. There is deliberately no fallback
+// constant here: the one that used to live on this line was committed, and so
+// was usable by anyone who could read the repository.
+const JWT_SECRET = resolveJwtSecret();
 
 export interface AuthPayload {
   userId: string;

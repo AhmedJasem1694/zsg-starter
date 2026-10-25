@@ -1,6 +1,21 @@
 import { config } from "dotenv";
+import { resolveJwtSecret, JwtSecretUnset } from "./lib/jwtSecret.js";
 
 config();
+
+// Resolved here, first thing after dotenv, so a missing production secret stops
+// the process before anything binds a port. Doing it at this point also means
+// the failure is a clear message rather than a stack trace surfacing from
+// whichever module happened to import the auth middleware first.
+try {
+  resolveJwtSecret();
+} catch (err) {
+  if (err instanceof JwtSecretUnset) {
+    console.error(`\n${err.message}\n`);
+    process.exit(1);
+  }
+  throw err;
+}
 
 if (!process.env.POCKETBASE_URL) {
   console.warn("Warning: POCKETBASE_URL is not set - defaulting to http://localhost:8090");
@@ -24,9 +39,8 @@ if (!process.env.COMPANIES_HOUSE_API_KEY) {
 // Required vars: SMTP_HOST, SMTP_USER, SMTP_PASS
 // Optional vars: SMTP_PORT (default 587), SMTP_FROM, APP_URL
 
-if (!process.env.JWT_SECRET) {
-  console.warn("Warning: JWT_SECRET not set - using insecure default. Set this in production.");
-}
+// JWT_SECRET is handled above, at the top of this file: production refuses to
+// boot without it, development generates and caches one. No warning needed here.
 
 if (!process.env.FRONTEND_URL) {
   console.info("Info: FRONTEND_URL not set - assuming same-origin deployment.");

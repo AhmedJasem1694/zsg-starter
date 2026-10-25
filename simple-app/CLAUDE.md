@@ -202,12 +202,22 @@ POCKETBASE_URL=http://localhost:8090          # or Railway URL in production
 POCKETBASE_ADMIN_EMAIL=admin@zane.local
 POCKETBASE_ADMIN_PASSWORD=changeme1234
 OPENROUTER_API_KEY=sk-or-...
+JWT_SECRET=<48 random bytes>                  # REQUIRED in production, see below
 ```
+
+**`JWT_SECRET` is required in production and the server refuses to start without it.** It signs every session token. `server/lib/jwtSecret.ts` resolves it and throws if `NODE_ENV=production` and the value is missing, or is the old committed default `zane-dev-secret-change-in-production`, which must be treated as public. In development it generates a secret and caches it in `.jwt-secret.local` (gitignored, mode 600) so watch-mode restarts do not sign you out. There is deliberately no fallback constant in the source.
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+```
+
+Setting or changing it invalidates every existing session, which is the point when rotating.
+
+The production guard keys off `NODE_ENV === "production"`, so confirm that variable is actually set on the host. Without it a deployment would silently take the development path and generate a fresh secret on each boot, signing everyone out on every deploy. That fails safe rather than open, but it is not what you want.
 
 Optional:
 ```
 OPENROUTER_MODEL=anthropic/claude-sonnet-4-5
-JWT_SECRET=<random string>
 SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_PORT, SMTP_FROM, APP_URL
 ```
 
