@@ -61,8 +61,6 @@ Watch folder integrations that auto-review contracts dropped into a connected fo
 
 PocketBase runs as a **separate service** (Railway or local). The Express server communicates with it via the `pocketbase` JS SDK in admin mode.
 
-**Single-company mode**: `POST /api/company` deletes all existing companies before creating a new one.
-
 **Collections** (26 total):
 
 | Collection | Purpose |
@@ -92,6 +90,41 @@ PocketBase runs as a **separate service** (Railway or local). The Express server
 **Bootstrap**: Run `npm run pb:setup` once after deploying PocketBase to create all collections. Safe to re-run, existing collections are skipped.
 
 **Dev setup**: Start PocketBase locally (`./pocketbase serve`), set up an admin account at `http://localhost:8090/_/`, then run `npm run pb:setup` to create collections.
+
+### Tenancy: Zane is single-tenant
+
+**One company per deployment. This is the design, not a stage it is passing through.**
+
+`getCompany(ownerEmail)` resolves a company by demo-account map, then by owner email (`role_in_contracts` stores the owner), and finally falls back to returning the only company when exactly one exists. That last fallback is the normal path in practice.
+
+**The two onboarding routes do not agree with each other, and one of them contradicts this decision:**
+
+| Route | Behaviour |
+|---|---|
+| `POST /api/quick-setup` | Collects **all** companies, creates the new one, then deletes every one it collected. Single-tenant. |
+| `POST /api/company` | Deletes **only the caller's own** company, matched on `OWNER_FIELD`. Its inline comment says "Multi-tenant mode". |
+
+`POST /api/company` was written for a multi-tenant model that the product is not pursuing. Treat it as the odd one out rather than as a signal of intent, and do not build on its per-owner behaviour. If it is ever reconciled, reconciling it toward single-tenant is the direction.
+
+**What this means when you touch the code:**
+
+- The `company` relation on most collections is a **scoping convention, not a security boundary**. It keeps queries correct and would be the foundation of real multi-tenancy, but nothing underneath it enforces separation.
+- **No PocketBase API rules exist anywhere in this project.** `grep -rn "listRule\|viewRule\|createRule\|updateRule\|deleteRule" server scripts` returns nothing, and `scripts/setup-pocketbase.ts` passes only `{name, type, fields}` to `ensureCollection`. PocketBase defaults unset rules to superuser-only, and `server/pb.ts` authenticates the shared singleton as superuser for every server operation. So the one credential the app always holds can read, update or delete any row in any collection.
+- Therefore **every tenancy guarantee is application-level**, living in route handlers and nowhere else. A route that forgets to scope its query has no second line of defence.
+
+**Still scope new routes by company.** Not because a second tenant exists today, but because these are also correctness and blast-radius guards, and they are what would have to hold if the product ever goes multi-tenant. Use the existing helpers rather than hand-rolling:
+
+- `assertOwnsDocument(userId, documentId, companyId)` — throws on mismatch.
+- `requireDocumentAccess(req, res, documentId)` — resolves the caller's company, asserts ownership, and on failure sends the response and returns `null`, so the caller is `const company = await requireDocumentAccess(...); if (!company) return;`. It answers **403 for both a foreign document and a missing one**, deliberately: distinguishing them turns the id space into an existence oracle.
+- Queries against `audit_log` go through `buildAuditFilter()` in `server/lib/auditFilter.ts`, which always emits the company predicate and validates caller-supplied values against strict patterns. PocketBase filters are plain strings, so **never interpolate a request value into one** — a value containing a double quote closes the literal and appends its own predicate. Validate against a pattern, as `buildAuditFilter` and the approvals route do.
+
+**Known consequences of single-tenant mode, accepted deliberately:**
+
+- Any authenticated user can wipe every company by calling `POST /api/quick-setup`. There is no admin gate on onboarding.
+- `POST /api/quick-setup` adopts the `pendingDocumentId` from the request body with no ownership check. It cannot have one: at that point in onboarding the caller owns nothing yet, which is the purpose of the call.
+- `user_registered` and `user_login` audit entries carry no company and so do not appear in the company audit view.
+
+If this ever becomes multi-tenant, the above three are the first things that break, and PocketBase API rules are the fix to reach for before adding more per-route checks.
 
 ### LLM (OpenRouter → Claude)
 
