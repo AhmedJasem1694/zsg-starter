@@ -396,13 +396,37 @@ export const ABOUT: Section = {
 
 // ── 11. CTA ───────────────────────────────────────────────────────────────────
 
-export const CTA: Section & { ctaLabel: string; contactLine: string } = {
+/**
+ * The ask. One thing, asked once.
+ *
+ * Deliberately makes no product claim, so it needs no `claims` entry. The page
+ * has already made its case by this point; repeating it here would be a fourth
+ * summary rather than a close.
+ *
+ * No response time is promised. A submission writes to access_requests and
+ * notifies nobody, because RESEND_API_KEY is unset, so a promise here would be
+ * one the product cannot keep. The old page said "within 24 hours". It also
+ * states no onboarding or time-to-value figure: see
+ * NOT_YET_CLAIMS.implementation-time.
+ */
+export const CTA: Section & {
+  ctaLabel: string;
+  /** Split so the address is a real mailto rather than text that looks like one. */
+  contact: { before: string; email: string; after: string };
+} = {
   id: "cta",
   eyebrow: "",
-  headline: "",
-  body: [],
+  headline: "Bring one contract.",
+  body: [
+    "A conversation first: what the business signs, who approves it, and where that record lives today.",
+    "Onboarding is done personally while Zane is early, so your positions are set up with you rather than left as a form to fill in.",
+  ],
   ctaLabel: "Book a conversation",
-  contactLine: "",
+  contact: {
+    before: "Or email",
+    email: "ahmed@zanelegal.ai",
+    after: "with a question first.",
+  },
 };
 
 // ── 12. Footer ────────────────────────────────────────────────────────────────

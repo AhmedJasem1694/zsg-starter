@@ -150,9 +150,16 @@ export default function Landing() {
                 >
                   {CTA.ctaLabel} <ArrowRight size={15} />
                 </button>
-                {CTA.contactLine && (
-                  <p className="mt-4 text-xs text-slate-500">{CTA.contactLine}</p>
-                )}
+                <p className="mt-4 text-xs text-slate-500">
+                  {CTA.contact.before}{" "}
+                  <a
+                    href={`mailto:${CTA.contact.email}`}
+                    className="text-slate-400 hover:text-white transition-colors underline underline-offset-2 decoration-slate-600 hover:decoration-slate-300"
+                  >
+                    {CTA.contact.email}
+                  </a>{" "}
+                  {CTA.contact.after}
+                </p>
               </motion.div>
             </Section>
           );
