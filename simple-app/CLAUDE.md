@@ -199,13 +199,22 @@ Both calls expect the model to return JSON inside the response text; parsing use
 
 ```
 POCKETBASE_URL=http://localhost:8090          # or Railway URL in production
-POCKETBASE_ADMIN_EMAIL=admin@zane.local
-POCKETBASE_ADMIN_PASSWORD=changeme1234
+POCKETBASE_ADMIN_EMAIL=admin@zane.local       # local dev only, see below
+POCKETBASE_ADMIN_PASSWORD=changeme1234        # local dev only, see below
 OPENROUTER_API_KEY=sk-or-...
 JWT_SECRET=<48 random bytes>                  # REQUIRED in production, see below
 ```
 
-**`JWT_SECRET` is required in production and the server refuses to start without it.** It signs every session token. `server/lib/jwtSecret.ts` resolves it and throws if `NODE_ENV=production` and the value is missing, or is the old committed default `zane-dev-secret-change-in-production`, which must be treated as public. In development it generates a secret and caches it in `.jwt-secret.local` (gitignored, mode 600) so watch-mode restarts do not sign you out. There is deliberately no fallback constant in the source.
+**The server refuses to start in production without real credentials.** Two checks run at the top of `server/env.ts`, before anything binds a port, and both are reported in one run so a misconfigured deployment learns everything at once.
+
+| Variable | Production rule |
+|---|---|
+| `JWT_SECRET` | Must be set, and must not be the old committed default `zane-dev-secret-change-in-production`. |
+| `POCKETBASE_ADMIN_EMAIL` / `_PASSWORD` | Both must be set, and neither may be the published pair `admin@zane.local` / `changeme1234`. |
+
+The PocketBase pair authenticates the client behind **every** database operation, and with no API rules in the project (see Tenancy) it is equivalent to full access to every row. The two are published in this file and in `.env.example`, so treat them as public: if they are in use on a real instance, change the superuser's password in the PocketBase admin UI first, because editing the variables alone leaves the old password working.
+
+`server/lib/jwtSecret.ts` resolves the signing secret. In development it generates one and caches it in `.jwt-secret.local` (gitignored, mode 600) so watch-mode restarts do not sign you out. `server/lib/pbCredentials.ts` resolves the admin pair, falling back to the documented local values in development with a warning, because unlike the JWT secret they cannot be generated: they must match the superuser created in the PocketBase admin UI. Neither module keeps a fallback constant for production.
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
