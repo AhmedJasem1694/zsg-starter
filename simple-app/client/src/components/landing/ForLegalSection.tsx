@@ -20,7 +20,7 @@ export function ForLegalSection() {
     <Section copy={FOR_LEGAL} tone="light" divided>
       <motion.div className="mt-14" {...rise(0.08)}>
         <img
-          src="/images/legal-review.webp"
+          src="/images/review-clause-analysis.webp"
           alt={FOR_LEGAL.visualAlt}
           width={1440}
           height={900}

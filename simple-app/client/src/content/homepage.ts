@@ -215,8 +215,9 @@ export const FOR_FINANCE: Section & { items: Card[]; visualAlt: string } = {
       body: "A plain-English summary built from live data, ready to forward.",
     },
   ],
+  /** Describes the monthly report export, which is what this slot now shows. */
   visualAlt:
-    "The Zane portfolio view, showing red-flag exposure, open escalations and the counterparties driving them.",
+    "A Zane monthly legal report for Meridian Financial Technologies, showing red-flag exposure of 340,000 pounds and the counterparties deviating from standard terms, with their red and amber counts and contract values.",
   claims: [
     "portfolio-exposure",
     "portfolio-total-value",

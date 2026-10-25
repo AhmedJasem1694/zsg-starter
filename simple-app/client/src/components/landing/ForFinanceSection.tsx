@@ -35,7 +35,7 @@ export function ForFinanceSection() {
 
         <motion.div className="lg:sticky lg:top-28" {...rise(0.16)}>
           <img
-            src="/images/finance-portfolio.webp"
+            src="/images/monthly-report.webp"
             alt={FOR_FINANCE.visualAlt}
             width={1440}
             height={900}

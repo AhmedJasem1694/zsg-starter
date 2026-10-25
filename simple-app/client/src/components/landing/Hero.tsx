@@ -95,6 +95,7 @@ export function Hero({
                 width={1440}
                 height={900}
                 loading="eager"
+                fetchPriority="high"
                 decoding="async"
                 className="block w-full h-auto"
               />

@@ -56,32 +56,72 @@ const DEBUG_PORT = 9222;
 const DEMO_EMAIL = "demo@zanelegal.ai";
 const DEMO_USER_ID = "r29c8k8l5s6kz5k";
 
-const SHOTS = [
+interface Shot {
+  file: string;
+  url: string;
+  /** Text that proves the data painted, not just the shell. */
+  waitFor: string;
+  /** Optional control to click before capturing, matched on exact label. */
+  click?: string;
+  /**
+   * Click this, then capture what it renders. The monthly report writes itself
+   * into window.open(); window.open is stubbed to an overlaying iframe first,
+   * so the report renders in this page and can be captured normally.
+   */
+  clickRendersReport?: string;
+}
+
+const SHOTS: Shot[] = [
   {
     file: "hero-portfolio.webp",
     url: "/app/legal/portfolio",
-    /** Selector that proves the page has rendered its data, not just its shell. */
-    waitFor: "text:Where is your risk concentrated?",
+    waitFor: "Where is your risk concentrated?",
   },
   {
-    file: "finance-portfolio.webp",
+    file: "monthly-report.webp",
     url: "/app/legal/portfolio",
-    waitFor: "text:Where is your risk concentrated?",
+    waitFor: "Where is your risk concentrated?",
+    clickRendersReport: "Generate monthly report",
   },
   {
-    file: "legal-review.webp",
-    // Halcyon Systems, Platform Subscription. Has a RED clause.
+    file: "review-clause-analysis.webp",
+    // Halcyon Systems, Platform Subscription. One RED clause, escalation open.
     url: "/app/legal/review/pc3sg4iezd31l0r",
-    waitFor: "text:Escalation required",
+    waitFor: "Escalation required",
     /**
-     * The seeded demo contracts have no physical file on disk, so the split
-     * view's document pane renders "No document text is available for this
-     * contract", which is not something to put on a marketing page. Collapsing
-     * the pane gives the clause analysis the full width instead.
+     * The seeded contracts record a filename but the seed never writes a file,
+     * so the split view's document pane renders "No document text is available
+     * for this contract". Collapsing it gives the clause analysis the width.
+     * Restore the split view here once a demo contract has a real file.
      */
     click: "Hide document",
   },
+  {
+    file: "audit-timeline.webp",
+    url: "/app/legal/audit",
+    waitFor: "Audit Trail",
+  },
 ];
+
+/**
+ * Removes anything personal before the shutter. The demo account's address is
+ * in the sidebar of every authenticated screen, and a marketing page is not
+ * the place for a live mailbox, test or not.
+ */
+const MASK_SCRIPT = `(() => {
+  const frame = document.getElementById('__zane_capture_frame');
+  const root = (frame && frame.contentDocument && frame.contentDocument.body) || document.body;
+  const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}/g;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const hits = [];
+  while (walker.nextNode()) {
+    const n = walker.currentNode;
+    if (n.nodeValue && EMAIL.test(n.nodeValue)) hits.push(n);
+    EMAIL.lastIndex = 0;
+  }
+  for (const n of hits) n.nodeValue = n.nodeValue.replace(EMAIL, "demo account");
+  return hits.length;
+})()`;
 
 // ── Minimal DevTools Protocol client ──────────────────────────────────────────
 
@@ -233,10 +273,10 @@ async function main() {
       await cdp.send("Page.navigate", { url });
       await sleep(1200);
 
-      const marker = shot.waitFor.replace(/^text:/, "");
+      const marker = shot.waitFor;
       const painted = await waitForText(cdp, marker);
 
-      const click = (shot as { click?: string }).click;
+      const click = shot.click;
       if (click) {
         const clicked = await cdp.send<{ result: { value: boolean } }>("Runtime.evaluate", {
           expression: `(() => {
@@ -251,18 +291,66 @@ async function main() {
         if (!clicked.result?.value) console.log(`\n    note: could not find a control labelled "${click}"`);
         await sleep(700);
       }
+
+      /**
+       * The report is written into window.open(). A real popup is unusable
+       * here: the report's own script calls window.print() 250ms after load,
+       * which stalls a headless capture before anything can neutralise it. So
+       * window.open is replaced with an iframe that covers the viewport, and
+       * print is stubbed on it before the document is written.
+       */
+      const target = cdp;
+      if (shot.clickRendersReport) {
+        const ok = await cdp.send<{ result: { value: string } }>("Runtime.evaluate", {
+          expression: `(() => {
+            window.open = function () {
+              const f = document.createElement('iframe');
+              f.id = '__zane_capture_frame';
+              f.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;border:0;z-index:2147483647;background:#fff';
+              document.body.appendChild(f);
+              const d = f.contentDocument;
+              try { f.contentWindow.print = function () {}; } catch (e) {}
+              return {
+                document: d, focus() {}, print() {}, close() {},
+                get closed() { return false; },
+              };
+            };
+            const el = Array.from(document.querySelectorAll('button,[role=button]'))
+              .find(b => (b.textContent || '').trim() === ${JSON.stringify(shot.clickRendersReport)});
+            if (!el) return 'control not found';
+            el.click();
+            return 'clicked';
+          })()`,
+          returnByValue: true,
+        });
+        if (ok.result?.value !== "clicked") console.log(`\n    note: ${ok.result?.value}`);
+        await sleep(900);
+        // document.write replaces the frame's document, so re-stub print.
+        await cdp.send("Runtime.evaluate", {
+          expression: `(() => { const f = document.getElementById('__zane_capture_frame');
+            if (f && f.contentWindow) { try { f.contentWindow.print = function(){}; } catch(e){} }
+            return !!f; })()`,
+          returnByValue: true,
+        });
+        await sleep(900);
+      }
+
+      const masked = await target.send<{ result: { value: number } }>("Runtime.evaluate", {
+        expression: MASK_SCRIPT,
+        returnByValue: true,
+      });
       await sleep(1500); // let entrance animations and any scroll settle
 
       // Print a sample of what rendered. A capture of a login redirect or an
       // empty state looks identical in the file listing; this makes it obvious.
-      const sample = await cdp.send<{ result: { value: string } }>("Runtime.evaluate", {
-        expression: "(document.body.innerText||'').replace(/\\s+/g,' ').trim().slice(0,110)",
+      const sample = await target.send<{ result: { value: string } }>("Runtime.evaluate", {
+        expression: "(() => { const f=document.getElementById('__zane_capture_frame'); const b=(f&&f.contentDocument&&f.contentDocument.body)||document.body; return (b.innerText||'').replace(/\\s+/g,' ').trim().slice(0,110); })()",
         returnByValue: true,
       });
 
       let written = false;
       for (const quality of QUALITY_STEPS) {
-        const r = await cdp.send<{ data: string }>("Page.captureScreenshot", {
+        const r = await target.send<{ data: string }>("Page.captureScreenshot", {
           format: "webp",
           quality,
           captureBeyondViewport: false,
@@ -271,12 +359,13 @@ async function main() {
         if (buf.byteLength <= MAX_BYTES || quality === QUALITY_STEPS[QUALITY_STEPS.length - 1]) {
           fs.writeFileSync(path.join(OUT_DIR, shot.file), buf);
           const kb = Math.round(buf.byteLength / 1024);
-          console.log(`${kb} kB q${quality} ${painted ? "OK" : "MARKER MISSING"}\n    page: ${sample.result?.value ?? "(no text)"}`);
+          console.log(`${kb} kB q${quality} ${painted ? "OK" : "MARKER MISSING"} masked:${masked.result?.value ?? 0}\n    page: ${sample.result?.value ?? "(no text)"}`);
           written = true;
           break;
         }
       }
       if (!written) console.log("failed to write");
+      if (shot.clickRendersReport) { await cdp.send("Page.navigate", { url: "about:blank" }); await sleep(400); }
     }
   } finally {
     cdp?.close();
