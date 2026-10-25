@@ -661,11 +661,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // counterparty history as a normal library record.
   app.post("/api/legacy/review/:documentId", requireAuth, ah(async (req: Request, res: Response) => {
     const { documentId } = req.params;
-    try {
-      await pb.collection("uploaded_documents").getOne(documentId);
-    } catch {
-      sendError(res, 404, "Document not found"); return;
-    }
+    // Was unguarded: the document was fetched but its company never checked,
+    // so any signed-in user could point this at another company's contract.
+    // That is not a read. It flips the document to PROCESSING, marks it
+    // legacy, and fires runLegacyReview, which spends that company's model
+    // budget and overwrites the document's extracted metadata: contract type,
+    // counterparty, governing law, value, renewal date, notice period.
+    const company = await requireDocumentAccess(req, res, documentId);
+    if (!company) return;
+
     await ensureLegacyFields();
     await pb.collection("uploaded_documents").update(documentId, { status: "PROCESSING", legacy: true });
     // Fire-and-forget, the client polls the report endpoint for status
