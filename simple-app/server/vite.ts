@@ -1,4 +1,5 @@
 import express, { type Express } from "express";
+import { canonicalOrigin } from "./lib/canonicalOrigin.js";
 import fs from "fs";
 import path from "path";
 import { createServer as createViteServer, createLogger } from "vite";
@@ -82,43 +83,38 @@ export function serveStatic(app: Express) {
   app.use(express.static(distPath, { index: false }));
 
   /**
-   * The canonical and Open Graph URLs are resolved here, at boot, rather than
-   * baked in by the build.
+   * Canonical and Open Graph URLs are resolved per request.
    *
-   * They have to be absolute, and the right value belongs to the deployment
-   * rather than to the source. Injecting it at build time meant a change to
-   * APP_URL only took effect on a full rebuild: setting the variable restarts
-   * the service, which re-runs this file against an artefact still carrying
-   * the old origin. That cost two deploys to spot and is the wrong coupling
-   * for a value that can change without the code changing.
+   * They were resolved once at boot from APP_URL. That coupled the preferred
+   * public host to a variable whose real job is building email links, and it
+   * meant the value could only change on a restart. Both are now handled by
+   * canonicalOrigin, which maps every host this site answers on to the one it
+   * should be indexed under.
    *
-   * Vite leaves __SITE_URL__ in the built HTML for exactly this. The dev
-   * server still substitutes it through the plugin in vite.config.ts, so both
-   * paths produce absolute URLs.
-   *
-   * Read once: index.html is small and does not change between restarts.
+   * The substitution is a string replace on a 4 kB file. Results are cached by
+   * origin, so in practice it runs once per host.
    */
   const indexPath = path.resolve(distPath, "index.html");
-  const origin = (process.env.SITE_URL ?? process.env.APP_URL ?? "https://www.zanelegal.ai")
-    .replace(/\/+$/, "");
-  let indexHtml = "";
+  let template = "";
   try {
-    indexHtml = fs.readFileSync(indexPath, "utf8").replaceAll("__SITE_URL__", origin);
-    if (!process.env.APP_URL && !process.env.SITE_URL) {
-      console.warn(
-        `[static] Neither APP_URL nor SITE_URL is set. Canonical and Open Graph URLs fall back to ${origin}.`,
-      );
-    }
+    template = fs.readFileSync(indexPath, "utf8");
   } catch (err) {
     console.error("[static] Could not read index.html:", (err as Error)?.message);
   }
+  const byOrigin = new Map<string, string>();
 
   // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    if (indexHtml) {
-      res.type("html").send(indexHtml);
+  app.use("*", (req, res) => {
+    if (!template) {
+      res.sendFile(indexPath);
       return;
     }
-    res.sendFile(indexPath);
+    const origin = canonicalOrigin(req);
+    let html = byOrigin.get(origin);
+    if (!html) {
+      html = template.replaceAll("__SITE_URL__", origin);
+      byOrigin.set(origin, html);
+    }
+    res.type("html").send(html);
   });
 }

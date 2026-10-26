@@ -16,6 +16,7 @@ import { parseEmailIntent, UNCLEAR_REPLY_TEXT } from "./services/emailIntentPars
 import { sendPlainEmail, sendApprovalDecisionEmail, emailStatus, activeTransport, missingEmailConfig } from "./services/emailService.js";
 import { rateLimit } from "./lib/rateLimit.js";
 import { clientIdentity } from "./lib/clientIp.js";
+import { canonicalOrigin } from "./lib/canonicalOrigin.js";
 import { createApprovalRequest } from "./services/approvals.js";
 import { processReviewByEmail, type InboundAttachment } from "./services/emailReview.js";
 import { processDraftByEmail } from "./services/draftGenerator.js";
@@ -5915,8 +5916,11 @@ Draft the complete clause.`;
       status: "ok",
       client: { ip: who.ip, source: who.source, hops: who.hops },
       commit: (process.env.RAILWAY_GIT_COMMIT_SHA ?? "unknown").slice(0, 7),
-      origin: (process.env.SITE_URL ?? process.env.APP_URL ?? "https://www.zanelegal.ai").replace(/\/+$/, ""),
-      originFrom: process.env.SITE_URL ? "SITE_URL" : process.env.APP_URL ? "APP_URL" : "fallback",
+      // The canonical origin, derived the same way the HTML derives it.
+      origin: canonicalOrigin(req),
+      // APP_URL is reported separately because it still builds email links,
+      // and it currently points at a host that does not resolve.
+      appUrl: process.env.APP_URL ?? "(unset)",
       startedAt: STARTED_AT,
     });
   });
