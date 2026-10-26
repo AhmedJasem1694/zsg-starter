@@ -62,23 +62,6 @@ export const PREFERRED_PUBLIC_ORIGIN = PREFERRED_ORIGIN;
 
 // ── Links inside emails ───────────────────────────────────────────────────────
 
-/**
- * Hosts that are configured but do not resolve, mapped to the one that does.
- *
- * The apex has no DNS record pointing at this deployment, so every link built
- * on it is dead on arrival in someone's inbox. APP_URL has been set to it, and
- * correcting the variable turned out to mean finding which of four places it
- * was set in. A link in an approval email is not the right thing to leave
- * broken while that is sorted out, so the known-dead host is rewritten here
- * and the misconfiguration is logged rather than hidden.
- *
- * This is deliberately a narrow list of hosts proven not to resolve, not a
- * general rewrite. Anything else configured is passed through untouched.
- */
-const UNREACHABLE_HOSTS = new Map<string, string>([
-  ["zanelegal.ai", PREFERRED_ORIGIN],
-]);
-
 let warnedAboutAppUrl = false;
 
 /**
@@ -88,9 +71,14 @@ let warnedAboutAppUrl = false;
  * indexed; this one has to be an address a recipient can click, which is a
  * lower bar and a different failure mode.
  *
- * OAuth and webhook callback URLs are deliberately NOT routed through this.
- * Those have to match values registered with Google and Microsoft, so quietly
- * rewriting them would break the integration rather than fix a link.
+ * APP_URL is used exactly as configured. A previous version rewrote hosts
+ * known not to resolve, which papered over a misconfiguration rather than
+ * surfacing it; if APP_URL points somewhere unreachable, the links will be
+ * unreachable, and /api/health reports the value so that is visible.
+ *
+ * OAuth and webhook callback URLs read APP_URL directly and are not routed
+ * through here: those have to match values registered with Google and
+ * Microsoft.
  */
 export function emailLinkOrigin(): string {
   const raw = process.env.APP_URL?.trim();
@@ -102,28 +90,14 @@ export function emailLinkOrigin(): string {
       : "http://localhost:3000";
   }
 
-  let host: string;
   try {
-    host = new URL(raw).hostname.toLowerCase();
+    new URL(raw);
   } catch {
     if (!warnedAboutAppUrl) {
       warnedAboutAppUrl = true;
       console.warn(`[email] APP_URL is not a valid URL (${raw}). Using ${PREFERRED_ORIGIN} for links.`);
     }
     return PREFERRED_ORIGIN;
-  }
-
-  const replacement = UNREACHABLE_HOSTS.get(host);
-  if (replacement) {
-    if (!warnedAboutAppUrl) {
-      warnedAboutAppUrl = true;
-      console.warn(
-        `[email] APP_URL is set to ${raw}, whose host does not resolve. ` +
-        `Links in emails use ${replacement} instead. Fix APP_URL: webhook and OAuth ` +
-        `callback URLs still use it as given and are NOT rewritten.`,
-      );
-    }
-    return replacement;
   }
 
   return stripTrailingSlashes(raw);

@@ -1,7 +1,7 @@
 /**
- * Links in approval and review emails were being built on a host with no DNS
- * record, so every one of them was dead on arrival. These cover the rewrite
- * and, as importantly, its limits.
+ * APP_URL is used exactly as configured for links inside emails. An earlier
+ * version rewrote hosts known not to resolve; that is gone, so these now cover
+ * the pass-through, the unset cases, and the invalid-URL guard.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -21,17 +21,15 @@ describe("emailLinkOrigin", () => {
     vi.restoreAllMocks();
   });
 
-  it("rewrites the apex, which has no DNS record for this deployment", () => {
+  it("uses APP_URL exactly as configured, including a host that does not resolve", () => {
+    // The apex has no DNS record for this deployment. It is no longer
+    // rewritten: a misconfigured APP_URL produces unreachable links, which is
+    // visible in /api/health rather than hidden behind a substitution.
     process.env.APP_URL = "https://zanelegal.ai";
-    expect(emailLinkOrigin()).toBe(WWW);
+    expect(emailLinkOrigin()).toBe("https://zanelegal.ai");
   });
 
-  it("leaves a host that does resolve exactly as configured", () => {
-    process.env.APP_URL = "https://app.zanelegal.ai";
-    expect(emailLinkOrigin()).toBe("https://app.zanelegal.ai");
-  });
-
-  it("is not a general rewrite: an unrelated host passes through", () => {
+  it("passes any configured host through untouched", () => {
     process.env.APP_URL = "https://zane.customer.example";
     expect(emailLinkOrigin()).toBe("https://zane.customer.example");
   });
