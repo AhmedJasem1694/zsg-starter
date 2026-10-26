@@ -5927,7 +5927,25 @@ Draft the complete clause.`;
       // Whether notifications can be sent at all. Names which variables are
       // missing, never their values, so the contact form's readiness can be
       // confirmed without submitting it and without a Railway login.
-      email: emailStatus(),
+      email: {
+        ...emailStatus(),
+        /**
+         * Names of the mail-related variables this process can actually see,
+         * with a note of whether each holds a non-empty value. Names only,
+         * never values.
+         *
+         * Three rounds of "the variable is set" versus "the app says it is
+         * missing" came down to not being able to see what the process was
+         * looking at. A typo, a trailing space in the name, or a variable set
+         * to an empty string are all indistinguishable from unset otherwise.
+         *
+         * Remove once the mail configuration has settled.
+         */
+        seen: Object.keys(process.env)
+          .filter((k) => /RESEND|SMTP|MAIL/i.test(k))
+          .sort()
+          .map((k) => `${k}${(process.env[k] ?? "").trim() ? "" : " (empty)"}`),
+      },
       startedAt: STARTED_AT,
     });
   });
