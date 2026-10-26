@@ -5924,6 +5924,10 @@ Draft the complete clause.`;
       // is the signal that APP_URL still needs correcting at source.
       appUrl: process.env.APP_URL ?? "(unset)",
       emailLinks: emailLinkOrigin(),
+      // Whether notifications can be sent at all. Names which variables are
+      // missing, never their values, so the contact form's readiness can be
+      // confirmed without submitting it and without a Railway login.
+      email: emailStatus(),
       startedAt: STARTED_AT,
     });
   });
