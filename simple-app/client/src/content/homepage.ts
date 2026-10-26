@@ -78,7 +78,7 @@ export const HERO = {
   eyebrow: "For CFOs, and the lean legal teams who work with them",
   headline: "Know what your company has signed, who approved it, and why.",
   subheadline:
-    "Every supplier and customer contract through one door. Standard terms clear fast. Anything outside policy goes to the right approver, with the reason recorded, so the business can see what it has committed to and what it gave away.",
+    "Every supplier and customer contract through one door. Standard terms clear against your own positions. Anything outside policy goes to the right approver, with the reason recorded, so the business can see what it has committed to and what it gave away.",
   primaryCta: { label: "Book a conversation", href: "#cta" },
   secondaryCta: { label: "See how it works", href: "#how-it-works" },
   footnote:
@@ -94,7 +94,7 @@ export const HERO = {
    */
   visualAlt:
     "The Zane portfolio view, showing red-flag exposure, open escalations and the counterparties driving them.",
-  claims: ["intake", "escalation-routing", "approval-decision", "portfolio-exposure"],
+  claims: ["intake", "rag-verdict", "escalation-routing", "approval-decision", "portfolio-exposure"],
 };
 
 // ── 3. The problem ────────────────────────────────────────────────────────────
@@ -215,9 +215,16 @@ export const FOR_FINANCE: Section & { items: Card[]; visualAlt: string } = {
       body: "A plain-English summary built from live data, ready to forward.",
     },
   ],
-  /** Describes the monthly report export, which is what this slot now shows. */
+  /**
+   * Describes the monthly report export, which is what this slot shows.
+   *
+   * No figures. The 340,000 that used to appear here was genuinely derived
+   * from the seed, but hardcoding a derived number in copy means the alt text
+   * silently stops matching the image the next time the demo data is
+   * refreshed. The screenshot carries the figures; this describes the shape.
+   */
   visualAlt:
-    "A Zane monthly legal report for Meridian Financial Technologies, showing red-flag exposure of 340,000 pounds and the counterparties deviating from standard terms, with their red and amber counts and contract values.",
+    "A Zane monthly legal report for Meridian Financial Technologies, showing red-flag exposure, the contracts reviewed this month, the renewals falling due next quarter, and the counterparties deviating from standard terms.",
   claims: [
     "portfolio-exposure",
     "portfolio-total-value",
@@ -255,7 +262,7 @@ export const FOR_LEGAL: Section & { cards: Card[]; visualAlt: string } = {
       body: "Red, Amber or Green per clause, the risk in plain English, and the wording to send back.",
     },
     {
-      /** Called counterparty memory, never "negotiation intelligence", here. */
+      /** Use this wording, not the feature name the app uses internally. */
       title: "Counterparty memory",
       body: "Patterns computed from real decisions: who pushes on what, where you have conceded before, which renewals are exposed.",
     },
@@ -328,7 +335,7 @@ export const START: Section & { steps: Card[] } = {
     { step: "02", title: "Confirm your positions", body: "" },
     { step: "03", title: "Read your first report", body: "" },
   ],
-  claims: ["legacy-import", "timings"],
+  claims: ["legacy-import", "timings", "playbook-baseline"],
 };
 
 // ── 9. Security ───────────────────────────────────────────────────────────────
@@ -377,7 +384,7 @@ export const SECURITY: Section & { items: string[]; note: string; contactEmail: 
   note: "Full data-processing details on request.",
   /** Canonical public address: used on the Security page and every error path. */
   contactEmail: "ahmed@zanelegal.ai",
-  claims: ["anonymisation", "audit-trail", "model-routing"],
+  claims: ["anonymisation", "source-text-integrity", "audit-trail", "model-routing"],
 };
 
 // ── 10. About ─────────────────────────────────────────────────────────────────

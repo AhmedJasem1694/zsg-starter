@@ -207,7 +207,7 @@ export default function ReviewTimeCaseStudy() {
         counterparty and which ones will be conceded in the first round.
       </p>
       <p>
-        After fifty contracts across your supplier base, the Negotiation Intelligence page shows
+        After fifty contracts across your supplier base, the counterparty memory page shows
         which clause categories generate the most Red flags across your entire portfolio. You can
         see that limitation of liability is consistently the hardest clause to negotiate across
         technology suppliers and that your fallback of six months fees is being accepted

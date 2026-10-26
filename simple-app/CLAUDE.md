@@ -57,6 +57,39 @@ Watch folder integrations that auto-review contracts dropped into a connected fo
 - `client/src/pages/Dashboard.tsx`: upload widget + document list; auto-refetches every 3s while any document is `PROCESSING`
 - `client/src/pages/ReviewDetail.tsx`: renders per-clause RAG cards with expand/collapse; calls `saveFeedback` on Accept/Escalate/Dismiss
 
+### Public marketing site
+
+The pages anyone can reach without signing in: `/`, `/security`, `/privacy`, `/terms`, `/case-study`, `/resources/*`, and a 404 for everything else.
+
+**Copy lives in `client/src/content/`, never in JSX.** Three files:
+
+| File | Covers |
+|---|---|
+| `homepage.ts` | Every string on `/`, declared in the order the sections appear |
+| `security.ts` | The security page, including what the product does **not** do |
+| `legal.ts` | Privacy notice and website terms, both drafts behind a banner |
+
+A component that hardcodes a sentence is a bug. The point is that the whole site can be read and reviewed without opening a single `.tsx` file.
+
+**Section order** is `SECTION_ORDER` in `homepage.ts`. `Landing.tsx` renders against that list rather than fixing the sequence in markup, so reordering the page is a change to one array:
+
+`hero → problem → how-it-works → for-finance → for-legal → why-now → start → security → about → cta`
+
+Sections whose layout has outgrown the shared `Section` shell move to their own component and are registered in `GRADUATED` in `Landing.tsx`; each then owns its own background tone.
+
+**The claims register is the rule that matters.** Any sentence on the public site stating what Zane does must map to an entry in `ALLOWED_CLAIMS` in `client/src/content/claims.ts`. If it does not map, do not write it.
+
+- Each allowed claim carries `provenBy`: the file and line that make it true. Open it and check before editing the claim.
+- Many carry a `limit` recording what a copywriter must not over-reach into. Those limits exist because the over-reach already happened once.
+- `NOT_YET_CLAIMS` is the other half: roadmap items that must not appear as product claims, each with the wording to use instead.
+- Sections name the claims they depend on in a `claims` array. `referencedClaims()` resolves them and throws at module load on an unknown id, so copy that outruns the register fails fast rather than shipping.
+
+When a feature changes, the claim moves with it in the same commit. The register is only worth having if it cannot drift from the code.
+
+**House rules for the copy.** British English. No em dashes, use commas, full stops or colons. Write "building Zane", never "founder" or "CEO". Never name the employer; "in-house at a UK private healthcare group" if the day job comes up at all. State no timing figure: nothing in the schema or the orchestrator records a review duration.
+
+**Screenshots** are real captures of the seeded demo account, produced by `scripts/capture-screenshots.ts`, which masks every email address before the shutter. Re-run it rather than editing images by hand. `scripts/make-image-variants.ts` produces the narrow `srcset` companions.
+
 ### Database (PocketBase)
 
 PocketBase runs as a **separate service** (Railway or local). The Express server communicates with it via the `pocketbase` JS SDK in admin mode.

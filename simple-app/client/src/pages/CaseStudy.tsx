@@ -34,7 +34,7 @@ export default function CaseStudy() {
             The founder who walked away<br />with almost nothing
           </h1>
           <p className="text-white/65 text-base leading-relaxed">
-            A founder raises capital over six years, accepts investor terms under pressure to close. Liquidation preferences stack up silently. A £150M exit arrives - and he walks away with almost nothing. This is exactly what Zane prevents.
+            A founder raises capital over six years, accepts investor terms under pressure to close. Liquidation preferences stack up silently. A £150M exit arrives - and he walks away with almost nothing. Zane records each of those decisions and the reason behind it, so the position is visible while it can still be changed.
           </p>
         </div>
 

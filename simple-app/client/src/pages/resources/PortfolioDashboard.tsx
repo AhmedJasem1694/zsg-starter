@@ -95,7 +95,7 @@ export default function PortfolioDashboard() {
         can prepare your position in advance rather than discovering it mid-review.
       </p>
       <p>
-        This kind of institutional memory is exactly what does not survive personnel changes in
+        This kind of recorded history is exactly what does not survive personnel changes in
         a small legal team. The lawyer who reviewed the first contract three years ago has left.
         The knowledge that this particular supplier always pushes on sub-processor consent left
         with them. The counterparty profile retains it.
