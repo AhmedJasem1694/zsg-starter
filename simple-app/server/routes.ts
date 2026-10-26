@@ -221,6 +221,9 @@ const OWNER_FIELD = "role_in_contracts";
 /** Where public form submissions are sent. Matches the address on the site. */
 const CONTACT_EMAIL = "ahmed@zanelegal.ai";
 
+/** Process start time, so a restart is observable from outside. */
+const STARTED_AT = new Date().toISOString();
+
 async function getCompany(ownerEmail?: string): Promise<PBRecord | null> {
   // Fetch ALL companies once and filter in-memory. More reliable than PB filters
   // on non-indexed fields.
@@ -5886,8 +5889,23 @@ Draft the complete clause.`;
     res.json({ ok: true });
   }));
 
+  /**
+   * Health, plus just enough to answer "which build is actually running, and
+   * what origin did it resolve?" without a Railway login.
+   *
+   * Both values are already public: the commit is in a repository, and the
+   * origin is printed in the canonical tag on every page. Diagnosing a stale
+   * deploy took several rounds of inference from response headers, which this
+   * replaces with a fact. RAILWAY_GIT_COMMIT_SHA is injected by the platform.
+   */
   app.get("/api/health", (_req: Request, res: Response) => {
-    res.json({ status: "ok" });
+    res.json({
+      status: "ok",
+      commit: (process.env.RAILWAY_GIT_COMMIT_SHA ?? "unknown").slice(0, 7),
+      origin: (process.env.SITE_URL ?? process.env.APP_URL ?? "https://www.zanelegal.ai").replace(/\/+$/, ""),
+      originFrom: process.env.SITE_URL ? "SITE_URL" : process.env.APP_URL ? "APP_URL" : "fallback",
+      startedAt: STARTED_AT,
+    });
   });
 
   // ── Global async error handler ───────────────────────────────────────────────
