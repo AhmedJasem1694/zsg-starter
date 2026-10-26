@@ -82,7 +82,7 @@ export const HERO = {
   primaryCta: { label: "Book a conversation", href: "#cta" },
   secondaryCta: { label: "See how it works", href: "#how-it-works" },
   footnote:
-    "Built for teams of one to five lawyers carrying the contract load for a whole business.",
+    "Built for lean legal functions: up to five lawyers, sometimes a fractional general counsel, carrying the contract load for a whole business.",
   /**
    * Alt text for the hero visual. Written as a description of the screen so it
    * stays accurate when the placeholder is replaced by the real capture.
@@ -113,7 +113,7 @@ export const PROBLEM: Section & { cards: Card[] } = {
   cards: [
     {
       title: "The cap that doubled.",
-      body: "A supplier contract arrives with liability capped at twice your policy. Someone says yes because the deal matters. Eighteen months later nobody can say who approved it or why.",
+      body: "A supplier contract arrives with liability capped at twice your policy. Someone says yes because the deal matters. You find out when something goes wrong, or when a buyer's lawyers ask in diligence, and nobody can say who approved it.",
     },
     {
       title: "The renewal nobody saw.",
@@ -121,7 +121,7 @@ export const PROBLEM: Section & { cards: Card[] } = {
     },
     {
       title: "The answer that left with the person.",
-      body: "The contract is in the shared drive. The reasoning was in an email, or in the head of a lawyer who has since moved on.",
+      body: "The contract is in the system. Why you agreed to it is not. The reasoning was in a thread, or with a lawyer who has since moved on.",
     },
   ],
   closingLine: "Every tool records the document. Zane records the decision.",
@@ -186,6 +186,7 @@ export const FOR_FINANCE: Section & { items: Card[]; visualAlt: string } = {
   headline: "See what the business has committed to, in plain English.",
   body: [
     "Zane gives the people who own the risk a view of the whole contract estate, without reading a single clause.",
+    "In plain English and in pounds, not clause names and colour codes.",
   ],
   items: [
     {
@@ -196,23 +197,23 @@ export const FOR_FINANCE: Section & { items: Card[]; visualAlt: string } = {
        * carries that split as a limit.
        */
       title: "Exposure",
-      body: "Total value under management and where the risk sits, by counterparty and by contract type.",
+      body: "What the business is committed to in total, and where the exposure sits, by counterparty and by contract type.",
     },
     {
       title: "Concessions",
-      body: "Where the company settled below its own positions, with whom, and how often.",
+      body: "Where the company accepted terms below its own policy, with whom, how often, and who signed it off.",
     },
     {
       title: "Renewals",
-      body: "Dates, notice windows and dated obligations, so nothing rolls over unseen.",
+      body: "Renewal dates, notice windows and dated obligations, so nothing rolls over unnoticed.",
     },
     {
       title: "Approvals",
-      body: "What is waiting for a decision, who it is with, and the record of every decision made.",
+      body: "What is waiting for approval, who it is sitting with, and the record of every decision made.",
     },
     {
       title: "The monthly report",
-      body: "A plain-English summary built from live data, ready to forward.",
+      body: "A monthly summary built from live data, ready to forward to the board.",
     },
   ],
   /**
