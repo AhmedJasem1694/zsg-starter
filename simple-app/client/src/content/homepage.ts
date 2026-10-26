@@ -498,7 +498,7 @@ export const FOOTER = {
   ],
   /** Routed pages. */
   pageLinks: [
-    { to: "/case-study", label: "Case study" },
+    { to: "/case-study", label: "Worked example" },
     { to: "/resources", label: "Resources" },
     { to: "/privacy", label: "Privacy" },
     { to: "/terms", label: "Terms" },

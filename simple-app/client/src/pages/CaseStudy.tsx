@@ -29,12 +29,21 @@ export default function CaseStudy() {
 
         {/* Header */}
         <div className="space-y-4 max-w-2xl">
-          <div className="inline-block text-xs font-bold text-primary tracking-widest uppercase">Case study</div>
+          <div className="inline-block text-xs font-bold text-primary tracking-widest uppercase">Worked example</div>
           <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight leading-snug">
             The founder who walked away<br />with almost nothing
           </h1>
           <p className="text-white/65 text-base leading-relaxed">
             A founder raises capital over six years, accepts investor terms under pressure to close. Liquidation preferences stack up silently. A £150M exit arrives - and he walks away with almost nothing. Zane records each of those decisions and the reason behind it, so the position is visible while it can still be changed.
+          </p>
+
+          {/* The figures below are chosen to show how preferences compound.
+              Without this, the page reads as a real client story, which it is
+              not, and the specific numbers make that reading more likely. */}
+          <p className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-white/55 leading-relaxed">
+            <span className="font-semibold text-white/75">An illustration, not a real client.</span>{" "}
+            The company, the people and the figures are invented to show how liquidation preferences
+            compound across rounds. Nothing here describes an actual company or transaction.
           </p>
         </div>
 

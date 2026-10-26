@@ -36,7 +36,7 @@ export default function ResourcePageLayout({
           <nav className="hidden md:flex items-center gap-6 text-xs">
             <Link to="/" className="text-white/50 hover:text-white transition-colors duration-300">Home</Link>
             <Link to="/resources" className="text-white hover:text-white transition-colors duration-300">Resources</Link>
-            <Link to="/case-study" className="text-white/50 hover:text-white transition-colors duration-300">Case study</Link>
+            <Link to="/case-study" className="text-white/50 hover:text-white transition-colors duration-300">Worked example</Link>
             <Link to="/security" className="text-white/50 hover:text-white transition-colors duration-300">Security</Link>
           </nav>
           <div className="flex items-center gap-2">
@@ -112,7 +112,7 @@ export default function ResourcePageLayout({
             <ZaneLogo size="sm" light={false} />
           </Link>
           <div className="flex items-center gap-6 text-xs text-gray-500">
-            <Link to="/case-study" className="hover:text-gray-600 transition-colors">Case study</Link>
+            <Link to="/case-study" className="hover:text-gray-600 transition-colors">Worked example</Link>
             <Link to="/security" className="hover:text-gray-600 transition-colors">Security</Link>
             <Link to="/resources" className="hover:text-gray-600 transition-colors">Resources</Link>
             <span>2026</span>

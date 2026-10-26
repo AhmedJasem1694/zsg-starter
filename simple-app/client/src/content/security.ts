@@ -37,7 +37,7 @@ export const SECURITY_PAGE = {
   nav: {
     links: [
       { to: "/", label: "Home" },
-      { to: "/case-study", label: "Case study" },
+      { to: "/case-study", label: "Worked example" },
       { to: "/resources", label: "Resources" },
       { to: "/security", label: "Security" },
     ],
