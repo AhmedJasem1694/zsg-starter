@@ -27,7 +27,10 @@ import { buildCounterpartyJudgmentMemory, judgmentReviewNote } from "./counterpa
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PBRecord = Record<string, any>;
 
-const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
+import { emailLinkOrigin } from "../lib/canonicalOrigin.js";
+
+/** Resolved per call: the configured host may be one that does not resolve. */
+const appUrl = () => emailLinkOrigin();
 
 export interface InboundAttachment {
   filename: string;       // on-disk name in ./uploads
@@ -288,7 +291,7 @@ export async function processReviewByEmail(input: {
   }).catch(() => {});
 
   const founder = isFounderCompany(company);
-  const reviewUrl = `${APP_URL}/review/${doc.id}`;
+  const reviewUrl = `${appUrl()}/review/${doc.id}`;
 
   const docCtx = ctx(doc.id as string);
 

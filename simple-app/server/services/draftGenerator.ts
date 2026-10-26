@@ -27,7 +27,10 @@ import { audit } from "./auditLogger.js";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PBRecord = Record<string, any>;
 
-const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
+import { emailLinkOrigin } from "../lib/canonicalOrigin.js";
+
+/** Resolved per call: the configured host may be one that does not resolve. */
+const appUrl = () => emailLinkOrigin();
 
 interface IntentParams {
   counterparty?: string;
@@ -291,7 +294,7 @@ export async function processDraftByEmail(input: {
   const toConfirmNote = content.toConfirm.length > 0
     ? `Items needing your input are marked TO CONFIRM${content.toConfirm.length <= 6 ? `:\n${content.toConfirm.map((t) => `  • ${t}`).join("\n")}` : ` (${content.toConfirm.length} items in the document)`}.`
     : "Items needing your input are marked TO CONFIRM.";
-  const reviewUrl = docId ? `${APP_URL}/review/${docId}` : "";
+  const reviewUrl = docId ? `${appUrl()}/review/${docId}` : "";
 
   // 3d: if the draft is for a known counterparty, pre-empt their likely pushback
   // as TO CONFIRM notes (advisory, these are NOT written into the draft text).

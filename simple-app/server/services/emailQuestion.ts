@@ -18,7 +18,10 @@ import { threadReplyText, type ThreadContext } from "./emailThreads.js";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PBRecord = Record<string, any>;
 
-const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
+import { emailLinkOrigin } from "../lib/canonicalOrigin.js";
+
+/** Resolved per call: the configured host may be one that does not resolve. */
+const appUrl = () => emailLinkOrigin();
 
 interface IntentParams {
   counterparty?: string;
@@ -212,8 +215,8 @@ Return ONLY this JSON:
   // Grounded answer, reply short + a link to the relevant contract or playbook.
   const validContract = contractIndex.find((c) => c.id === parsed.contractId);
   const link = validContract
-    ? `${APP_URL}/review/${validContract.id}`
-    : `${APP_URL}/app/legal/playbook`;
+    ? `${appUrl()}/review/${validContract.id}`
+    : `${appUrl()}/app/legal/playbook`;
   const linkLabel = validContract ? `View the contract in Zane: ${link}` : `Your playbook in Zane: ${link}`;
 
   await threadReplyText(ctx(validContract?.id), {

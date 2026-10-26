@@ -3,6 +3,7 @@ import nodemailer from "nodemailer";
 // Resend is the configured provider. Generic SMTP is retained so a different
 // provider can be used without a code change, but Resend takes precedence.
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
+import { emailLinkOrigin } from "../lib/canonicalOrigin.js";
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
 
 const SMTP_HOST = process.env.SMTP_HOST;
@@ -18,9 +19,9 @@ const APP_URL   = process.env.APP_URL;
  * a localhost approval link is worse than one that never sent.
  */
 function baseUrl(): string {
-  if (APP_URL) return APP_URL.replace(/\/+$/, "");
-  console.warn("[Zane] APP_URL is not set. Links in emails will point at localhost.");
-  return "http://localhost:3000";
+  // emailLinkOrigin rewrites a configured host that is known not to resolve,
+  // and warns once. See server/lib/canonicalOrigin.ts.
+  return emailLinkOrigin();
 }
 
 /** Which transport will be used, if any. */
