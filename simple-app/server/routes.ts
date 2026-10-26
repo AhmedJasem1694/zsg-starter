@@ -15,6 +15,7 @@ import {
 import { parseEmailIntent, UNCLEAR_REPLY_TEXT } from "./services/emailIntentParser.js";
 import { sendPlainEmail, sendApprovalDecisionEmail, emailStatus, activeTransport, missingEmailConfig } from "./services/emailService.js";
 import { rateLimit } from "./lib/rateLimit.js";
+import { clientIdentity } from "./lib/clientIp.js";
 import { createApprovalRequest } from "./services/approvals.js";
 import { processReviewByEmail, type InboundAttachment } from "./services/emailReview.js";
 import { processDraftByEmail } from "./services/draftGenerator.js";
@@ -616,11 +617,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public endpoint backing the landing-page "Request access" form. Stores the
   // submission in the access_requests collection for Ahmed to onboard manually.
   app.post("/api/access-request", ah(async (req: Request, res: Response) => {
-    // Five per hour per IP. The form is unauthenticated and sends mail, so it
-    // is the one place on the site worth metering.
-    const ip = req.ip ?? req.socket.remoteAddress ?? "unknown";
-    const limited = rateLimit(`access-request:${ip}`, 5, 60 * 60 * 1000);
+    // Five per hour per caller. The form is unauthenticated and sends mail, so
+    // it is the one place on the site worth metering.
+    //
+    // Keyed on clientIdentity rather than req.ip: with trust proxy set to 1,
+    // req.ip is an address one hop from the right of X-Forwarded-For, which is
+    // infrastructure rather than the caller once the platform adds a hop. A
+    // limiter keyed on that silently does nothing, which is what fourteen
+    // unthrottled requests from one address demonstrated in production.
+    const who = clientIdentity(req);
+    const limited = rateLimit(`access-request:${who.ip}`, 5, 60 * 60 * 1000);
     if (!limited.allowed) {
+      console.warn(`[access-request] rate limited ${who.ip} (via ${who.source}, ${who.hops} hop(s))`);
       res.setHeader("Retry-After", String(limited.retryAfterSeconds));
       sendError(res, 429, "Too many requests from this address. Please try again later, or email ahmed@zanelegal.ai.");
       return;
@@ -644,7 +652,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { name, email, company, role, contractsDescription } = parsed.data;
 
     if (parsed.data.website.trim() !== "") {
-      console.warn(`[access-request] honeypot filled from ${ip}, discarded`);
+      console.warn(`[access-request] honeypot filled from ${who.ip}, discarded`);
       res.json({ ok: true });
       return;
     }
@@ -702,7 +710,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contractsDescription.trim() || "(not given)",
         "",
         `Received: ${new Date().toISOString()}`,
-        `From IP:  ${ip}`,
+        `From IP:  ${who.ip}`,
       ].join("\n"),
     }).catch(() => false);
 
@@ -5898,9 +5906,14 @@ Draft the complete clause.`;
    * deploy took several rounds of inference from response headers, which this
    * replaces with a fact. RAILWAY_GIT_COMMIT_SHA is injected by the platform.
    */
-  app.get("/api/health", (_req: Request, res: Response) => {
+  app.get("/api/health", (req: Request, res: Response) => {
+    // A caller only ever sees their own address here, so this discloses
+    // nothing they do not already know, and it makes a misbehaving rate
+    // limiter diagnosable without a deploy.
+    const who = clientIdentity(req);
     res.json({
       status: "ok",
+      client: { ip: who.ip, source: who.source, hops: who.hops },
       commit: (process.env.RAILWAY_GIT_COMMIT_SHA ?? "unknown").slice(0, 7),
       origin: (process.env.SITE_URL ?? process.env.APP_URL ?? "https://www.zanelegal.ai").replace(/\/+$/, ""),
       originFrom: process.env.SITE_URL ? "SITE_URL" : process.env.APP_URL ? "APP_URL" : "fallback",
