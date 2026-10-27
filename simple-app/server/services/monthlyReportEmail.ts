@@ -88,8 +88,8 @@ export interface RenderedReportEmail {
 
 /**
  * @param appOrigin  Origin for the "open in Zane" link. Comes from
- *                   emailLinkOrigin() via the caller, so a known-dead
- *                   configured host is already rewritten.
+ *                   emailLinkOrigin() via the caller, which validates APP_URL
+ *                   and falls back when it is unusable.
  */
 export function renderMonthlyReportEmail(
   model: MonthlyReportModel,

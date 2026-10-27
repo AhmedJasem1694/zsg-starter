@@ -5789,10 +5789,11 @@ Draft the complete clause.`;
       commit: (process.env.RAILWAY_GIT_COMMIT_SHA ?? "unknown").slice(0, 7),
       // The canonical origin, derived the same way the HTML derives it.
       origin: canonicalOrigin(req),
-      // Both values, because they can legitimately differ: appUrl is what is
-      // configured, emailLinks is what a recipient would actually click after
-      // a host known not to resolve has been rewritten. Seeing them disagree
-      // is the signal that APP_URL still needs correcting at source.
+      // Both values. They agree on a healthy deployment, and the point of
+      // showing both is the case where they do not: emailLinks falling back
+      // while appUrl reads something else means APP_URL is missing or is not
+      // a usable web URL. A host that is merely unreachable is no longer
+      // corrected here, so these agreeing is not proof the host resolves.
       appUrl: process.env.APP_URL ?? "(unset)",
       emailLinks: emailLinkOrigin(),
       // Whether notifications can be sent at all. Names which variables are

@@ -19,8 +19,9 @@ const APP_URL   = process.env.APP_URL;
  * a localhost approval link is worse than one that never sent.
  */
 function baseUrl(): string {
-  // emailLinkOrigin rewrites a configured host that is known not to resolve,
-  // and warns once. See server/lib/canonicalOrigin.ts.
+  // emailLinkOrigin validates APP_URL and falls back if it is missing or not a
+  // usable web URL. It does not correct a host that simply does not resolve.
+  // See server/lib/canonicalOrigin.ts.
   return emailLinkOrigin();
 }
 
