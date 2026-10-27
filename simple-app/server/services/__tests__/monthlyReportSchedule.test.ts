@@ -13,11 +13,19 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  authoriseResend,
   isDue,
+  isPeriodClosed,
   isScheduledSendEnabled,
   MONTHLY_REPORT_ROLES,
   suppressPeriod,
 } from "../monthlyReportSchedule";
+
+const CLAIM = "monthly_report_scheduled";
+const SUPPRESS = "monthly_report_suppressed";
+const RESEND = "monthly_report_resend_authorised";
+const SENT = "monthly_report_sent";
+const FAILED = "monthly_report_failed";
 
 const original = process.env.MONTHLY_REPORT_SEND;
 
@@ -63,6 +71,69 @@ describe("isDue", () => {
     // a server down from the 1st to the 3rd must still send October's report.
     expect(isDue(new Date(2026, 10, 3, 2, 0))).toBe(true);
     expect(isDue(new Date(2026, 10, 28, 23, 0))).toBe(true);
+  });
+});
+
+/**
+ * The gate that replaced "delete the claim record".
+ *
+ * Deleting from audit_log to let the system repeat an action is what would
+ * make the product's "immutable log" untrue of that collection, so a re-send
+ * is granted by appending instead. These pin the arithmetic that makes
+ * appending sufficient.
+ */
+describe("isPeriodClosed", () => {
+  it("is open when nothing has been recorded", () => {
+    expect(isPeriodClosed([])).toBe(false);
+  });
+
+  it("is closed by a claim, and by a suppression", () => {
+    expect(isPeriodClosed([CLAIM])).toBe(true);
+    expect(isPeriodClosed([SUPPRESS])).toBe(true);
+  });
+
+  it("re-opens when an authorisation releases the block", () => {
+    expect(isPeriodClosed([CLAIM, RESEND])).toBe(false);
+    expect(isPeriodClosed([SUPPRESS, RESEND])).toBe(false);
+  });
+
+  it("closes again when the released period is claimed afresh", () => {
+    expect(isPeriodClosed([CLAIM, RESEND, CLAIM])).toBe(true);
+  });
+
+  it("survives repeated cycles, one release per block", () => {
+    expect(isPeriodClosed([CLAIM, RESEND, CLAIM, RESEND])).toBe(false);
+    expect(isPeriodClosed([CLAIM, RESEND, CLAIM, RESEND, CLAIM])).toBe(true);
+  });
+
+  it("does not let a failed send release its own claim", () => {
+    // The reason outcomes are excluded from the gate. A failure is the very
+    // situation where the claim must hold, or the next hourly tick re-sends
+    // to everyone who already received it.
+    expect(isPeriodClosed([CLAIM, FAILED])).toBe(true);
+    expect(isPeriodClosed([CLAIM, SENT])).toBe(true);
+  });
+
+  it("ignores an unrelated action rather than counting it as a block", () => {
+    expect(isPeriodClosed(["contract_uploaded", "user_login"])).toBe(false);
+  });
+
+  it("is order independent, so it does not rely on timestamp sorting", () => {
+    // PocketBase ids are not chronological and `created` ordering has been
+    // unreliable in this project, so the gate deliberately counts.
+    expect(isPeriodClosed([RESEND, CLAIM])).toBe(false);
+    expect(isPeriodClosed([RESEND, CLAIM, CLAIM])).toBe(true);
+  });
+});
+
+describe("authoriseResend", () => {
+  it("rejects a malformed period rather than querying with it", async () => {
+    for (const bad of ['2026-10" || id != "', "2026-1", "oct", ""]) {
+      await expect(
+        authoriseResend("company123", bad, "test"),
+        `"${bad}" should be rejected`,
+      ).rejects.toThrow(/Malformed period/);
+    }
   });
 });
 

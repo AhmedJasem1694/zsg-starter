@@ -97,6 +97,28 @@ const CLAIM_ACTION = "monthly_report_scheduled";
  * failure the audit trail exists to prevent.
  */
 const SUPPRESS_ACTION = "monthly_report_suppressed";
+
+/**
+ * Permission to act on a period again, after it was claimed or suppressed.
+ *
+ * The obvious way to re-send a month is to delete its claim record. That is
+ * the one thing this collection must not support: the product tells users the
+ * audit log is immutable, and a row quietly removed so the system could repeat
+ * an action is exactly the deletion that makes the word a lie. So a re-send is
+ * granted by appending, not by erasing, and the trail keeps the whole story:
+ * claimed, failed, re-authorised, sent.
+ *
+ * Gating is by count rather than by recency: a period is closed while the
+ * blocking records outnumber the authorisations, and each authorisation
+ * releases exactly one. That avoids resolving "most recent" from timestamps,
+ * which PocketBase ordering has not been dependable about in this project, and
+ * it stays correct across repeated cycles.
+ */
+const RESEND_ACTION = "monthly_report_resend_authorised";
+
+/** Actions that close a period. */
+const BLOCKING_ACTIONS = [CLAIM_ACTION, SUPPRESS_ACTION];
+
 const AUDIT_ENTITY = "monthly_report";
 
 /** YYYY-MM. Periods are interpolated into PocketBase filters, which are plain
@@ -125,21 +147,84 @@ export function isDue(now: Date): boolean {
 }
 
 /**
- * Has this company's report for this period already been dealt with, either by
- * being claimed for sending or by being deliberately suppressed?
+ * The gating records for one company and period, counted by kind.
+ *
+ * Deliberately ignores the outcome records (sent / failed). Those say what
+ * came of an attempt; they do not open or close a period, and counting them
+ * here would mean a failed send released its own claim.
  *
  * Filters on the compat text fields `companyId` and `entityId`, because those
  * are the ones auditLogger actually writes.
  */
-async function alreadyHandled(companyId: string, period: string): Promise<boolean> {
+async function gatingActions(companyId: string, period: string): Promise<string[]> {
   if (!PERIOD_PATTERN.test(period)) throw new Error(`Refusing to query a malformed period: ${period}`);
-  const hits = await pb.collection("audit_log").getFullList({
-    filter:
-      `(action = "${CLAIM_ACTION}" || action = "${SUPPRESS_ACTION}") && ` +
-      `companyId = "${companyId}" && entityId = "${period}"`,
-    fields: "id",
+  const clause = [...BLOCKING_ACTIONS, RESEND_ACTION].map((a) => `action = "${a}"`).join(" || ");
+  const rows = await pb.collection("audit_log").getFullList({
+    filter: `(${clause}) && companyId = "${companyId}" && entityId = "${period}"`,
+    fields: "action",
   });
-  return hits.length > 0;
+  return rows.map((r) => String(r["action"]));
+}
+
+/**
+ * Given every gating record for one company and period, is that period closed?
+ *
+ * Each authorisation releases exactly one block, so the cycle
+ * claim, fail, authorise, claim again behaves correctly however many times it
+ * repeats. Anything that is neither a block nor a release is ignored rather
+ * than treated as a block: the outcome records say what came of an attempt,
+ * and counting those here would let a failed send release its own claim.
+ *
+ * Pure, and exported, because this is the whole correctness argument for not
+ * deleting records and it should be pinned by tests rather than by a database.
+ */
+export function isPeriodClosed(actions: string[]): boolean {
+  let blocks = 0;
+  let releases = 0;
+  for (const a of actions) {
+    if (a === RESEND_ACTION) releases++;
+    else if ((BLOCKING_ACTIONS as string[]).includes(a)) blocks++;
+  }
+  return blocks > releases;
+}
+
+/**
+ * Is this company's report for this period closed off, either by having been
+ * claimed for sending or by having been deliberately suppressed, and not since
+ * re-authorised?
+ */
+async function alreadyHandled(companyId: string, period: string): Promise<boolean> {
+  return isPeriodClosed(await gatingActions(companyId, period));
+}
+
+/**
+ * Re-open a period so the next pass will build and send it again.
+ *
+ * Appends rather than deleting the claim, so the audit trail keeps the whole
+ * sequence. Returns false when the period is not currently closed, because
+ * authorising an open period would bank a release that silently cancels the
+ * next real claim.
+ */
+export async function authoriseResend(
+  companyId: string,
+  period: string,
+  reason: string,
+): Promise<boolean> {
+  if (!PERIOD_PATTERN.test(period)) throw new Error(`Malformed period: ${period}. Expected YYYY-MM.`);
+  if (!(await alreadyHandled(companyId, period))) return false;
+
+  await pb.collection("audit_log").create({
+    action: RESEND_ACTION,
+    entityType: AUDIT_ENTITY,
+    entityId: period,
+    companyId,
+    company: companyId,
+    userId: "",
+    ipAddress: "",
+    detail: JSON.stringify({ period, reason, authorisedAt: new Date().toISOString() }),
+    created: new Date().toISOString().replace("T", " "),
+  });
+  return true;
 }
 
 /**

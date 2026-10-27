@@ -22,6 +22,13 @@
  *       monthly_report_suppressed audit record, which is deliberately a
  *       different action from the one a real send writes.
  *
+ *   npx tsx scripts/send-monthly-report.ts --authorise-resend=2026-10 --apply
+ *       Re-open a period that was claimed or suppressed, so the next pass
+ *       sends it again. Use after a send failed and the cause is fixed. This
+ *       appends a monthly_report_resend_authorised record rather than deleting
+ *       the claim: deleting from audit_log is what would make the product's
+ *       "immutable log" untrue of it.
+ *
  * --force ignores the day-of-month check so a pass can be run mid-month. It
  * does NOT ignore the per-period claim, so a forced run still cannot send the
  * same month to the same company twice.
@@ -34,6 +41,7 @@ import { pb, initPocketBase } from "../server/pb";
 import {
   MONTHLY_REPORT_ROLES,
   buildReportFor,
+  authoriseResend,
   isScheduledSendEnabled,
   runMonthlyReportPass,
   suppressPeriod,
@@ -51,6 +59,8 @@ const RECIPIENTS_ONLY = process.argv.includes("--recipients");
 const PREVIEW = process.argv.includes("--preview");
 const SUPPRESS =
   process.argv.filter((a) => a.startsWith("--suppress=")).map((a) => a.slice(11))[0] ?? "";
+const AUTHORISE_RESEND =
+  process.argv.filter((a) => a.startsWith("--authorise-resend=")).map((a) => a.slice(19))[0] ?? "";
 const OUT_DIR =
   process.argv.filter((a) => a.startsWith("--out=")).map((a) => a.slice(6))[0] ??
   path.join(process.cwd(), "report-preview");
@@ -97,6 +107,53 @@ async function suppress(period: string, apply: boolean) {
 
   if (apply) {
     console.log(`\n${done} suppressed, ${already} already handled.`);
+  } else {
+    console.log(`\nDry run. Nothing written. Re-run with --apply.`);
+  }
+}
+
+/**
+ * Re-open a period for every company that currently has it closed.
+ *
+ * A company whose period is already open is skipped rather than given a
+ * release to bank, which would otherwise cancel its next genuine claim.
+ */
+async function authoriseResendFor(period: string, apply: boolean) {
+  if (!/^\d{4}-\d{2}$/.test(period)) {
+    throw new Error(`--authorise-resend expects YYYY-MM, got "${period}"`);
+  }
+
+  const companies = (await pb.collection("companies").getFullList({ sort: "+id" })) as Row[];
+  const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const reason =
+    `Re-send of the ${period} report authorised on ${today}. The period had been closed ` +
+    `by an earlier claim or suppression; this releases it so the next scheduled pass ` +
+    `builds and sends it again. The earlier records are left in place.`;
+
+  console.log(`Period to re-open: ${period}`);
+  console.log(`Reason recorded  : ${reason}\n`);
+
+  let opened = 0;
+  let notClosed = 0;
+  for (const c of companies) {
+    const name = String(c["name"] ?? "(unnamed)");
+    if (!apply) {
+      // authoriseResend reports whether it would act, without writing.
+      console.log(`  would attempt to re-open ${period} for ${name} (${c.id})`);
+      continue;
+    }
+    const written = await authoriseResend(String(c.id), period, reason);
+    if (written) {
+      opened++;
+      console.log(`  re-opened ${period} for ${name} (${c.id})`);
+    } else {
+      notClosed++;
+      console.log(`  ${name} (${c.id}): ${period} is not closed, nothing to release`);
+    }
+  }
+
+  if (apply) {
+    console.log(`\n${opened} re-opened, ${notClosed} were not closed.`);
   } else {
     console.log(`\nDry run. Nothing written. Re-run with --apply.`);
   }
@@ -188,6 +245,11 @@ async function main() {
 
   if (SUPPRESS) {
     await suppress(SUPPRESS, APPLY);
+    return;
+  }
+
+  if (AUTHORISE_RESEND) {
+    await authoriseResendFor(AUTHORISE_RESEND, APPLY);
     return;
   }
 

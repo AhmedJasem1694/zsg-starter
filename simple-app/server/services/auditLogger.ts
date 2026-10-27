@@ -77,7 +77,11 @@ export type AuditAction =
   | "monthly_report_failed"
   // A period deliberately skipped. Kept distinct from "scheduled" so a reader
   // can never mistake a suppressed month for one that was delivered.
-  | "monthly_report_suppressed";
+  | "monthly_report_suppressed"
+  // Permission to act on a period again after it was claimed or suppressed.
+  // Exists so a re-send never requires deleting a record from this collection,
+  // which is what would make "immutable log" untrue of it.
+  | "monthly_report_resend_authorised";
 
 // ── Core log function ─────────────────────────────────────────────────────────
 
