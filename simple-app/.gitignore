@@ -19,3 +19,7 @@ volume/
 
 # Pre-deletion snapshots written by scripts/cleanup-stale-data.ts
 cleanup-backup/
+
+# Rendered report emails from scripts/send-monthly-report.ts --preview.
+# Real customer figures, so not something to commit.
+report-preview/

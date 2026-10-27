@@ -215,9 +215,10 @@ export const NOT_YET_CLAIMS: NotYetClaim[] = [
   },
   {
     id: "cfo-digest",
-    doNotClaim: "A weekly CFO digest email, or any scheduled recurring digest.",
+    doNotClaim:
+      "That Zane emails the monthly report to your CFO, or any weekly digest. Not yet claimable on this deployment, and the reason is configuration rather than code.",
     insteadSay:
-      "The monthly report is generated on demand by a person, not sent on a schedule.",
+      "Nothing on the site, until the two conditions below are both true. The send itself is built: server/services/monthlyReportSchedule.ts runs hourly, builds the report for the month that has just closed and emails it to the configured CFO and GC contacts, once per company per period, with the period claimed in audit_log so a restart cannot double-send. What is not true is that it is happening. MONTHLY_REPORT_SEND is unset, so startMonthlyReportLoop() returns immediately, and RESEND_API_KEY is absent from the serving environment, so there is no transport. Promote this to ALLOWED_CLAIMS when (1) MONTHLY_REPORT_SEND is on in the serving environment and (2) /api/health reports email.configured true, and not before: a buyer reading 'it arrives on the 1st' is owed an email that arrives on the 1st. A weekly cadence stays unclaimable regardless; the schedule is monthly only.",
   },
   {
     id: "e-signature",

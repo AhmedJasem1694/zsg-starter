@@ -9,6 +9,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { initPocketBase } from "./pb";
 import { startIntegrationRenewalLoop } from "./services/integrationRenewal";
+import { startMonthlyReportLoop } from "./services/monthlyReportSchedule";
 import { missingEmailConfig } from "./services/emailService";
 
 // Prevent unhandled promise rejections from crashing the server.
@@ -135,6 +136,10 @@ async function recoverStuckDocuments() {
 
   // Keep watch-folder webhooks (Google Drive / SharePoint) alive past their TTL.
   startIntegrationRenewalLoop();
+
+  // Send the monthly legal report to each company's CFO and GC. Off unless
+  // MONTHLY_REPORT_SEND is set; logs which it is either way.
+  startMonthlyReportLoop();
 
   const server = await registerRoutes(app);
 

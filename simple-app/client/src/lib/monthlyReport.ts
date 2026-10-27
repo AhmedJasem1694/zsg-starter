@@ -1,33 +1,28 @@
 // Monthly legal report export for the Portfolio surface.
 //
-// V1: a dated, month-titled report (for example "July 2026 Legal Report")
-// built the same way as the board pack: a light print window the user saves
-// as PDF. Every figure comes from the existing portfolio, documents, and
-// approvals payloads that already drive the dashboard and Portfolio page, so
-// the report always agrees with them. Nothing is recomputed or newly derived
-// beyond filtering those payloads to the reporting period.
+// A dated, month-titled report (for example "July 2026 Legal Report") built
+// the same way as the board pack: a light print window the user saves as PDF.
+//
+// Every figure comes from shared/monthlyReport.ts, which filters the existing
+// portfolio, documents and approvals payloads that already drive the dashboard
+// and the Portfolio page. Nothing is recomputed or newly derived here. That
+// module is shared with the scheduled email send, so the report a person
+// exports and the report that arrives in an inbox cannot carry different
+// numbers. This file is only the print markup.
 
+import {
+  buildMonthlyReportModel,
+  dmy,
+  esc,
+  money,
+  roleLabel,
+  titleCase,
+  type MonthlyReportModel,
+} from "../../../shared/monthlyReport";
 import type { getPortfolio, ApprovalListItem } from "./api";
 import type { UploadedDocument } from "./types";
 
 type PortfolioData = NonNullable<Awaited<ReturnType<typeof getPortfolio>>>;
-
-const money = (v: number): string => {
-  if (!isFinite(v) || v <= 0) return "£0";
-  return "£" + Math.round(v).toLocaleString("en-GB");
-};
-
-const esc = (s: string): string =>
-  String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-
-const titleCase = (s: string): string =>
-  esc(String(s ?? "").replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()));
-
-const dmy = (iso: string | null | undefined): string => {
-  if (!iso) return "";
-  const d = new Date(iso);
-  return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-};
 
 export function exportMonthlyReport(opts: {
   companyName: string;
@@ -36,80 +31,61 @@ export function exportMonthlyReport(opts: {
   approvals: ApprovalListItem[];
   now?: Date;
 }): void {
-  const { companyName, data, documents, approvals } = opts;
-  const now = opts.now ?? new Date();
-
-  const monthLabel = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-  const reportTitle = `${monthLabel} Legal Report`;
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  // Same 90-day window the dashboard's "Renewals due in 90 days" tile uses
-  // server-side, so the report's renewal count always agrees with it.
-  const quarterEnd = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
-
-  // Contracts reviewed in the period: completed reviews uploaded this month.
-  const reviewedThisPeriod = documents.filter((d) => {
-    if (d.status !== "COMPLETE") return false;
-    const at = new Date(d.uploadedAt ?? "");
-    return !isNaN(at.getTime()) && at >= monthStart && at <= now;
+  const model = buildMonthlyReportModel({
+    companyName: opts.companyName,
+    portfolio: opts.data,
+    documents: opts.documents,
+    approvals: opts.approvals,
+    // On demand, the report is month-to-date: the user asked for it now.
+    asOf: opts.now ?? new Date(),
   });
 
-  // Red escalations raised in the period, with their status, from the
-  // approvals queue (the same records the Approvals page shows).
-  const raisedThisPeriod = approvals.filter((a) => {
-    const at = new Date(a.createdAt ?? "");
-    return !isNaN(at.getTime()) && at >= monthStart && at <= now;
-  });
+  const html = renderPrintableReport(model, window.location.origin);
 
-  // Renewals due next quarter (the same 90-day horizon as the dashboard tile),
-  // from the documents' stored renewal dates.
-  const renewalsNextQuarter = documents
-    .filter((d) => {
-      if (!d.renewalDate) return false;
-      const at = new Date(d.renewalDate);
-      return !isNaN(at.getTime()) && at >= now && at <= quarterEnd;
-    })
-    .sort((a, b) => String(a.renewalDate).localeCompare(String(b.renewalDate)));
+  const w = window.open("", "_blank");
+  if (!w) {
+    alert("Please allow pop-ups to generate the monthly report.");
+    return;
+  }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
 
-  const deviating = data.byCounterparty.filter((cp) => cp.red > 0);
-
+/**
+ * @param origin  Absolute origin for the webfont URL. The export is written
+ *                into a blank window, so a relative URL resolves against
+ *                about:blank and silently falls back.
+ */
+function renderPrintableReport(model: MonthlyReportModel, origin: string): string {
   const stat = (label: string, value: string, accent = "#0B1220") =>
     `<div class="stat"><div class="stat-v" style="color:${accent}">${esc(value)}</div><div class="stat-l">${esc(label)}</div></div>`;
 
-  const STATUS_LABELS: Record<string, { label: string; accent: string }> = {
-    PENDING:  { label: "Awaiting decision", accent: "#D97706" },
-    APPROVED: { label: "Approved",          accent: "#16A34A" },
-    REJECTED: { label: "Rejected",          accent: "#DC2626" },
-  };
-
-  const ROLE_LABELS: Record<string, string> = { CFO: "CFO", BOARD: "Board", GC: "GC", LEGAL: "Legal" };
-  const roleLabel = (role: string) => ROLE_LABELS[role] ?? titleCase(role);
-
-  const escalationRows = raisedThisPeriod.length
-    ? raisedThisPeriod
-        .map((a) => {
-          const s = STATUS_LABELS[a.status] ?? { label: a.status, accent: "#64748B" };
-          const who = a.status !== "PENDING" && a.decidedByName ? ` by ${a.decidedByName}` : "";
+  const escalationRows = model.escalations.length
+    ? model.escalations
+        .map((e) => {
+          const who = e.decidedByName ? ` by ${e.decidedByName}` : "";
           return `<tr>
-            <td>${esc(a.counterpartyName || a.documentName)}</td>
-            <td>${a.clauseCategory ? titleCase(a.clauseCategory) : "<span class=\"muted\">-</span>"}</td>
-            <td>${esc(roleLabel(a.routedToRole))}</td>
-            <td><span class="dot" style="background:${s.accent}"></span>${esc(s.label)}${esc(who)}</td>
+            <td>${esc(e.contract)}</td>
+            <td>${e.clause ? titleCase(e.clause) : "<span class=\"muted\">-</span>"}</td>
+            <td>${roleLabel(e.routedToRole)}</td>
+            <td><span class="dot" style="background:${e.statusAccent}"></span>${esc(e.statusLabel)}${esc(who)}</td>
           </tr>`;
         })
         .join("")
-    : `<tr><td colspan="4" class="muted">No escalations were raised in ${esc(monthLabel)}.</td></tr>`;
+    : `<tr><td colspan="4" class="muted">No escalations were raised in ${esc(model.monthLabel)}.</td></tr>`;
 
-  const renewalRows = renewalsNextQuarter.length
-    ? renewalsNextQuarter
+  const renewalRows = model.renewals.length
+    ? model.renewals
         .map(
-          (d) =>
-            `<tr><td>${esc(d.counterpartyName || d.originalName)}</td><td>${titleCase(d.contractType ?? "")}</td><td>${esc(dmy(d.renewalDate))}</td><td class="num">${d.contractValue ? money(d.contractValue) : "-"}</td></tr>`,
+          (r) =>
+            `<tr><td>${esc(r.contract)}</td><td>${titleCase(r.type ?? "")}</td><td>${esc(dmy(r.renewalDate))}</td><td class="num">${r.contractValue ? money(r.contractValue) : "-"}</td></tr>`,
         )
         .join("")
     : `<tr><td colspan="4" class="muted">No contract renewals fall due in the next quarter.</td></tr>`;
 
-  const counterpartyRows = deviating.length
-    ? deviating
+  const counterpartyRows = model.counterparties.length
+    ? model.counterparties
         .map(
           (cp) =>
             `<tr><td>${esc(cp.name)}</td><td class="num">${cp.red}</td><td class="num">${cp.amber}</td><td class="num">${money(cp.value)}</td></tr>`,
@@ -117,17 +93,13 @@ export function exportMonthlyReport(opts: {
         .join("")
     : `<tr><td colspan="4" class="muted">No counterparties currently deviating from your standard terms.</td></tr>`;
 
-  const generatedLabel = now.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-
-  const html = `<!doctype html>
-<html><head><meta charset="utf-8"><title>${esc(reportTitle)}</title>
+  return `<!doctype html>
+<html><head><meta charset="utf-8"><title>${esc(model.reportTitle)}</title>
 <style>
-  /* Source Serif 4, self-hosted. The export is written into a blank window, so
-     the URL must be absolute or it resolves against about:blank and silently
-     falls back. */
+  /* Source Serif 4, self-hosted. */
   @font-face {
     font-family: 'Source Serif 4';
-    src: url('${window.location.origin}/fonts/SourceSerif4-Variable.woff2') format('woff2-variations');
+    src: url('${origin}/fonts/SourceSerif4-Variable.woff2') format('woff2-variations');
     font-weight: 200 900;
     font-style: normal;
     font-display: swap;
@@ -157,16 +129,16 @@ export function exportMonthlyReport(opts: {
 <body><div class="wrap">
   <header>
     <div class="brand">Zane · Monthly Legal Report</div>
-    <h1>${esc(reportTitle)}</h1>
-    <div class="sub">${esc(companyName)} · Generated ${esc(generatedLabel)}</div>
+    <h1>${esc(model.reportTitle)}</h1>
+    <div class="sub">${esc(model.companyName)} · Generated ${esc(model.generatedLabel)}</div>
   </header>
 
   <h2>The month at a glance</h2>
   <div class="stats">
-    ${stat(`Contracts reviewed in ${esc(monthLabel)}`, String(reviewedThisPeriod.length))}
-    ${stat("Red-flag exposure", money(data.valueAtRisk.RED), data.valueAtRisk.RED > 0 ? "#DC2626" : "#16A34A")}
-    ${stat("Escalations raised this month", String(raisedThisPeriod.length), raisedThisPeriod.length > 0 ? "#D97706" : "#16A34A")}
-    ${stat("Renewals due next quarter", String(renewalsNextQuarter.length))}
+    ${stat(`Contracts reviewed in ${esc(model.monthLabel)}`, String(model.reviewedCount))}
+    ${stat("Red-flag exposure", money(model.redExposure), model.redExposure > 0 ? "#DC2626" : "#16A34A")}
+    ${stat("Escalations raised this month", String(model.escalationsRaised), model.escalationsRaised > 0 ? "#D97706" : "#16A34A")}
+    ${stat("Renewals due next quarter", String(model.renewalsDueCount))}
   </div>
 
   <h2>Escalations raised and their status</h2>
@@ -187,17 +159,8 @@ export function exportMonthlyReport(opts: {
     <tbody>${counterpartyRows}</tbody>
   </table>
 
-  <footer>Generated by Zane on ${esc(generatedLabel)}. Every figure is drawn from the live portfolio data shown in the dashboard at time of export. For internal use.</footer>
+  <footer>Generated by Zane on ${esc(model.generatedLabel)}. Every figure is drawn from the live portfolio data shown in the dashboard at time of export. For internal use.</footer>
 </div>
 <script>window.onload = function(){ setTimeout(function(){ window.print(); }, 250); };</script>
 </body></html>`;
-
-  const w = window.open("", "_blank");
-  if (!w) {
-    alert("Please allow pop-ups to generate the monthly report.");
-    return;
-  }
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
 }

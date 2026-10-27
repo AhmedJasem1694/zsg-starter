@@ -68,7 +68,13 @@ export type AuditAction =
   | "playbook_suggestion_generated"
   | "pattern_detected"
   // Data export
-  | "audit_log_exported";
+  | "audit_log_exported"
+  // Scheduled monthly report. The "scheduled" record claims a reporting period
+  // for a company and is the guard against sending the same month twice; the
+  // other two record what came of it. See services/monthlyReportSchedule.ts.
+  | "monthly_report_scheduled"
+  | "monthly_report_sent"
+  | "monthly_report_failed";
 
 // ── Core log function ─────────────────────────────────────────────────────────
 

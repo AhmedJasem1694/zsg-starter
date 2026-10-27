@@ -32,6 +32,9 @@ This is a full-stack TypeScript monorepo: one `package.json`, one `tsconfig.json
 - `server/services/reviewOrchestrator.ts`: main pipeline: parse → **anonymise** → classify → compare → **de-anonymise** → persist results. Called async (fire-and-forget) from the `POST /api/review/:id` route.
 - `server/services/piiAnonymiser.ts`: PII detection and anonymisation. Replaces party names (company, counterparty) and regex-detected PII (emails, phones, postcodes, IBANs, etc.) with placeholders **before** any LLM call. Entity map stored in `pii_sessions`. Call `anonymise()` before LLM, `deanonymise()` after.
 - `server/services/auditLogger.ts`: Structured audit trail writer. `audit()` and `auditSync()` write to `audit_log` collection. Never throws, logging failures are non-fatal.
+- `server/services/portfolio.ts`: `computePortfolio(companyId)` is the portfolio risk aggregation behind `GET /api/portfolio`. Lifted out of the route so the scheduled monthly report can call it without a request. Returns `null` when the company has no completed reviews.
+- `server/services/monthlyReportSchedule.ts`: the scheduled monthly report send. See **Scheduled monthly report** below.
+- `server/services/monthlyReportEmail.ts`: renders the report for an inbox (tables, inline styles, no webfont or script). The printable version lives in `client/src/lib/monthlyReport.ts`; both derive every figure from `shared/monthlyReport.ts` so they cannot disagree.
 - `server/services/documentParser.ts`: PDF via `pdf-parse` (loaded with `createRequire` because it's CJS), DOCX via `mammoth`. Chunks text into ~2000-char blocks.
 - `server/services/clauseClassifier.ts`: single LLM call to classify all chunks into up to 10 clause categories; returns one best chunk per category.
 - `server/services/playbookComparison.ts`: per-clause LLM call comparing extracted text against the company's playbook rule; returns structured RAG output.
@@ -185,6 +188,34 @@ That prints the `ensureCollection()` calls (54). Add 1 for `users` to get the to
 
 **Dev setup**: Start PocketBase locally (`./pocketbase serve`), set up an admin account at `http://localhost:8090/_/`, then run `npm run pb:setup` to create collections.
 
+### Scheduled monthly report
+
+The monthly legal report is both exported on demand from the Portfolio page and emailed on a schedule. `server/services/monthlyReportSchedule.ts` runs hourly from `server/index.ts`.
+
+**Two renderers, one set of figures.** `shared/monthlyReport.ts` derives every number; `client/src/lib/monthlyReport.ts` renders it for print and `server/services/monthlyReportEmail.ts` for email. Print and email are genuinely different media (an email client strips `<style>`, ignores `@font-face` and will not lay out flexbox), so the markup is not shared, but the arithmetic is. Do not compute a report figure anywhere else.
+
+| Thing | Where |
+|---|---|
+| Switch | `MONTHLY_REPORT_SEND` must be `on` / `true` / `1` / `yes`. **Off by default**, including when set to `off`. |
+| When | Hourly check; sends once the 1st of the month at 07:00 server time has passed. A server down across the window still sends when it returns, because the check is a timestamp comparison, not a cron match. |
+| Period | The month that has just **closed**, not the current one. `endOfPreviousMonth()` builds the model as of the last instant of the previous month, so a report landing on 1 November is about October. |
+| Recipients | `approval_contacts` rows whose role is in `MONTHLY_REPORT_ROLES` (`CFO`, `GC`), deduplicated by address. No contacts, no send. |
+| Not sending twice | The period is **claimed in `audit_log` before** the send (`monthly_report_scheduled`, `entityId` = `YYYY-MM`), then the outcome is recorded (`monthly_report_sent` / `monthly_report_failed`). Claim-first loses a report when a send fails; send-first duplicates one hourly for a month when the claim write fails. The first worst case is the better one. |
+| Never claimed | When email is unconfigured, or the report is empty, or there are no recipients: nothing is claimed, so the period still goes out once the cause is fixed. |
+
+Catch-up is deliberately unbounded: turning the switch on mid-month sends the previous month's report immediately, correctly labelled but late. Run the script first to see which period that is.
+
+```bash
+npx tsx scripts/send-monthly-report.ts --recipients   # who would be written to
+npx tsx scripts/send-monthly-report.ts                # dry run, claims and sends nothing
+npx tsx scripts/send-monthly-report.ts --preview      # render the email to report-preview/
+npx tsx scripts/send-monthly-report.ts --apply        # send
+```
+
+`--force` skips the day-of-month check but **not** the per-period claim, so a forced run still cannot double-send.
+
+Gotcha, already paid for once: `approval_requests` has no `companyId` field, only `company` as plain text, and carries neither the contract name nor the counterparty (those live on `uploaded_documents` and are joined by id). A filter naming `companyId` makes PocketBase reject the whole query.
+
 ### Tenancy: Zane is single-tenant
 
 **One company per deployment. This is the design, not a stage it is passing through.**
@@ -261,6 +292,7 @@ Optional:
 ```
 OPENROUTER_MODEL=anthropic/claude-sonnet-4-5
 SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_PORT, SMTP_FROM, APP_URL
+MONTHLY_REPORT_SEND=on    # emails the monthly report. Off unless explicitly on.
 ```
 
 Integration (required for Drive/SharePoint watch folders):
