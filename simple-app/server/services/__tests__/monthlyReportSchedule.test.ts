@@ -12,7 +12,12 @@
  */
 
 import { afterEach, describe, expect, it } from "vitest";
-import { isDue, isScheduledSendEnabled, MONTHLY_REPORT_ROLES } from "../monthlyReportSchedule";
+import {
+  isDue,
+  isScheduledSendEnabled,
+  MONTHLY_REPORT_ROLES,
+  suppressPeriod,
+} from "../monthlyReportSchedule";
 
 const original = process.env.MONTHLY_REPORT_SEND;
 
@@ -58,6 +63,23 @@ describe("isDue", () => {
     // a server down from the 1st to the 3rd must still send October's report.
     expect(isDue(new Date(2026, 10, 3, 2, 0))).toBe(true);
     expect(isDue(new Date(2026, 10, 28, 23, 0))).toBe(true);
+  });
+});
+
+describe("suppressPeriod", () => {
+  /**
+   * The period is interpolated into a PocketBase filter, which is a plain
+   * string: a value carrying a double quote would close the literal and append
+   * its own predicate. These reject before any query is built, so the test
+   * needs no database.
+   */
+  it("rejects a malformed period rather than querying with it", async () => {
+    for (const bad of ['2026-09" || id != "', "2026-9", "sept", "2026", "", "2026-09-01"]) {
+      await expect(
+        suppressPeriod("company123", bad, "test"),
+        `"${bad}" should be rejected`,
+      ).rejects.toThrow(/Malformed period/);
+    }
   });
 });
 

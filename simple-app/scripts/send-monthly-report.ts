@@ -15,6 +15,13 @@
  *   npx tsx scripts/send-monthly-report.ts --preview      write the email to a file
  *   npx tsx scripts/send-monthly-report.ts --apply        send for real
  *
+ *   npx tsx scripts/send-monthly-report.ts --suppress=2026-09 --apply
+ *       Close a period off without sending it. For when the send is switched
+ *       on part-way through a month: catch-up is unbounded, so the first pass
+ *       would otherwise deliver the previous month weeks late. Writes a
+ *       monthly_report_suppressed audit record, which is deliberately a
+ *       different action from the one a real send writes.
+ *
  * --force ignores the day-of-month check so a pass can be run mid-month. It
  * does NOT ignore the per-period claim, so a forced run still cannot send the
  * same month to the same company twice.
@@ -29,6 +36,7 @@ import {
   buildReportFor,
   isScheduledSendEnabled,
   runMonthlyReportPass,
+  suppressPeriod,
 } from "../server/services/monthlyReportSchedule";
 import { renderMonthlyReportEmail } from "../server/services/monthlyReportEmail";
 import { emailStatus } from "../server/services/emailService";
@@ -41,9 +49,58 @@ const APPLY = process.argv.includes("--apply");
 const FORCE = process.argv.includes("--force");
 const RECIPIENTS_ONLY = process.argv.includes("--recipients");
 const PREVIEW = process.argv.includes("--preview");
+const SUPPRESS =
+  process.argv.filter((a) => a.startsWith("--suppress=")).map((a) => a.slice(11))[0] ?? "";
 const OUT_DIR =
   process.argv.filter((a) => a.startsWith("--out=")).map((a) => a.slice(6))[0] ??
   path.join(process.cwd(), "report-preview");
+
+/**
+ * Close a reporting period off for every company without sending it.
+ *
+ * The reason string is written into the audit record, because a suppressed
+ * month is a decision someone made and the record should say who decided what
+ * and why, not merely that a month is missing.
+ */
+async function suppress(period: string, apply: boolean) {
+  if (!/^\d{4}-\d{2}$/.test(period)) {
+    throw new Error(`--suppress expects YYYY-MM, got "${period}"`);
+  }
+
+  const companies = (await pb.collection("companies").getFullList({ sort: "+id" })) as Row[];
+  const today = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const reason =
+    `No report was sent for ${period}. Scheduled sending was switched on on ${today}, ` +
+    `after this period had closed, and the period was suppressed deliberately so that the ` +
+    `first delivered report would be a current month rather than a stale catch-up.`;
+
+  console.log(`Period to suppress: ${period}`);
+  console.log(`Reason recorded   : ${reason}\n`);
+
+  let done = 0;
+  let already = 0;
+  for (const c of companies) {
+    const name = String(c["name"] ?? "(unnamed)");
+    if (!apply) {
+      console.log(`  would suppress ${period} for ${name} (${c.id})`);
+      continue;
+    }
+    const written = await suppressPeriod(String(c.id), period, reason);
+    if (written) {
+      done++;
+      console.log(`  suppressed ${period} for ${name} (${c.id})`);
+    } else {
+      already++;
+      console.log(`  ${name} (${c.id}): ${period} was already handled, left alone`);
+    }
+  }
+
+  if (apply) {
+    console.log(`\n${done} suppressed, ${already} already handled.`);
+  } else {
+    console.log(`\nDry run. Nothing written. Re-run with --apply.`);
+  }
+}
 
 async function listRecipients() {
   const companies = (await pb.collection("companies").getFullList({ sort: "+id" })) as Row[];
@@ -128,6 +185,11 @@ async function main() {
   console.log(`Scheduled send : ${isScheduledSendEnabled() ? "ON" : "OFF (set MONTHLY_REPORT_SEND=on)"}`);
   console.log(`Email transport: ${status.transport}${status.configured ? "" : ` (missing ${status.missing.join(", ")})`}`);
   console.log(`Reporting period: ${periodKey(endOfPreviousMonth(now))}\n`);
+
+  if (SUPPRESS) {
+    await suppress(SUPPRESS, APPLY);
+    return;
+  }
 
   if (RECIPIENTS_ONLY) {
     await listRecipients();

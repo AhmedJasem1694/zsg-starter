@@ -202,8 +202,9 @@ The monthly legal report is both exported on demand from the Portfolio page and 
 | Recipients | `approval_contacts` rows whose role is in `MONTHLY_REPORT_ROLES` (`CFO`, `GC`), deduplicated by address. No contacts, no send. |
 | Not sending twice | The period is **claimed in `audit_log` before** the send (`monthly_report_scheduled`, `entityId` = `YYYY-MM`), then the outcome is recorded (`monthly_report_sent` / `monthly_report_failed`). Claim-first loses a report when a send fails; send-first duplicates one hourly for a month when the claim write fails. The first worst case is the better one. |
 | Never claimed | When email is unconfigured, or the report is empty, or there are no recipients: nothing is claimed, so the period still goes out once the cause is fixed. |
+| Skipping a month | `--suppress=YYYY-MM --apply` writes `monthly_report_suppressed` for every company. Idempotent, and the recorded reason says no send occurred. |
 
-Catch-up is deliberately unbounded: turning the switch on mid-month sends the previous month's report immediately, correctly labelled but late. Run the script first to see which period that is.
+Catch-up is deliberately unbounded: turning the switch on mid-month sends the previous month's report immediately, correctly labelled but late. Run the script first to see which period that is, and `--suppress=YYYY-MM` to close that period off instead. Suppression writes `monthly_report_suppressed`, a **different action** from the one a real send writes, so a skipped month can never be read as a delivered one.
 
 ```bash
 npx tsx scripts/send-monthly-report.ts --recipients   # who would be written to

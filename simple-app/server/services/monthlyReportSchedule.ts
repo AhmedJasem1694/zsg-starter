@@ -83,7 +83,25 @@ const LOOP_INTERVAL_MS = 60 * 60 * 1000;
  * true than it already is.
  */
 const CLAIM_ACTION = "monthly_report_scheduled";
+
+/**
+ * A period deliberately skipped, which is NOT the same record as a period
+ * claimed for sending.
+ *
+ * Both stop the loop acting on that month, so they could have been one action
+ * with a flag in the detail. They are not, because this collection is the
+ * product's evidence that what it says happened, happened. A timeline entry
+ * reading "scheduled" with no matching "sent" is something a reader has to
+ * infer the meaning of; one reading "suppressed" states it. Writing a record
+ * that could be read as a report having gone out, when none did, is the exact
+ * failure the audit trail exists to prevent.
+ */
+const SUPPRESS_ACTION = "monthly_report_suppressed";
 const AUDIT_ENTITY = "monthly_report";
+
+/** YYYY-MM. Periods are interpolated into PocketBase filters, which are plain
+ *  strings, so the shape is enforced rather than escaped. See CLAUDE.md. */
+const PERIOD_PATTERN = /^\d{4}-\d{2}$/;
 
 /** Whether the send is switched on at all. Anything but an explicit yes is no. */
 export function isScheduledSendEnabled(): boolean {
@@ -107,17 +125,56 @@ export function isDue(now: Date): boolean {
 }
 
 /**
- * Has this company's report for this period already been claimed?
+ * Has this company's report for this period already been dealt with, either by
+ * being claimed for sending or by being deliberately suppressed?
  *
  * Filters on the compat text fields `companyId` and `entityId`, because those
  * are the ones auditLogger actually writes.
  */
-async function alreadyClaimed(companyId: string, period: string): Promise<boolean> {
+async function alreadyHandled(companyId: string, period: string): Promise<boolean> {
+  if (!PERIOD_PATTERN.test(period)) throw new Error(`Refusing to query a malformed period: ${period}`);
   const hits = await pb.collection("audit_log").getFullList({
-    filter: `action = "${CLAIM_ACTION}" && companyId = "${companyId}" && entityId = "${period}"`,
+    filter:
+      `(action = "${CLAIM_ACTION}" || action = "${SUPPRESS_ACTION}") && ` +
+      `companyId = "${companyId}" && entityId = "${period}"`,
     fields: "id",
   });
   return hits.length > 0;
+}
+
+/**
+ * Record a period as deliberately skipped, so the loop will not send it.
+ *
+ * The case this exists for: switching the send on part-way through a month.
+ * Catch-up is unbounded by design, so the first pass would otherwise deliver
+ * the previous month's report weeks late, correctly labelled but stale. This
+ * closes that month off and lets the next one be the first to arrive.
+ *
+ * Returns false when the period was already handled, so running it twice is
+ * safe and does not stack records.
+ */
+export async function suppressPeriod(
+  companyId: string,
+  period: string,
+  reason: string,
+): Promise<boolean> {
+  if (!PERIOD_PATTERN.test(period)) throw new Error(`Malformed period: ${period}. Expected YYYY-MM.`);
+  if (await alreadyHandled(companyId, period)) return false;
+
+  await pb.collection("audit_log").create({
+    action: SUPPRESS_ACTION,
+    entityType: AUDIT_ENTITY,
+    entityId: period,
+    companyId,
+    company: companyId,
+    userId: "",
+    ipAddress: "",
+    // No recipients key at all. An empty list would read as "sent to nobody";
+    // the point is that no send was attempted.
+    detail: JSON.stringify({ period, reason, suppressedAt: new Date().toISOString() }),
+    created: new Date().toISOString().replace("T", " "),
+  });
+  return true;
 }
 
 /**
@@ -322,9 +379,11 @@ export async function runMonthlyReportPass(
     result.considered++;
 
     try {
-      if (await alreadyClaimed(companyId, period)) {
+      if (await alreadyHandled(companyId, period)) {
         result.skipped++;
-        result.notes.push(`${companyName}: already sent for ${period}.`);
+        // Deliberately does not say "already sent": the period may have been
+        // suppressed rather than delivered.
+        result.notes.push(`${companyName}: ${period} already handled.`);
         continue;
       }
 

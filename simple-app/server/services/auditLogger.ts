@@ -74,7 +74,10 @@ export type AuditAction =
   // other two record what came of it. See services/monthlyReportSchedule.ts.
   | "monthly_report_scheduled"
   | "monthly_report_sent"
-  | "monthly_report_failed";
+  | "monthly_report_failed"
+  // A period deliberately skipped. Kept distinct from "scheduled" so a reader
+  // can never mistake a suppressed month for one that was delivered.
+  | "monthly_report_suppressed";
 
 // ── Core log function ─────────────────────────────────────────────────────────
 
