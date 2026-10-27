@@ -356,7 +356,10 @@ export const START: Section & { steps: Card[] } = {
  *   "Export it at any time." Not written, because no account-level export
  *   exists. The only exports are an audit-log CSV, a board pack and a monthly
  *   report, all narrow. A user cannot retrieve their own uploaded files.
- *   TODO: build a real export, then write this line.
+ *   This is a product gap, not an oversight in the copy: the site is already
+ *   honest without the line. Tracked as NOT_YET_CLAIMS.data-export, which is
+ *   where the wording to avoid is recorded. Build the export, then promote
+ *   that entry to ALLOWED_CLAIMS and write the sentence, in that order.
  *
  *   Hosting region, ISO or SOC certifications, and "never used to train
  *   models". Nothing in the codebase supports any of them. openrouter.ts
@@ -473,7 +476,16 @@ export const CTA: Section & {
     honeypotLabel: "Website",
     submitLabel: "Request a conversation",
     submittingLabel: "Sending",
-    successHeading: "Thanks. You will hear from us within two working days.",
+    /**
+     * No response time. This said "within two working days", which contradicted
+     * the note at the top of this section saying no response time is promised,
+     * and nothing in the product measures or enforces one: a submission writes
+     * to access_requests and notifies a person by email. Promising a window
+     * that only a human diary can keep is the same mistake as the old "within
+     * 24 hours". Re-add a figure only alongside something that actually holds
+     * it.
+     */
+    successHeading: "Thanks. We have your details and will be in touch.",
     errorPrefix: "That did not send.",
     errorFallbackLabel: "Email us instead",
   },

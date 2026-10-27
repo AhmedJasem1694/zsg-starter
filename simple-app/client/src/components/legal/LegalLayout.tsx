@@ -14,9 +14,55 @@
 import { AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ZaneLogo } from "@/components/ZaneLogo";
-import { LEGAL_BANNER, LEGAL_NAV, type LegalPage } from "@/content/legal";
+import {
+  LEGAL_BANNER,
+  LEGAL_GAP_PATTERN,
+  LEGAL_NAV,
+  outstandingGaps,
+  type LegalPage,
+} from "@/content/legal";
+
+/**
+ * Renders copy with its unresolved gaps marked.
+ *
+ * The content files carry [TODO: ...] where a fact only the business can
+ * supply is missing. Rendered raw, those read as a bug: square brackets and
+ * the word TODO leaking onto a public page. Rendered like this they read as
+ * what they are, a draft with its blanks deliberately visible, which is the
+ * honest state of a page that has not been through a solicitor.
+ *
+ * Marked with <mark> rather than a styled span so the gap is announced to a
+ * screen reader too, not just coloured for sighted readers.
+ */
+function LegalText({ children }: { children: string }) {
+  const parts = children.split(LEGAL_GAP_PATTERN);
+  if (parts.length === 1) return <>{children}</>;
+
+  // String.split with one capture group alternates: text, capture, text, ...
+  return (
+    <>
+      {parts.map((part, i) =>
+        i % 2 === 1 ? (
+          <mark
+            key={i}
+            className="bg-amber-500/15 text-amber-200 rounded px-1.5 py-0.5 not-italic"
+          >
+            <span className="sr-only">Still to be confirmed: </span>
+            {part}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
 
 export function LegalLayout({ page }: { page: LegalPage }) {
+  // Counted rather than hardcoded, so the banner cannot claim a page is closer
+  // to finished than it is once someone fills a blank in.
+  const gaps = outstandingGaps(page).length;
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {LEGAL_BANNER && (
@@ -24,6 +70,11 @@ export function LegalLayout({ page }: { page: LegalPage }) {
           <p className="max-w-3xl mx-auto flex items-center gap-2 text-xs font-medium text-amber-200">
             <AlertTriangle size={13} aria-hidden="true" />
             {LEGAL_BANNER}
+            {gaps > 0 && (
+              <span className="font-normal opacity-90">
+                {gaps} detail{gaps === 1 ? "" : "s"} still to be confirmed, highlighted below.
+              </span>
+            )}
           </p>
         </div>
       )}
@@ -47,11 +98,11 @@ export function LegalLayout({ page }: { page: LegalPage }) {
 
       <main className="max-w-3xl mx-auto w-full px-6 pt-14 pb-24">
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight">{page.title}</h1>
-        <p className="mt-3 text-sm text-muted-foreground">{page.updatedLabel}</p>
+        <p className="mt-3 text-sm text-muted-foreground"><LegalText>{page.updatedLabel}</LegalText></p>
 
         <div className="mt-8 space-y-4">
           {page.intro.map((p) => (
-            <p key={p} className="text-base text-muted-foreground leading-relaxed">{p}</p>
+            <p key={p} className="text-base text-muted-foreground leading-relaxed"><LegalText>{p}</LegalText></p>
           ))}
         </div>
 
@@ -62,7 +113,7 @@ export function LegalLayout({ page }: { page: LegalPage }) {
             {block.paragraphs && (
               <div className="space-y-4">
                 {block.paragraphs.map((p) => (
-                  <p key={p} className="text-sm text-muted-foreground leading-relaxed">{p}</p>
+                  <p key={p} className="text-sm text-muted-foreground leading-relaxed"><LegalText>{p}</LegalText></p>
                 ))}
               </div>
             )}
@@ -74,7 +125,7 @@ export function LegalLayout({ page }: { page: LegalPage }) {
                     key={b}
                     className="pl-4 border-l border-border text-sm text-muted-foreground leading-relaxed"
                   >
-                    {b}
+                    <LegalText>{b}</LegalText>
                   </li>
                 ))}
               </ul>
@@ -84,8 +135,8 @@ export function LegalLayout({ page }: { page: LegalPage }) {
               <dl className="mt-4 space-y-4">
                 {block.rows.map((r) => (
                   <div key={r.label} className="rounded-xl border border-border bg-card px-5 py-4">
-                    <dt className="text-sm font-semibold">{r.label}</dt>
-                    <dd className="mt-1 text-sm text-muted-foreground leading-relaxed">{r.value}</dd>
+                    <dt className="text-sm font-semibold"><LegalText>{r.label}</LegalText></dt>
+                    <dd className="mt-1 text-sm text-muted-foreground leading-relaxed"><LegalText>{r.value}</LegalText></dd>
                   </div>
                 ))}
               </dl>

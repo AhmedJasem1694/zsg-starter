@@ -89,6 +89,12 @@ export function Hero({
               arrives and nothing shifts on load. */}
           <motion.div {...enter(0.4)}>
             <div className="rounded-xl border border-line-dark bg-navy-900 shadow-2xl overflow-hidden">
+              {/* fetchpriority is spread in lowercase on purpose. React 18 does
+                  not know the camelCase `fetchPriority` prop: it warned on
+                  every render and dropped the attribute, so the priority hint
+                  never reached the browser and the homepage console carried an
+                  error. React 19 adds camelCase support; until that upgrade,
+                  the DOM spelling is the one that actually works. */}
               <img
                 src="/images/hero-portfolio.webp"
                 srcSet="/images/hero-portfolio-1440.webp 1440w, /images/hero-portfolio.webp 2880w"
@@ -97,7 +103,7 @@ export function Hero({
                 width={1440}
                 height={900}
                 loading="eager"
-                fetchPriority="high"
+                {...{ fetchpriority: "high" }}
                 decoding="async"
                 className="block w-full h-auto"
               />

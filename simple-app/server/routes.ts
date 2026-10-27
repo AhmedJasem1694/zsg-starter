@@ -650,7 +650,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!limited.allowed) {
       console.warn(`[access-request] rate limited ${who.ip} (via ${who.source}, ${who.hops} hop(s))`);
       res.setHeader("Retry-After", String(limited.retryAfterSeconds));
-      sendError(res, 429, "Too many requests from this address. Please try again later, or email ahmed@zanelegal.ai.");
+      sendError(res, 429, `Too many requests from this address. Please try again later, or email ${CONTACT_EMAIL}.`);
       return;
     }
 
@@ -741,7 +741,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       sendError(
         res,
         502,
-        "Your details were received but our notification system is not reachable. Please email ahmed@zanelegal.ai so this is not missed.",
+        `Your details were received but our notification system is not reachable. Please email ${CONTACT_EMAIL} so this is not missed.`,
       );
       return;
     }

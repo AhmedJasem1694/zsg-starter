@@ -311,6 +311,13 @@ export const NOT_YET_CLAIMS: NotYetClaim[] = [
       "There is no DELETE /api/company route and no off-boarding routine. DELETE /api/company/contracts cascades documents only and leaves the company row, the user account, team invites, audit_log and pii_sessions in place. Deletion is an ordinary row delete with no overwrite, so 'secure' is unsupported separately.",
   },
   {
+    id: "data-export",
+    doNotClaim:
+      "That a customer can export their data, take it with them, or get their contracts back out at any time.",
+    insteadSay:
+      "Nothing. There is no account-level export. What exists is narrow and purpose-built: an audit-log CSV (GET /api/audit?format=csv, server/routes.ts:4057, which sets the attachment header at :4113), the board pack, and the monthly report, the last two assembled in the browser from the portfolio payload. None returns the uploaded files, and no route does. A buyer asking 'can we get our data out' is asking about the thing that does not exist, so do not answer it with the CSV. Build an export, then promote this entry.",
+  },
+  {
     id: "implementation-time",
     doNotClaim:
       "Any specific implementation or time-to-value figure, including live in a week, working in twenty minutes, or a stated average review time. There is no onboarding timer and no review duration is recorded anywhere in the schema or the orchestrator.",

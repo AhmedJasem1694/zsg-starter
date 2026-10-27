@@ -133,7 +133,7 @@ export default function AuditTrail() {
             <div>
               <h1 className="t-page-title">Audit Trail</h1>
               <p className="text-sm text-muted-foreground mt-0.5">
-                Immutable log of all significant actions taken by Zane and your team.
+                A record of every significant action taken by Zane and your team, written as it happens.
               </p>
             </div>
           </div>

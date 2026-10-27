@@ -30,6 +30,36 @@ export interface LegalBlock {
   rows?: Array<{ label: string; value: string }>;
 }
 
+/** Matches an unresolved gap in the rendered copy, for marking and counting. */
+export const LEGAL_GAP_PATTERN = /\[TODO:\s*([^\]]+)\]/g;
+
+/**
+ * Every unresolved gap still rendered on a page, in reading order.
+ *
+ * Used by the layout to say how many remain, so a draft cannot quietly look
+ * finished, and by the close-out report so nothing stays silent in the code.
+ */
+export function outstandingGaps(page: LegalPage): string[] {
+  const found: string[] = [];
+  const scan = (s: string) => {
+    // split() on a pattern with one capture group alternates text, capture,
+    // text, ... so the odd indices are the gaps. The same mechanism the
+    // renderer uses, deliberately: one definition of what counts as a gap.
+    // Avoids matchAll, which this tsconfig's target cannot iterate.
+    const parts = s.split(LEGAL_GAP_PATTERN);
+    for (let i = 1; i < parts.length; i += 2) found.push(parts[i].trim());
+  };
+  scan(page.updatedLabel);
+  page.intro.forEach(scan);
+  for (const b of page.blocks) {
+    b.paragraphs?.forEach(scan);
+    b.bullets?.forEach(scan);
+    b.rows?.forEach((r) => { scan(r.label); scan(r.value); });
+  }
+  return found;
+}
+
+
 export interface LegalPage {
   title: string;
   /** Shown under the title. Not a commitment to a review cadence. */
