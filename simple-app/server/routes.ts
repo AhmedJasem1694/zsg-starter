@@ -5816,6 +5816,12 @@ Draft the complete clause.`;
       // missing, never their values, so the contact form's readiness can be
       // confirmed without submitting it and without a Railway login.
       email: emailStatus(),
+      // The auth cookie's SameSite, and whether a separate frontend origin is
+      // configured. Neither is a secret, and this pair is exactly what was
+      // wrong unnoticed: FRONTEND_URL was set on a same-origin deployment,
+      // which bought sameSite "none" and its CSRF exposure for no benefit.
+      // "lax" with separateFrontend false is the healthy state here.
+      cookies: { sameSite: COOKIE_OPTS.sameSite, separateFrontend: crossDomain },
       // Whether the monthly report is actually being sent, and which period
       // the next pass would cover. Both matter: the switch being on is not the
       // same as email working, and turning it on mid-month sends the previous

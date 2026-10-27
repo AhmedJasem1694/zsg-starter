@@ -37,10 +37,12 @@ app.set("trust proxy", 1);
 // allowlist is always enforced; it is no longer conditional on FRONTEND_URL,
 // which describes a deployment shape rather than a security posture.
 app.use(cors({
-  origin: (origin, cb) =>
-    isOriginAllowed(origin)
-      ? cb(null, true)
-      : cb(new Error(`CORS: origin ${origin} not allowed`)),
+  // A disallowed origin gets cb(null, false), not an Error. Both withhold the
+  // Access-Control-Allow-Origin header, which is the whole protection, but an
+  // Error reaches the global handler and answers 500, so every probe from an
+  // unknown origin was logged as a server fault and billed as one. Withholding
+  // the header quietly is the correct response: the browser blocks the read.
+  origin: (origin, cb) => cb(null, isOriginAllowed(origin)),
   credentials: true,
 }));
 
