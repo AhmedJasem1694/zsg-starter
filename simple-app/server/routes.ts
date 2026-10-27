@@ -79,6 +79,22 @@ function ah(fn: (req: Request, res: Response, next: NextFunction) => Promise<voi
 }
 
 const isProd = process.env.NODE_ENV === "production";
+
+/**
+ * Set only when the browser app is served from a different origin than this
+ * API. It is not set on this deployment: Express serves the SPA itself, from
+ * the same host, so requests carrying the auth cookie are same-site.
+ *
+ * It matters because of the line below. sameSite=none tells the browser to
+ * attach the cookie to cross-site requests, which is required for a genuinely
+ * separate frontend and is a standing CSRF exposure for one that is not:
+ * simple requests such as a cross-site form POST are never preflighted, so
+ * CORS does not see them and the cookie rides along. lax is what stops that,
+ * and lax is correct here.
+ *
+ * This was set to the apex for a while, which bought sameSite=none for no
+ * benefit. Leave it unset unless the frontend genuinely moves.
+ */
 const crossDomain = !!process.env.FRONTEND_URL;
 const COOKIE_OPTS = {
   httpOnly: true,

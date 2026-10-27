@@ -10,6 +10,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { initPocketBase } from "./pb";
 import { startIntegrationRenewalLoop } from "./services/integrationRenewal";
 import { startMonthlyReportLoop } from "./services/monthlyReportSchedule";
+import { isOriginAllowed } from "./lib/corsPolicy";
 import { missingEmailConfig } from "./services/emailService";
 
 // Prevent unhandled promise rejections from crashing the server.
@@ -32,27 +33,14 @@ const app = express();
 // and causes a redirect loop.
 app.set("trust proxy", 1);
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  "https://zanelegal.ai",
-  "https://www.zanelegal.ai",
-  "https://app.zanelegal.ai",
-  "http://localhost:3000",
-  "http://localhost:5173",
-].filter(Boolean) as string[];
-
+// The rule lives in server/lib/corsPolicy.ts, with tests. In production the
+// allowlist is always enforced; it is no longer conditional on FRONTEND_URL,
+// which describes a deployment shape rather than a security posture.
 app.use(cors({
-  origin: (origin, cb) => {
-    // Allow no-origin requests (same-domain, curl, mobile apps, etc.)
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    // In production with FRONTEND_URL set, only listed origins are allowed.
-    // Without FRONTEND_URL (local dev / same-origin Railway), we allow all -
-    // httpOnly cookies are the real auth boundary in that case.
-    if (process.env.NODE_ENV === "production" && process.env.FRONTEND_URL) {
-      return cb(new Error(`CORS: origin ${origin} not allowed`));
-    }
-    cb(null, true);
-  },
+  origin: (origin, cb) =>
+    isOriginAllowed(origin)
+      ? cb(null, true)
+      : cb(new Error(`CORS: origin ${origin} not allowed`)),
   credentials: true,
 }));
 
