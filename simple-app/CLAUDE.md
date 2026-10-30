@@ -292,6 +292,25 @@ Setting or changing it invalidates every existing session, which is the point wh
 
 The production guard keys off `NODE_ENV === "production"`, so confirm that variable is actually set on the host. Without it a deployment would silently take the development path and generate a fresh secret on each boot, signing everyone out on every deploy. That fails safe rather than open, but it is not what you want.
 
+### Email: configured is not the same as working
+
+`isEmailConfigured()` answers "is a key set". Any non-empty string passes. `RESEND_API_KEY` was once set to the literal placeholder from a copy-pasted command and for three minutes production reported `transport: "resend", configured: true` with nothing deliverable.
+
+So there is a second question, answered by asking the provider:
+
+| Function | Means |
+|---|---|
+| `isEmailConfigured()` | a key is set (sync, no network) |
+| `emailVerification(force?)` | the provider's verdict, cached 15 min (`valid` / `invalid` / `unreachable` / `unchecked`) |
+| `isEmailUsable(force?)` | key accepted **and** the sending domain verified |
+| `emailBlocker(force?)` | one line saying why not, or `null` |
+
+**`unreachable` is not `invalid`.** A DNS blip is not evidence of a bad key, so it is never recorded as one, and it is never read as permission to proceed either. Only a provider answer that is not a 5xx counts as a rejection.
+
+**A valid key is not a working send.** Resend answers `/domains` 200 for any good key, then refuses the send with 403 when the from-domain (taken from `SMTP_FROM`) is not verified in its dashboard. `isEmailUsable()` requires both. If the domain list cannot be parsed it fails soft and does not block.
+
+The scheduled monthly report calls `emailBlocker(true)` with a **forced** re-check before it claims a period, because a claim cannot be undone. Anything other than fully usable means nothing is claimed and the next hourly tick retries. `/api/health` reports the cached state under `email.verification`, and boot logs a loud error when a key is set but rejected.
+
 Optional:
 ```
 OPENROUTER_MODEL=anthropic/claude-sonnet-4-5

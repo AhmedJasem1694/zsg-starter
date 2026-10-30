@@ -85,12 +85,229 @@ async function sendViaResend(p: {
 }
 
 /**
- * Whether outbound email can be sent at all. Callers use this to distinguish
- * "we tried and it failed" from "this deployment was never configured to send",
- * so an undelivered approval is never mistaken for one that was never attempted.
+ * Whether a transport is CONFIGURED. Not whether it works.
+ *
+ * This answers "did someone set a key", which is a weaker question than it
+ * looks: any non-empty string passes. RESEND_API_KEY was once set to the
+ * literal placeholder from a copy-pasted command, and for three minutes this
+ * returned true, /api/health reported transport "resend", and nothing was
+ * deliverable. Use isEmailUsable() where the answer must mean the provider
+ * accepts the credentials.
  */
 export function isEmailConfigured(): boolean {
   return activeTransport() !== "none";
+}
+
+// ── Is the configured credential actually good? ──────────────────────────────
+
+/**
+ * Three outcomes, not two, and the third is the one that matters.
+ *
+ * "invalid" means the provider answered and rejected the credential. That is
+ * a standing fault: it will not fix itself and a caller should refuse to do
+ * anything it cannot undo.
+ *
+ * "unreachable" means we could not get an answer. A DNS blip is not evidence
+ * of a bad key, so it must never be recorded as one, and equally must not be
+ * read as permission to proceed. Callers treat it like "unchecked": safe to
+ * retry, not safe to commit to.
+ */
+export type EmailVerificationState = "unchecked" | "valid" | "invalid" | "unreachable";
+
+export interface EmailVerification {
+  state: EmailVerificationState;
+  /** ISO timestamp of the last completed check, absent while unchecked. */
+  checkedAt?: string;
+  /** Why it failed. Never contains the credential. */
+  error?: string;
+  /**
+   * The domain mail is sent from, and whether the provider will accept it.
+   *
+   * A valid key is not the same as a working send. Resend answers /domains
+   * with 200 for any good key, then rejects the send itself with 403 when the
+   * from-domain is not verified in the dashboard. That is the one failure a
+   * perfectly correct key still produces, and it is invisible to a check that
+   * only asks whether the credential is accepted.
+   *
+   * Absent when the provider is not Resend, or when the domain list could not
+   * be parsed. In that case deliverability is not asserted either way: an
+   * unparsed response is not evidence of a problem, so it does not block.
+   */
+  sendingDomain?: { name: string; status: string; verified: boolean };
+}
+
+/** The domain in SMTP_FROM, which is what a send will be addressed from. */
+export function sendingDomain(): string | null {
+  const m = SMTP_FROM.match(/<([^>]+)>/);
+  const address = (m ? m[1] : SMTP_FROM).trim();
+  const at = address.lastIndexOf("@");
+  if (at === -1) return null;
+  return address.slice(at + 1).toLowerCase() || null;
+}
+
+let verification: EmailVerification = { state: "unchecked" };
+/** Guards against a thundering herd of checks when several callers race. */
+let inFlight: Promise<EmailVerification> | null = null;
+
+/** How long a completed check is trusted before it is made again. The monthly
+ *  report loop runs hourly, so it always re-checks rather than trusting this. */
+const VERIFICATION_TTL_MS = 15 * 60 * 1000;
+
+function isFresh(v: EmailVerification): boolean {
+  if (!v.checkedAt) return false;
+  return Date.now() - new Date(v.checkedAt).getTime() < VERIFICATION_TTL_MS;
+}
+
+/**
+ * Ask the provider whether the configured credential is accepted.
+ *
+ * Sends nothing. For Resend this lists domains, which is the cheapest call
+ * that the provider authenticates. Note the status codes: a rejected key has
+ * been seen as both 401 and 400 ("API key is invalid"), so anything the
+ * provider answers with that is not success is treated as a rejection, while
+ * only a transport-level throw counts as unreachable.
+ */
+async function runVerification(): Promise<EmailVerification> {
+  const checkedAt = new Date().toISOString();
+  const transport = activeTransport();
+
+  if (transport === "none") {
+    return { state: "unchecked", checkedAt };
+  }
+
+  if (transport === "resend") {
+    let res: Response;
+    try {
+      res = await fetch("https://api.resend.com/domains", {
+        headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+      });
+    } catch (err) {
+      // No answer. Says nothing about the key.
+      return { state: "unreachable", checkedAt, error: `Could not reach Resend: ${(err as Error)?.message}` };
+    }
+    if (res.ok) {
+      // The key is good. Now ask whether a send from our own domain would be
+      // accepted, which the key alone does not tell us.
+      const want = sendingDomain();
+      try {
+        const payload = (await res.json()) as { data?: Array<{ name?: string; status?: string }> };
+        const list = Array.isArray(payload?.data) ? payload.data : null;
+        if (list && want) {
+          const found = list.find((d) => String(d?.name ?? "").toLowerCase() === want);
+          const status = String(found?.status ?? "not listed");
+          return {
+            state: "valid",
+            checkedAt,
+            sendingDomain: { name: want, status, verified: status.toLowerCase() === "verified" },
+          };
+        }
+      } catch {
+        // Shape changed, or not JSON. Fail soft: the credential is proven, and
+        // an unparsed list is not evidence that sending is broken.
+      }
+      return { state: "valid", checkedAt };
+    }
+
+    const body = (await res.text().catch(() => "")).slice(0, 200);
+    // 5xx is the provider having a bad day, not a verdict on the credential.
+    if (res.status >= 500) {
+      return { state: "unreachable", checkedAt, error: `Resend ${res.status}: ${body}` };
+    }
+    return { state: "invalid", checkedAt, error: `Resend ${res.status}: ${body}` };
+  }
+
+  const transporter = getTransporter();
+  if (!transporter) return { state: "unchecked", checkedAt };
+  try {
+    await transporter.verify();
+    return { state: "valid", checkedAt };
+  } catch (err) {
+    return { state: "invalid", checkedAt, error: (err as Error)?.message ?? String(err) };
+  }
+}
+
+/**
+ * The verification state, re-checking when the cached one has gone stale.
+ *
+ * @param force  Ignore the cache. The monthly report passes this, because it
+ *               is about to claim a reporting period it cannot un-claim.
+ */
+export async function emailVerification(force = false): Promise<EmailVerification> {
+  if (!force && isFresh(verification)) return verification;
+  if (inFlight) return inFlight;
+
+  inFlight = runVerification()
+    .then((v) => {
+      verification = v;
+      return v;
+    })
+    .finally(() => {
+      inFlight = null;
+    });
+  return inFlight;
+}
+
+/** The last known state without making a network call. May be "unchecked". */
+export function lastEmailVerification(): EmailVerification {
+  return verification;
+}
+
+/**
+ * Whether email can actually be delivered: a transport is configured AND the
+ * provider accepts the credential.
+ *
+ * Deliberately false on "unreachable" and "unchecked". A caller asking this is
+ * about to do something it cannot take back, and "we could not confirm" is not
+ * a yes.
+ */
+export async function isEmailUsable(force = false): Promise<boolean> {
+  if (activeTransport() === "none") return false;
+  const v = await emailVerification(force);
+  if (v.state !== "valid") return false;
+  // When the domain status is known and is not verified, a send will be
+  // refused however good the key is. When it is unknown, do not block on a
+  // fact we could not establish.
+  if (v.sendingDomain && !v.sendingDomain.verified) return false;
+  return true;
+}
+
+/** One line saying why email is not usable, or null when it is. For logs and
+ *  the preflight, so every caller words the same failure the same way. */
+export async function emailBlocker(force = false): Promise<string | null> {
+  if (activeTransport() === "none") {
+    return `not configured (missing: ${missingEmailConfig().join(", ")})`;
+  }
+  const v = await emailVerification(force);
+  if (v.state === "invalid") return `credential rejected by the provider: ${v.error}`;
+  if (v.state === "unreachable") return `could not verify the credential: ${v.error}`;
+  if (v.state === "unchecked") return "credential not yet checked";
+  if (v.sendingDomain && !v.sendingDomain.verified) {
+    return `the key is valid but the sending domain ${v.sendingDomain.name} is "${v.sendingDomain.status}" in the provider, so sends will be refused`;
+  }
+  return null;
+}
+
+/**
+ * Check once at boot and say so in the log, so an invalid key is visible from
+ * the deploy output rather than only when a send fails hours later. Never
+ * throws and never blocks startup.
+ */
+export function startEmailVerification(): void {
+  if (activeTransport() === "none") return;
+  emailVerification(true)
+    .then((v) => {
+      if (v.state === "valid") {
+        console.log(`[email] Credentials accepted by ${activeTransport()}.`);
+      } else if (v.state === "invalid") {
+        console.error(
+          `[email] CREDENTIALS REJECTED: ${v.error}. A key is set, so the app looks configured, ` +
+          `but nothing will be delivered. Run: npx tsx scripts/check-smtp.ts`,
+        );
+      } else {
+        console.warn(`[email] Could not verify credentials: ${v.error}. Will retry.`);
+      }
+    })
+    .catch((err) => console.warn("[email] Verification error:", (err as Error)?.message));
 }
 
 /** Which required settings are missing, for startup, preflight and the UI. */
@@ -106,8 +323,22 @@ export function missingEmailConfig(): string[] {
  * to the approvals screen so a missing send is visible to the person waiting on
  * it rather than only in a server log.
  */
-export function emailStatus(): { configured: boolean; transport: EmailTransport; missing: string[] } {
-  return { configured: isEmailConfigured(), transport: activeTransport(), missing: missingEmailConfig() };
+export function emailStatus(): {
+  configured: boolean;
+  transport: EmailTransport;
+  missing: string[];
+  verification: EmailVerification;
+} {
+  return {
+    configured: isEmailConfigured(),
+    transport: activeTransport(),
+    missing: missingEmailConfig(),
+    // Cached, never a network call: this is called per request. `configured`
+    // and `verification.state` disagreeing is the whole point. A key that is
+    // set but rejected reads configured true, verification invalid, which is
+    // exactly the state that previously looked healthy.
+    verification: lastEmailVerification(),
+  };
 }
 
 /**

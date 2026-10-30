@@ -11,7 +11,7 @@ import { initPocketBase } from "./pb";
 import { startIntegrationRenewalLoop } from "./services/integrationRenewal";
 import { startMonthlyReportLoop } from "./services/monthlyReportSchedule";
 import { isOriginAllowed } from "./lib/corsPolicy";
-import { missingEmailConfig } from "./services/emailService";
+import { missingEmailConfig, startEmailVerification } from "./services/emailService";
 
 // Prevent unhandled promise rejections from crashing the server.
 // In Node 20, the default behaviour is to exit(1) on unhandled rejections,
@@ -126,6 +126,11 @@ async function recoverStuckDocuments() {
 
   // Keep watch-folder webhooks (Google Drive / SharePoint) alive past their TTL.
   startIntegrationRenewalLoop();
+
+  // Ask the provider whether the configured credential is actually accepted,
+  // so a key that is set but rejected shows up in the deploy log rather than
+  // only when a send fails. Non-blocking.
+  startEmailVerification();
 
   // Send the monthly legal report to each company's CFO and GC. Off unless
   // MONTHLY_REPORT_SEND is set; logs which it is either way.

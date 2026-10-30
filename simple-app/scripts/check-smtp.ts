@@ -13,7 +13,7 @@
 
 import "dotenv/config";
 import {
-  verifyEmailTransport,
+  emailVerification,
   emailConfigSummary,
   missingEmailConfig,
   isEmailConfigured,
@@ -47,17 +47,42 @@ async function main() {
   console.log();
 
   process.stdout.write("Verifying credentials... ");
-  const result = await verifyEmailTransport();
-  if (!result.ok) {
-    console.log("FAILED");
-    console.error(`\n  ${result.error}\n`);
+  const check = await emailVerification(true);
+  if (check.state !== "valid") {
+    console.log(check.state === "invalid" ? "REJECTED" : "COULD NOT VERIFY");
+    console.error(`\n  ${check.error}\n`);
+    if (check.state === "invalid") {
+      console.error("  A key IS set, so the app reports itself configured. Nothing will be delivered.");
+      console.error("  Check the value is the real key and not a placeholder from a pasted command.\n");
+    }
     process.exitCode = 1;
     return;
   }
   console.log("OK");
 
+  /**
+   * A good key is not a working send. Resend answers /domains for any valid
+   * key and then refuses the send itself with 403 when the from-domain is not
+   * verified, which is the one failure a perfectly correct key still produces.
+   */
+  if (check.sendingDomain) {
+    const d = check.sendingDomain;
+    process.stdout.write(`Sending domain ${d.name}... `);
+    if (d.verified) {
+      console.log("verified");
+    } else {
+      console.log(`${d.status.toUpperCase()}`);
+      console.error(`\n  The key is valid, but ${d.name} is "${d.status}" in the provider.`);
+      console.error("  Sends from this address will be refused with 403. Verify the domain");
+      console.error("  in the Resend dashboard, or change SMTP_FROM to a domain that is.\n");
+      process.exitCode = 1;
+      return;
+    }
+  }
+
   if (!recipient) {
-    console.log("\nCredentials are good. Pass an address to send a real test:");
+    console.log("\nCredentials are good and the sending domain is verified.");
+    console.log("Pass an address to send a real test:");
     console.log("  npm run email:test you@example.com");
     return;
   }

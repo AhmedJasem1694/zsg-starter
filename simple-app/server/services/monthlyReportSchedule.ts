@@ -20,7 +20,8 @@
  * the recipient list comes from approval_contacts, which on this deployment
  * also holds seeded demo contacts. Mail to invented addresses is not a
  * harmless no-op: it is a bounce against the sending domain's reputation.
- * scripts/list-report-recipients.ts prints exactly who would be written to.
+ * `npx tsx scripts/send-monthly-report.ts --recipients` prints exactly who
+ * would be written to.
  *
  * ── Not sending twice ────────────────────────────────────────────────────────
  *
@@ -40,7 +41,7 @@ import { pb } from "../pb.js";
 import { audit } from "./auditLogger.js";
 import { computePortfolio } from "./portfolio.js";
 import { renderMonthlyReportEmail } from "./monthlyReportEmail.js";
-import { isEmailConfigured, missingEmailConfig, sendHtmlEmail } from "./emailService.js";
+import { emailBlocker, emailVerification, isEmailConfigured, missingEmailConfig, sendHtmlEmail } from "./emailService.js";
 import { emailLinkOrigin } from "../lib/canonicalOrigin.js";
 import {
   buildMonthlyReportModel,
@@ -437,14 +438,29 @@ export async function runMonthlyReportPass(
     return result;
   }
 
-  if (!dryRun && !isEmailConfigured()) {
-    // Claim nothing. An unsendable period must stay unclaimed so it goes out
-    // once the transport is configured, rather than being recorded as done.
-    result.notes.push(
-      `Email is not configured (missing: ${missingEmailConfig().join(", ")}). ` +
-      `Nothing sent and nothing claimed, so ${period} will go out once a transport exists.`,
-    );
-    return result;
+  if (!dryRun) {
+    /**
+     * Not "is a key set" but "does the provider accept it", re-checked rather
+     * than trusted from cache, because the next thing this function does is
+     * claim a reporting period it cannot un-claim.
+     *
+     * A key set to a placeholder once made isEmailConfigured() true while
+     * nothing was deliverable. Had that survived to a send window, this pass
+     * would have claimed the month, failed every recipient, and left the
+     * period closed. Verification is what stops presence being mistaken for
+     * working.
+     *
+     * "unreachable" is treated exactly like "not configured": nothing is
+     * claimed, and the next hourly tick tries again. Declining to act on an
+     * unconfirmed credential costs an hour; claiming on one costs the month.
+     */
+    const blocker = await emailBlocker(true);
+    if (blocker) {
+      result.notes.push(
+        `Email is ${blocker}. Nothing sent and nothing claimed, so ${period} still goes out once email works.`,
+      );
+      return result;
+    }
   }
 
   let companies: PBRecord[];
@@ -572,13 +588,28 @@ export function startMonthlyReportLoop(): void {
     return;
   }
 
+  // Still start in every case below: a key may be added after boot, and the
+  // pass verifies the credential itself before claiming anything.
   if (!isEmailConfigured()) {
-    // Still start: the variable may be set before the transport is, and the
-    // pass itself declines to claim a period it cannot send.
     console.warn(
       `[monthlyReport] Scheduled send is ON but email is not configured (missing: ${missingEmailConfig().join(", ")}). ` +
       "Nothing will be sent until a transport exists; no period will be marked as sent in the meantime.",
     );
+  } else {
+    // A key being present is not the same as it working, and the difference is
+    // invisible until a send fails. Say which one this is, at boot.
+    emailVerification(true)
+      .then((v) => {
+        if (v.state === "invalid") {
+          console.error(
+            `[monthlyReport] Scheduled send is ON and a key is set, but the provider REJECTED it: ${v.error}. ` +
+            "No period will be claimed while that is true, so nothing is lost, but nothing will arrive either.",
+          );
+        } else if (v.state !== "valid") {
+          console.warn(`[monthlyReport] Could not verify the email credential at boot: ${v.error}. Will re-check each pass.`);
+        }
+      })
+      .catch(() => { /* the pass re-checks anyway */ });
   }
 
   const tick = () => {
