@@ -11,7 +11,7 @@ import { initPocketBase } from "./pb";
 import { startIntegrationRenewalLoop } from "./services/integrationRenewal";
 import { startMonthlyReportLoop } from "./services/monthlyReportSchedule";
 import { isOriginAllowed } from "./lib/corsPolicy";
-import { missingEmailConfig, startEmailVerification } from "./services/emailService";
+import { activeTransport, startEmailVerification } from "./services/emailService";
 
 // Prevent unhandled promise rejections from crashing the server.
 // In Node 20, the default behaviour is to exit(1) on unhandled rejections,
@@ -110,13 +110,30 @@ async function recoverStuckDocuments() {
 
   await initPocketBase();
 
-  // Outbound email is optional, but silently missing it means approvers are
-  // never notified while the app looks like it worked. Say so once, at boot.
-  {
-    const missing = missingEmailConfig();
-    if (missing.length) {
-      console.warn(`[Zane] Outbound email is NOT configured (missing ${missing.join(", ")}). Approval requests will be created and audited, but no one will be notified. Run: npx tsx scripts/check-smtp.ts`);
-    }
+  /**
+   * Outbound email is optional, but silently missing it means approvers are
+   * never notified while the app looks like it worked. Say so once, at boot.
+   *
+   * Two separate faults, because missingEmailConfig() lists both and they are
+   * not the same severity. No transport means nothing is delivered at all. A
+   * missing APP_URL means mail still sends and its links fall back to the
+   * preferred origin, which is a much smaller problem and was previously
+   * reported with the same "NOT configured" wording.
+   *
+   * Whether a transport that IS set actually works is a third question, asked
+   * by startEmailVerification() below.
+   */
+  if (activeTransport() === "none") {
+    console.warn(
+      "[Zane] Outbound email is NOT configured (no RESEND_API_KEY, and no SMTP fallback). " +
+      "Approval requests will be created and audited, but no one will be notified. " +
+      "Run: npx tsx scripts/check-smtp.ts",
+    );
+  } else if (!process.env.APP_URL) {
+    console.warn(
+      "[Zane] Outbound email is configured, but APP_URL is unset, so links inside emails " +
+      "fall back to the preferred origin rather than this deployment's own address.",
+    );
   }
 
   // Run recovery on startup

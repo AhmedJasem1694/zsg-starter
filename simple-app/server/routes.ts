@@ -13,7 +13,7 @@ import {
   getAuthorisedSenders, normaliseEmail, logRejection,
 } from "./services/inboundEmail.js";
 import { parseEmailIntent, UNCLEAR_REPLY_TEXT } from "./services/emailIntentParser.js";
-import { sendPlainEmail, sendApprovalDecisionEmail, emailStatus, activeTransport, missingEmailConfig } from "./services/emailService.js";
+import { sendPlainEmail, sendApprovalDecisionEmail, emailStatus, activeTransport, emailBlocker } from "./services/emailService.js";
 import { rateLimit } from "./lib/rateLimit.js";
 import { clientIdentity } from "./lib/clientIp.js";
 import { canonicalOrigin, emailLinkOrigin } from "./lib/canonicalOrigin.js";
@@ -735,8 +735,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }).catch(() => false);
 
     if (!sent) {
+      // "Missing: none" was the confusing case: the send failed and nothing
+      // was missing, because a key was set and the provider had rejected it.
+      // emailBlocker() says which it is, so this log names the actual cause
+      // rather than listing absent variables that are all present.
+      const blocker = await emailBlocker();
       console.error(
-        `[access-request] stored but NOT emailed (${email}). Transport: ${activeTransport()}. Missing: ${missingEmailConfig().join(", ") || "none"}`,
+        `[access-request] stored but NOT emailed (${email}). Transport: ${activeTransport()}. ` +
+        `Cause: ${blocker ?? "send failed with email otherwise working"}`,
       );
       sendError(
         res,

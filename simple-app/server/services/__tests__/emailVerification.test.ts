@@ -223,3 +223,47 @@ describe("caching", () => {
     expect(m.lastEmailVerification().state).toBe("unchecked");
   });
 });
+
+/**
+ * The reason string the approvals audit record and the contact-form log both
+ * write. It used to be a two-way guess from whether a key was set, which named
+ * SMTP on a Resend deployment and recorded a rejected credential as a
+ * transient "send failed".
+ */
+describe("emailBlocker wording", () => {
+  it("names the missing variables when nothing is configured", async () => {
+    const m = await loadWith({ RESEND_API_KEY: undefined });
+    expect(await m.emailBlocker()).toContain("not configured");
+    expect(await m.emailBlocker()).toContain("RESEND_API_KEY");
+  });
+
+  it("says the credential was rejected, not that the send failed", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("bad", { status: 401 })));
+    const m = await loadWith({ RESEND_API_KEY: "re_junk" });
+    const why = await m.emailBlocker(true);
+    expect(why).toContain("rejected");
+    expect(why).not.toContain("not configured");
+  });
+
+  it("distinguishes could-not-verify from rejected", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("ENOTFOUND"); }));
+    const m = await loadWith({ RESEND_API_KEY: "re_live" });
+    const why = await m.emailBlocker(true);
+    expect(why).toContain("could not verify");
+    expect(why).not.toContain("rejected");
+  });
+
+  it("names the unverified sending domain", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () =>
+      new Response(JSON.stringify({ data: [{ name: "zanelegal.ai", status: "pending" }] }), { status: 200 })));
+    const m = await loadWith({ RESEND_API_KEY: "re_live", SMTP_FROM: "Zane <approvals@zanelegal.ai>" });
+    expect(await m.emailBlocker(true)).toContain("zanelegal.ai");
+  });
+
+  it("is null when everything works, so callers can treat it as the only gate", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () =>
+      new Response(JSON.stringify({ data: [{ name: "zanelegal.ai", status: "verified" }] }), { status: 200 })));
+    const m = await loadWith({ RESEND_API_KEY: "re_live", SMTP_FROM: "Zane <approvals@zanelegal.ai>" });
+    expect(await m.emailBlocker(true)).toBeNull();
+  });
+});

@@ -1,6 +1,6 @@
 import { pb } from "../pb.js";
 import { audit } from "./auditLogger.js";
-import { sendApprovalRequestEmail, isEmailConfigured } from "./emailService.js";
+import { sendApprovalRequestEmail, activeTransport, emailBlocker } from "./emailService.js";
 
 // ── Approval request creation ─────────────────────────────────────────────────
 // One PENDING approval_requests record per routed escalation. Called from the
@@ -8,7 +8,8 @@ import { sendApprovalRequestEmail, isEmailConfigured } from "./emailService.js";
 // the demo seed. Deduplicates so re-escalating the same clause to the same
 // role never produces a second pending item, writes an escalation_triggered
 // audit entry carrying the contract id, and attempts the approver
-// notification email (a no-op until SMTP is configured).
+// notification email. The notification is a no-op until outbound email is
+// configured; the transport is Resend, with SMTP only as a fallback.
 
 export interface CreateApprovalParams {
   documentId:     string;
@@ -91,9 +92,25 @@ export async function createApprovalRequest(p: CreateApprovalParams): Promise<st
         reason: p.reason,
         approvalId: rec.id,
       });
-      // Record the outcome either way. A silently undelivered approval request
-      // is worse than a visible failure: the approver waits for an email that
-      // never came and the audit trail implies nothing was ever attempted.
+      /**
+       * Record the outcome either way. A silently undelivered approval request
+       * is worse than a visible failure: the approver waits for an email that
+       * never came and the audit trail implies nothing was ever attempted.
+       *
+       * The reason used to be a two-way guess from whether a key was set:
+       * "SMTP not configured" or "send failed". Both were wrong in their own
+       * way. The first named SMTP on a deployment that sends through Resend,
+       * and the second was what a rejected credential recorded, which reads
+       * as a transient fault to whoever opens the record months later and is
+       * actually a standing misconfiguration.
+       *
+       * emailBlocker() distinguishes them, and only costs a network call once
+       * per fifteen minutes. Reaching it means a send has already failed, so
+       * the cost is paid in an error path, not a hot one.
+       */
+      const blocker = sent ? null : await emailBlocker();
+      const reason = sent ? undefined : (blocker ?? "send failed with email otherwise working");
+
       await audit({
         action: sent ? "escalation_email_sent" : "escalation_email_failed",
         entityType: "approval_request",
@@ -103,11 +120,11 @@ export async function createApprovalRequest(p: CreateApprovalParams): Promise<st
           documentId: p.documentId,
           role: p.role,
           recipient: contact["email"],
-          ...(sent ? {} : { reason: isEmailConfigured() ? "send failed" : "SMTP not configured" }),
+          ...(sent ? {} : { reason, transport: activeTransport() }),
         },
       });
       if (!sent) {
-        console.warn(`[approvals] Approval ${rec.id} created but the ${p.role} was NOT notified (${isEmailConfigured() ? "send failed" : "SMTP not configured"})`);
+        console.warn(`[approvals] Approval ${rec.id} created but the ${p.role} was NOT notified: ${reason}`);
       }
     } else {
       console.warn(`[approvals] Approval ${rec.id} created but no ${p.role} contact is configured, so nobody was notified`);
