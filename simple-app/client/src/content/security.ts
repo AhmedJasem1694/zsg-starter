@@ -122,13 +122,13 @@ export const SECURITY_PAGE = {
       notYet: "encryption-at-rest",
     },
     {
-      title: "No backups",
-      body: "There is no backup or restore mechanism. Data loss at the hosting layer would be data loss.",
+      title: "No backups, and uploaded files are not durably stored",
+      body: "There is no backup or restore mechanism, so data loss at the hosting layer would be data loss. Separately, the original files you upload are written to the application server's own disk, which has no persistent storage attached: they are lost when the application is redeployed. The review results drawn from a contract are in the database and do survive. The source document may not.",
       notYet: "backups",
     },
     {
-      title: "No guaranteed hosting region",
-      body: "Nothing in the product pins a region or offers a choice of jurisdiction. The current region can be confirmed on request, but it is not a contractual control today.",
+      title: "Your data is held in the United States",
+      body: "The database is in Railway's us-west2 region and the application runs in US West, so contract data leaves the UK. Nothing in the product pins a region or offers a choice of jurisdiction, and this is not a contractual control today. If UK or EEA residency is a requirement for you, it is not something Zane can currently meet.",
       notYet: "data-residency",
     },
     {

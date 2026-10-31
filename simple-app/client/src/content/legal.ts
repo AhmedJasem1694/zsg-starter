@@ -12,9 +12,23 @@
  * The processing described matches ALLOWED_CLAIMS and the limits recorded in
  * NOT_YET_CLAIMS: contract text goes to a model routing service, personal data
  * is removed before it does and restored after, no retention or training
- * instruction is sent to the provider, uploaded files are kept after review,
- * and there are no backups. A privacy notice that contradicted any of that
- * would be the most expensive kind of wrong.
+ * instruction is sent to the provider, and there are no backups. A privacy
+ * notice that contradicted any of that would be the most expensive kind of
+ * wrong.
+ *
+ * Two facts established on 30 October 2026 by inspecting the deployment
+ * rather than the code, because neither is recorded anywhere in this
+ * repository:
+ *
+ *   Data is stored in the UNITED STATES. The pocketbase-volume holding the
+ *   database is in Railway's us-west2; the app runs in US West. Every upload
+ *   is therefore a transfer out of the UK, which the transfers section now
+ *   says plainly and which a solicitor needs to resolve.
+ *
+ *   Uploaded files are NOT reliably retained. Only the pocketbase service has
+ *   a volume. Files go to ./uploads on the app container, which has none, so
+ *   they are lost on every redeploy. This notice previously said they were
+ *   kept after review, which was untrue.
  *
  * Reviewer: anything in square brackets needs a decision. Everything else is a
  * statement about the product that can be checked against the codebase.
@@ -148,10 +162,10 @@ export const PRIVACY: LegalPage = {
         "We use third parties to run the service. They act on our instructions and are named here by category, because the specific suppliers may change.",
       ],
       bullets: [
-        "Hosting and database: the platform that runs the application and stores its data. [TODO: name the hosting provider and the region in which data is stored. No region is pinned anywhere in the product today, so this must be established as a fact before it is written down.]",
-        "Email delivery: the service that sends notifications, approval requests and replies to contact form submissions. [TODO: name the email provider.]",
-        "AI model providers, reached through a model routing service: contract text is sent to a routing service which forwards it to one of several model providers. Before any text is sent, party names and personal identifiers such as email addresses, telephone numbers, postcodes and bank details are replaced with placeholders, and restored only after the response comes back. [TODO: name the routing service and the model providers currently in use, and obtain their data processing terms.]",
-        "[TODO: list any other processor, for example a document storage integration, once one is in use.]",
+        "Hosting and database: Railway, which runs the application and stores its database. The storage volume holding the database is in Railway's us-west2 region, in the United States, and the application itself runs in Railway's US West region. See \"Sending data outside the UK\" below, which matters because of this.",
+        "Email delivery: Resend, which sends approval requests, review notifications and replies to contact form submissions.",
+        "AI model providers, reached through a model routing service: contract text is sent to OpenRouter, which forwards it to the configured model provider. The model in use is Anthropic's Claude. Before any text is sent, party names and personal identifiers such as email addresses, telephone numbers, postcodes and bank details are replaced with placeholders, and restored only after the response comes back. [TODO: obtain the data processing terms for OpenRouter and Anthropic, and confirm whether a processor agreement is needed with each.]",
+        "No document storage integration is in use. Google Drive and SharePoint are supported by the product but are not connected on this deployment, so no data reaches either.",
       ],
     },
     {
@@ -164,8 +178,11 @@ export const PRIVACY: LegalPage = {
     {
       heading: "Sending data outside the UK",
       paragraphs: [
-        "Some of the processors above may store or handle data outside the United Kingdom.",
-        "[TODO: this section cannot be completed honestly until hosting and processor regions are established. Once they are, state for each processor where data goes and which transfer mechanism applies, for example UK adequacy regulations or the International Data Transfer Addendum to the EU Standard Contractual Clauses. Do not state a region until it is a verified fact about the deployment.]",
+        "Your data is stored in the United States, not in the United Kingdom or the European Economic Area. The database volume that holds contract metadata, the clause text extracted from your documents, and the record of actions and decisions, is in Railway's us-west2 region. The application that processes your contracts runs in Railway's US West region.",
+        "Contract text is additionally sent to OpenRouter and on to Anthropic when a review runs, with personal identifiers replaced beforehand as described above. Both are United States companies.",
+        "This means every upload involves a transfer of personal data out of the United Kingdom.",
+        "[TODO: this is the section that most needs a solicitor. State the transfer mechanism relied on for each of Railway, OpenRouter and Anthropic: the UK Addendum to the EU Standard Contractual Clauses, the UK Extension to the EU-US Data Privacy Framework where the recipient is certified under it, or another lawful basis. Do not state that a mechanism is in place until one has actually been entered into, and record where each signed instrument is held. If no mechanism is in place for a given processor, that is a gap to close rather than a sentence to write.]",
+        "[TODO: decide whether to move hosting to a UK or EEA region instead. That is an infrastructure change, not a drafting one, and it would remove most of this section.]",
       ],
     },
     {
@@ -173,7 +190,8 @@ export const PRIVACY: LegalPage = {
       bullets: [
         "Contact form submissions: [TODO: decide a retention period, for example 24 months from last contact.]",
         "Account data: for as long as the account exists, and then [TODO: decide a period].",
-        "Contracts and the review results drawn from them: for as long as the customer's account exists. Uploaded files remain stored after a review is complete; they are not deleted automatically.",
+        "The review results drawn from your contracts, including the clause text extracted from them: for as long as the customer's account exists. These are in the database and persist.",
+        "The original uploaded file: not reliably retained. Files are written to the application server's own disk, which has no persistent storage attached, so they are lost whenever the application is redeployed. The review results survive; the source document may not. This is a defect rather than a retention policy, and it is described here because a notice that promised otherwise would be untrue. [TODO: attach a volume for uploads, or store files in the database, then rewrite this entry.]",
         "The record of actions and decisions: retained for the life of the account, because deleting it would defeat the purpose of keeping it. [TODO: decide whether a maximum period applies.]",
         "Deleting a whole account and everything attached to it is currently a manual request handled by a person rather than an automated process. [TODO: decide and state the period within which that will be completed.]",
       ],

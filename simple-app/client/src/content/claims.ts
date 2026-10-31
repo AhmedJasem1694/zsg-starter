@@ -251,8 +251,10 @@ export const NOT_YET_CLAIMS: NotYetClaim[] = [
   },
   {
     id: "backups",
-    doNotClaim: "Backups of any kind, encrypted or otherwise.",
-    insteadSay: "No backup mechanism exists anywhere in the repository.",
+    doNotClaim:
+      "Backups of any kind, encrypted or otherwise. Also do not claim that uploaded files are retained, kept after review, or available later.",
+    insteadSay:
+      "No backup mechanism exists anywhere in the repository. Worse than that, and verified against the Railway project on 30 October 2026: only the pocketbase service has a volume (pocketbase-volume, mounted at /pb/pb_data). The app service has none, and server/upload.ts writes uploads to ./uploads on the app container, so every redeploy destroys the original files. index.ts recreates the directory at each boot and routes.ts:2173 already answers 'File not found on disk'. Review results live in the database and survive; source documents do not. Fix it by attaching a volume or storing files in the database, then revisit this claim.",
   },
   {
     id: "rbac",
@@ -278,9 +280,9 @@ export const NOT_YET_CLAIMS: NotYetClaim[] = [
   {
     id: "data-residency",
     doNotClaim:
-      "A hosting region, UK or EU data centres, a chosen jurisdiction, or separate per-jurisdiction environments.",
+      "A hosting region as a product control, UK or EU data centres, a chosen jurisdiction, or separate per-jurisdiction environments. Above all do not imply data stays in the UK: it does not.",
     insteadSay:
-      "No region is pinned anywhere in code or config, there is no per-company region field, and no deployment manifest exists. The region is whatever the Railway project was created in, which this repository does not record.",
+      "The region is now a known fact rather than an unknown, and the fact is awkward: the pocketbase-volume holding the database is in Railway's us-west2 and the app runs in US West, so customer data is stored in the UNITED STATES. Verified on 30 October 2026 against the Railway project, not the repository, which still pins no region anywhere in code or config and has no per-company region field. So the absence is real (no control, no choice of jurisdiction) but the silence is not: the privacy notice states the US location and the transfers section flags it. Say the region is US and not selectable, never that it is unpinned or unknown.",
   },
   {
     id: "certifications",
