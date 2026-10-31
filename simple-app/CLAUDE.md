@@ -292,6 +292,15 @@ Setting or changing it invalidates every existing session, which is the point wh
 
 The production guard keys off `NODE_ENV === "production"`, so confirm that variable is actually set on the host. Without it a deployment would silently take the development path and generate a fresh secret on each boot, signing everyone out on every deploy. That fails safe rather than open, but it is not what you want.
 
+### Hosting region and backups
+
+**Customer data is in the United States.** The `pocketbase-volume` (database, extracted clause text, audit record) is in Railway's `us-west2`; the app runs in `us-west`. The privacy notice and security page both state this. Railway volumes are region-bound and cannot be moved, so changing it is a data migration, not a setting: see `docs/region-migration-runbook.md`, which is prepared and rehearsed but **not executed**. `eu-west` (Amsterdam) is the only EEA region Railway offers; there is no UK one.
+
+**There is no automated backup.** The first backup this project ever had was taken by hand on 31 October 2026 (27 MB, verified with `PRAGMA integrity_check` and row counts). The procedure is step 3 of that runbook. Two things to know before taking one:
+
+- PocketBase runs in **WAL mode**. A copy taken while it is writing can be torn, because `-wal` holds commits not yet in `data.db`. Stop the app service first, then confirm no `-wal` file is listed on the volume.
+- The Railway CLI **refuses destructive file operations from an agent** (`Refusing: agents cannot delete files`). Deletes in the runbook need a person.
+
 ### Email: configured is not the same as working
 
 `isEmailConfigured()` answers "is a key set". Any non-empty string passes. `RESEND_API_KEY` was once set to the literal placeholder from a copy-pasted command and for three minutes production reported `transport: "resend", configured: true` with nothing deliverable.

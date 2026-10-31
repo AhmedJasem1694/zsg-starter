@@ -23,3 +23,9 @@ cleanup-backup/
 # Rendered report emails from scripts/send-monthly-report.ts --preview.
 # Real customer figures, so not something to commit.
 report-preview/
+
+# Volume backups taken by the region-migration runbook. Real customer data:
+# these must never be committed. The default location is outside the repo
+# (~/zane-volume-backups), this is belt and braces.
+zane-volume-backups/
+volume-backup/
