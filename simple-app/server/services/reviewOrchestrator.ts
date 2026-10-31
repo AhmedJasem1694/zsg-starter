@@ -26,6 +26,7 @@ import { checkParentReferences } from "./crossReferenceCheck.js";
 import { runDocumentAudit } from "./documentAudit.js";
 import { getModelForTask, getModelLabel } from "./modelRouter.js";
 
+import { uploadPath } from "../lib/uploadsDir.js";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PBRecord = Record<string, any>;
 
@@ -280,7 +281,7 @@ async function _runReview(documentId: string, isTimedOut: () => boolean = () => 
   });
 
   try {
-    const filePath = path.join(process.cwd(), "uploads", doc["filename"] as string);
+    const filePath = uploadPath(doc["filename"] as string);
 
     // Verify the file actually exists before attempting to parse
     if (!fs.existsSync(filePath)) {

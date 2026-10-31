@@ -29,6 +29,7 @@ type PBRecord = Record<string, any>;
 
 import { emailLinkOrigin } from "../lib/canonicalOrigin.js";
 
+import { uploadPath } from "../lib/uploadsDir.js";
 /** Resolved per call: the configured host may be one that does not resolve. */
 const appUrl = () => emailLinkOrigin();
 
@@ -264,7 +265,7 @@ export async function processDraftByEmail(input: {
   const onDiskName = `${nanoid()}.docx`;
   const safeTitle = content.title.replace(/[^a-z0-9 _-]/gi, "").trim() || "Draft";
   const originalName = `${safeTitle}.docx`;
-  fs.writeFileSync(path.join(process.cwd(), "uploads", onDiskName), buffer);
+  fs.writeFileSync(uploadPath(onDiskName), buffer);
 
   // 4c. Store in the Library (draft: true, source: email).
   let docId = "";

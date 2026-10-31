@@ -29,6 +29,7 @@ type PBRecord = Record<string, any>;
 
 import { emailLinkOrigin } from "../lib/canonicalOrigin.js";
 
+import { uploadPath } from "../lib/uploadsDir.js";
 /** Resolved per call: the configured host may be one that does not resolve. */
 const appUrl = () => emailLinkOrigin();
 
@@ -241,7 +242,7 @@ export async function processReviewByEmail(input: {
   const ctx = (contractId?: string): ThreadContext => ({ companyId: company.id as string, user: sender, threadId, intent: "review_contract", contractId });
 
   // Pick the first contract attachment that still exists on disk.
-  const contract = attachments.find((a) => fs.existsSync(path.join(process.cwd(), "uploads", a.filename)));
+  const contract = attachments.find((a) => fs.existsSync(uploadPath(a.filename)));
   if (!contract) {
     await threadReplyText(ctx(), {
       to: sender, from: fromAddr, subject: replySubject, inReplyTo: messageId,

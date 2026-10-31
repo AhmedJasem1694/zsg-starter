@@ -13,6 +13,7 @@ import fs from "fs";
 import { processIntegrationDocument } from "./integrationProcessor.js";
 import { audit } from "./auditLogger.js";
 
+import { UPLOADS_DIR } from "../lib/uploadsDir.js";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PBRecord = Record<string, any>;
 
@@ -324,7 +325,7 @@ export async function downloadAndQueueDriveFile(
   oauth2Client.setCredentials({ access_token: accessToken });
   const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-  const uploadDir = path.join(process.cwd(), "uploads");
+  const uploadDir = UPLOADS_DIR;
   if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
   let ext = ".pdf";

@@ -23,6 +23,7 @@ import { getModelForTask } from "./modelRouter.js";
 import { withCostTracking } from "./costTracker.js";
 import { audit } from "./auditLogger.js";
 
+import { uploadPath } from "../lib/uploadsDir.js";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PBRecord = Record<string, any>;
 
@@ -114,7 +115,7 @@ async function _runLegacyReview(documentId: string): Promise<void> {
   console.log(`[legacy] START ${documentId} file="${doc["originalName"] as string}"`);
 
   try {
-    const filePath = path.join(process.cwd(), "uploads", doc["filename"] as string);
+    const filePath = uploadPath(doc["filename"] as string);
     if (!fs.existsSync(filePath)) {
       throw new Error(`Uploaded file not found on disk: ${filePath}`);
     }

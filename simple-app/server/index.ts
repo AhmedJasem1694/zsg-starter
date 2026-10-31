@@ -13,6 +13,7 @@ import { startMonthlyReportLoop } from "./services/monthlyReportSchedule";
 import { isOriginAllowed } from "./lib/corsPolicy";
 import { activeTransport, startEmailVerification } from "./services/emailService";
 
+import { ensureUploadsDir } from "./lib/uploadsDir";
 // Prevent unhandled promise rejections from crashing the server.
 // In Node 20, the default behaviour is to exit(1) on unhandled rejections,
 // which kills the Express process and causes clients to see "Failed to fetch"
@@ -106,7 +107,7 @@ async function recoverStuckDocuments() {
 
 (async () => {
   // Ensure uploads directory exists (Railway ephemeral disk may not have it)
-  fs.mkdirSync(path.join(process.cwd(), "uploads"), { recursive: true });
+  ensureUploadsDir();
 
   await initPocketBase();
 

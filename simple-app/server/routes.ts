@@ -28,6 +28,7 @@ import {
 import { runReview } from "./services/reviewOrchestrator.js";
 import { runLegacyReview, ensureLegacyFields } from "./services/legacyReview.js";
 import { detectAndSaveRegulations } from "./services/regulatoryDetection.js";
+import { uploadPath } from "./lib/uploadsDir.js";
 import { requireAuth, signToken } from "./middleware/auth.js";
 import { transcribeAudioFile } from "./services/transcription.js";
 import { chatComplete } from "./services/openrouter.js";
@@ -2169,7 +2170,7 @@ Write as a professional onboarding document. No legal jargon. Practical and read
       sendError(res, 404, "Document not found"); return;
     }
 
-    const filePath = path.join(process.cwd(), "uploads", doc["filename"] as string);
+    const filePath = uploadPath(doc["filename"] as string);
     if (!fs.existsSync(filePath)) { sendError(res, 404, "File not found on disk"); return; }
 
     // Parse the document to get raw text
@@ -2546,7 +2547,7 @@ ${rawText}`,
     // Delete the physical file from disk (best-effort)
     const filename = doc["filename"] as string | undefined;
     if (filename) {
-      const filePath = path.join(process.cwd(), "uploads", filename);
+      const filePath = uploadPath(filename);
       try { fs.unlinkSync(filePath); } catch { /* file may already be gone */ }
     }
 
@@ -3996,7 +3997,7 @@ Draft the complete clause.`;
       const company = await requireDocumentAccess(req, res, req.params.documentId);
       if (!company) {
         fs.promises
-          .unlink(path.join(process.cwd(), "uploads", file.filename))
+          .unlink(uploadPath(file.filename))
           .catch(() => {});
         return;
       }
@@ -4016,7 +4017,7 @@ Draft the complete clause.`;
 
       // Fire-and-forget transcription for audio/video
       if (fileType === "AUDIO" || fileType === "VIDEO") {
-        const fullPath = path.join(process.cwd(), "uploads", file.filename);
+        const fullPath = uploadPath(file.filename);
         transcribeAudioFile(fullPath).then(async (transcription) => {
           if (transcription) {
             await pb.collection("ancillary_documents").update(ancillary.id, { transcription });
@@ -4540,7 +4541,7 @@ Draft the complete clause.`;
     let fullText = "";
     const filename = doc["filename"] as string | undefined;
     if (filename) {
-      const filePath = path.join(process.cwd(), "uploads", filename);
+      const filePath = uploadPath(filename);
       if (fs.existsSync(filePath)) {
         try {
           const parsed = await parseDocument(filePath);

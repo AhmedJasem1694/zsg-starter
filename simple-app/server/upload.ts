@@ -2,9 +2,10 @@ import multer from "multer";
 import path from "path";
 import { nanoid } from "nanoid";
 
+import { UPLOADS_DIR } from "./lib/uploadsDir.js";
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, path.join(process.cwd(), "uploads"));
+    cb(null, UPLOADS_DIR);
   },
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname);

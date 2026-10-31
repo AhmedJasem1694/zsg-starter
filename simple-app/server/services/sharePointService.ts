@@ -12,6 +12,7 @@ import fs from "fs";
 import { processIntegrationDocument } from "./integrationProcessor.js";
 import { audit } from "./auditLogger.js";
 
+import { UPLOADS_DIR } from "../lib/uploadsDir.js";
 const GRAPH_BASE = "https://graph.microsoft.com/v1.0";
 const MS_AUTH_BASE = "https://login.microsoftonline.com";
 
@@ -444,7 +445,7 @@ export async function downloadAndQueueSharePointFile(
     throw new Error(`SharePoint download failed: ${downloadRes.status}`);
   }
 
-  const uploadDir = path.join(process.cwd(), "uploads");
+  const uploadDir = UPLOADS_DIR;
   if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
   const ext = path.extname(fileName).toLowerCase() || ".pdf";
