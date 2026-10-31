@@ -12,9 +12,9 @@
  * The processing described matches ALLOWED_CLAIMS and the limits recorded in
  * NOT_YET_CLAIMS: contract text goes to a model routing service, personal data
  * is removed before it does and restored after, no retention or training
- * instruction is sent to the provider, and there are no backups. A privacy
- * notice that contradicted any of that would be the most expensive kind of
- * wrong.
+ * instruction is sent to the provider, and the database is backed up daily
+ * but only onto the same volume it lives on. A privacy notice that
+ * contradicted any of that would be the most expensive kind of wrong.
  *
  * Two facts established on 30 October 2026 by inspecting the deployment
  * rather than the code, because neither is recorded anywhere in this
@@ -191,7 +191,7 @@ export const PRIVACY: LegalPage = {
         "Contact form submissions: [TODO: decide a retention period, for example 24 months from last contact.]",
         "Account data: for as long as the account exists, and then [TODO: decide a period].",
         "The review results drawn from your contracts, including the clause text extracted from them: for as long as the customer's account exists. These are in the database and persist.",
-        "The original uploaded file: not reliably retained. Files are written to the application server's own disk, which has no persistent storage attached, so they are lost whenever the application is redeployed. The review results survive; the source document may not. This is a defect rather than a retention policy, and it is described here because a notice that promised otherwise would be untrue. [TODO: attach a volume for uploads, or store files in the database, then rewrite this entry.]",
+        "The original uploaded file: kept for as long as the customer's account exists, on storage that persists. This became true on 31 October 2026, when a storage volume was attached for uploads. Before that date files were written to the application server's own disk, which had none, and were destroyed each time the application was redeployed. Files uploaded before 31 October 2026 are therefore gone. The review results drawn from them are in the database and were not affected.",
         "The record of actions and decisions: retained for the life of the account, because deleting it would defeat the purpose of keeping it. [TODO: decide whether a maximum period applies.]",
         "Deleting a whole account and everything attached to it is currently a manual request handled by a person rather than an automated process. [TODO: decide and state the period within which that will be completed.]",
       ],

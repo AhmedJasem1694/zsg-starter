@@ -29,6 +29,7 @@ import { runReview } from "./services/reviewOrchestrator.js";
 import { runLegacyReview, ensureLegacyFields } from "./services/legacyReview.js";
 import { detectAndSaveRegulations } from "./services/regulatoryDetection.js";
 import { uploadPath, uploadsHealth } from "./lib/uploadsDir.js";
+import { lastBackupStatus } from "./services/backupHealth.js";
 import { requireAuth, signToken } from "./middleware/auth.js";
 import { transcribeAudioFile } from "./services/transcription.js";
 import { chatComplete } from "./services/openrouter.js";
@@ -5837,6 +5838,11 @@ Draft the complete clause.`;
       // to the working directory. No file count: that is business data, and
       // this endpoint is public.
       uploads: uploadsHealth(),
+      // Whether the database is actually being backed up, and whether those
+      // backups would survive losing the volume. A schedule that silently
+      // stopped is worse than none: it is believed. Cached, no network call
+      // on the request path.
+      backups: lastBackupStatus(),
       // Whether the monthly report is actually being sent, and which period
       // the next pass would cover. Both matter: the switch being on is not the
       // same as email working, and turning it on mid-month sends the previous

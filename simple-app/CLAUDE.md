@@ -296,7 +296,11 @@ The production guard keys off `NODE_ENV === "production"`, so confirm that varia
 
 **Customer data is in the United States.** The `pocketbase-volume` (database, extracted clause text, audit record) is in Railway's `us-west2`; the app runs in `us-west`. The privacy notice and security page both state this. Railway volumes are region-bound and cannot be moved, so changing it is a data migration, not a setting: see `docs/region-migration-runbook.md`, which is prepared and rehearsed but **not executed**. `eu-west` (Amsterdam) is the only EEA region Railway offers; there is no UK one.
 
-**There is no automated backup.** The first backup this project ever had was taken by hand on 31 October 2026 (27 MB, verified with `PRAGMA integrity_check` and row counts). The procedure is step 3 of that runbook. Two things to know before taking one:
+**Backups are automatic, and on the same volume.** PocketBase takes them itself on a cron set in its settings: daily at 03:00 UTC, keeping 7, enabled 31 October 2026. Each is about 5 MB. PocketBase snapshots consistently, which is why this is its job and not ours. `server/services/backupHealth.ts` watches that the schedule is still running and reports from `/api/health` under `backups`; a schedule that silently stopped is worse than none, because it is believed.
+
+**They are not off-site.** With S3 disabled they sit in `pb_data/backups`, on the volume the database is on, so they survive a mistake but not losing the volume. Enabling S3 in PocketBase's settings is the only thing that changes that, and it needs credentials. Uploaded files are on a different volume and are not in these backups at all.
+
+A manual backup (step 3 of the runbook) is still the right move before anything destructive. Two things to know before taking one:
 
 - PocketBase runs in **WAL mode**. A copy taken while it is writing can be torn, because `-wal` holds commits not yet in `data.db`. Stop the app service first, then confirm no `-wal` file is listed on the volume.
 - The Railway CLI **refuses destructive file operations from an agent** (`Refusing: agents cannot delete files`). Deletes in the runbook need a person.

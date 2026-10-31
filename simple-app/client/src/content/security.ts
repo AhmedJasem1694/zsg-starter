@@ -122,8 +122,8 @@ export const SECURITY_PAGE = {
       notYet: "encryption-at-rest",
     },
     {
-      title: "No backups, and uploaded files are not durably stored",
-      body: "There is no backup or restore mechanism, so data loss at the hosting layer would be data loss. Separately, the original files you upload are written to the application server's own disk, which has no persistent storage attached: they are lost when the application is redeployed. The review results drawn from a contract are in the database and do survive. The source document may not.",
+      title: "Backups exist, but not off-site",
+      body: "The database is backed up automatically every day and the last seven are kept, so an accidental deletion or a bad migration can be undone. Those backups are stored alongside the database rather than somewhere separate, which means they protect against mistakes but not against losing the hosting platform itself. There is no disaster recovery, no geographic redundancy, and no restore has ever been rehearsed on this deployment. Uploaded files are stored separately from the database and are not covered by these backups at all.",
       notYet: "backups",
     },
     {

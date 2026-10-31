@@ -252,9 +252,9 @@ export const NOT_YET_CLAIMS: NotYetClaim[] = [
   {
     id: "backups",
     doNotClaim:
-      "Backups of any kind, encrypted or otherwise. Also do not claim that uploaded files are retained, kept after review, or available later.",
+      "Off-site backups, disaster recovery, geographic redundancy, or that data would survive losing the hosting platform. Also do not claim a restore has ever been performed: it has not.",
     insteadSay:
-      "No backup mechanism exists anywhere in the repository. Worse than that, and verified against the Railway project on 30 October 2026: only the pocketbase service has a volume (pocketbase-volume, mounted at /pb/pb_data). The app service has none, and server/upload.ts writes uploads to ./uploads on the app container, so every redeploy destroys the original files. index.ts recreates the directory at each boot and routes.ts:2173 already answers 'File not found on disk'. Review results live in the database and survive; source documents do not. Fix it by attaching a volume or storing files in the database, then revisit this claim.",
+      "Half of this is now true and the half that is not is the half buyers mean. The database IS backed up: PocketBase takes a consistent snapshot daily at 03:00 UTC and keeps 7 (settings.backups.cron, enabled 31 October 2026), and server/services/backupHealth.ts reports from /api/health whether the schedule is still running. So a bad migration or an accidental delete is recoverable. What is NOT true is survival of the hosting layer: S3 is disabled, so the backups sit in pb_data/backups on the SAME volume as the database, and losing the volume loses both. Say the database is backed up daily on the same volume, never that there is disaster recovery. Enabling S3 in PocketBase is what would change that. Uploaded files are now on their own volume too (31 October), so the earlier claim that a redeploy destroyed them no longer holds.",
   },
   {
     id: "rbac",

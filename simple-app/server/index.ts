@@ -10,6 +10,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { initPocketBase } from "./pb";
 import { startIntegrationRenewalLoop } from "./services/integrationRenewal";
 import { startMonthlyReportLoop } from "./services/monthlyReportSchedule";
+import { startBackupMonitor } from "./services/backupHealth";
 import { isOriginAllowed } from "./lib/corsPolicy";
 import { activeTransport, startEmailVerification } from "./services/emailService";
 
@@ -149,6 +150,10 @@ async function recoverStuckDocuments() {
   // so a key that is set but rejected shows up in the deploy log rather than
   // only when a send fails. Non-blocking.
   startEmailVerification();
+
+  // Notice if the database stops being backed up. PocketBase takes them on
+  // its own cron; this only watches that they are still happening.
+  startBackupMonitor();
 
   // Send the monthly legal report to each company's CFO and GC. Off unless
   // MONTHLY_REPORT_SEND is set; logs which it is either way.
