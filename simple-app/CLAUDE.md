@@ -298,7 +298,16 @@ The production guard keys off `NODE_ENV === "production"`, so confirm that varia
 
 **Backups are automatic, and on the same volume.** PocketBase takes them itself on a cron set in its settings: daily at 03:00 UTC, keeping 7, enabled 31 October 2026. Each is about 5 MB. PocketBase snapshots consistently, which is why this is its job and not ours. `server/services/backupHealth.ts` watches that the schedule is still running and reports from `/api/health` under `backups`; a schedule that silently stopped is worse than none, because it is believed.
 
-**They are not off-site.** With S3 disabled they sit in `pb_data/backups`, on the volume the database is on, so they survive a mistake but not losing the volume. Enabling S3 in PocketBase's settings is the only thing that changes that, and it needs credentials. Uploaded files are on a different volume and are not in these backups at all.
+**They are not off-site yet.** With S3 disabled they sit in `pb_data/backups`, on the volume the database is on, so they survive a mistake but not losing the volume. A Railway bucket `zane-backups` exists in `ams` (EU West, Amsterdam) waiting to receive them; the remaining step needs the bucket's secret access key, so a person has to run it:
+
+```bash
+railway bucket credentials --bucket zane-backups   # prints the secret
+export S3_BUCKET=zane-backups S3_REGION=ams S3_ENDPOINT=... S3_ACCESS_KEY=... S3_SECRET=...
+npx tsx scripts/enable-s3-backups.ts --apply --test
+unset S3_SECRET S3_ACCESS_KEY
+```
+
+`--test` takes a real backup afterwards and confirms it lands, because settings being accepted is not the same as a backup arriving. Note the bucket is in the EEA while the database is in the US: enabling it puts customer data somewhere new, and the privacy notice's processors and transfers sections need it adding at the same time. Uploaded files are on a different volume and are not in these backups at all.
 
 A manual backup (step 3 of the runbook) is still the right move before anything destructive. Two things to know before taking one:
 
