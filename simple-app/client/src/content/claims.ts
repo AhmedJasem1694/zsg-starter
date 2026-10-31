@@ -252,9 +252,9 @@ export const NOT_YET_CLAIMS: NotYetClaim[] = [
   {
     id: "backups",
     doNotClaim:
-      "Off-site backups, disaster recovery, geographic redundancy, or that data would survive losing the hosting platform. Also do not claim a restore has ever been performed: it has not.",
+      "A tested restore, disaster recovery, an RTO or RPO, or that uploaded files are backed up. Do not say recovery 'works': nobody has rebuilt a running system from one of these.",
     insteadSay:
-      "Half of this is now true and the half that is not is the half buyers mean. The database IS backed up: PocketBase takes a consistent snapshot daily at 03:00 UTC and keeps 7 (settings.backups.cron, enabled 31 October 2026), and server/services/backupHealth.ts reports from /api/health whether the schedule is still running. So a bad migration or an accidental delete is recoverable. What is NOT true is survival of the hosting layer: S3 is disabled, so the backups sit in pb_data/backups on the SAME volume as the database, and losing the volume loses both. Say the database is backed up daily on the same volume, never that there is disaster recovery. Enabling S3 in PocketBase is what would change that. Uploaded files are now on their own volume too (31 October), so the earlier claim that a redeploy destroyed them no longer holds.",
+      "The database is backed up daily at 03:00 UTC, the last 7 are kept, and since 31 October 2026 they go to Railway object storage in Amsterdam rather than to the volume the database sits on, so losing that volume no longer loses the backups. Proven rather than assumed on the day: a backup was taken, listed back through S3, and downloaded at 5,034,683 bytes with a valid zip header. server/services/backupHealth.ts reports schedule, age and offsite from /api/health. The remaining gap is the restore: downloading an intact archive is not the same as standing a system back up from it, and until someone does that, recovery is untested rather than working. Note also that the backup covers the database only. Uploaded files live on a separate volume and are in no backup at all.",
   },
   {
     id: "rbac",

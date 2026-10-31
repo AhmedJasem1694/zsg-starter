@@ -114,11 +114,14 @@ async function main() {
         secret: cfg.secret,
         /**
          * Railway's object storage is S3-compatible rather than S3, and
-         * compatible endpoints generally address buckets by path rather than
-         * by virtual host. If a backup fails with a DNS or 404 error, this is
-         * the first thing to flip.
+         * compatible endpoints often address buckets by path rather than by
+         * virtual host. `railway bucket credentials` reports which under
+         * `urlStyle`, so take it from there rather than guessing; the default
+         * stays path, which is the safer assumption for a compatible
+         * endpoint. If a backup fails with a DNS or 404 error, this is the
+         * first thing to flip.
          */
-        forcePathStyle: true,
+        forcePathStyle: (process.env.S3_URL_STYLE ?? "path").toLowerCase() !== "virtual-hosted",
       },
     },
   });

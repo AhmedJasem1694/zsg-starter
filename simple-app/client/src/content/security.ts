@@ -122,8 +122,8 @@ export const SECURITY_PAGE = {
       notYet: "encryption-at-rest",
     },
     {
-      title: "Backups exist, but not off-site",
-      body: "The database is backed up automatically every day and the last seven are kept, so an accidental deletion or a bad migration can be undone. Those backups are stored alongside the database rather than somewhere separate, which means they protect against mistakes but not against losing the hosting platform itself. There is no disaster recovery, no geographic redundancy, and no restore has ever been rehearsed on this deployment. Uploaded files are stored separately from the database and are not covered by these backups at all.",
+      title: "Backups are off-site, but no restore has been rehearsed",
+      body: "The database is backed up automatically every day, the last seven are kept, and they are written to storage in Amsterdam rather than to the same disk as the database, so losing the hosting volume would not lose them. What has not happened is a restore: the backups have been proven to exist and to download intact, and nobody has yet rebuilt a running system from one. Until that is done, treat recovery as untested. Original uploaded files are stored separately and are not included in these backups at all.",
       notYet: "backups",
     },
     {

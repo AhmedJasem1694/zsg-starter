@@ -298,16 +298,13 @@ The production guard keys off `NODE_ENV === "production"`, so confirm that varia
 
 **Backups are automatic, and on the same volume.** PocketBase takes them itself on a cron set in its settings: daily at 03:00 UTC, keeping 7, enabled 31 October 2026. Each is about 5 MB. PocketBase snapshots consistently, which is why this is its job and not ours. `server/services/backupHealth.ts` watches that the schedule is still running and reports from `/api/health` under `backups`; a schedule that silently stopped is worse than none, because it is believed.
 
-**They are not off-site yet.** With S3 disabled they sit in `pb_data/backups`, on the volume the database is on, so they survive a mistake but not losing the volume. A Railway bucket `zane-backups` exists in `ams` (EU West, Amsterdam) waiting to receive them; the remaining step needs the bucket's secret access key, so a person has to run it:
+**They are off-site.** Since 31 October 2026 PocketBase writes them to Railway object storage in `ams` (EU West, Amsterdam) rather than to `pb_data/backups` on the database's own volume, so losing that volume no longer loses the backups. Verified on the day rather than assumed: a backup was taken, listed back through S3 (the on-volume copy disappeared from the listing, which is how you know the listing is the bucket), and downloaded at 5,034,683 bytes with a valid `PK` zip header.
 
-```bash
-railway bucket credentials --bucket zane-backups   # prints the secret
-export S3_BUCKET=zane-backups S3_REGION=ams S3_ENDPOINT=... S3_ACCESS_KEY=... S3_SECRET=...
-npx tsx scripts/enable-s3-backups.ts --apply --test
-unset S3_SECRET S3_ACCESS_KEY
-```
+Note Railway's `bucket info` reported `0 B, 0 objects` for some time after the object was demonstrably there. Its stats lag. Do not use them to decide whether a backup landed; list through PocketBase or download one.
 
-`--test` takes a real backup afterwards and confirms it lands, because settings being accepted is not the same as a backup arriving. Note the bucket is in the EEA while the database is in the US: enabling it puts customer data somewhere new, and the privacy notice's processors and transfers sections need it adding at the same time. Uploaded files are on a different volume and are not in these backups at all.
+**What is still not true:** no restore has been rehearsed. An archive that downloads intact is not a system that has been stood back up, and the security page says so. Uploaded files are on a different volume and are in no backup at all.
+
+To re-point or rotate credentials, `scripts/enable-s3-backups.ts` reads them from the environment and never prints them; `--test` takes a real backup afterwards and confirms it lands.
 
 A manual backup (step 3 of the runbook) is still the right move before anything destructive. Two things to know before taking one:
 
