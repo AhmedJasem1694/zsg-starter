@@ -28,7 +28,7 @@ import {
 import { runReview } from "./services/reviewOrchestrator.js";
 import { runLegacyReview, ensureLegacyFields } from "./services/legacyReview.js";
 import { detectAndSaveRegulations } from "./services/regulatoryDetection.js";
-import { uploadPath } from "./lib/uploadsDir.js";
+import { uploadPath, uploadsHealth } from "./lib/uploadsDir.js";
 import { requireAuth, signToken } from "./middleware/auth.js";
 import { transcribeAudioFile } from "./services/transcription.js";
 import { chatComplete } from "./services/openrouter.js";
@@ -5829,6 +5829,14 @@ Draft the complete clause.`;
       // which bought sameSite "none" and its CSRF exposure for no benefit.
       // "lax" with separateFrontend false is the healthy state here.
       cookies: { sameSite: COOKIE_OPTS.sameSite, separateFrontend: crossDomain },
+      // Where uploaded files go, and whether that survives a deploy. Reported
+      // because the answer was no for a long time and nothing outside the
+      // container could tell: files went to the app's own disk, which has no
+      // persistent storage, so every redeploy destroyed them. `configured` is
+      // whether UPLOAD_DIR points somewhere deliberate rather than defaulting
+      // to the working directory. No file count: that is business data, and
+      // this endpoint is public.
+      uploads: uploadsHealth(),
       // Whether the monthly report is actually being sent, and which period
       // the next pass would cover. Both matter: the switch being on is not the
       // same as email working, and turning it on mid-month sends the previous

@@ -59,3 +59,34 @@ export function uploadPathOrNull(filename: string): string | null {
     return null;
   }
 }
+
+/**
+ * Whether uploads are going somewhere that survives a deploy, for /api/health.
+ *
+ * `configured` is the one that matters: false means UPLOAD_DIR is unset and
+ * files are going to the working directory, which on a platform without a
+ * mounted volume is destroyed on every deploy. That was true here for months
+ * and nothing outside the container could show it.
+ *
+ * Deliberately reports no file count. This endpoint is public and how many
+ * contracts have been uploaded is business data.
+ */
+export function uploadsHealth(): {
+  dir: string;
+  configured: boolean;
+  exists: boolean;
+  writable: boolean;
+} {
+  const configured = Boolean(process.env.UPLOAD_DIR?.trim());
+  let exists = false;
+  let writable = false;
+  try {
+    exists = fs.statSync(UPLOADS_DIR).isDirectory();
+    fs.accessSync(UPLOADS_DIR, fs.constants.W_OK);
+    writable = true;
+  } catch {
+    // Left false. A directory that is missing or unwritable is the failure
+    // this field exists to surface, not something to throw over.
+  }
+  return { dir: UPLOADS_DIR, configured, exists, writable };
+}
