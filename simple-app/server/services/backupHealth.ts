@@ -123,11 +123,19 @@ export async function backupStatus(force = false): Promise<BackupStatus> {
 /**
  * Cached state with no network call, for the health endpoint.
  *
- * Kicks off a refresh when stale and returns the old value rather than
- * waiting, so /api/health stays fast and still converges.
+ * Kicks off a refresh when stale and returns what it has rather than waiting,
+ * so /api/health stays fast and still converges.
+ *
+ * Before the first read completes it returns `{ checked: false }` and nothing
+ * else. The obvious alternative, returning the zeroed struct, asserts
+ * `scheduled: false` and `offsite: false` during the window after every
+ * restart, which is not merely unknown but the precise opposite of the truth
+ * here, and would tell anyone looking at health just after a deploy that
+ * backups are switched off.
  */
-export function lastBackupStatus(): BackupStatus {
+export function lastBackupStatus(): BackupStatus | { checked: false } {
   if (!isFresh(cached) && !inFlight) void backupStatus().catch(() => { /* reported in state */ });
+  if (!cached.checkedAt) return { checked: false };
   return cached;
 }
 
