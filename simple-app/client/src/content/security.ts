@@ -122,8 +122,8 @@ export const SECURITY_PAGE = {
       notYet: "encryption-at-rest",
     },
     {
-      title: "Backups are off-site, but no restore has been rehearsed",
-      body: "The database is backed up automatically every day, the last seven are kept, and they are written to storage in Amsterdam rather than to the same disk as the database, so losing the hosting volume would not lose them. What has not happened is a restore: the backups have been proven to exist and to download intact, and nobody has yet rebuilt a running system from one. Until that is done, treat recovery as untested. Original uploaded files are stored separately and are not included in these backups at all.",
+      title: "The database is backed up and the restore has been tested. Your uploaded files are not.",
+      body: "The database is backed up automatically every day, the last seven are kept, and they go to storage in Amsterdam rather than to the same disk as the database, so losing the hosting volume would not lose them. A restore has been carried out and checked: a backup was rebuilt into a working system and every record counted back, which is the test most providers describe but have not run. What is not covered is the original files you upload. They are stored separately and are in no backup, so a failure of that storage would lose the source documents while leaving the review results intact.",
       notYet: "backups",
     },
     {

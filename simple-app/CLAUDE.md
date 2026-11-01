@@ -302,7 +302,11 @@ The production guard keys off `NODE_ENV === "production"`, so confirm that varia
 
 Note Railway's `bucket info` reported `0 B, 0 objects` for some time after the object was demonstrably there. Its stats lag. Do not use them to decide whether a backup landed; list through PocketBase or download one.
 
-**What is still not true:** no restore has been rehearsed. An archive that downloads intact is not a system that has been stood back up, and the security page says so. Uploaded files are on a different volume and are in no backup at all.
+**The restore is rehearsed.** Done 31 October 2026 and repeatable: pull the archive from S3, unzip it, use it as `pb_data` for a local PocketBase (`brew install pocketbase`; 0.41.1 read a production archive without complaint), start it on a spare port, then point a local Zane at it with `POCKETBASE_URL`. It booted in about three seconds, superuser auth worked, all eight collections returned production's exact counts, and `computePortfolio` returned the same £340,000 red exposure as production. Use production counts as the oracle: "the site loads" proves almost nothing.
+
+Note the archive contains `data.db-wal` and `auxiliary.db-wal` at **zero bytes**. PocketBase checkpoints before snapshotting, which is exactly why its backup is safe where a raw file copy is not.
+
+**What is still not true:** uploaded files are on a different volume and are in no backup at all, so losing that volume loses the source documents while the review results survive. That asymmetry is now the weakest point.
 
 To re-point or rotate credentials, `scripts/enable-s3-backups.ts` reads them from the environment and never prints them; `--test` takes a real backup afterwards and confirms it lands.
 
