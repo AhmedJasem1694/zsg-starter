@@ -310,7 +310,9 @@ Separately, `inbox.zanelegal.ai` (the configured `INBOUND_EMAIL_DOMAIN` for Mail
 
 **Customer data is in the Netherlands.** Migrated from `us-west2` on 7 November 2026. Both volumes report `europe-west4-drams3a` and both services report EU West, verified against the Railway API rather than config, which is the only source of truth: the repository pins no region anywhere.
 
-**The migration was far simpler than `docs/region-migration-runbook.md` assumed, and that document is now wrong in its central claim.** It said volumes are region-bound and must be deleted and recreated. They are not: `railway service scale --service X eu-west=1 us-west=0` moves the service **and migrates its volume**, which goes `MIGRATING` and then `READY` in the new region with contents intact. No deletion, no restore, no irreversible step. Total downtime was about 11 minutes for both services. Rewrite or delete that runbook before anyone follows it.
+**Moving region is two commands.** `railway service scale --service X eu-west=1 us-west=0` moves the service **and migrates its volume**: `MIGRATING`, then `READY` in the new region, contents intact. Railway volumes are **not** region-bound, despite `railway volume update` offering no region option. No deletion, no restore, no irreversible step, and rollback is the same two commands in reverse. About 11 minutes of downtime for both services.
+
+`docs/region-migration-runbook.md` has the verified procedure, the verification steps and the rollback. It was rewritten after the move: the earlier version prescribed deleting and recreating each volume, which would have destroyed the live database to no purpose.
 
 **The review path still leaves the EEA.** Contract text goes to OpenRouter and on to Anthropic, both US companies, so a review is still a transfer out. `ALLOWED_CLAIMS.data-residency` carries that as its limit: say contracts are stored and processed in the EEA, never that data does not leave it.
 
