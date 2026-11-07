@@ -308,34 +308,15 @@ Separately, `inbox.zanelegal.ai` (the configured `INBOUND_EMAIL_DOMAIN` for Mail
 
 ### Hosting region and backups
 
-**Customer data is in the United States.** The `pocketbase-volume` (database, extracted clause text, audit record) is in Railway's `us-west2`; the app runs in `us-west`. The privacy notice and security page both state this. Railway volumes are region-bound and cannot be moved, so changing it is a data migration, not a setting: see `docs/region-migration-runbook.md`, which is prepared and rehearsed but **not executed**. `eu-west` (Amsterdam) is the only EEA region Railway offers; there is no UK one.
+**Customer data is in the Netherlands.** Migrated from `us-west2` on 7 November 2026. Both volumes report `europe-west4-drams3a` and both services report EU West, verified against the Railway API rather than config, which is the only source of truth: the repository pins no region anywhere.
 
-**Backups are automatic, and on the same volume.** PocketBase takes them itself on a cron set in its settings: daily at 03:00 UTC, keeping 7, enabled 31 October 2026. Each is about 5 MB. PocketBase snapshots consistently, which is why this is its job and not ours. `server/services/backupHealth.ts` watches that the schedule is still running and reports from `/api/health` under `backups`; a schedule that silently stopped is worse than none, because it is believed.
+**The migration was far simpler than `docs/region-migration-runbook.md` assumed, and that document is now wrong in its central claim.** It said volumes are region-bound and must be deleted and recreated. They are not: `railway service scale --service X eu-west=1 us-west=0` moves the service **and migrates its volume**, which goes `MIGRATING` and then `READY` in the new region with contents intact. No deletion, no restore, no irreversible step. Total downtime was about 11 minutes for both services. Rewrite or delete that runbook before anyone follows it.
 
-**They are off-site.** Since 31 October 2026 PocketBase writes them to Railway object storage in `ams` (EU West, Amsterdam) rather than to `pb_data/backups` on the database's own volume, so losing that volume no longer loses the backups. Verified on the day rather than assumed: a backup was taken, listed back through S3 (the on-volume copy disappeared from the listing, which is how you know the listing is the bucket), and downloaded at 5,034,683 bytes with a valid `PK` zip header.
+**The review path still leaves the EEA.** Contract text goes to OpenRouter and on to Anthropic, both US companies, so a review is still a transfer out. `ALLOWED_CLAIMS.data-residency` carries that as its limit: say contracts are stored and processed in the EEA, never that data does not leave it.
 
-Note Railway's `bucket info` reported `0 B, 0 objects` for some time after the object was demonstrably there. Its stats lag. Do not use them to decide whether a backup landed; list through PocketBase or download one.
+**Backups are off-site and in the EEA.** PocketBase takes the database daily at 03:00 UTC, keeping 7, to Railway object storage in `ams` (Amsterdam). `server/services/uploadsBackup.ts` copies uploaded files to the same bucket at the same hour. Both verified; the database restore has been rehearsed and the file-side has not.
 
-**The restore is rehearsed.** Done 31 October 2026 and repeatable: pull the archive from S3, unzip it, use it as `pb_data` for a local PocketBase (`brew install pocketbase`; 0.41.1 read a production archive without complaint), start it on a spare port, then point a local Zane at it with `POCKETBASE_URL`. It booted in about three seconds, superuser auth worked, all eight collections returned production's exact counts, and `computePortfolio` returned the same £340,000 red exposure as production. Use production counts as the oracle: "the site loads" proves almost nothing.
-
-Note the archive contains `data.db-wal` and `auxiliary.db-wal` at **zero bytes**. PocketBase checkpoints before snapshotting, which is exactly why its backup is safe where a raw file copy is not.
-
-**Uploaded files are backed up too**, by `server/services/uploadsBackup.ts`, since 7 November 2026. They are on a different volume that PocketBase's backup does not touch, so the app copies them to the same bucket under an `uploads/` prefix at **03:00 UTC**, the same hour PocketBase runs: a restore then pairs a database with the files of the same day rather than a different one.
-
-It is a one-way copy, never a mirror. Nothing is deleted from the bucket, so removing a contract in the product does not remove its backup. Matching is on key and byte length, so a re-run copies nothing. Needs `S3_*` in the environment; without them it is silent.
-
-Scheduling is a due-check against a timestamp, not a 24-hour interval. An interval from boot drifts to whenever the service last restarted, and a service restarting daily would never back up at all. `isUploadsBackupDue()` is pure and tested.
-
-**Overdue is alerted, and the signal is not the obvious one.** Each successful run rewrites `_meta/uploads-backup-last-run.json` in the bucket, and staleness is measured from that. Two shortcuts are wrong here and both were avoided: in-memory `lastRunAt` resets on every deploy, so a service redeploying daily would always look like it had just run; and "newest object under `uploads/`" is wrong because this is a one-way copy that skips files already present, so nothing new for a month means complete, not stopped. Over 48 hours with files on the volume logs `[uploadsBackup] OVERDUE`. An **empty** uploads directory is healthy rather than stale, because a monitor that complains daily about nothing gets muted before the day it matters. `isUploadsBackupStale()` is pure and tested.
-
-**What is still not true:** nothing has been restored *from* the uploads bucket. The database restore is rehearsed; the file side is copied and read back but not exercised as a recovery.
-
-To re-point or rotate credentials, `scripts/enable-s3-backups.ts` reads them from the environment and never prints them; `--test` takes a real backup afterwards and confirms it lands.
-
-A manual backup (step 3 of the runbook) is still the right move before anything destructive. Two things to know before taking one:
-
-- PocketBase runs in **WAL mode**. A copy taken while it is writing can be torn, because `-wal` holds commits not yet in `data.db`. Stop the app service first, then confirm no `-wal` file is listed on the volume.
-- The Railway CLI **refuses destructive file operations from an agent** (`Refusing: agents cannot delete files`). Deletes in the runbook need a person.
+Before taking any manual backup: PocketBase runs in **WAL mode**, so a raw file copy taken while it is writing can be torn. Its own backup checkpoints first (the `-wal` files inside an archive are zero bytes), so use `pb.backups.create()` rather than copying the volume, and no downtime is needed. The Railway CLI **refuses file deletion from an agent**, though volume deletion is permitted.
 
 ### Email: configured is not the same as working
 

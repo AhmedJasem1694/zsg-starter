@@ -1,6 +1,22 @@
 # Moving Zane's hosting from us-west2 to eu-west
 
-Status: **prepared and partially rehearsed, not executed.** Written 31 October 2026.
+Status: **EXECUTED 7 November 2026, and this document's central claim was wrong.**
+
+> The migration below assumes Railway volumes are region-bound and must be
+> deleted and recreated. **They are not.** `railway service scale --service X
+> eu-west=1 us-west=0` moves the service *and migrates its volume*: the volume
+> goes `MIGRATING`, then `READY` in the new region, contents intact. No
+> deletion, no restore, no irreversible step, and about 11 minutes of downtime
+> for both services.
+>
+> What actually happened: scale the app, wait for `READY`, scale PocketBase,
+> wait for `READY`, done. Steps 7 to 9 below were never needed. The backup in
+> steps 3 and 4 is still worth taking, and can now be taken with **no
+> downtime** using `pb.backups.create()` rather than a raw volume copy, because
+> PocketBase checkpoints WAL before snapshotting.
+>
+> Kept for the verification steps and the DNS and ordering notes, which held
+> up. Treat the migration section as superseded.
 
 This repository is public, so the concrete values for this deployment are
 deliberately not in here: no project or service ids, and no row-count

@@ -98,6 +98,11 @@ export const SECURITY_PAGE = {
       claims: ["audit-trail", "approval-decision"],
     },
     {
+      title: "Your contracts are stored and processed in the EEA",
+      body: "The database and the uploaded files are both held in the Netherlands, and the application that processes them runs there too. Contract text is still sent to the model providers during a review, and those are United States companies, so a review involves a transfer out of the EEA even though nothing is stored outside it.",
+      claims: ["data-residency"],
+    },
+    {
       title: "Not tied to one model vendor",
       body: "Model calls are routed per task through a single client, so the provider behind a given task can change without changing the product.",
       claims: ["model-routing"],
@@ -122,14 +127,9 @@ export const SECURITY_PAGE = {
       notYet: "encryption-at-rest",
     },
     {
-      title: "The database is backed up and the restore has been tested. Your uploaded files are not.",
-      body: "The database is backed up automatically every day, the last seven are kept, and they go to storage in Amsterdam rather than to the same disk as the database, so losing the hosting volume would not lose them. A restore has been carried out and checked: a backup was rebuilt into a working system and every record counted back, which is the test most providers describe but have not run. What is not covered is the original files you upload. They are stored separately and are in no backup, so a failure of that storage would lose the source documents while leaving the review results intact.",
+      title: "Backups are tested for the database, not for your files",
+      body: "The database is backed up automatically every day, the last seven are kept, and they go to storage in Amsterdam rather than to the same disk as the database. Your uploaded files are copied there daily too. A restore has been carried out and checked: a backup was rebuilt into a working system and every record counted back, which is the test most providers describe but have not run. What has not been tested is recovering the uploaded files from their copies, and there is no disaster recovery plan, no recovery time objective and no geographic redundancy beyond the single backup location.",
       notYet: "backups",
-    },
-    {
-      title: "Your data is held in the United States",
-      body: "The database is in Railway's us-west2 region and the application runs in US West, so contract data leaves the UK. Nothing in the product pins a region or offers a choice of jurisdiction, and this is not a contractual control today. If UK or EEA residency is a requirement for you, it is not something Zane can currently meet.",
-      notYet: "data-residency",
     },
     {
       title: "No retention agreement with the model provider",

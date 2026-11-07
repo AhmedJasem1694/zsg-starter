@@ -143,6 +143,15 @@ export const ALLOWED_CLAIMS: Claim[] = [
       "Stored text is not byte-identical to the source file. stripBoilerplate (documentParser.ts:187) substitutes notice-address runs with a placeholder, and the PII round trip restores a name with its first-seen casing. The uploaded file itself is untouched and GET /api/documents/:id/text re-parses from it.",
   },
   {
+    id: "data-residency",
+    claim:
+      "Your contracts are stored and processed in the European Economic Area, in the Netherlands.",
+    provenBy:
+      "Verified 7 November 2026 against the Railway API, not against config: both volumes report region europe-west4-drams3a and both services report EU West. The repository still pins no region anywhere, so the API is the only source of truth for this and re-checking it is the only way to keep this claim honest. Query: project(id).volumes.edges.node.volumeInstances.edges.node.region",
+    limit:
+      "Storage and processing, not every destination. Contract text still goes to OpenRouter and on to Anthropic during a review, and both are United States companies, so a review involves a transfer out of the EEA even though nothing is stored there. Say contracts are stored and processed in the EEA; never say data never leaves it, and never imply the model providers are European. There is also no per-company region field and no choice of jurisdiction, so this is a fact about the deployment rather than a contractual control: do not offer it as one.",
+  },
+  {
     id: "no-telemetry",
     claim:
       "No analytics, telemetry or external logging service receives anything from Zane. Logging goes to the console only.",
@@ -276,13 +285,6 @@ export const NOT_YET_CLAIMS: NotYetClaim[] = [
       "Per-organisation isolation, no cross-tenant access, or that all database queries are scoped to the authenticated company.",
     insteadSay:
       "Zane is single-tenant: one company per deployment. There are no PocketBase API rules in the project and every query runs as superuser, so isolation is a convention held in route handlers rather than a control. Six unscoped handlers were found and fixed in one sweep. See the Tenancy section of CLAUDE.md.",
-  },
-  {
-    id: "data-residency",
-    doNotClaim:
-      "A hosting region as a product control, UK or EU data centres, a chosen jurisdiction, or separate per-jurisdiction environments. Above all do not imply data stays in the UK: it does not.",
-    insteadSay:
-      "The region is now a known fact rather than an unknown, and the fact is awkward: the pocketbase-volume holding the database is in Railway's us-west2 and the app runs in US West, so customer data is stored in the UNITED STATES. Verified on 30 October 2026 against the Railway project, not the repository, which still pins no region anywhere in code or config and has no per-company region field. So the absence is real (no control, no choice of jurisdiction) but the silence is not: the privacy notice states the US location and the transfers section flags it. Say the region is US and not selectable, never that it is unpinned or unknown.",
   },
   {
     id: "certifications",
