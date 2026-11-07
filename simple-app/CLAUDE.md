@@ -292,6 +292,20 @@ Setting or changing it invalidates every existing session, which is the point wh
 
 The production guard keys off `NODE_ENV === "production"`, so confirm that variable is actually set on the host. Without it a deployment would silently take the development path and generate a fresh secret on each boot, signing everyone out on every deploy. That fails safe rather than open, but it is not what you want.
 
+### Email DNS: what is actually missing
+
+Verified against live DNS on 7 November 2026. `zanelegal.ai` publishes **no Resend records at all**: no SPF, no DKIM at `resend._domainkey`, no DMARC, and nothing on `send.zanelegal.ai`. So even once `RESEND_API_KEY` is set, the sending domain is unverified and every send returns **403**. Two separate blockers, not one.
+
+**The records cannot be written in advance.** Resend generates the DKIM keypair per domain when the domain is added, and the MX value embeds the SES region the account is assigned. They are outputs of adding the domain in Resend, not inputs to it. The order is: add the domain in Resend, read the records it produces, publish those, then verify.
+
+**Verify the subdomain, never the root.** `zanelegal.ai` MX points at `smtp.google.com`: Google Workspace carries the mail. Adding Resend's MX at the root would break the inbox. Use `send.zanelegal.ai`, which is also Resend's own recommendation.
+
+**DNS is Namecheap BasicDNS** (`dns1/dns2.registrar-servers.com`). No API token exists in this repo or the environment, so records are added by hand in the Namecheap dashboard. Namecheap's Host column takes the name *relative to the domain*, so `send` and `resend._domainkey`, not the fully-qualified names Resend displays.
+
+**Changing the sending domain means changing `SMTP_FROM`.** It defaults to `Zane <approvals@zanelegal.ai>`. Verify `send.zanelegal.ai` and it must become `Zane <approvals@send.zanelegal.ai>` or sends are still refused. This fails safe rather than silently: `sendingDomain()` reads the domain out of `SMTP_FROM`, and `isEmailUsable()` refuses when that domain is not verified at the provider, so the monthly report claims no period and the mismatch shows in `/api/health` under `email.verification.sendingDomain`.
+
+Separately, `inbox.zanelegal.ai` (the configured `INBOUND_EMAIL_DOMAIN` for Mailgun) has no MX and no TXT either, so inbound email is not set up on this deployment.
+
 ### Hosting region and backups
 
 **Customer data is in the United States.** The `pocketbase-volume` (database, extracted clause text, audit record) is in Railway's `us-west2`; the app runs in `us-west`. The privacy notice and security page both state this. Railway volumes are region-bound and cannot be moved, so changing it is a data migration, not a setting: see `docs/region-migration-runbook.md`, which is prepared and rehearsed but **not executed**. `eu-west` (Amsterdam) is the only EEA region Railway offers; there is no UK one.
