@@ -18,6 +18,7 @@ import {
   LEGAL_BANNER,
   LEGAL_GAP_PATTERN,
   LEGAL_NAV,
+  LEGAL_REVIEWER_PATTERN,
   outstandingGaps,
   type LegalPage,
 } from "@/content/legal";
@@ -35,8 +36,14 @@ import {
  * screen reader too, not just coloured for sighted readers.
  */
 function LegalText({ children }: { children: string }) {
-  const parts = children.split(LEGAL_GAP_PATTERN);
-  if (parts.length === 1) return <>{children}</>;
+  /**
+   * Instructions to the reviewer are removed before anything is measured or
+   * rendered. They are notes about the draft, not part of it, and a visitor
+   * reading a privacy notice should not be shown the worklist behind it.
+   */
+  const text = children.replace(LEGAL_REVIEWER_PATTERN, "");
+  const parts = text.split(LEGAL_GAP_PATTERN);
+  if (parts.length === 1) return <>{text}</>;
 
   // String.split with one capture group alternates: text, capture, text, ...
   return (

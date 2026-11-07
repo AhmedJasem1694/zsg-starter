@@ -46,8 +46,21 @@ export interface LegalBlock {
   rows?: Array<{ label: string; value: string }>;
 }
 
-/** Matches an unresolved gap in the rendered copy, for marking and counting. */
+/**
+ * Two kinds of unfinished, and they must not render the same way.
+ *
+ * [TODO: ...] is a BLANK: a fact missing from the final text, like the
+ * registered company number. It renders, marked, because a draft that hides
+ * its blanks looks finished when it is not.
+ *
+ * [REVIEWER: ...] is an INSTRUCTION to whoever is reviewing the draft, like
+ * "confirm with the solicitor whether EU GDPR also applies". It is stripped
+ * before rendering. A visitor reading a privacy notice should not be shown
+ * the internal workflow behind it: the page is a draft, not a worklist, and
+ * publishing the worklist is not the same kind of honesty.
+ */
 export const LEGAL_GAP_PATTERN = /\[TODO:\s*([^\]]+)\]/g;
+export const LEGAL_REVIEWER_PATTERN = /\s*\[REVIEWER:\s*([^\]]+)\]/g;
 
 /**
  * Every unresolved gap still rendered on a page, in reading order.
@@ -62,7 +75,11 @@ export function outstandingGaps(page: LegalPage): string[] {
     // text, ... so the odd indices are the gaps. The same mechanism the
     // renderer uses, deliberately: one definition of what counts as a gap.
     // Avoids matchAll, which this tsconfig's target cannot iterate.
-    const parts = s.split(LEGAL_GAP_PATTERN);
+    //
+    // Reviewer notes are stripped first, exactly as the renderer strips them,
+    // or the banner would count instructions nobody can see as outstanding
+    // blanks and the number would mean nothing.
+    const parts = s.replace(LEGAL_REVIEWER_PATTERN, "").split(LEGAL_GAP_PATTERN);
     for (let i = 1; i < parts.length; i += 2) found.push(parts[i].trim());
   };
   scan(page.updatedLabel);
@@ -75,6 +92,23 @@ export function outstandingGaps(page: LegalPage): string[] {
   return found;
 }
 
+
+/** Every instruction still awaiting the reviewing solicitor. Not rendered. */
+export function reviewerChecklist(page: LegalPage): string[] {
+  const found: string[] = [];
+  const scan = (str: string) => {
+    const parts = str.split(LEGAL_REVIEWER_PATTERN);
+    for (let i = 1; i < parts.length; i += 2) found.push(parts[i].trim());
+  };
+  scan(page.updatedLabel);
+  page.intro.forEach(scan);
+  for (const b of page.blocks) {
+    b.paragraphs?.forEach(scan);
+    b.bullets?.forEach(scan);
+    b.rows?.forEach((r) => { scan(r.label); scan(r.value); });
+  }
+  return found;
+}
 
 export interface LegalPage {
   title: string;
@@ -105,7 +139,7 @@ export const PRIVACY: LegalPage = {
   updatedLabel: "Last updated: [TODO: date this notice is approved]",
   intro: [
     "This notice explains what personal data Zane collects, why, and what rights you have over it. It covers both this website and the Zane product.",
-    "It is written for UK GDPR and the Data Protection Act 2018. [TODO: confirm with the reviewing solicitor whether EU GDPR also applies, which depends on whether customers or their counterparties are established in the EU.]",
+    "It is written for UK GDPR and the Data Protection Act 2018. [REVIEWER: confirm with the reviewing solicitor whether EU GDPR also applies, which depends on whether customers or their counterparties are established in the EU.]",
   ],
   blocks: [
     {
@@ -113,7 +147,7 @@ export const PRIVACY: LegalPage = {
       paragraphs: [
         "[TODO: registered company name] is the controller for personal data collected through this website, and for the personal data of the people who use the product.",
         "[TODO: registered company number]. [TODO: registered office address]. Neither is recorded anywhere in this product, so both must be supplied rather than assumed.",
-        "For personal data contained inside contracts that a customer uploads, the customer is the controller and Zane is a processor acting on their instructions. [TODO: confirm this split with the reviewing solicitor, and confirm whether a separate data processing agreement is needed before the first paying customer.]",
+        "For personal data contained inside contracts that a customer uploads, the customer is the controller and Zane is a processor acting on their instructions. [REVIEWER: confirm this split with the reviewing solicitor, and confirm whether a separate data processing agreement is needed before the first paying customer.]",
       ],
     },
     {
@@ -121,7 +155,7 @@ export const PRIVACY: LegalPage = {
       bullets: [
         "The contact form: your name, work email address, company name, role, and anything you choose to write in the optional free-text field.",
         "The technical information any web server receives with a request, including your IP address. The contact form records the IP address of a submission to limit abuse of the form.",
-        "[TODO: confirm whether any analytics or cookie-based measurement will be added. There is none in the product today, and none is described here because none exists. If any is added, this section and a cookie notice must be written before it ships.]",
+        "[REVIEWER: confirm whether any analytics or cookie-based measurement will be added. There is none in the product today, and none is described here because none exists. If any is added, this section and a cookie notice must be written before it ships.]",
       ],
     },
     {
@@ -146,7 +180,7 @@ export const PRIVACY: LegalPage = {
         },
         {
           label: "Reviewing contracts, including any personal data they contain",
-          value: "Performance of a contract with the customer, who instructs the processing. [TODO: the reviewing solicitor should confirm whether any special category data is foreseeable in the contract types in scope, and if so what additional condition applies.]",
+          value: "Performance of a contract with the customer, who instructs the processing. [REVIEWER: the reviewing solicitor should confirm whether any special category data is foreseeable in the contract types in scope, and if so what additional condition applies.]",
         },
         {
           label: "Keeping a record of decisions and approvals",
@@ -167,7 +201,7 @@ export const PRIVACY: LegalPage = {
         "Hosting and database: Railway, which runs the application and stores its database. The storage volumes holding the database and your uploaded files are both in Railway's europe-west4 region, in the Netherlands, and the application that processes your contracts runs in Railway's EU West region. This moved from the United States on 7 November 2026.",
         "Backup storage: Railway object storage, in its Amsterdam region in the Netherlands. A copy of the database, which includes contract metadata, the clause text extracted from your documents and the record of actions and decisions, is written there daily and the last seven are kept. Original uploaded files are not included in it.",
         "Email delivery: Resend, which sends approval requests, review notifications and replies to contact form submissions.",
-        "AI model providers, reached through a model routing service: contract text is sent to OpenRouter, which forwards it to the configured model provider. The model in use is Anthropic's Claude. Before any text is sent, party names and personal identifiers such as email addresses, telephone numbers, postcodes and bank details are replaced with placeholders, and restored only after the response comes back. [TODO: obtain the data processing terms for OpenRouter and Anthropic, and confirm whether a processor agreement is needed with each.]",
+        "AI model providers, reached through a model routing service: contract text is sent to OpenRouter, which forwards it to the configured model provider. The model in use is Anthropic's Claude. Before any text is sent, party names and personal identifiers such as email addresses, telephone numbers, postcodes and bank details are replaced with placeholders, and restored only after the response comes back. [REVIEWER: obtain the data processing terms for OpenRouter and Anthropic, and confirm whether a processor agreement is needed with each.]",
         "No document storage integration is in use. Google Drive and SharePoint are supported by the product but are not connected on this deployment, so no data reaches either.",
       ],
     },
@@ -175,7 +209,7 @@ export const PRIVACY: LegalPage = {
       heading: "A limitation you should know about",
       paragraphs: [
         "Anonymisation before a model call is ours and it is real. What a model provider does with the text it receives is governed by that provider's own terms. The product does not send any instruction to a provider asking it to withhold data from training or to delete it after the request, and it would be wrong to tell you otherwise.",
-        "[TODO: once provider terms are obtained, replace this paragraph with what those terms actually commit the providers to.]",
+        "[REVIEWER: once provider terms are obtained, replace this paragraph with what those terms actually commit the providers to.]",
       ],
     },
     {
@@ -184,20 +218,18 @@ export const PRIVACY: LegalPage = {
         "Your data is stored in the Netherlands, which is in the European Economic Area. The United Kingdom has determined that the EEA offers an adequate level of protection, so storing it there rests on adequacy rather than on contractual safeguards. This is a change: until 7 November 2026 the data was in the United States.",
         "Contract text is additionally sent to OpenRouter and on to Anthropic when a review runs, with personal identifiers replaced beforehand as described above. Both are United States companies.",
         "The daily backup copies, of both the database and your uploaded files, are held in Amsterdam, also in the European Economic Area.",
-        "This means every upload involves a transfer of personal data out of the United Kingdom.",
-        "[TODO: this is the section that most needs a solicitor. State the transfer mechanism relied on for each of Railway, OpenRouter and Anthropic: the UK Addendum to the EU Standard Contractual Clauses, the UK Extension to the EU-US Data Privacy Framework where the recipient is certified under it, or another lawful basis. Do not state that a mechanism is in place until one has actually been entered into, and record where each signed instrument is held. If no mechanism is in place for a given processor, that is a gap to close rather than a sentence to write.]",
-        "[TODO: decide whether to move hosting to a UK or EEA region instead. That is an infrastructure change, not a drafting one, and it would remove most of this section.]",
+        "So storing your contracts does not take them outside the area the United Kingdom treats as adequate. Reviewing one does: the text goes to the United States for the time it takes a model to read it, which is a transfer needing its own basis. [REVIEWER: state the transfer mechanism relied on for OpenRouter and for Anthropic, being the UK Addendum to the EU Standard Contractual Clauses, the UK Extension to the EU-US Data Privacy Framework where the recipient is certified under it, or another lawful basis. Do not write that a mechanism is in place until one has been entered into, and record where each signed instrument is held. Railway no longer needs one: hosting and backups are both in the EEA since 7 November 2026.]",
       ],
     },
     {
       heading: "How long we keep it",
       bullets: [
-        "Contact form submissions: [TODO: decide a retention period, for example 24 months from last contact.]",
-        "Account data: for as long as the account exists, and then [TODO: decide a period].",
+        "Contact form submissions: kept for [TODO: retention period for enquiries]. [REVIEWER: decide this. 24 months from last contact is a common choice for business enquiries and is easy to defend; anything open-ended is not.]",
+        "Account data: for as long as the account exists, and then [TODO: period account data is kept after closure]. [REVIEWER: decide this. It should be short and should start at account closure, not at last login.]",
         "The review results drawn from your contracts, including the clause text extracted from them: for as long as the customer's account exists. These are in the database and persist.",
         "The original uploaded file: kept for as long as the customer's account exists, on storage that persists. This became true on 31 October 2026, when a storage volume was attached for uploads. Before that date files were written to the application server's own disk, which had none, and were destroyed each time the application was redeployed. Files uploaded before 31 October 2026 are therefore gone. The review results drawn from them are in the database and were not affected.",
-        "The record of actions and decisions: retained for the life of the account, because deleting it would defeat the purpose of keeping it. [TODO: decide whether a maximum period applies.]",
-        "Deleting a whole account and everything attached to it is currently a manual request handled by a person rather than an automated process. [TODO: decide and state the period within which that will be completed.]",
+        "The record of actions and decisions: retained for the life of the account, because deleting it would defeat the purpose of keeping it. [REVIEWER: decide whether a maximum period applies. Governance records are often kept six years to match the limitation period for contract claims, which would be a defensible answer here.]",
+        "Deleting a whole account and everything attached to it is currently a manual request handled by a person rather than an automated process, and is completed within [TODO: deletion turnaround]. [REVIEWER: decide this, and pick something a person can actually meet. UK GDPR allows a month for an erasure request; promising less and missing it is worse than promising a month.]",
       ],
     },
     {
@@ -206,14 +238,14 @@ export const PRIVACY: LegalPage = {
         "Under UK GDPR you have the right to ask for a copy of your personal data, to have inaccurate data corrected, to have data erased in some circumstances, to restrict or object to processing, and to receive certain data in a portable form. Where we rely on legitimate interests, you can object and we will stop unless we have compelling grounds to continue.",
         "If the personal data is inside a contract uploaded by a customer, that customer is the controller and we will refer your request to them.",
         "To exercise any of these rights, contact us using the details below. You also have the right to complain to the Information Commissioner's Office, the UK supervisory authority, at ico.org.uk.",
-        "[TODO: confirm whether the company is required to register with the ICO and pay the data protection fee, and add the registration number here once it exists. Most organisations processing personal data electronically are required to register.]",
+        "Our registration with the Information Commissioner's Office is [TODO: ICO registration number]. [REVIEWER: confirm the company is required to register and has paid the data protection fee. Most organisations processing personal data electronically are required to, and the number only exists once that is done. If registration turns out not to be required, delete this sentence rather than leaving a blank in it.]",
       ],
     },
     {
       heading: "Security",
       paragraphs: [
         "What the product does and does not do to protect data is described in detail on the security page, including the things it does not yet do. Please read it before relying on this service for sensitive material.",
-        "[TODO: once the measures described there change, revisit this notice and the security page together so they cannot drift apart.]",
+        "[REVIEWER: once the measures described there change, revisit this notice and the security page together so they cannot drift apart.]",
       ],
     },
     {
@@ -226,7 +258,7 @@ export const PRIVACY: LegalPage = {
       heading: "Contact",
       paragraphs: [
         `Questions about this notice or about your data can be sent to ${CONTACT_EMAIL}.`,
-        "[TODO: confirm whether a Data Protection Officer is required. For an organisation of this size and activity it is unlikely to be mandatory, but the decision should be recorded.]",
+        "[REVIEWER: confirm whether a Data Protection Officer is required. For an organisation of this size and activity it is unlikely to be mandatory, but the decision should be recorded.]",
       ],
     },
   ],
@@ -239,7 +271,7 @@ export const TERMS: LegalPage = {
   updatedLabel: "Last updated: [TODO: date these terms are approved]",
   intro: [
     "These terms govern your use of this website. They do not govern use of the Zane product itself, which is provided under a separate agreement with the customer organisation.",
-    "[TODO: the product subscription terms are a separate document and have not been drafted. Do not rely on this page as a substitute for them.]",
+    "These terms cover this website only. The terms on which the Zane product itself is supplied are a separate agreement, and nothing here replaces or summarises them. [REVIEWER: those subscription terms have not been drafted. They are needed before the first paying customer.]",
   ],
   blocks: [
     {
@@ -286,7 +318,7 @@ export const TERMS: LegalPage = {
       paragraphs: [
         "Nothing in these terms limits liability for death or personal injury caused by negligence, for fraud, or for anything else that cannot lawfully be limited.",
         "Subject to that, we are not responsible for any loss arising from use of this site, in particular any business loss such as lost profit, lost revenue, lost data or lost opportunity.",
-        "[TODO: the reviewing solicitor should set the liability position for the website, and confirm it is consistent with the product subscription terms once those exist.]",
+        "[REVIEWER: the reviewing solicitor should set the liability position for the website, and confirm it is consistent with the product subscription terms once those exist.]",
       ],
     },
     {
@@ -298,7 +330,7 @@ export const TERMS: LegalPage = {
     {
       heading: "Governing law",
       paragraphs: [
-        "These terms are governed by the law of England and Wales, and the courts of England and Wales have exclusive jurisdiction. [TODO: confirm this is right for the intended customer base.]",
+        "These terms are governed by the law of England and Wales, and the courts of England and Wales have exclusive jurisdiction. [REVIEWER: confirm this is right for the intended customer base.]",
       ],
     },
     {

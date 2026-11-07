@@ -72,6 +72,8 @@ The pages anyone can reach without signing in: `/`, `/security`, `/privacy`, `/t
 | `security.ts` | The security page, including what the product does **not** do |
 | `legal.ts` | Privacy notice and website terms, both drafts behind a banner |
 
+The legal pages mark two different kinds of unfinished and must keep them apart. `[TODO: ...]` is a **blank**, a fact missing from the final text, and it renders highlighted so a draft cannot look finished. `[REVIEWER: ...]` is an **instruction** to whoever is reviewing it, and is stripped before rendering: a visitor reading a privacy notice should not be shown the worklist behind it. `outstandingGaps()` counts only blanks and the banner reports that number; `reviewerChecklist()` returns the instructions. If you add a marker, use the right one, and never leave an instruction as a TODO.
+
 A component that hardcodes a sentence is a bug. The point is that the whole site can be read and reviewed without opening a single `.tsx` file.
 
 **Section order** is `SECTION_ORDER` in `homepage.ts`. `Landing.tsx` renders against that list rather than fixing the sequence in markup, so reordering the page is a change to one array:
