@@ -74,7 +74,20 @@ async function run(): Promise<BackupStatus> {
     const scheduled = cron.trim() !== "";
     const offsite = Boolean(b.s3?.enabled);
 
-    const files = await pb.backups.getFullList();
+    /**
+     * Only actual database archives.
+     *
+     * PocketBase lists everything in its bucket, and the bucket is shared:
+     * uploadsBackup writes contract files under uploads/ and a run marker
+     * under _meta/. Counting those made the newest "backup" a 0 MB JSON file
+     * minutes old, which reported healthy while saying nothing about whether
+     * the database had actually been backed up. A health check that can be
+     * satisfied by the wrong file is worse than none.
+     */
+    const files = (await pb.backups.getFullList()).filter((f) => {
+      const key = String(f.key ?? "");
+      return key.endsWith(".zip") && !key.includes("/");
+    });
     const sorted = [...files].sort(
       (x, y) => new Date(String(y.modified)).getTime() - new Date(String(x.modified)).getTime(),
     );

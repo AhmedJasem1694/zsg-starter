@@ -32,3 +32,27 @@ describe("before anything has been checked", () => {
     expect(m.lastBackupStatus()).not.toHaveProperty("healthy", false);
   });
 });
+
+/**
+ * The bucket is shared. PocketBase's database archives sit at the root while
+ * uploadsBackup writes contract files under uploads/ and a run marker under
+ * _meta/. A listing that counts those reports the newest "backup" as a 0 MB
+ * JSON file minutes old, and calls it healthy while saying nothing about the
+ * database. This pins the filter that keeps the two apart.
+ */
+describe("which objects count as a database backup", () => {
+  const isArchive = (key: string) => key.endsWith(".zip") && !key.includes("/");
+
+  it("counts PocketBase's own archives", () => {
+    expect(isArchive("@auto_pb_backup_acme_20261107030000.zip")).toBe(true);
+    expect(isArchive("premigration_1794075380.zip")).toBe(true);
+  });
+
+  it("ignores the uploads backup's files and its run marker", () => {
+    expect(isArchive("uploads/aaa111.pdf")).toBe(false);
+    expect(isArchive("_meta/uploads-backup-last-run.json")).toBe(false);
+    // The case that actually bit: a backed-up contract that happens to be a
+    // zip would otherwise be counted as a database backup.
+    expect(isArchive("uploads/contract-bundle.zip")).toBe(false);
+  });
+});
