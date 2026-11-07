@@ -33,12 +33,36 @@ import {
   S3Client,
   ListObjectsV2Command,
   PutObjectCommand,
+  GetObjectCommand,
 } from "@aws-sdk/client-s3";
 import { UPLOADS_DIR } from "../lib/uploadsDir.js";
 
 /** Objects go under this prefix so they cannot collide with PocketBase's own
  *  database backups, which share the bucket. */
 const PREFIX = "uploads/";
+
+/**
+ * Proof that a run happened, written on every successful one.
+ *
+ * Staleness cannot be answered from memory: `lastRunAt` resets on every
+ * deploy, so a service restarting daily would always look like it had just
+ * run. Nor can it be answered from the newest backed-up file, which is the
+ * tempting shortcut and is wrong: this is a one-way copy that skips files the
+ * bucket already has, so nothing new for ten days means the backup is
+ * complete, not that it stopped.
+ *
+ * So the evidence is a small object the job rewrites each time. Outside the
+ * uploads/ prefix, because it is not a backed-up contract and should never be
+ * restored as one.
+ */
+const SENTINEL_KEY = "_meta/uploads-backup-last-run.json";
+
+/**
+ * A daily job that has not run for two days has missed a window. Same
+ * threshold as the database backup monitor, so the two agree about what
+ * "overdue" means.
+ */
+const STALE_AFTER_HOURS = 48;
 
 /** Never try to copy something implausible for a contract. A volume that has
  *  filled with something unexpected should not become an egress bill. */
@@ -53,8 +77,44 @@ export interface UploadsBackupStatus {
   /** Copied up during the last run. */
   uploaded: number;
   failed: number;
+  /** When this process last ran it. Resets on deploy; not a staleness signal. */
   lastRunAt?: string;
+  /**
+   * When a run last succeeded, read from the sentinel in the bucket. Survives
+   * restarts, which is what makes it usable for staleness.
+   */
+  lastSuccessAt?: string;
+  /** Hours since that, for a reader who should not have to do date maths. */
+  ageHours?: number;
+  /**
+   * Ran recently enough, with no error and nothing failed. Null when it has
+   * not been established yet, which is not the same as false.
+   */
+  healthy?: boolean | null;
   error?: string;
+}
+
+/**
+ * Is a backup overdue?
+ *
+ * Pure, and exported, because this is the whole alerting argument and it
+ * should be pinned by tests rather than by waiting two days to find out.
+ *
+ * An empty uploads directory is healthy, not stale: there is nothing to copy,
+ * so the absence of a recent copy is correct. That matters here, where the
+ * volume is currently almost empty and a monitor that cried wolf daily would
+ * be switched off within a week.
+ */
+export function isUploadsBackupStale(
+  now: Date,
+  lastSuccessAt: string | undefined,
+  localFileCount: number,
+): boolean {
+  if (localFileCount === 0) return false;
+  if (!lastSuccessAt) return true;
+  const last = new Date(lastSuccessAt).getTime();
+  if (isNaN(last)) return true;
+  return now.getTime() - last > STALE_AFTER_HOURS * 3600_000;
 }
 
 let status: UploadsBackupStatus = {
@@ -170,6 +230,29 @@ export async function runUploadsBackup(): Promise<UploadsBackupStatus> {
     }
   }
 
+  /**
+   * Record that a run happened, but only when it actually completed its work.
+   * Writing this after a run where files failed would mark the backup fresh
+   * while it is incomplete, which is the dressed-up version of the problem
+   * this whole file exists to avoid.
+   */
+  let lastSuccessAt: string | undefined = status.lastSuccessAt;
+  if (failed === 0) {
+    try {
+      await s3.send(new PutObjectCommand({
+        Bucket: cfg.bucket,
+        Key: SENTINEL_KEY,
+        Body: JSON.stringify({ at: lastRunAt, localFiles: files.length, uploaded }),
+        ContentType: "application/json",
+      }));
+      lastSuccessAt = lastRunAt;
+    } catch (err) {
+      // The copy itself worked. Losing the marker means the next staleness
+      // check is pessimistic, which is the safe direction.
+      console.warn(`[uploadsBackup] copied files but could not write the run marker: ${(err as Error)?.message}`);
+    }
+  }
+
   status = {
     configured: true,
     localFiles: files.length,
@@ -177,8 +260,40 @@ export async function runUploadsBackup(): Promise<UploadsBackupStatus> {
     uploaded,
     failed,
     lastRunAt,
+    lastSuccessAt,
+    ageHours: lastSuccessAt
+      ? Math.round(((Date.now() - new Date(lastSuccessAt).getTime()) / 3600_000) * 10) / 10
+      : undefined,
+    healthy: failed === 0 && !isUploadsBackupStale(new Date(), lastSuccessAt, files.length),
   };
   return status;
+}
+
+/**
+ * Read the run marker from the bucket.
+ *
+ * Done at boot so staleness is known without waiting for the first run, which
+ * is exactly the window a deploy-loop would hide in.
+ */
+async function readLastSuccess(): Promise<string | undefined> {
+  const cfg = config();
+  if (!cfg) return undefined;
+  const s3 = new S3Client({
+    region: cfg.region,
+    endpoint: cfg.endpoint,
+    credentials: { accessKeyId: cfg.accessKeyId, secretAccessKey: cfg.secretAccessKey },
+    forcePathStyle: true,
+  });
+  try {
+    const got = await s3.send(new GetObjectCommand({ Bucket: cfg.bucket, Key: SENTINEL_KEY }));
+    const body = await got.Body?.transformToString();
+    const at = body ? (JSON.parse(body) as { at?: string }).at : undefined;
+    return typeof at === "string" ? at : undefined;
+  } catch {
+    // Absent on a bucket that has never had a successful run, which the
+    // caller treats as stale rather than as an error.
+    return undefined;
+  }
 }
 
 /** Last known state, for /api/health. No work done on the request path. */
@@ -231,9 +346,34 @@ export function isUploadsBackupDue(now: Date, lastRunAt?: string): boolean {
  * log.
  */
 export function startUploadsBackup(): void {
+  /**
+   * Say so when the backup is overdue.
+   *
+   * Separate from running it, and reached even on the ticks that do not run,
+   * because the failure worth catching is the one where the job stops
+   * happening at all. A monitor that only speaks when the thing it monitors
+   * runs is not a monitor.
+   */
+  const alertIfStale = (lastSuccessAt: string | undefined) => {
+    const local = localFiles().length;
+    if (!isUploadsBackupStale(new Date(), lastSuccessAt, local)) return;
+    const age = lastSuccessAt
+      ? `${Math.round((Date.now() - new Date(lastSuccessAt).getTime()) / 3600_000)}h ago`
+      : "never";
+    console.error(
+      `[uploadsBackup] OVERDUE: ${local} file(s) on the volume and the last successful copy was ${age}. ` +
+      `Expected daily at 0${RUN_AT_UTC_HOUR}:00 UTC. Uploaded files are not in PocketBase's database ` +
+      `backup, so they are currently protected by nothing.`,
+    );
+  };
+
   const tick = () => {
     if (!config()) return;
-    if (!isUploadsBackupDue(new Date(), status.lastRunAt)) return;
+
+    if (!isUploadsBackupDue(new Date(), status.lastRunAt)) {
+      alertIfStale(status.lastSuccessAt);
+      return;
+    }
 
     runUploadsBackup()
       .then((s) => {
@@ -244,12 +384,32 @@ export function startUploadsBackup(): void {
         } else {
           console.log(`[uploadsBackup] ok: ${s.uploaded} new file(s) copied, ${s.localFiles} local, ${s.remoteObjects} already in the bucket.`);
         }
+        alertIfStale(s.lastSuccessAt);
       })
       .catch((err) => console.error("[uploadsBackup] run error:", (err as Error)?.message));
   };
 
-  // Soon after boot, so a deployment that happens after the window still
-  // catches up the same day rather than waiting until tomorrow.
-  setTimeout(tick, 2 * 60 * 1000);
+  /**
+   * Learn from the bucket when a copy last succeeded, before deciding
+   * anything. Without this, every deploy starts believing it has never run
+   * and the first tick's verdict is meaningless.
+   */
+  setTimeout(() => {
+    if (!config()) return;
+    readLastSuccess()
+      .then((at) => {
+        if (at) {
+          status = {
+            ...status,
+            lastSuccessAt: at,
+            ageHours: Math.round(((Date.now() - new Date(at).getTime()) / 3600_000) * 10) / 10,
+          };
+        }
+        alertIfStale(at);
+      })
+      .catch(() => { /* the tick below re-establishes it */ })
+      .finally(tick);
+  }, 2 * 60 * 1000);
+
   setInterval(tick, CHECK_INTERVAL_MS);
 }

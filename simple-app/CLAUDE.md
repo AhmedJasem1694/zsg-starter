@@ -312,6 +312,8 @@ It is a one-way copy, never a mirror. Nothing is deleted from the bucket, so rem
 
 Scheduling is a due-check against a timestamp, not a 24-hour interval. An interval from boot drifts to whenever the service last restarted, and a service restarting daily would never back up at all. `isUploadsBackupDue()` is pure and tested.
 
+**Overdue is alerted, and the signal is not the obvious one.** Each successful run rewrites `_meta/uploads-backup-last-run.json` in the bucket, and staleness is measured from that. Two shortcuts are wrong here and both were avoided: in-memory `lastRunAt` resets on every deploy, so a service redeploying daily would always look like it had just run; and "newest object under `uploads/`" is wrong because this is a one-way copy that skips files already present, so nothing new for a month means complete, not stopped. Over 48 hours with files on the volume logs `[uploadsBackup] OVERDUE`. An **empty** uploads directory is healthy rather than stale, because a monitor that complains daily about nothing gets muted before the day it matters. `isUploadsBackupStale()` is pure and tested.
+
 **What is still not true:** nothing has been restored *from* the uploads bucket. The database restore is rehearsed; the file side is copied and read back but not exercised as a recovery.
 
 To re-point or rotate credentials, `scripts/enable-s3-backups.ts` reads them from the environment and never prints them; `--test` takes a real backup afterwards and confirms it lands.
