@@ -306,7 +306,13 @@ Note Railway's `bucket info` reported `0 B, 0 objects` for some time after the o
 
 Note the archive contains `data.db-wal` and `auxiliary.db-wal` at **zero bytes**. PocketBase checkpoints before snapshotting, which is exactly why its backup is safe where a raw file copy is not.
 
-**What is still not true:** uploaded files are on a different volume and are in no backup at all, so losing that volume loses the source documents while the review results survive. That asymmetry is now the weakest point.
+**Uploaded files are backed up too**, by `server/services/uploadsBackup.ts`, since 7 November 2026. They are on a different volume that PocketBase's backup does not touch, so the app copies them to the same bucket under an `uploads/` prefix at **03:00 UTC**, the same hour PocketBase runs: a restore then pairs a database with the files of the same day rather than a different one.
+
+It is a one-way copy, never a mirror. Nothing is deleted from the bucket, so removing a contract in the product does not remove its backup. Matching is on key and byte length, so a re-run copies nothing. Needs `S3_*` in the environment; without them it is silent.
+
+Scheduling is a due-check against a timestamp, not a 24-hour interval. An interval from boot drifts to whenever the service last restarted, and a service restarting daily would never back up at all. `isUploadsBackupDue()` is pure and tested.
+
+**What is still not true:** nothing has been restored *from* the uploads bucket. The database restore is rehearsed; the file side is copied and read back but not exercised as a recovery.
 
 To re-point or rotate credentials, `scripts/enable-s3-backups.ts` reads them from the environment and never prints them; `--test` takes a real backup afterwards and confirms it lands.
 

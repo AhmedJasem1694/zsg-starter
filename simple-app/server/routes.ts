@@ -30,6 +30,7 @@ import { runLegacyReview, ensureLegacyFields } from "./services/legacyReview.js"
 import { detectAndSaveRegulations } from "./services/regulatoryDetection.js";
 import { uploadPath, uploadsHealth } from "./lib/uploadsDir.js";
 import { lastBackupStatus } from "./services/backupHealth.js";
+import { lastUploadsBackupStatus } from "./services/uploadsBackup.js";
 import { requireAuth, signToken } from "./middleware/auth.js";
 import { transcribeAudioFile } from "./services/transcription.js";
 import { chatComplete } from "./services/openrouter.js";
@@ -5843,6 +5844,11 @@ Draft the complete clause.`;
       // stopped is worse than none: it is believed. Cached, no network call
       // on the request path.
       backups: lastBackupStatus(),
+      // Uploaded files are on a different volume from the database and are
+      // not in PocketBase's backup. This is the separate job that copies them
+      // into the same bucket, reported separately because they can fail
+      // independently.
+      uploadsBackup: lastUploadsBackupStatus(),
       // Whether the monthly report is actually being sent, and which period
       // the next pass would cover. Both matter: the switch being on is not the
       // same as email working, and turning it on mid-month sends the previous

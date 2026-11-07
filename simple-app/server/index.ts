@@ -11,6 +11,7 @@ import { initPocketBase } from "./pb";
 import { startIntegrationRenewalLoop } from "./services/integrationRenewal";
 import { startMonthlyReportLoop } from "./services/monthlyReportSchedule";
 import { startBackupMonitor } from "./services/backupHealth";
+import { startUploadsBackup } from "./services/uploadsBackup";
 import { isOriginAllowed } from "./lib/corsPolicy";
 import { activeTransport, startEmailVerification } from "./services/emailService";
 
@@ -154,6 +155,10 @@ async function recoverStuckDocuments() {
   // Notice if the database stops being backed up. PocketBase takes them on
   // its own cron; this only watches that they are still happening.
   startBackupMonitor();
+
+  // Copy uploaded files into object storage. PocketBase's backup covers the
+  // database only; these live on a different volume.
+  startUploadsBackup();
 
   // Send the monthly legal report to each company's CFO and GC. Off unless
   // MONTHLY_REPORT_SEND is set; logs which it is either way.
